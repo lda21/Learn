@@ -268,48 +268,57 @@
 
     /* Responsive Design */
     @media (max-width: 768px) {
+      body { font-size: 18px; }
+
       .slide {
-        padding: 30px 20px;
+        padding: 30px 24px;
         justify-content: flex-start;
         padding-top: 50px;
         overflow-y: auto;
       }
 
-      h1 { font-size: 2.4rem; }
-      h2 { font-size: 1.9rem; }
-      h3 { font-size: 1.4rem; }
-      p, li { font-size: 1.15rem; line-height: 1.6; }
+      h1 { font-size: 2.8rem; }
+      h2 { font-size: 2.2rem; }
+      h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
 
-      .title-fire { font-size: 3.2rem; }
-      .logo-icon { font-size: 4.5rem; }
-      .subtitle { font-size: 1.25rem; }
+      .title-fire { font-size: 3.5rem; }
+      .logo-icon { font-size: 5rem; }
+      .subtitle { font-size: 1.5rem; }
 
-      code { font-size: 1rem; padding: 2px 6px; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
       pre {
-        padding: 16px 14px;
-        font-size: 0.88rem;
+        padding: 18px 16px;
+        font-size: 1rem;
         line-height: 1.5;
         max-width: 100%;
+        word-wrap: break-word;
+        white-space: pre-wrap;
       }
 
       .two-col {
         grid-template-columns: 1fr;
-        gap: 16px;
+        gap: 18px;
       }
 
       .metric-grid {
         grid-template-columns: 1fr;
-        gap: 12px;
+        gap: 14px;
       }
 
       .bp-grid {
         grid-template-columns: 1fr;
-        gap: 10px;
+        gap: 12px;
       }
 
-      .card { padding: 16px; }
-      .metric-card { padding: 16px; }
-      .bp-item { padding: 14px 16px; font-size: 1.1rem; }
+      .card { padding: 20px; }
+      .card h3 { font-size: 1.4rem; }
+      .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; }
+      .metric-card h3 { font-size: 1.4rem; }
+      .metric-card p { font-size: 1.15rem; }
+      .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
 
       .diagram {
         flex-direction: column;
@@ -318,33 +327,33 @@
 
       .diagram .arrow {
         transform: rotate(90deg);
-        font-size: 1.4rem;
+        font-size: 1.6rem;
       }
 
       .diagram .box {
         min-width: 80%;
-        padding: 12px 18px;
-        font-size: 1.05rem;
+        padding: 14px 20px;
+        font-size: 1.2rem;
       }
 
-      table { font-size: 1rem; display: block; overflow-x: auto; }
-      th, td { padding: 10px 12px; font-size: 1rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; }
+      th, td { padding: 12px 14px; font-size: 1.15rem; }
 
       .nav {
-        bottom: 12px;
-        right: 12px;
-        gap: 6px;
+        bottom: 14px;
+        right: 14px;
+        gap: 8px;
       }
 
       .nav button {
-        padding: 8px 14px;
-        font-size: 0.85rem;
+        padding: 12px 20px;
+        font-size: 1.1rem;
       }
 
       .slide-counter {
-        bottom: 16px;
-        left: 12px;
-        font-size: 0.8rem;
+        bottom: 18px;
+        left: 14px;
+        font-size: 1rem;
       }
 
       .content { max-width: 100%; }
@@ -352,22 +361,28 @@
 
     @media (max-width: 480px) {
       .slide {
-        padding: 20px 14px;
+        padding: 24px 18px;
         padding-top: 40px;
       }
 
-      h1 { font-size: 2rem; }
-      h2 { font-size: 1.6rem; }
-      h3 { font-size: 1.2rem; }
-      p, li { font-size: 1.05rem; }
+      h1 { font-size: 2.4rem; }
+      h2 { font-size: 1.9rem; }
+      h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
 
-      pre { font-size: 0.8rem; padding: 12px 10px; }
+      pre { font-size: 0.9rem; padding: 14px 12px; }
+      code { font-size: 1.05rem; }
 
-      .title-fire { font-size: 2.6rem; }
-      .logo-icon { font-size: 3.5rem; }
-      .subtitle { font-size: 1.1rem; }
+      .title-fire { font-size: 2.8rem; }
+      .logo-icon { font-size: 4rem; }
+      .subtitle { font-size: 1.3rem; }
 
-      .tag { font-size: 0.95rem; padding: 4px 12px; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+
+      .bp-item { font-size: 1.15rem; }
+      .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; }
+      table, th, td { font-size: 1.05rem; }
     }
   </style>
 </head>
