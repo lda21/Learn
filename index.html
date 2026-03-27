@@ -1,0 +1,786 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Prometheus - Monitoring &amp; Alerting</title>
+  <style>
+    :root {
+      --bg: #1a1a2e;
+      --bg-slide: #16213e;
+      --accent: #e94560;
+      --accent2: #0f3460;
+      --text: #eee;
+      --text-muted: #aab;
+      --code-bg: #0d1117;
+      --success: #3ddc84;
+      --warning: #ffb347;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    /* Slide container */
+    .deck {
+      width: 100vw;
+      height: 100vh;
+      position: relative;
+    }
+
+    .slide {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 60px 80px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      background: var(--bg);
+    }
+
+    .slide.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    /* Typography */
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre {
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      background: var(--code-bg);
+      border-radius: 6px;
+    }
+
+    code { padding: 2px 7px; font-size: 1.1rem; }
+
+    pre {
+      padding: 24px 28px;
+      font-size: 0.95rem;
+      line-height: 1.6;
+      overflow-x: auto;
+      width: 100%;
+      max-width: 900px;
+      border-left: 4px solid var(--accent);
+    }
+
+    /* Layout helpers */
+    .content { max-width: 1000px; width: 100%; }
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 40px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .card {
+      background: var(--accent2);
+      border-radius: 12px;
+      padding: 28px;
+    }
+
+    .card h3 { margin-bottom: 12px; }
+
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag {
+      display: inline-block;
+      background: var(--accent2);
+      padding: 4px 14px;
+      border-radius: 20px;
+      font-size: 0.95rem;
+      margin: 4px;
+    }
+
+    /* Diagram */
+    .diagram {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      flex-wrap: wrap;
+      margin: 20px 0;
+    }
+
+    .diagram .box {
+      background: var(--accent2);
+      border: 2px solid var(--accent);
+      border-radius: 10px;
+      padding: 16px 24px;
+      text-align: center;
+      font-weight: 600;
+      min-width: 130px;
+    }
+
+    .diagram .arrow {
+      font-size: 1.8rem;
+      color: var(--accent);
+    }
+
+    /* Table */
+    table {
+      border-collapse: collapse;
+      width: 100%;
+      max-width: 900px;
+      margin: 12px 0;
+    }
+
+    th, td {
+      padding: 12px 18px;
+      text-align: left;
+      border-bottom: 1px solid #333;
+      font-size: 1.1rem;
+    }
+
+    th {
+      color: var(--accent);
+      font-size: 1.05rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Progress bar */
+    .progress {
+      position: fixed;
+      top: 0;
+      left: 0;
+      height: 4px;
+      background: var(--accent);
+      transition: width 0.4s ease;
+      z-index: 100;
+    }
+
+    /* Nav */
+    .nav {
+      position: fixed;
+      bottom: 24px;
+      right: 32px;
+      display: flex;
+      gap: 10px;
+      z-index: 100;
+    }
+
+    .nav button {
+      background: var(--accent2);
+      color: var(--text);
+      border: none;
+      border-radius: 8px;
+      padding: 10px 20px;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .nav button:hover { background: var(--accent); }
+
+    .slide-counter {
+      position: fixed;
+      bottom: 28px;
+      left: 32px;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      z-index: 100;
+    }
+
+    /* Title slide special */
+    .title-fire {
+      font-size: 5rem;
+      margin-bottom: 0.1em;
+    }
+
+    .logo-icon {
+      font-size: 6rem;
+      margin-bottom: 20px;
+      display: block;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .slide.active .animate {
+      animation: fadeInUp 0.6s ease both;
+    }
+
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    /* Metric type cards */
+    .metric-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 950px;
+      width: 100%;
+    }
+
+    .metric-card {
+      background: var(--accent2);
+      border-radius: 12px;
+      padding: 24px;
+      border-top: 4px solid var(--accent);
+    }
+
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    /* Best practices list */
+    .bp-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      max-width: 950px;
+      width: 100%;
+    }
+
+    .bp-item {
+      background: var(--accent2);
+      border-radius: 10px;
+      padding: 18px 22px;
+      font-size: 1.1rem;
+    }
+
+    .bp-item span { color: var(--success); font-weight: 700; margin-right: 8px; }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F525;</span>
+    <h1 class="animate title-fire">Prometheus</h1>
+    <p class="subtitle animate">Open-Source Monitoring &amp; Alerting Toolkit</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2: What is Prometheus? -->
+  <div class="slide">
+    <h2 class="animate">What is Prometheus?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An open-source <span class="highlight">systems monitoring and alerting</span> toolkit</li>
+        <li class="animate">Originally built at <strong>SoundCloud</strong> (2012), now a <strong>CNCF graduated</strong> project</li>
+        <li class="animate">Inspired by Google's internal monitoring system <em>Borgmon</em></li>
+        <li class="animate">Written in <strong>Go</strong> &mdash; single binary, easy to deploy</li>
+        <li class="animate">De facto standard for monitoring in the <span class="highlight">Kubernetes / cloud-native</span> ecosystem</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Key Features -->
+  <div class="slide">
+    <h2 class="animate">Key Features</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Multi-dimensional Data Model</h3>
+        <p>Time series identified by metric name + key/value label pairs</p>
+      </div>
+      <div class="card animate">
+        <h3>PromQL</h3>
+        <p>Powerful, flexible query language to slice and aggregate data</p>
+      </div>
+      <div class="card animate">
+        <h3>Pull-Based Collection</h3>
+        <p>Prometheus scrapes targets over HTTP &mdash; no agents required</p>
+      </div>
+      <div class="card animate">
+        <h3>Service Discovery</h3>
+        <p>Auto-discovers targets via Kubernetes, Consul, DNS, EC2, and more</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">Targets<br><small>(apps, exporters)</small></div>
+      <div class="arrow">&larr;</div>
+      <div class="box" style="border-color: var(--warning);">Prometheus<br>Server<br><small>(scrape + store)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Alertmanager</div>
+    </div>
+    <div class="diagram animate" style="margin-top: 10px;">
+      <div class="box" style="border-color:#3ddc84;">Grafana</div>
+      <div class="arrow">&larr;</div>
+      <div class="box" style="border-color: var(--warning);">Prometheus<br>Server</div>
+      <div class="arrow">&larr;</div>
+      <div class="box">Pushgateway<br><small>(short-lived jobs)</small></div>
+    </div>
+    <ul class="content animate" style="margin-top: 24px;">
+      <li>Prometheus <strong>pulls</strong> metrics from instrumented targets at configured intervals</li>
+      <li>Stores data in its local <strong>time series database (TSDB)</strong></li>
+      <li>Evaluates <strong>alerting rules</strong> and sends alerts to Alertmanager</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 5: Data Model -->
+  <div class="slide">
+    <h2 class="animate">Data Model</h2>
+    <div class="content">
+      <p class="animate">Every time series is uniquely identified by its <span class="highlight">metric name</span> and a set of <span class="highlight">labels</span>:</p>
+      <pre class="animate">
+http_requests_total{method="GET", handler="/api/users", status="200"}  1027
+http_requests_total{method="POST", handler="/api/users", status="201"}  342
+      </pre>
+      <ul>
+        <li class="animate"><strong>Metric name</strong> &mdash; describes what is being measured (<code>http_requests_total</code>)</li>
+        <li class="animate"><strong>Labels</strong> &mdash; key-value pairs that add dimensions (<code>method</code>, <code>status</code>)</li>
+        <li class="animate"><strong>Sample</strong> &mdash; a (timestamp, float64 value) pair</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Metric Types -->
+  <div class="slide">
+    <h2 class="animate">Four Metric Types</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Counter</h3>
+        <p>Monotonically increasing value. Resets only on restart.</p>
+        <code>http_requests_total</code>
+      </div>
+      <div class="metric-card animate">
+        <h3>Gauge</h3>
+        <p>Value that can go up and down.</p>
+        <code>node_memory_free_bytes</code>
+      </div>
+      <div class="metric-card animate">
+        <h3>Histogram</h3>
+        <p>Samples observations into configurable buckets + sum &amp; count.</p>
+        <code>http_request_duration_seconds</code>
+      </div>
+      <div class="metric-card animate">
+        <h3>Summary</h3>
+        <p>Like histogram but calculates streaming quantiles on the client.</p>
+        <code>go_gc_duration_seconds</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: PromQL Basics -->
+  <div class="slide">
+    <h2 class="animate">PromQL &mdash; Query Language</h2>
+    <div class="content">
+      <h3 class="animate">Instant vector &mdash; select a metric</h3>
+      <pre class="animate">http_requests_total{job="api-server", method="GET"}</pre>
+
+      <h3 class="animate" style="margin-top:20px;">Rate &mdash; per-second increase of a counter</h3>
+      <pre class="animate">rate(http_requests_total{job="api-server"}[5m])</pre>
+
+      <h3 class="animate" style="margin-top:20px;">Aggregation &mdash; total across all instances</h3>
+      <pre class="animate">sum by (method) (rate(http_requests_total[5m]))</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: More PromQL -->
+  <div class="slide">
+    <h2 class="animate">PromQL &mdash; Practical Examples</h2>
+    <div class="content">
+      <h3 class="animate">Error rate percentage</h3>
+      <pre class="animate">
+100 * sum(rate(http_requests_total{status=~"5.."}[5m]))
+    / sum(rate(http_requests_total[5m]))
+      </pre>
+
+      <h3 class="animate" style="margin-top:20px;">95th percentile latency (histogram)</h3>
+      <pre class="animate">
+histogram_quantile(0.95,
+  sum by (le) (rate(http_request_duration_seconds_bucket[5m]))
+)
+      </pre>
+
+      <h3 class="animate" style="margin-top:20px;">Top 5 memory consumers</h3>
+      <pre class="animate">topk(5, container_memory_usage_bytes)</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Configuration -->
+  <div class="slide">
+    <h2 class="animate">Configuration (prometheus.yml)</h2>
+    <div class="content">
+      <pre class="animate">
+global:
+  scrape_interval: 15s          # How often to scrape targets
+  evaluation_interval: 15s      # How often to evaluate rules
+
+rule_files:
+  - "alerts.yml"
+
+scrape_configs:
+  - job_name: "prometheus"       # Self-monitoring
+    static_configs:
+      - targets: ["localhost:9090"]
+
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["server1:9100", "server2:9100"]
+
+  - job_name: "kubernetes-pods"  # Auto-discovery
+    kubernetes_sd_configs:
+      - role: pod
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Alerting -->
+  <div class="slide">
+    <h2 class="animate">Alerting Rules</h2>
+    <div class="content">
+      <pre class="animate">
+groups:
+  - name: example-alerts
+    rules:
+      - alert: HighErrorRate
+        expr: |
+          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          / sum(rate(http_requests_total[5m])) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High 5xx error rate detected"
+          description: "Error rate is {{ $value | humanizePercentage }}"
+
+      - alert: InstanceDown
+        expr: up == 0
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Instance {{ $labels.instance }} is down"
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Alertmanager -->
+  <div class="slide">
+    <h2 class="animate">Alertmanager</h2>
+    <div class="content">
+      <p class="animate">Handles alert <span class="highlight">deduplication</span>, <span class="highlight">grouping</span>, <span class="highlight">routing</span>, and <span class="highlight">silencing</span>.</p>
+      <pre class="animate">
+route:
+  receiver: 'slack-notifications'
+  group_by: ['alertname', 'job']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+  routes:
+    - match:
+        severity: critical
+      receiver: 'pagerduty-critical'
+
+receivers:
+  - name: 'slack-notifications'
+    slack_configs:
+      - channel: '#alerts'
+        send_resolved: true
+
+  - name: 'pagerduty-critical'
+    pagerduty_configs:
+      - service_key: '&lt;key&gt;'
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Instrumentation -->
+  <div class="slide">
+    <h2 class="animate">Instrumenting Your App</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Python</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from prometheus_client import (
+    Counter, start_http_server
+)
+
+REQUESTS = Counter(
+    'app_requests_total',
+    'Total requests',
+    ['method', 'endpoint']
+)
+
+@app.route('/api/users')
+def users():
+    REQUESTS.labels(
+        method='GET',
+        endpoint='/api/users'
+    ).inc()
+    return get_users()
+
+start_http_server(8000)
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>Go</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import (
+    "github.com/prometheus/
+     client_golang/prometheus"
+    "github.com/prometheus/
+     client_golang/prometheus/
+     promhttp"
+)
+
+var requests = prometheus.
+  NewCounterVec(
+    prometheus.CounterOpts{
+      Name: "app_requests_total",
+      Help: "Total requests",
+    },
+    []string{"method","endpoint"},
+)
+
+func init() {
+    prometheus.MustRegister(requests)
+}
+
+// In handler:
+requests.WithLabelValues(
+    "GET", "/api/users").Inc()
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Exporters -->
+  <div class="slide">
+    <h2 class="animate">Popular Exporters</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Exporter</th><th>What it monitors</th><th>Port</th></tr>
+        <tr><td><strong>Node Exporter</strong></td><td>Linux host metrics (CPU, memory, disk, network)</td><td>9100</td></tr>
+        <tr><td><strong>Blackbox Exporter</strong></td><td>Probing endpoints (HTTP, TCP, DNS, ICMP)</td><td>9115</td></tr>
+        <tr><td><strong>cAdvisor</strong></td><td>Container resource usage &amp; performance</td><td>8080</td></tr>
+        <tr><td><strong>MySQL Exporter</strong></td><td>MySQL server metrics</td><td>9104</td></tr>
+        <tr><td><strong>Postgres Exporter</strong></td><td>PostgreSQL server metrics</td><td>9187</td></tr>
+        <tr><td><strong>Redis Exporter</strong></td><td>Redis server metrics</td><td>9121</td></tr>
+        <tr><td><strong>kube-state-metrics</strong></td><td>Kubernetes object states</td><td>8080</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted); font-size:1rem;">
+        100+ community exporters available at <code>prometheus.io/docs/instrumenting/exporters</code>
+      </p>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Grafana Integration -->
+  <div class="slide">
+    <h2 class="animate">Grafana + Prometheus</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Grafana is the most popular <span class="highlight">visualization layer</span> for Prometheus</li>
+        <li class="animate">Add Prometheus as a data source &rarr; build dashboards with PromQL</li>
+        <li class="animate">Pre-built dashboards on <strong>grafana.com/grafana/dashboards</strong></li>
+        <li class="animate">Supports <strong>template variables</strong> for dynamic filtering (by namespace, instance, etc.)</li>
+      </ul>
+      <div class="diagram animate" style="margin-top: 30px;">
+        <div class="box">App</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Prometheus</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Grafana<br><small>Dashboards</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Users / SREs</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Prometheus vs Others -->
+  <div class="slide">
+    <h2 class="animate">Prometheus vs Alternatives</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>Prometheus</th><th>InfluxDB</th><th>Datadog</th></tr>
+        <tr><td>Model</td><td>Pull</td><td>Push</td><td>Push (agent)</td></tr>
+        <tr><td>Query Language</td><td>PromQL</td><td>InfluxQL / Flux</td><td>Proprietary</td></tr>
+        <tr><td>Cost</td><td class="green">Free / OSS</td><td>OSS + Enterprise</td><td>SaaS (paid)</td></tr>
+        <tr><td>Long-term Storage</td><td>Limited (local)</td><td>Built-in</td><td>Built-in</td></tr>
+        <tr><td>K8s Integration</td><td class="green">Native</td><td>Telegraf</td><td>Agent</td></tr>
+        <tr><td>High Availability</td><td>Federation / Thanos</td><td>Enterprise</td><td>Built-in</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Scaling -->
+  <div class="slide">
+    <h2 class="animate">Scaling Prometheus</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Federation</strong> &mdash; hierarchical Prometheus servers that scrape from each other</li>
+        <li class="animate"><strong>Thanos</strong> &mdash; adds global query view, long-term storage (S3/GCS), deduplication, and downsampling</li>
+        <li class="animate"><strong>Cortex / Mimir</strong> &mdash; horizontally scalable, multi-tenant long-term storage using Prometheus remote write</li>
+        <li class="animate"><strong>VictoriaMetrics</strong> &mdash; high-performance, PromQL-compatible remote storage</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:30px;">
+        <div class="box">Prometheus<br><small>Cluster A</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Thanos<br><small>Query + Store</small></div>
+        <div class="arrow">&larr;</div>
+        <div class="box">Prometheus<br><small>Cluster B</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Use meaningful metric names: <code>noun_unit_total</code></div>
+      <div class="bp-item animate"><span>2</span> Keep label cardinality low &mdash; avoid user IDs or UUIDs as labels</div>
+      <div class="bp-item animate"><span>3</span> Use <code>rate()</code> on counters, never raw counter values in alerts</div>
+      <div class="bp-item animate"><span>4</span> Set <code>for:</code> duration on alerts to avoid flapping</div>
+      <div class="bp-item animate"><span>5</span> Use recording rules for expensive / frequently evaluated queries</div>
+      <div class="bp-item animate"><span>6</span> Monitor your Prometheus itself (<code>up</code>, scrape duration, TSDB stats)</div>
+      <div class="bp-item animate"><span>7</span> Prefer histograms over summaries for aggregation across instances</div>
+      <div class="bp-item animate"><span>8</span> Use Thanos or Mimir for storage beyond 15-30 days</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Quick Start -->
+  <div class="slide">
+    <h2 class="animate">Quick Start (Docker)</h2>
+    <div class="content">
+      <pre class="animate">
+# 1. Run Prometheus
+docker run -d --name prometheus \
+  -p 9090:9090 \
+  -v ./prometheus.yml:/etc/prometheus/prometheus.yml \
+  prom/prometheus
+
+# 2. Run Node Exporter
+docker run -d --name node-exporter \
+  -p 9100:9100 \
+  prom/node-exporter
+
+# 3. Run Grafana
+docker run -d --name grafana \
+  -p 3000:3000 \
+  grafana/grafana
+
+# Open Prometheus UI:  http://localhost:9090
+# Open Grafana:        http://localhost:3000  (admin/admin)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Recording Rules -->
+  <div class="slide">
+    <h2 class="animate">Recording Rules</h2>
+    <div class="content">
+      <p class="animate">Pre-compute expensive queries and save them as new time series:</p>
+      <pre class="animate">
+groups:
+  - name: http_rules
+    interval: 30s
+    rules:
+      - record: job:http_requests:rate5m
+        expr: sum by (job) (rate(http_requests_total[5m]))
+
+      - record: job:http_errors:ratio5m
+        expr: |
+          sum by (job) (rate(http_requests_total{status=~"5.."}[5m]))
+          / sum by (job) (rate(http_requests_total[5m]))
+      </pre>
+      <ul>
+        <li class="animate">Reduces query-time computation on dashboards</li>
+        <li class="animate">Naming convention: <code>level:metric:operations</code></li>
+        <li class="animate">Essential for SLO-based alerting at scale</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F525;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Prometheus is the <span class="highlight">standard for cloud-native monitoring</span></li>
+        <li class="animate"><strong>Pull-based model</strong> + service discovery = low operational overhead</li>
+        <li class="animate"><strong>PromQL</strong> is powerful &mdash; invest time learning it</li>
+        <li class="animate">Four metric types: <span class="tag">Counter</span> <span class="tag">Gauge</span> <span class="tag">Histogram</span> <span class="tag">Summary</span></li>
+        <li class="animate">Pair with <strong>Grafana</strong> for dashboards, <strong>Alertmanager</strong> for notifications</li>
+        <li class="animate">Scale with <strong>Thanos</strong>, <strong>Mimir</strong>, or <strong>VictoriaMetrics</strong></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) {
+    showSlide(current + dir);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  // Touch swipe support
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
