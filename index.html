@@ -11,6 +11,22 @@
       --accent2: #F0EBE5;
       --text: #2D2B28;
       --text-muted: #6B6560;
+      --card-bg: #fff;
+      --shadow: rgba(0,0,0,0.06);
+      --shadow-hover: rgba(0,0,0,0.1);
+      --border-color: #D9D2CB;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --card-bg: #252220;
+      --shadow: rgba(0,0,0,0.3);
+      --shadow-hover: rgba(0,0,0,0.4);
+      --border-color: #3D3935;
     }
 
     * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -48,12 +64,12 @@
     }
 
     .course-card {
-      background: #fff;
+      background: var(--card-bg);
       border-radius: 16px;
       padding: 36px 32px;
       text-decoration: none;
       color: var(--text);
-      box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+      box-shadow: 0 2px 12px var(--shadow);
       transition: transform 0.2s, box-shadow 0.2s;
       border-top: 5px solid var(--accent);
       display: flex;
@@ -63,7 +79,7 @@
 
     .course-card:hover {
       transform: translateY(-4px);
-      box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+      box-shadow: 0 8px 24px var(--shadow-hover);
     }
 
     .course-icon {
@@ -135,9 +151,51 @@
       .course-icon { font-size: 2.5rem; }
       .course-card h2 { font-size: 1.35rem; }
     }
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
   </style>
 </head>
 <body>
+
+  <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+  <script>
+    function toggleTheme() {
+      const html = document.documentElement;
+      const current = html.getAttribute('data-theme');
+      const next = current === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      localStorage.setItem('theme', next);
+      updateToggleIcon(next);
+    }
+
+    function updateToggleIcon(theme) {
+      document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+    }
+
+    (function() {
+      const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+      document.documentElement.setAttribute('data-theme', saved);
+      updateToggleIcon(saved);
+    })();
+  </script>
 
   <header>
     <h1>Learning Hub</h1>
