@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AWS Architect - Cloud Solutions Design</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2601;</span>
+    <h1 class="animate title-fire">AWS Architect</h1>
+    <p class="subtitle animate">Designing Scalable Cloud Solutions on AWS</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <h2 class="animate">AWS Well-Architected Framework</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><span class="highlight">Operational Excellence</span> &mdash; automate operations, respond to events, learn from failures</li>
+        <li class="animate"><span class="highlight">Security</span> &mdash; protect data, systems, and assets with least privilege</li>
+        <li class="animate"><span class="highlight">Reliability</span> &mdash; recover from failures, scale to meet demand</li>
+        <li class="animate"><span class="highlight">Performance Efficiency</span> &mdash; use resources efficiently as demand changes</li>
+        <li class="animate"><span class="highlight">Cost Optimization</span> &mdash; deliver value at the lowest price point</li>
+        <li class="animate"><span class="highlight">Sustainability</span> &mdash; minimize environmental impact of workloads</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <h2 class="animate">Core Services Overview</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Compute</h3>
+        <p>EC2, Lambda, ECS, EKS, Fargate</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Storage</h3>
+        <p>S3, EBS, EFS, Glacier, FSx</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Database</h3>
+        <p>RDS, DynamoDB, ElastiCache, Aurora</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Networking</h3>
+        <p>VPC, CloudFront, Route 53, ALB/NLB</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <h2 class="animate">VPC Architecture</h2>
+    <div class="diagram animate">
+      <div class="box">Internet<br>Gateway</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Public Subnet<br><small>ALB, NAT GW</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Private Subnet<br><small>EC2, RDS</small></div>
+    </div>
+    <div class="content animate" style="margin-top:20px;">
+      <pre>
+resource "aws_vpc" "main" {
+  cidr_block           = "10.0.0.0/16"
+  enable_dns_hostnames = true
+}
+
+# Public subnet (with route to IGW)
+# Private subnet (route to NAT Gateway)
+# Isolated subnet (no internet access - for RDS)
+
+# Best practice: Multi-AZ deployment
+# At least 2 AZs for high availability
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <h2 class="animate">Compute: EC2 &amp; Auto Scaling</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Instance types</strong>: General (t3, m6i), Compute (c6i), Memory (r6i), GPU (p4d)</li>
+        <li class="animate"><strong>Auto Scaling Groups</strong>: scale in/out based on CloudWatch metrics</li>
+        <li class="animate"><strong>Launch Templates</strong>: define AMI, instance type, security groups, user data</li>
+        <li class="animate"><strong>Spot Instances</strong>: up to 90% savings for fault-tolerant workloads</li>
+      </ul>
+      <pre class="animate">
+# Auto Scaling Policy
+ScalingPolicy:
+  PolicyType: TargetTrackingScaling
+  TargetTrackingConfiguration:
+    PredefinedMetricSpecification:
+      PredefinedMetricType: ASGAverageCPUUtilization
+    TargetValue: 70.0    # Scale when CPU > 70%
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <h2 class="animate">Compute: Serverless</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Lambda</strong> &mdash; run code without servers, pay per invocation</li>
+        <li class="animate"><strong>API Gateway</strong> &mdash; REST/WebSocket APIs that trigger Lambda</li>
+        <li class="animate"><strong>Fargate</strong> &mdash; serverless containers (no EC2 to manage)</li>
+        <li class="animate"><strong>Step Functions</strong> &mdash; orchestrate Lambda functions as workflows</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">API Gateway</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Lambda</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">DynamoDB</div>
+      </div>
+      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:12px;">Classic serverless API pattern</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <h2 class="animate">Storage: S3 Deep Dive</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Storage Class</th><th>Use Case</th><th>Cost</th></tr>
+        <tr><td><strong>S3 Standard</strong></td><td>Frequently accessed data</td><td>$$</td></tr>
+        <tr><td><strong>S3 IA</strong></td><td>Infrequent access, rapid retrieval</td><td>$</td></tr>
+        <tr><td><strong>S3 Glacier Instant</strong></td><td>Archive with ms retrieval</td><td>$</td></tr>
+        <tr><td><strong>S3 Glacier Deep</strong></td><td>Long-term archive (12hr retrieval)</td><td>&#162;</td></tr>
+        <tr><td><strong>S3 Intelligent-Tiering</strong></td><td>Unknown access patterns</td><td>Auto-optimized</td></tr>
+      </table>
+      <ul>
+        <li class="animate"><strong>Lifecycle policies</strong> auto-transition objects between tiers</li>
+        <li class="animate"><strong>Versioning</strong> + <strong>MFA Delete</strong> for data protection</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <h2 class="animate">Database Selection</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Service</th><th>Type</th><th>Best For</th></tr>
+        <tr><td><strong>RDS / Aurora</strong></td><td>Relational (SQL)</td><td>Structured data, ACID transactions</td></tr>
+        <tr><td><strong>DynamoDB</strong></td><td>Key-Value / Document</td><td>Millisecond latency at any scale</td></tr>
+        <tr><td><strong>ElastiCache</strong></td><td>In-Memory (Redis/Memcached)</td><td>Caching, sessions, leaderboards</td></tr>
+        <tr><td><strong>Redshift</strong></td><td>Data Warehouse</td><td>Analytics, OLAP queries</td></tr>
+        <tr><td><strong>DocumentDB</strong></td><td>Document (MongoDB-compat)</td><td>JSON document workloads</td></tr>
+        <tr><td><strong>Neptune</strong></td><td>Graph</td><td>Social networks, recommendations</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <h2 class="animate">High Availability Patterns</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Multi-AZ</strong> &mdash; deploy across 2+ Availability Zones</li>
+        <li class="animate"><strong>ALB + ASG</strong> &mdash; distribute traffic, auto-scale instances</li>
+        <li class="animate"><strong>RDS Multi-AZ</strong> &mdash; synchronous standby replica with auto failover</li>
+        <li class="animate"><strong>S3</strong> &mdash; 99.999999999% (11 nines) durability by default</li>
+        <li class="animate"><strong>Route 53</strong> health checks + failover routing</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Route 53</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">ALB</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">ASG<br><small>Multi-AZ</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Aurora<br><small>Multi-AZ</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide">
+    <h2 class="animate">Security: IAM &amp; Identity</h2>
+    <div class="content">
+      <pre class="animate">
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": [
+        "s3:GetObject",
+        "s3:PutObject"
+      ],
+      "Resource": "arn:aws:s3:::my-bucket/*",
+      "Condition": {
+        "StringEquals": {
+          "s3:x-amz-server-side-encryption": "AES256"
+        }
+      }
+    }
+  ]
+}
+      </pre>
+      <ul>
+        <li class="animate"><strong>Least privilege</strong> &mdash; grant only required permissions</li>
+        <li class="animate"><strong>Roles &gt; Users</strong> &mdash; use IAM roles for services, not access keys</li>
+        <li class="animate"><strong>SCPs</strong> &mdash; organization-wide permission guardrails</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 -->
+  <div class="slide">
+    <h2 class="animate">Security: Encryption &amp; Network</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>KMS</strong> &mdash; managed encryption keys, integrates with all AWS services</li>
+        <li class="animate"><strong>ACM</strong> &mdash; free SSL/TLS certificates for ALB, CloudFront</li>
+        <li class="animate"><strong>Security Groups</strong> &mdash; stateful firewall at instance level</li>
+        <li class="animate"><strong>NACLs</strong> &mdash; stateless firewall at subnet level</li>
+        <li class="animate"><strong>WAF</strong> &mdash; web application firewall for ALB, CloudFront, API Gateway</li>
+        <li class="animate"><strong>GuardDuty</strong> &mdash; threat detection from VPC flow logs, DNS, CloudTrail</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">CloudFront<br><small>+ WAF</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">ALB<br><small>+ ACM TLS</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">EC2<br><small>+ SG + KMS</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 -->
+  <div class="slide">
+    <h2 class="animate">Messaging &amp; Decoupling</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>SQS</h3>
+        <p>Fully managed message queue. Decouple producers from consumers.</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>SNS</h3>
+        <p>Pub/sub messaging. Fan-out to multiple subscribers (SQS, Lambda, email).</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>EventBridge</h3>
+        <p>Serverless event bus. Route events between AWS services and SaaS apps.</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Kinesis</h3>
+        <p>Real-time data streaming. Ingest millions of records per second.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 -->
+  <div class="slide">
+    <h2 class="animate">Caching &amp; CDN</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>CloudFront</strong> &mdash; global CDN with 400+ edge locations</li>
+        <li class="animate"><strong>ElastiCache Redis</strong> &mdash; sub-ms latency for frequently accessed data</li>
+        <li class="animate"><strong>DAX</strong> &mdash; in-memory cache for DynamoDB</li>
+        <li class="animate"><strong>API Gateway caching</strong> &mdash; cache API responses at the edge</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">User</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">CloudFront<br><small>Edge cache</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">ALB</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">ElastiCache<br><small>App cache</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 -->
+  <div class="slide">
+    <h2 class="animate">Monitoring &amp; Observability</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>CloudWatch Metrics</strong> &mdash; CPU, memory, custom metrics + dashboards</li>
+        <li class="animate"><strong>CloudWatch Alarms</strong> &mdash; trigger Auto Scaling, SNS, Lambda</li>
+        <li class="animate"><strong>CloudWatch Logs</strong> &mdash; centralized log aggregation + Insights queries</li>
+        <li class="animate"><strong>CloudTrail</strong> &mdash; audit log of all API calls across your account</li>
+        <li class="animate"><strong>X-Ray</strong> &mdash; distributed tracing for microservices</li>
+      </ul>
+      <pre class="animate">
+# CloudWatch Alarm example
+aws cloudwatch put-metric-alarm   --alarm-name "High-CPU"   --metric-name CPUUtilization   --namespace AWS/EC2   --statistic Average   --period 300   --threshold 80   --comparison-operator GreaterThanThreshold   --alarm-actions arn:aws:sns:us-east-1:123:alerts
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 -->
+  <div class="slide">
+    <h2 class="animate">Cost Optimization</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Use <strong>Reserved Instances</strong> or <strong>Savings Plans</strong> for steady workloads (up to 72% off)</div>
+      <div class="bp-item animate"><span>2</span> Use <strong>Spot Instances</strong> for fault-tolerant workloads (up to 90% off)</div>
+      <div class="bp-item animate"><span>3</span> <strong>Right-size</strong> instances with AWS Compute Optimizer</div>
+      <div class="bp-item animate"><span>4</span> S3 <strong>Lifecycle policies</strong> to move data to cheaper tiers</div>
+      <div class="bp-item animate"><span>5</span> Use <strong>Cost Explorer</strong> and set <strong>Budgets</strong> with alerts</div>
+      <div class="bp-item animate"><span>6</span> Delete unused <strong>EBS volumes</strong>, <strong>snapshots</strong>, and <strong>Elastic IPs</strong></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 -->
+  <div class="slide">
+    <h2 class="animate">Multi-Account Strategy</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>AWS Organizations</strong> &mdash; centrally manage multiple accounts</li>
+        <li class="animate"><strong>Control Tower</strong> &mdash; set up a secure multi-account landing zone</li>
+        <li class="animate"><strong>SCPs</strong> &mdash; enforce policies across all accounts</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Management<br><small>Account</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Dev<br><small>Account</small></div>
+      </div>
+      <div class="diagram animate">
+        <div class="box">Management<br><small>Account</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Prod<br><small>Account</small></div>
+      </div>
+      <div class="diagram animate">
+        <div class="box">Management<br><small>Account</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Security<br><small>Account</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 -->
+  <div class="slide">
+    <h2 class="animate">CI/CD on AWS</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">CodeCommit<br><small>Source</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">CodeBuild<br><small>Build &amp; Test</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">CodeDeploy<br><small>Deploy</small></div>
+      </div>
+      <ul>
+        <li class="animate"><strong>CodePipeline</strong> &mdash; orchestrates the full CI/CD pipeline</li>
+        <li class="animate"><strong>CodeBuild</strong> &mdash; managed build service (like Jenkins, no servers)</li>
+        <li class="animate"><strong>CodeDeploy</strong> &mdash; blue/green and rolling deployments to EC2, ECS, Lambda</li>
+        <li class="animate"><strong>ECR</strong> &mdash; managed Docker container registry</li>
+        <li class="animate">Or use <strong>GitHub Actions</strong> + <strong>Terraform</strong> for infrastructure deployments</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">Containers: ECS &amp; EKS</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>ECS (Elastic Container Service)</h3>
+        <p>AWS-native container orchestration. Simpler than Kubernetes. Best for AWS-only shops.</p>
+        <p style="margin-top:8px;"><strong>Fargate</strong> = serverless containers (no EC2)</p>
+      </div>
+      <div class="card animate">
+        <h3>EKS (Elastic Kubernetes Service)</h3>
+        <p>Managed Kubernetes. Use if you need K8s portability or ecosystem tools (Helm, Istio).</p>
+        <p style="margin-top:8px;"><strong>EKS Fargate</strong> = serverless K8s pods</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">Architecture Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Design for <strong>failure</strong> &mdash; everything fails, plan for it</div>
+      <div class="bp-item animate"><span>2</span> <strong>Decouple</strong> components with SQS, SNS, EventBridge</div>
+      <div class="bp-item animate"><span>3</span> Use <strong>managed services</strong> over self-managed (RDS over self-hosted DB)</div>
+      <div class="bp-item animate"><span>4</span> Implement <strong>least privilege IAM</strong> everywhere</div>
+      <div class="bp-item animate"><span>5</span> <strong>Encrypt everything</strong> &mdash; at rest and in transit</div>
+      <div class="bp-item animate"><span>6</span> Use <strong>Infrastructure as Code</strong> (Terraform / CloudFormation)</div>
+      <div class="bp-item animate"><span>7</span> Deploy across <strong>multiple AZs</strong> minimum</div>
+      <div class="bp-item animate"><span>8</span> <strong>Automate</strong> everything &mdash; scaling, deployments, recovery</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2601;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Follow the <span class="highlight">Well-Architected Framework</span> for every design</li>
+        <li class="animate">Core pillars: <span class="tag">Security</span> <span class="tag">Reliability</span> <span class="tag">Performance</span> <span class="tag">Cost</span></li>
+        <li class="animate"><strong>Multi-AZ + Auto Scaling</strong> = high availability baseline</li>
+        <li class="animate"><strong>Managed services</strong> reduce operational burden</li>
+        <li class="animate"><strong>Decouple</strong> with queues and events for resilience</li>
+        <li class="animate"><strong>Least privilege + encryption</strong> everywhere</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

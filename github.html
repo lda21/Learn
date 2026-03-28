@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>GitHub - Collaboration &amp; CI/CD</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4BB;</span>
+    <h1 class="animate title-fire">GitHub</h1>
+    <p class="subtitle animate">Collaboration, CI/CD &amp; Project Management</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <h2 class="animate">What is GitHub?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">The world&#39;s largest <span class="highlight">code hosting and collaboration platform</span></li>
+        <li class="animate">Built on <strong>Git</strong> &mdash; adds PRs, Issues, Actions, Projects, and more</li>
+        <li class="animate"><strong>100M+ developers</strong>, 300M+ repositories</li>
+        <li class="animate">Owned by <strong>Microsoft</strong> since 2018, free for public and private repos</li>
+        <li class="animate">Hub for <strong>open source</strong> &mdash; Linux, React, Kubernetes all live here</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <h2 class="animate">Key Features</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Pull Requests</h3>
+        <p>Propose, review, and discuss code changes before merging</p>
+      </div>
+      <div class="card animate">
+        <h3>GitHub Actions</h3>
+        <p>Built-in CI/CD pipelines triggered by events</p>
+      </div>
+      <div class="card animate">
+        <h3>Issues &amp; Projects</h3>
+        <p>Track bugs, features, and plan work with boards</p>
+      </div>
+      <div class="card animate">
+        <h3>Copilot</h3>
+        <p>AI pair programmer that suggests code in your editor</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <h2 class="animate">Repository Setup</h2>
+    <div class="content">
+      <pre class="animate">
+# Create a new repo on GitHub, then:
+git init
+git add .
+git commit -m "Initial commit"
+git remote add origin https://github.com/user/repo.git
+git push -u origin main
+
+# Or clone an existing repo
+git clone https://github.com/user/repo.git
+
+# Key files every repo should have:
+README.md               # Project documentation
+.gitignore              # Files to exclude from git
+LICENSE                 # Open-source license
+CONTRIBUTING.md         # How to contribute
+.github/
+  CODEOWNERS            # Auto-assign reviewers
+  pull_request_template.md
+  ISSUE_TEMPLATE/
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <h2 class="animate">Pull Requests (PRs)</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Create</strong> a PR from a feature branch to propose changes</li>
+        <li class="animate"><strong>Review</strong> &mdash; teammates comment, approve, or request changes</li>
+        <li class="animate"><strong>CI checks</strong> run automatically via GitHub Actions</li>
+        <li class="animate"><strong>Merge strategies</strong>: merge commit, squash, or rebase</li>
+      </ul>
+      <pre class="animate">
+# PR workflow
+git checkout -b feature/add-auth
+# ... make changes ...
+git add .
+git commit -m "Add JWT authentication"
+git push -u origin feature/add-auth
+
+# Then open PR on GitHub or via CLI:
+gh pr create --title "Add JWT auth"   --body "Implements token-based authentication"
+
+# Review and merge
+gh pr review 42 --approve
+gh pr merge 42 --squash
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <h2 class="animate">Branch Protection Rules</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Require PR reviews</strong> &mdash; no direct pushes to main</li>
+        <li class="animate"><strong>Require status checks</strong> &mdash; CI must pass before merge</li>
+        <li class="animate"><strong>Require signed commits</strong> &mdash; verify author identity</li>
+        <li class="animate"><strong>Restrict push access</strong> &mdash; only certain teams can merge</li>
+        <li class="animate"><strong>Require linear history</strong> &mdash; enforce squash or rebase merges</li>
+      </ul>
+      <p class="animate" style="margin-top:16px;">Settings &rarr; Branches &rarr; Add rule &rarr; <code>main</code></p>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Push to<br>branch</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Open PR<br><small>+ CI checks</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Review<br><small>+ Approve</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Merge<br>to main</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <h2 class="animate">GitHub Actions: Basics</h2>
+    <div class="content">
+      <pre class="animate">
+# .github/workflows/ci.yml
+name: CI Pipeline
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run linter
+        run: npm run lint
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <h2 class="animate">GitHub Actions: Advanced</h2>
+    <div class="content">
+      <pre class="animate">
+# Deploy to production on tag push
+name: Deploy
+
+on:
+  push:
+    tags: ['v*']
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: production      # Requires approval
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+
+      - name: Deploy to ECS
+        run: |
+          aws ecs update-service             --cluster prod             --service api             --force-new-deployment
+
+# Matrix builds, caching, artifacts, reusable workflows
+# 15,000+ actions in the GitHub Marketplace
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <h2 class="animate">GitHub CLI (gh)</h2>
+    <div class="content">
+      <pre class="animate">
+# Install: brew install gh
+
+# Authentication
+gh auth login
+
+# Repos
+gh repo create my-app --public
+gh repo clone user/repo
+
+# Pull Requests
+gh pr create --title "Fix bug" --body "Description"
+gh pr list
+gh pr checkout 42
+gh pr merge 42 --squash
+gh pr review 42 --approve
+
+# Issues
+gh issue create --title "Bug: login fails"
+gh issue list --label "bug"
+gh issue close 15
+
+# Actions
+gh run list
+gh run view 12345
+gh run watch               # Live CI status
+
+# Releases
+gh release create v1.0.0 --generate-notes
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide">
+    <h2 class="animate">Issues &amp; Projects</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Issues</strong> &mdash; track bugs, features, tasks with labels, assignees, milestones</li>
+        <li class="animate"><strong>Projects (v2)</strong> &mdash; Kanban boards with custom fields, views, and automations</li>
+        <li class="animate"><strong>Labels</strong> &mdash; categorize: <span class="tag">bug</span> <span class="tag">feature</span> <span class="tag">docs</span> <span class="tag">good first issue</span></li>
+        <li class="animate"><strong>Milestones</strong> &mdash; group issues into releases or sprints</li>
+        <li class="animate"><strong>Templates</strong> &mdash; standardize bug reports and feature requests</li>
+      </ul>
+      <pre class="animate">
+# Link PR to issue (auto-close on merge)
+Fixes #42
+Closes #15
+Resolves #7
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 -->
+  <div class="slide">
+    <h2 class="animate">Code Review Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Keep PRs <strong>small</strong> &mdash; under 400 lines when possible</div>
+      <div class="bp-item animate"><span>2</span> Write a clear <strong>PR description</strong> explaining the why</div>
+      <div class="bp-item animate"><span>3</span> Use <strong>draft PRs</strong> for work in progress</div>
+      <div class="bp-item animate"><span>4</span> Review within <strong>24 hours</strong> to keep flow</div>
+      <div class="bp-item animate"><span>5</span> Use <strong>CODEOWNERS</strong> for automatic reviewer assignment</div>
+      <div class="bp-item animate"><span>6</span> Be constructive &mdash; suggest solutions, not just problems</div>
+      <div class="bp-item animate"><span>7</span> Require <strong>CI passing</strong> before merge</div>
+      <div class="bp-item animate"><span>8</span> Use <strong>squash merge</strong> for clean main branch history</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 -->
+  <div class="slide">
+    <h2 class="animate">GitHub Packages &amp; Releases</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>GitHub Packages</strong> &mdash; host npm, Docker, Maven, NuGet packages alongside your code</li>
+        <li class="animate"><strong>Container Registry</strong> &mdash; <code>ghcr.io/user/image:tag</code></li>
+        <li class="animate"><strong>Releases</strong> &mdash; versioned downloads with auto-generated changelogs</li>
+      </ul>
+      <pre class="animate">
+# Publish Docker image to GitHub Container Registry
+docker build -t ghcr.io/myorg/myapp:v1.0 .
+docker push ghcr.io/myorg/myapp:v1.0
+
+# Create a release with auto-generated notes
+gh release create v1.2.0   --title "v1.2.0"   --generate-notes   ./build/app.zip
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 -->
+  <div class="slide">
+    <h2 class="animate">Security Features</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Dependabot</h3>
+        <p>Auto-creates PRs to update vulnerable dependencies</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Secret Scanning</h3>
+        <p>Detects accidentally committed API keys and tokens</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Code Scanning</h3>
+        <p>CodeQL analysis finds security vulnerabilities in code</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>GHAS</h3>
+        <p>GitHub Advanced Security: all features for Enterprise</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 -->
+  <div class="slide">
+    <h2 class="animate">GitHub Pages</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Free <span class="highlight">static site hosting</span> directly from your repo</li>
+        <li class="animate">Deploy from a branch or GitHub Actions</li>
+        <li class="animate">Custom domains with free HTTPS</li>
+        <li class="animate">Great for docs, portfolios, project sites, <strong>and this presentation!</strong></li>
+      </ul>
+      <pre class="animate">
+# Enable: Settings > Pages > Source: main branch
+
+# Or deploy via Actions:
+- name: Deploy to GitHub Pages
+  uses: peaceiris/actions-gh-pages@v3
+  with:
+    github_token: ${{ secrets.GITHUB_TOKEN }}
+    publish_dir: ./build
+
+# URL: https://username.github.io/repo/
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 -->
+  <div class="slide">
+    <h2 class="animate">Environments &amp; Secrets</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Secrets</strong> &mdash; encrypted variables for API keys, tokens</li>
+        <li class="animate"><strong>Environments</strong> &mdash; staging, production with approval gates</li>
+        <li class="animate"><strong>Variables</strong> &mdash; non-sensitive config (region, app name)</li>
+      </ul>
+      <pre class="animate">
+# Using secrets in Actions
+env:
+  DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+# Environment with required reviewers
+jobs:
+  deploy:
+    environment:
+      name: production
+      url: https://myapp.com
+    steps:
+      - run: ./deploy.sh
+
+# Settings > Secrets and variables > Actions
+# Settings > Environments > production > Required reviewers
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 -->
+  <div class="slide">
+    <h2 class="animate">Forking &amp; Open Source</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Fork</strong> &mdash; create your own copy of someone else&#39;s repo</li>
+        <li class="animate">Make changes in your fork, then open a <strong>PR to upstream</strong></li>
+        <li class="animate"><strong>Stars</strong> &mdash; bookmark repos you like</li>
+        <li class="animate"><strong>Watch</strong> &mdash; get notifications for repo activity</li>
+      </ul>
+      <pre class="animate">
+# Fork workflow for open-source contributions
+gh repo fork owner/repo --clone
+cd repo
+git checkout -b fix/typo-readme
+# ... make changes ...
+git push origin fix/typo-readme
+gh pr create --repo owner/repo   --title "Fix typo in README"
+
+# Keep fork in sync
+git remote add upstream https://github.com/owner/repo.git
+git fetch upstream
+git merge upstream/main
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 -->
+  <div class="slide">
+    <h2 class="animate">GitHub Copilot</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">AI-powered <span class="highlight">code completion</span> in VS Code, JetBrains, Neovim</li>
+        <li class="animate"><strong>Copilot Chat</strong> &mdash; ask questions, explain code, fix bugs</li>
+        <li class="animate"><strong>Copilot CLI</strong> &mdash; suggest shell commands</li>
+        <li class="animate"><strong>Copilot for PRs</strong> &mdash; auto-generate PR descriptions and reviews</li>
+        <li class="animate">Trained on public code &mdash; respects <code>.copilotignore</code> for sensitive files</li>
+      </ul>
+      <pre class="animate">
+# Copilot CLI examples
+gh copilot suggest "find all large files in git history"
+gh copilot explain "git rebase -i HEAD~3"
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">GitHub vs Alternatives</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>GitHub</th><th>GitLab</th><th>Bitbucket</th></tr>
+        <tr><td>CI/CD</td><td>Actions</td><td class="green">Built-in (stronger)</td><td>Pipelines</td></tr>
+        <tr><td>Community</td><td class="green">Largest</td><td>Growing</td><td>Smaller</td></tr>
+        <tr><td>Self-hosted</td><td>Enterprise</td><td class="green">Free CE</td><td>Data Center</td></tr>
+        <tr><td>AI Features</td><td class="green">Copilot</td><td>Duo</td><td>Limited</td></tr>
+        <tr><td>Free Private</td><td class="green">Unlimited</td><td class="green">Unlimited</td><td>5 users</td></tr>
+        <tr><td>Marketplace</td><td class="green">15,000+ Actions</td><td>Templates</td><td>Limited</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">.github Directory Structure</h2>
+    <div class="content">
+      <pre class="animate">
+.github/
+  workflows/
+    ci.yml               # CI pipeline
+    deploy.yml           # Deploy pipeline
+    dependabot.yml       # Dependency updates
+  ISSUE_TEMPLATE/
+    bug_report.md        # Bug report template
+    feature_request.md   # Feature request template
+  PULL_REQUEST_TEMPLATE.md
+  CODEOWNERS              # Auto-assign reviewers
+  dependabot.yml          # Dependabot config
+  FUNDING.yml             # Sponsorship links
+  SECURITY.md             # Security policy
+
+# CODEOWNERS example:
+# * @default-team
+# *.js @frontend-team
+# /infrastructure/ @devops-team
+# /docs/ @docs-team
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4BB;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">GitHub is the <span class="highlight">central hub for modern software development</span></li>
+        <li class="animate"><strong>PRs + branch protection</strong> = quality code workflow</li>
+        <li class="animate"><strong>GitHub Actions</strong> automates CI/CD, testing, and deployments</li>
+        <li class="animate">Security: <span class="tag">Dependabot</span> <span class="tag">Secret Scanning</span> <span class="tag">CodeQL</span></li>
+        <li class="animate">Use the <strong>gh CLI</strong> for faster workflows from the terminal</li>
+        <li class="animate"><strong>Copilot</strong> accelerates coding with AI assistance</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

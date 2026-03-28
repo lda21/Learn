@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Linux - Command Line &amp; System Administration</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F427;</span>
+    <h1 class="animate title-fire">Linux</h1>
+    <p class="subtitle animate">Essential Skills for the Command Line &amp; Beyond</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2: What is Linux? -->
+  <div class="slide">
+    <h2 class="animate">What is Linux?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An open-source <span class="highlight">Unix-like operating system kernel</span> created by Linus Torvalds (1991)</li>
+        <li class="animate">Powers <strong>90%+ of servers</strong>, all Android devices, and most cloud infrastructure</li>
+        <li class="animate">Distributions (distros): <strong>Ubuntu, CentOS, Debian, Arch, RHEL, Amazon Linux</strong></li>
+        <li class="animate">The backbone of <span class="highlight">DevOps, cloud computing, and containerization</span></li>
+        <li class="animate">Free, customizable, and supported by a massive community</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: File System -->
+  <div class="slide">
+    <h2 class="animate">File System Hierarchy</h2>
+    <div class="content">
+      <pre class="animate">
+/               # Root of everything
+├── bin/        # Essential user binaries (ls, cp, mv)
+├── etc/        # System configuration files
+├── home/       # User home directories
+├── var/        # Variable data (logs, databases)
+│   └── log/    # System and app logs
+├── tmp/        # Temporary files
+├── usr/        # User programs and data
+│   ├── bin/    # Most user commands
+│   └── lib/    # Libraries
+├── opt/        # Optional/third-party software
+├── dev/        # Device files
+├── proc/       # Process and kernel info (virtual)
+└── mnt/        # Mount points for filesystems
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Navigation -->
+  <div class="slide">
+    <h2 class="animate">Navigation &amp; File Operations</h2>
+    <div class="content">
+      <pre class="animate">
+# Navigation
+pwd                         # Print working directory
+cd /var/log                 # Change directory
+cd ~                        # Go to home directory
+cd -                        # Go to previous directory
+
+# Listing
+ls -la                      # List all files with details
+ls -lh                      # Human-readable file sizes
+tree -L 2                   # Tree view, 2 levels deep
+
+# File operations
+cp -r source/ dest/         # Copy recursively
+mv old.txt new.txt          # Move / rename
+rm -rf directory/           # Remove recursively (careful!)
+mkdir -p a/b/c              # Create nested directories
+touch file.txt              # Create empty file
+ln -s target link           # Create symbolic link
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: File Permissions -->
+  <div class="slide">
+    <h2 class="animate">File Permissions</h2>
+    <div class="content">
+      <pre class="animate">
+# Permission format: rwxrwxrwx (owner|group|others)
+# r=read(4) w=write(2) x=execute(1)
+
+-rw-r--r--  1 user group  4096 Mar 15 10:30 file.txt
+drwxr-xr-x  2 user group  4096 Mar 15 10:30 directory/
+
+# Change permissions
+chmod 755 script.sh         # rwxr-xr-x
+chmod u+x script.sh         # Add execute for owner
+chmod -R 644 dir/           # Recursive
+
+# Change ownership
+chown user:group file.txt
+chown -R user:group dir/
+
+# Special: setuid, setgid, sticky bit
+chmod 4755 program          # setuid
+chmod 1777 /tmp             # sticky bit
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Text Processing -->
+  <div class="slide">
+    <h2 class="animate">Text Processing</h2>
+    <div class="content">
+      <pre class="animate">
+# View files
+cat file.txt                # Print entire file
+less file.txt               # Scrollable viewer
+head -n 20 file.txt         # First 20 lines
+tail -f /var/log/syslog     # Follow log in real-time
+
+# Search
+grep -r "error" /var/log/   # Recursive search
+grep -i "pattern" file      # Case-insensitive
+grep -c "pattern" file      # Count matches
+
+# Transform
+sed 's/old/new/g' file      # Find and replace
+awk '{print $1, $3}' file   # Print columns 1 and 3
+sort file.txt               # Sort lines
+uniq -c                     # Count unique lines
+wc -l file.txt              # Count lines
+cut -d',' -f1,3 data.csv    # Extract CSV columns
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Pipes & Redirection -->
+  <div class="slide">
+    <h2 class="animate">Pipes &amp; Redirection</h2>
+    <div class="content">
+      <pre class="animate">
+# Pipes: connect output of one command to input of another
+cat access.log | grep "500" | wc -l
+
+# Count unique IPs from a log
+awk '{print $1}' access.log | sort | uniq -c | sort -rn | head -10
+
+# Redirection
+echo "hello" > file.txt     # Write (overwrite)
+echo "world" >> file.txt    # Append
+command 2> errors.log       # Redirect stderr
+command > out.log 2>&1      # Redirect both stdout & stderr
+command < input.txt         # Redirect stdin
+
+# /dev/null - discard output
+command > /dev/null 2>&1
+
+# Here document
+cat << EOF > config.yml
+name: myapp
+port: 8080
+EOF
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Process Management -->
+  <div class="slide">
+    <h2 class="animate">Process Management</h2>
+    <div class="content">
+      <pre class="animate">
+# View processes
+ps aux                      # All processes
+ps aux | grep nginx         # Find specific process
+top                         # Interactive process viewer
+htop                        # Better interactive viewer
+
+# Process control
+command &                   # Run in background
+jobs                        # List background jobs
+fg %1                       # Bring job 1 to foreground
+nohup command &             # Survive terminal close
+
+# Kill processes
+kill PID                    # Graceful terminate (SIGTERM)
+kill -9 PID                 # Force kill (SIGKILL)
+killall nginx               # Kill by name
+pkill -f "pattern"          # Kill by pattern
+
+# System services (systemd)
+systemctl start nginx
+systemctl enable nginx      # Start on boot
+systemctl status nginx
+journalctl -u nginx -f      # View service logs
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Users & Groups -->
+  <div class="slide">
+    <h2 class="animate">Users &amp; Groups</h2>
+    <div class="content">
+      <pre class="animate">
+# User management
+whoami                      # Current user
+id                          # User ID and groups
+sudo command                # Run as root
+su - username               # Switch user
+
+useradd -m -s /bin/bash john  # Create user
+passwd john                   # Set password
+usermod -aG docker john       # Add to group
+userdel -r john               # Delete user + home
+
+# Groups
+groups                      # List my groups
+groupadd developers         # Create group
+gpasswd -a john developers  # Add user to group
+
+# Key files
+/etc/passwd                 # User accounts
+/etc/shadow                 # Password hashes
+/etc/group                  # Group definitions
+/etc/sudoers                # Sudo permissions (use visudo)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Networking -->
+  <div class="slide">
+    <h2 class="animate">Networking</h2>
+    <div class="content">
+      <pre class="animate">
+# Network info
+ip addr show                # Show IP addresses
+ip route                    # Show routing table
+ss -tlnp                    # Show listening ports
+hostname -I                 # Quick IP lookup
+
+# Connectivity
+ping google.com             # Test connectivity
+curl -I https://example.com # HTTP headers
+wget https://example.com/f  # Download file
+traceroute google.com       # Trace network path
+
+# DNS
+dig example.com             # DNS lookup
+nslookup example.com        # DNS query
+cat /etc/resolv.conf        # DNS config
+
+# Firewall (iptables / firewalld)
+ufw allow 22/tcp            # Allow SSH (Ubuntu)
+ufw enable                  # Enable firewall
+firewall-cmd --add-port=80/tcp  # (CentOS/RHEL)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: SSH -->
+  <div class="slide">
+    <h2 class="animate">SSH &amp; Remote Access</h2>
+    <div class="content">
+      <pre class="animate">
+# Connect
+ssh user@server.com
+ssh -i key.pem ec2-user@ip  # With private key
+ssh -p 2222 user@host       # Custom port
+
+# Key management
+ssh-keygen -t ed25519       # Generate key pair
+ssh-copy-id user@server     # Copy public key to server
+cat ~/.ssh/authorized_keys  # Authorized keys on server
+
+# SSH config (~/.ssh/config)
+Host myserver
+  HostName 192.168.1.100
+  User admin
+  IdentityFile ~/.ssh/mykey
+  Port 22
+
+# Then just: ssh myserver
+
+# File transfer
+scp file.txt user@server:/path/
+scp -r dir/ user@server:/path/
+rsync -avz dir/ user@server:/path/  # Better for large transfers
+
+# Tunneling
+ssh -L 8080:localhost:3000 user@server  # Local port forward
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Package Management -->
+  <div class="slide">
+    <h2 class="animate">Package Management</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Debian / Ubuntu (apt)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+apt update
+apt upgrade
+apt install nginx
+apt remove nginx
+apt search keyword
+apt list --installed
+dpkg -i package.deb
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>RHEL / CentOS (yum/dnf)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+yum update
+dnf upgrade
+dnf install nginx
+dnf remove nginx
+dnf search keyword
+rpm -qa
+rpm -i package.rpm
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Disk & Storage -->
+  <div class="slide">
+    <h2 class="animate">Disk &amp; Storage</h2>
+    <div class="content">
+      <pre class="animate">
+# Disk usage
+df -h                       # Filesystem usage
+du -sh /var/log             # Directory size
+du -h --max-depth=1 /       # Top-level sizes
+ncdu /                      # Interactive disk usage
+
+# Disk management
+lsblk                       # List block devices
+fdisk -l                    # List partitions
+mount /dev/sdb1 /mnt        # Mount a filesystem
+umount /mnt                 # Unmount
+cat /etc/fstab              # Auto-mount config
+
+# Find large files
+find / -type f -size +100M -exec ls -lh {} \;
+
+# Archive & compress
+tar -czf archive.tar.gz dir/    # Create tar.gz
+tar -xzf archive.tar.gz         # Extract tar.gz
+zip -r archive.zip dir/          # Create zip
+unzip archive.zip                # Extract zip
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Shell Scripting -->
+  <div class="slide">
+    <h2 class="animate">Shell Scripting Basics</h2>
+    <div class="content">
+      <pre class="animate">
+#!/bin/bash
+
+# Variables
+NAME="World"
+echo "Hello, $NAME!"
+
+# Conditionals
+if [ -f "/etc/nginx/nginx.conf" ]; then
+    echo "Nginx config exists"
+elif [ -d "/etc/apache2" ]; then
+    echo "Apache installed"
+else
+    echo "No web server found"
+fi
+
+# Loops
+for server in web1 web2 web3; do
+    ssh "$server" "systemctl restart nginx"
+done
+
+# Functions
+deploy() {
+    local app=$1
+    echo "Deploying $app..."
+    rsync -avz ./build/ "prod:/var/www/$app/"
+}
+deploy "myapp"
+
+# Exit codes: 0 = success, non-zero = failure
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Environment & Variables -->
+  <div class="slide">
+    <h2 class="animate">Environment &amp; Configuration</h2>
+    <div class="content">
+      <pre class="animate">
+# Environment variables
+echo $PATH                  # Command search path
+echo $HOME                  # Home directory
+export MY_VAR="value"       # Set for current + child processes
+env                         # List all env vars
+
+# Shell config files (loaded in order)
+~/.bashrc                   # Interactive non-login shells
+~/.bash_profile             # Login shells
+~/.profile                  # Generic login config
+/etc/environment            # System-wide variables
+
+# PATH management
+export PATH="$HOME/bin:$PATH"   # Prepend to PATH
+
+# Aliases
+alias ll='ls -la'
+alias gs='git status'
+alias k='kubectl'
+
+# History
+history                     # Show command history
+Ctrl+R                      # Reverse search history
+!!                          # Repeat last command
+!$                          # Last argument of previous command
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: System Monitoring -->
+  <div class="slide">
+    <h2 class="animate">System Monitoring</h2>
+    <div class="content">
+      <pre class="animate">
+# System info
+uname -a                    # Kernel version
+cat /etc/os-release         # OS info
+uptime                      # System uptime & load
+free -h                     # Memory usage
+lscpu                       # CPU info
+lsblk                       # Block devices
+
+# Real-time monitoring
+top                         # Process monitor
+htop                        # Better process monitor
+iostat                      # Disk I/O statistics
+vmstat 1                    # Virtual memory stats
+sar -u 1 5                  # CPU usage over time
+dmesg | tail                # Kernel messages
+
+# Logs
+tail -f /var/log/syslog     # System log
+journalctl -f               # Systemd journal
+journalctl --since "1 hour ago"
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Cron Jobs -->
+  <div class="slide">
+    <h2 class="animate">Cron &amp; Scheduled Tasks</h2>
+    <div class="content">
+      <pre class="animate">
+# Cron format: minute hour day month weekday command
+# Edit crontab
+crontab -e                  # Edit current user's crontab
+crontab -l                  # List cron jobs
+
+# Examples
+# Every 5 minutes
+*/5 * * * * /scripts/check-health.sh
+
+# Daily at 2:30 AM
+30 2 * * * /scripts/backup.sh >> /var/log/backup.log 2>&1
+
+# Every Monday at 9 AM
+0 9 * * 1 /scripts/weekly-report.sh
+
+# First day of every month
+0 0 1 * * /scripts/monthly-cleanup.sh
+
+# System cron directories
+/etc/cron.daily/            # Runs daily
+/etc/cron.weekly/           # Runs weekly
+/etc/cron.monthly/          # Runs monthly
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Security Essentials -->
+  <div class="slide">
+    <h2 class="animate">Security Essentials</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Disable root SSH login &mdash; use <code>PermitRootLogin no</code></div>
+      <div class="bp-item animate"><span>2</span> Use <strong>SSH keys</strong> instead of passwords</div>
+      <div class="bp-item animate"><span>3</span> Keep system <strong>updated</strong> &mdash; <code>apt upgrade</code> regularly</div>
+      <div class="bp-item animate"><span>4</span> Configure <strong>firewall</strong> &mdash; only open needed ports</div>
+      <div class="bp-item animate"><span>5</span> Use <strong>fail2ban</strong> to block brute-force attempts</div>
+      <div class="bp-item animate"><span>6</span> Follow <strong>least privilege</strong> &mdash; avoid running as root</div>
+      <div class="bp-item animate"><span>7</span> Monitor logs with <strong>journalctl</strong> and log aggregation</div>
+      <div class="bp-item animate"><span>8</span> Use <strong>SELinux / AppArmor</strong> for mandatory access control</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Essential Tools -->
+  <div class="slide">
+    <h2 class="animate">Essential Tools</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Tool</th><th>Purpose</th></tr>
+        <tr><td><strong>tmux / screen</strong></td><td>Terminal multiplexer &mdash; persistent sessions</td></tr>
+        <tr><td><strong>vim / nano</strong></td><td>Terminal text editors</td></tr>
+        <tr><td><strong>jq</strong></td><td>JSON processor for the command line</td></tr>
+        <tr><td><strong>curl / wget</strong></td><td>HTTP clients for APIs and downloads</td></tr>
+        <tr><td><strong>htop</strong></td><td>Interactive process viewer</td></tr>
+        <tr><td><strong>rsync</strong></td><td>Efficient file synchronization</td></tr>
+        <tr><td><strong>strace</strong></td><td>Trace system calls for debugging</td></tr>
+        <tr><td><strong>ncdu</strong></td><td>Interactive disk usage analyzer</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F427;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Linux is the <span class="highlight">foundation of modern infrastructure</span></li>
+        <li class="animate">Master the core: <span class="tag">files</span> <span class="tag">permissions</span> <span class="tag">processes</span> <span class="tag">networking</span></li>
+        <li class="animate"><strong>Pipes &amp; redirection</strong> are your superpower</li>
+        <li class="animate">Automate with <strong>shell scripts</strong> and <strong>cron jobs</strong></li>
+        <li class="animate"><strong>SSH keys</strong> + <strong>firewall</strong> + <strong>updates</strong> = security baseline</li>
+        <li class="animate">Practice daily &mdash; the command line gets faster with muscle memory</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

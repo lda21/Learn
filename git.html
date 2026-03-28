@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Git - Version Control</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F500;</span>
+    <h1 class="animate title-fire">Git</h1>
+    <p class="subtitle animate">Distributed Version Control from Zero to Advanced</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <h2 class="animate">What is Git?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A <span class="highlight">distributed version control system</span> created by Linus Torvalds (2005)</li>
+        <li class="animate">Tracks every change to every file with a complete <strong>history</strong></li>
+        <li class="animate"><strong>Distributed</strong> &mdash; every clone is a full copy of the repository</li>
+        <li class="animate">The foundation of modern software development workflows</li>
+        <li class="animate">Used by virtually <strong>every developer and company</strong> worldwide</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <h2 class="animate">Git Mental Model</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Working<br>Directory<br><small>your files</small></div>
+        <div class="arrow">&rarr;<br><small>git add</small></div>
+        <div class="box" style="border-color:var(--warning);">Staging<br>Area<br><small>index</small></div>
+        <div class="arrow">&rarr;<br><small>git commit</small></div>
+        <div class="box" style="border-color:var(--success);">Local<br>Repo<br><small>.git/</small></div>
+        <div class="arrow">&rarr;<br><small>git push</small></div>
+        <div class="box">Remote<br>Repo<br><small>origin</small></div>
+      </div>
+      <ul style="margin-top:24px;">
+        <li class="animate"><strong>Working Directory</strong> &mdash; files you edit</li>
+        <li class="animate"><strong>Staging Area</strong> &mdash; changes selected for next commit</li>
+        <li class="animate"><strong>Local Repo</strong> &mdash; committed history on your machine</li>
+        <li class="animate"><strong>Remote Repo</strong> &mdash; shared repository (GitHub, GitLab)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <h2 class="animate">Essential Commands</h2>
+    <div class="content">
+      <pre class="animate">
+# Setup
+git init                        # Initialize new repo
+git clone url                   # Clone existing repo
+
+# Daily workflow
+git status                      # See what changed
+git add file.txt                # Stage specific file
+git add .                       # Stage all changes
+git commit -m "Fix login bug"   # Commit with message
+git push                        # Push to remote
+git pull                        # Fetch + merge from remote
+
+# View history
+git log --oneline               # Compact log
+git log --graph --all           # Visual branch graph
+git diff                        # Unstaged changes
+git diff --staged               # Staged changes
+git show abc123                 # Show a specific commit
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <h2 class="animate">Branching</h2>
+    <div class="content">
+      <pre class="animate">
+# Create and switch to new branch
+git checkout -b feature/auth
+# or (newer syntax)
+git switch -c feature/auth
+
+# List branches
+git branch              # Local branches
+git branch -a           # All (including remote)
+
+# Switch branches
+git checkout main
+git switch main
+
+# Delete branch
+git branch -d feature/auth      # Safe delete (merged only)
+git branch -D feature/auth      # Force delete
+
+# Rename branch
+git branch -m old-name new-name
+      </pre>
+      <div class="diagram animate" style="margin-top:16px;">
+        <div class="box">main</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">feature/auth</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Merge PR</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">main</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <h2 class="animate">Merging</h2>
+    <div class="content">
+      <pre class="animate">
+# Merge feature branch into main
+git checkout main
+git merge feature/auth
+
+# Three merge strategies:
+
+# 1. Fast-forward (linear history)
+git merge --ff-only feature/auth
+
+# 2. Merge commit (preserves branch history)
+git merge --no-ff feature/auth
+
+# 3. Squash merge (combine all commits into one)
+git merge --squash feature/auth
+git commit -m "Add authentication feature"
+      </pre>
+      <ul>
+        <li class="animate"><strong>Fast-forward</strong> &mdash; clean linear history, no merge commit</li>
+        <li class="animate"><strong>Merge commit</strong> &mdash; preserves full branch context</li>
+        <li class="animate"><strong>Squash</strong> &mdash; clean history, one commit per feature</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <h2 class="animate">Rebasing</h2>
+    <div class="content">
+      <pre class="animate">
+# Rebase feature branch onto latest main
+git checkout feature/auth
+git rebase main
+
+# Interactive rebase: edit, squash, reorder commits
+git rebase -i HEAD~3
+
+# In the editor:
+pick abc123 Add login form
+squash def456 Fix typo in login
+pick ghi789 Add logout button
+
+# Rebase vs Merge:
+# Rebase = linear history (rewrites commits)
+# Merge  = preserves branch topology
+      </pre>
+      <ul>
+        <li class="animate"><span class="highlight">Golden rule</span>: never rebase commits that others have pulled</li>
+        <li class="animate">Use rebase for <strong>local cleanup</strong> before pushing</li>
+        <li class="animate">Use merge for <strong>integrating shared branches</strong></li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <h2 class="animate">Resolving Merge Conflicts</h2>
+    <div class="content">
+      <pre class="animate">
+# When a conflict occurs:
+&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+const port = 3000;
+=======
+const port = 8080;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; feature/new-port
+
+# Resolution steps:
+# 1. Edit the file - keep what you want
+const port = 8080;
+
+# 2. Stage the resolved file
+git add server.js
+
+# 3. Continue the merge or rebase
+git merge --continue
+# or
+git rebase --continue
+
+# Abort if needed
+git merge --abort
+git rebase --abort
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <h2 class="animate">Stashing</h2>
+    <div class="content">
+      <pre class="animate">
+# Save work-in-progress without committing
+git stash                       # Stash changes
+git stash push -m "WIP: auth"   # Stash with message
+
+# View stashes
+git stash list
+# stash@{0}: On feature: WIP: auth
+# stash@{1}: On main: quick experiment
+
+# Restore stashed changes
+git stash pop                   # Apply and remove from stash
+git stash apply                 # Apply but keep in stash
+git stash apply stash@{1}       # Apply specific stash
+
+# Other operations
+git stash drop stash@{0}        # Delete a stash
+git stash clear                 # Delete all stashes
+git stash show -p               # Show stash diff
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide">
+    <h2 class="animate">Undoing Changes</h2>
+    <div class="content">
+      <pre class="animate">
+# Unstage a file (keep changes in working dir)
+git restore --staged file.txt
+git reset HEAD file.txt         # Older syntax
+
+# Discard changes in working directory
+git restore file.txt
+git checkout -- file.txt        # Older syntax
+
+# Amend last commit (message or content)
+git commit --amend -m "Better message"
+
+# Revert a commit (creates new undo commit)
+git revert abc123
+
+# Reset to previous commit (DESTRUCTIVE)
+git reset --soft HEAD~1     # Undo commit, keep staged
+git reset --mixed HEAD~1    # Undo commit + staging
+git reset --hard HEAD~1     # Undo everything (danger!)
+
+# Recover from mistakes
+git reflog                  # History of HEAD movements
+git reset --hard HEAD@{2}   # Go back to reflog entry
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 -->
+  <div class="slide">
+    <h2 class="animate">Remote Operations</h2>
+    <div class="content">
+      <pre class="animate">
+# Manage remotes
+git remote -v                       # List remotes
+git remote add origin url           # Add remote
+git remote add upstream url         # Add upstream (forks)
+git remote remove origin            # Remove remote
+
+# Fetch and pull
+git fetch origin                    # Download changes (no merge)
+git pull origin main                # Fetch + merge
+git pull --rebase origin main       # Fetch + rebase
+
+# Push
+git push origin main                # Push to remote
+git push -u origin feature/auth     # Push + set upstream
+git push --force-with-lease         # Safe force push
+
+# Track remote branches
+git checkout -b local origin/remote # Track remote branch
+git branch -vv                      # Show tracking info
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 -->
+  <div class="slide">
+    <h2 class="animate">Git Log &amp; History</h2>
+    <div class="content">
+      <pre class="animate">
+# Useful log formats
+git log --oneline --graph --all     # Visual graph
+git log --since="2 weeks ago"       # Time-based
+git log --author="John"             # By author
+git log -- path/to/file             # File history
+git log -p                          # Show diffs
+git log -S "functionName"           # Search for string changes
+
+# Blame - who changed each line
+git blame file.txt
+git blame -L 10,20 file.txt        # Lines 10-20 only
+
+# Find when a bug was introduced
+git bisect start
+git bisect bad                      # Current commit is bad
+git bisect good v1.0                # This tag was good
+# Git binary searches through commits
+git bisect reset                    # Done
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 -->
+  <div class="slide">
+    <h2 class="animate">Tags &amp; Releases</h2>
+    <div class="content">
+      <pre class="animate">
+# Lightweight tag
+git tag v1.0.0
+
+# Annotated tag (recommended)
+git tag -a v1.0.0 -m "Release 1.0.0"
+
+# Tag a specific commit
+git tag -a v0.9.0 abc123 -m "Beta release"
+
+# List and show tags
+git tag                     # List all tags
+git show v1.0.0             # Show tag details
+
+# Push tags
+git push origin v1.0.0      # Push specific tag
+git push origin --tags       # Push all tags
+
+# Delete tag
+git tag -d v1.0.0                   # Local
+git push origin --delete v1.0.0     # Remote
+
+# Semantic versioning: MAJOR.MINOR.PATCH
+# v1.0.0 -> v1.0.1 (patch) -> v1.1.0 (minor) -> v2.0.0 (major)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 -->
+  <div class="slide">
+    <h2 class="animate">Cherry-Pick &amp; Advanced</h2>
+    <div class="content">
+      <pre class="animate">
+# Cherry-pick: apply specific commits to current branch
+git cherry-pick abc123
+git cherry-pick abc123..def456      # Range
+
+# Worktrees: multiple working directories, one repo
+git worktree add ../hotfix hotfix-branch
+git worktree list
+git worktree remove ../hotfix
+
+# Submodules: embed one repo inside another
+git submodule add https://github.com/lib/repo libs/repo
+git submodule update --init --recursive
+
+# Clean untracked files
+git clean -n                # Dry run
+git clean -fd               # Remove files and dirs
+
+# Archive
+git archive --format=zip HEAD > release.zip
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 -->
+  <div class="slide">
+    <h2 class="animate">.gitignore</h2>
+    <div class="content">
+      <pre class="animate">
+# .gitignore - files Git should ignore
+
+# Dependencies
+node_modules/
+vendor/
+venv/
+
+# Build output
+dist/
+build/
+*.o
+*.pyc
+
+# Environment & secrets
+.env
+.env.local
+*.pem
+credentials.json
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Global gitignore (~/.gitignore_global)
+git config --global core.excludesfile ~/.gitignore_global
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 -->
+  <div class="slide">
+    <h2 class="animate">Git Configuration</h2>
+    <div class="content">
+      <pre class="animate">
+# Identity
+git config --global user.name "Your Name"
+git config --global user.email "you@example.com"
+
+# Editor
+git config --global core.editor "vim"
+
+# Default branch name
+git config --global init.defaultBranch main
+
+# Useful aliases
+git config --global alias.co checkout
+git config --global alias.br branch
+git config --global alias.st status
+git config --global alias.lg "log --oneline --graph --all"
+
+# Pull strategy
+git config --global pull.rebase true
+
+# Auto-correct typos
+git config --global help.autocorrect 10
+
+# View all config
+git config --list
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 -->
+  <div class="slide">
+    <h2 class="animate">Branching Strategies</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Strategy</th><th>Branches</th><th>Best For</th></tr>
+        <tr><td><strong>GitHub Flow</strong></td><td>main + feature</td><td>Simple, continuous deployment</td></tr>
+        <tr><td><strong>Git Flow</strong></td><td>main, develop, feature, release, hotfix</td><td>Scheduled releases</td></tr>
+        <tr><td><strong>Trunk-Based</strong></td><td>main + short-lived feature</td><td>CI/CD, experienced teams</td></tr>
+      </table>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">main</div>
+        <div class="arrow">&larr;</div>
+        <div class="box" style="border-color:var(--warning);">feature<br><small>(short-lived)</small></div>
+        <div class="arrow">&larr;</div>
+        <div class="box" style="border-color:var(--success);">PR +<br>review</div>
+      </div>
+      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:8px;">GitHub Flow (recommended for most teams)</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Write <strong>clear commit messages</strong> &mdash; explain <em>why</em>, not just what</div>
+      <div class="bp-item animate"><span>2</span> <strong>Commit often</strong>, push regularly &mdash; small atomic commits</div>
+      <div class="bp-item animate"><span>3</span> Never commit <strong>secrets</strong> &mdash; use .gitignore and .env</div>
+      <div class="bp-item animate"><span>4</span> Use <strong>branches</strong> for every feature or fix</div>
+      <div class="bp-item animate"><span>5</span> <strong>Pull before push</strong> to avoid conflicts</div>
+      <div class="bp-item animate"><span>6</span> Use <code>--force-with-lease</code> instead of <code>--force</code></div>
+      <div class="bp-item animate"><span>7</span> Learn <strong>interactive rebase</strong> to clean up before merging</div>
+      <div class="bp-item animate"><span>8</span> Use <strong>tags</strong> for releases and milestones</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">Commit Message Convention</h2>
+    <div class="content">
+      <pre class="animate">
+# Conventional Commits format:
+# type(scope): description
+
+feat(auth): add JWT token refresh endpoint
+fix(api): handle null response from payment gateway
+docs(readme): update installation instructions
+refactor(db): extract query builder into separate module
+test(auth): add integration tests for login flow
+chore(deps): bump express from 4.18 to 4.19
+perf(api): cache user lookups with Redis
+
+# Types: feat, fix, docs, style, refactor, test, chore, perf
+# Breaking change:
+feat(api)!: change response format for /users endpoint
+
+BREAKING CHANGE: Response now returns array instead of object
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F500;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Git is the <span class="highlight">universal version control system</span></li>
+        <li class="animate">Master the flow: <span class="tag">add</span> <span class="tag">commit</span> <span class="tag">push</span> <span class="tag">pull</span></li>
+        <li class="animate"><strong>Branches</strong> are cheap &mdash; use them for everything</li>
+        <li class="animate">Know <strong>merge vs rebase</strong> and when to use each</li>
+        <li class="animate"><strong>Reflog</strong> is your safety net &mdash; almost nothing is truly lost</li>
+        <li class="animate">Write good <strong>commit messages</strong> &mdash; your future self will thank you</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
