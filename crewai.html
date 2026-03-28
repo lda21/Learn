@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crew AI - Multi-Agent Framework</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: #fff; border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid #D9D2CB; font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: #fff; border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: #fff; border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h1 class="animate title-fire">Crew AI</h1>
+    <p class="subtitle animate">Multi-Agent AI Framework for Collaborative Intelligence</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2: What is Crew AI? -->
+  <div class="slide">
+    <h2 class="animate">What is Crew AI?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An open-source <span class="highlight">multi-agent orchestration framework</span> built in Python</li>
+        <li class="animate">Enables <strong>role-based AI agents</strong> to collaborate on complex tasks</li>
+        <li class="animate">Think of it as assembling a <span class="highlight">team of specialized AI workers</span></li>
+        <li class="animate">Agents have <strong>roles, goals, backstories</strong> &mdash; like real team members</li>
+        <li class="animate">Supports <strong>OpenAI, Anthropic, local LLMs</strong> and 100+ tools</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Key Features -->
+  <div class="slide">
+    <h2 class="animate">Key Features</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Role-Based Agents</h3>
+        <p>Each agent has a specific role, goal, and backstory that shapes its behavior</p>
+      </div>
+      <div class="card animate">
+        <h3>Task Delegation</h3>
+        <p>Agents can delegate sub-tasks to other agents with the right expertise</p>
+      </div>
+      <div class="card animate">
+        <h3>Tool Integration</h3>
+        <p>Agents use tools: web search, file I/O, APIs, code execution, and custom tools</p>
+      </div>
+      <div class="card animate">
+        <h3>Memory System</h3>
+        <p>Short-term, long-term, and entity memory for context across interactions</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">You<br><small>(define crew)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Crew<br><small>(orchestrator)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Agents<br><small>(AI workers)</small></div>
+    </div>
+    <div class="diagram animate" style="margin-top: 10px;">
+      <div class="box">Tasks<br><small>(assignments)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Tools<br><small>(capabilities)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">LLM<br><small>(brain)</small></div>
+    </div>
+    <ul class="content animate" style="margin-top: 24px;">
+      <li>A <strong>Crew</strong> orchestrates multiple <strong>Agents</strong> working on <strong>Tasks</strong></li>
+      <li>Each Agent uses <strong>Tools</strong> and an <strong>LLM</strong> to accomplish its work</li>
+      <li>Tasks flow through the crew based on the chosen <strong>process type</strong></li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 5: Agents -->
+  <div class="slide">
+    <h2 class="animate">Core Concept: Agents</h2>
+    <div class="content">
+      <p class="animate">An Agent is defined by its <span class="highlight">role</span>, <span class="highlight">goal</span>, and <span class="highlight">backstory</span>:</p>
+      <pre class="animate">
+from crewai import Agent
+
+researcher = Agent(
+    role="Senior Research Analyst",
+    goal="Find and analyze cutting-edge AI developments",
+    backstory="""You are an expert research analyst with 10 years
+    of experience tracking AI trends. You're known for finding
+    the most relevant and impactful information.""",
+    tools=[search_tool, scrape_tool],
+    llm="anthropic/claude-sonnet-4-6",
+    verbose=True,
+    allow_delegation=True,
+)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Tasks -->
+  <div class="slide">
+    <h2 class="animate">Core Concept: Tasks</h2>
+    <div class="content">
+      <p class="animate">A Task is a specific assignment given to an agent:</p>
+      <pre class="animate">
+from crewai import Task
+
+research_task = Task(
+    description="""Research the latest developments in AI agents
+    for the year 2024. Focus on:
+    1. Key frameworks and tools
+    2. Notable real-world applications
+    3. Emerging trends and predictions""",
+    expected_output="""A detailed report with sections covering
+    frameworks, applications, and trends. Include sources.""",
+    agent=researcher,
+    output_file="research_report.md",
+)
+      </pre>
+      <ul>
+        <li class="animate"><strong>description</strong> &mdash; what needs to be done (be specific!)</li>
+        <li class="animate"><strong>expected_output</strong> &mdash; what the result should look like</li>
+        <li class="animate"><strong>agent</strong> &mdash; who is responsible for this task</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Crews -->
+  <div class="slide">
+    <h2 class="animate">Core Concept: Crews</h2>
+    <div class="content">
+      <p class="animate">A Crew brings agents and tasks together:</p>
+      <pre class="animate">
+from crewai import Crew, Process
+
+crew = Crew(
+    agents=[researcher, writer, editor],
+    tasks=[research_task, writing_task, editing_task],
+    process=Process.sequential,   # or Process.hierarchical
+    memory=True,
+    verbose=True,
+)
+
+# Run the crew
+result = crew.kickoff()
+print(result)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Process Types -->
+  <div class="slide">
+    <h2 class="animate">Process Types</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Sequential</h3>
+        <p>Tasks execute one after another. Output of each task feeds into the next.</p>
+        <code>Process.sequential</code>
+      </div>
+      <div class="metric-card animate">
+        <h3>Hierarchical</h3>
+        <p>A manager agent delegates and coordinates tasks to other agents.</p>
+        <code>Process.hierarchical</code>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:30px;">
+      <div class="box">Research<br><small>Agent 1</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Write<br><small>Agent 2</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Edit<br><small>Agent 3</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Output</div>
+    </div>
+    <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:12px;">Sequential process flow</p>
+  </div>
+
+  <!-- SLIDE 9: Tools -->
+  <div class="slide">
+    <h2 class="animate">Built-in Tools</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Tool</th><th>What it does</th></tr>
+        <tr><td><strong>SerperDevTool</strong></td><td>Google search via Serper API</td></tr>
+        <tr><td><strong>ScrapeWebsiteTool</strong></td><td>Scrape and extract content from websites</td></tr>
+        <tr><td><strong>FileReadTool</strong></td><td>Read contents of local files</td></tr>
+        <tr><td><strong>DirectoryReadTool</strong></td><td>List and read directory contents</td></tr>
+        <tr><td><strong>CodeInterpreterTool</strong></td><td>Execute Python code in a sandbox</td></tr>
+        <tr><td><strong>PDFSearchTool</strong></td><td>Search and extract from PDF documents</td></tr>
+        <tr><td><strong>GithubSearchTool</strong></td><td>Search GitHub repositories</td></tr>
+        <tr><td><strong>YoutubeVideoSearchTool</strong></td><td>Search and analyze YouTube videos</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Custom Tools -->
+  <div class="slide">
+    <h2 class="animate">Creating Custom Tools</h2>
+    <div class="content">
+      <pre class="animate">
+from crewai.tools import BaseTool
+from pydantic import Field
+
+class WeatherTool(BaseTool):
+    name: str = "Weather Lookup"
+    description: str = "Get current weather for a city"
+
+    def _run(self, city: str) -&gt; str:
+        # Call your weather API
+        response = requests.get(
+            f"https://api.weather.com/{city}"
+        )
+        data = response.json()
+        return f"{city}: {data['temp']}°F, {data['condition']}"
+
+# Assign to agent
+weather_agent = Agent(
+    role="Weather Reporter",
+    goal="Provide accurate weather reports",
+    backstory="You are a meteorologist.",
+    tools=[WeatherTool()],
+)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Memory System -->
+  <div class="slide">
+    <h2 class="animate">Memory System</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Short-Term Memory</h3>
+          <p>Context within the current crew execution. Shared between agents during a run.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Long-Term Memory</h3>
+          <p>Persists across executions. Agents learn and improve over time.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Entity Memory</h3>
+          <p>Tracks information about specific entities (people, orgs, concepts).</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Contextual Memory</h3>
+          <p>Maintains conversation context and task relationships.</p>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:20px;">
+crew = Crew(
+    agents=[...],
+    tasks=[...],
+    memory=True,              # Enable memory
+    embedder={                # Custom embeddings
+        "provider": "openai",
+        "config": {"model": "text-embedding-3-small"}
+    },
+)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: LLM Providers -->
+  <div class="slide">
+    <h2 class="animate">LLM Providers</h2>
+    <div class="content">
+      <pre class="animate">
+# Anthropic Claude
+agent = Agent(
+    role="Analyst",
+    llm="anthropic/claude-sonnet-4-6",
+    ...
+)
+
+# OpenAI GPT
+agent = Agent(
+    role="Writer",
+    llm="openai/gpt-4o",
+    ...
+)
+
+# Local model via Ollama
+agent = Agent(
+    role="Coder",
+    llm="ollama/llama3",
+    ...
+)
+
+# Azure OpenAI
+agent = Agent(
+    role="Reviewer",
+    llm="azure/gpt-4o-deployment",
+    ...
+)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Full Example -->
+  <div class="slide">
+    <h2 class="animate">Full Example: Blog Writer Crew</h2>
+    <div class="content">
+      <pre class="animate">
+from crewai import Agent, Task, Crew, Process
+
+# Agents
+researcher = Agent(
+    role="Researcher", goal="Find accurate info",
+    backstory="Expert researcher", tools=[search_tool])
+
+writer = Agent(
+    role="Writer", goal="Write engaging blog posts",
+    backstory="Skilled content writer")
+
+# Tasks
+research = Task(
+    description="Research {topic} thoroughly",
+    expected_output="Key facts and insights",
+    agent=researcher)
+
+write = Task(
+    description="Write a blog post using the research",
+    expected_output="A 1000-word blog post in markdown",
+    agent=writer, output_file="blog.md")
+
+# Crew
+crew = Crew(
+    agents=[researcher, writer],
+    tasks=[research, write],
+    process=Process.sequential)
+
+result = crew.kickoff(inputs={"topic": "AI Agents in 2024"})
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Delegation -->
+  <div class="slide">
+    <h2 class="animate">Agent Delegation</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Agents can <span class="highlight">delegate tasks</span> to other agents when they lack expertise</li>
+        <li class="animate">Enable with <code>allow_delegation=True</code> on the agent</li>
+        <li class="animate">The delegating agent decides <strong>who</strong> should handle a sub-task</li>
+        <li class="animate">Works best with <strong>hierarchical</strong> process type</li>
+      </ul>
+      <pre class="animate">
+manager = Agent(
+    role="Project Manager",
+    goal="Coordinate the team to deliver results",
+    backstory="Experienced PM who delegates effectively",
+    allow_delegation=True,
+)
+
+crew = Crew(
+    agents=[manager, researcher, writer, designer],
+    tasks=[project_task],
+    process=Process.hierarchical,
+    manager_agent=manager,
+)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Inputs & Output -->
+  <div class="slide">
+    <h2 class="animate">Dynamic Inputs &amp; Structured Output</h2>
+    <div class="content">
+      <pre class="animate">
+from pydantic import BaseModel
+
+# Structured output with Pydantic
+class BlogPost(BaseModel):
+    title: str
+    content: str
+    tags: list[str]
+
+writing_task = Task(
+    description="Write a blog about {topic}",
+    expected_output="A complete blog post",
+    agent=writer,
+    output_pydantic=BlogPost,     # Structured output!
+)
+
+# Pass dynamic inputs at runtime
+result = crew.kickoff(inputs={
+    "topic": "Multi-Agent AI Systems"
+})
+
+# Access structured data
+post = result.pydantic
+print(post.title)
+print(post.tags)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Real-World Use Cases -->
+  <div class="slide">
+    <h2 class="animate">Real-World Use Cases</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Content Creation</h3>
+        <p>Research + Write + Edit pipeline for blogs, reports, and marketing copy</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Code Review</h3>
+        <p>Agents analyze code for bugs, security issues, and style violations</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Market Research</h3>
+        <p>Scrape, analyze, and summarize competitive intelligence</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Customer Support</h3>
+        <p>Triage, research, and draft responses to customer tickets</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Crew AI vs Alternatives -->
+  <div class="slide">
+    <h2 class="animate">Crew AI vs Alternatives</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>Crew AI</th><th>AutoGen</th><th>LangGraph</th></tr>
+        <tr><td>Approach</td><td class="green">Role-based agents</td><td>Conversational</td><td>Graph-based</td></tr>
+        <tr><td>Ease of Use</td><td class="green">Very simple API</td><td>Moderate</td><td>Complex</td></tr>
+        <tr><td>Process Control</td><td>Sequential / Hierarchical</td><td>Chat-based</td><td class="green">Full graph control</td></tr>
+        <tr><td>Memory</td><td class="green">Built-in</td><td>Limited</td><td>Custom</td></tr>
+        <tr><td>Tools</td><td class="green">100+ built-in</td><td>Custom only</td><td>LangChain tools</td></tr>
+        <tr><td>Best For</td><td>Team-like workflows</td><td>Multi-agent chat</td><td>Complex flows</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Write <strong>detailed backstories</strong> &mdash; they heavily influence agent behavior</div>
+      <div class="bp-item animate"><span>2</span> Be <strong>specific</strong> in task descriptions and expected outputs</div>
+      <div class="bp-item animate"><span>3</span> Use <strong>sequential</strong> for simple pipelines, <strong>hierarchical</strong> for complex ones</div>
+      <div class="bp-item animate"><span>4</span> Give agents <strong>only the tools they need</strong> &mdash; less is more</div>
+      <div class="bp-item animate"><span>5</span> Enable <strong>memory</strong> for crews that run repeatedly</div>
+      <div class="bp-item animate"><span>6</span> Use <strong>output_pydantic</strong> for structured, predictable results</div>
+      <div class="bp-item animate"><span>7</span> Test with <strong>verbose=True</strong> to debug agent reasoning</div>
+      <div class="bp-item animate"><span>8</span> Start simple &mdash; <strong>2-3 agents</strong> before scaling up</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Quick Start -->
+  <div class="slide">
+    <h2 class="animate">Quick Start</h2>
+    <div class="content">
+      <pre class="animate">
+# Install Crew AI
+pip install crewai crewai-tools
+
+# Create a new project
+crewai create crew my_crew
+cd my_crew
+
+# Project structure:
+# my_crew/
+#   src/my_crew/
+#     config/
+#       agents.yaml     # Agent definitions
+#       tasks.yaml      # Task definitions
+#     crew.py           # Crew assembly
+#     main.py           # Entry point
+#   pyproject.toml
+
+# Set your API key
+export OPENAI_API_KEY="sk-..."
+# or
+export ANTHROPIC_API_KEY="sk-ant-..."
+
+# Run the crew
+crewai run
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Crew AI makes <span class="highlight">multi-agent collaboration</span> simple and intuitive</li>
+        <li class="animate">Three core concepts: <span class="tag">Agents</span> <span class="tag">Tasks</span> <span class="tag">Crews</span></li>
+        <li class="animate"><strong>Role + Goal + Backstory</strong> = powerful agent behavior control</li>
+        <li class="animate">Built-in <strong>tools, memory, and delegation</strong> out of the box</li>
+        <li class="animate">Works with <strong>any LLM</strong>: OpenAI, Anthropic, Ollama, Azure</li>
+        <li class="animate">Start with <strong>simple crews</strong> and iterate toward complexity</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

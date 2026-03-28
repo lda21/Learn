@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Temporal - Workflow Orchestration</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column; justify-content: center; align-items: center;
+      padding: 60px 80px; opacity: 0; pointer-events: none;
+      transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre {
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      background: var(--code-bg); color: #E8E2DC; border-radius: 6px;
+    }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre {
+      padding: 24px 28px; font-size: 0.95rem; line-height: 1.6;
+      overflow-x: auto; width: 100%; max-width: 900px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+
+    .card { background: #fff; border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: #fff; border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid #D9D2CB; font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: #fff; border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: #fff; border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x23F3;</span>
+    <h1 class="animate title-fire">Temporal</h1>
+    <p class="subtitle animate">Durable Workflow Orchestration Platform</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2: What is Temporal? -->
+  <div class="slide">
+    <h2 class="animate">What is Temporal?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An open-source <span class="highlight">durable execution platform</span> for running reliable distributed applications</li>
+        <li class="animate">Founded by the creators of <strong>Uber Cadence</strong> (2020), backed by Sequoia</li>
+        <li class="animate">Your code runs as if failures don't exist &mdash; <span class="highlight">automatic retries, state recovery</span></li>
+        <li class="animate">SDKs for <strong>Go, Java, TypeScript, Python, .NET</strong></li>
+        <li class="animate">Used by <strong>Netflix, Stripe, Snap, Datadog</strong> and thousands more</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Key Features -->
+  <div class="slide">
+    <h2 class="animate">Key Features</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Durable Execution</h3>
+        <p>Code state survives process crashes, server outages, and deployments</p>
+      </div>
+      <div class="card animate">
+        <h3>Automatic Retries</h3>
+        <p>Configurable retry policies with exponential backoff for transient failures</p>
+      </div>
+      <div class="card animate">
+        <h3>Visibility</h3>
+        <p>Full observability into every workflow execution, its state, and history</p>
+      </div>
+      <div class="card animate">
+        <h3>Scalability</h3>
+        <p>Handles millions of concurrent workflows across distributed workers</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">Client<br><small>(start workflows)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Temporal<br>Server<br><small>(orchestrator)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Workers<br><small>(execute code)</small></div>
+    </div>
+    <div class="diagram animate" style="margin-top: 10px;">
+      <div class="box" style="border-color:var(--success);">Web UI</div>
+      <div class="arrow">&larr;</div>
+      <div class="box" style="border-color:var(--warning);">Temporal<br>Server</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Database<br><small>(Cassandra/MySQL/Postgres)</small></div>
+    </div>
+    <ul class="content animate" style="margin-top: 24px;">
+      <li>The <strong>Temporal Server</strong> manages workflow state, task queues, and timers</li>
+      <li><strong>Workers</strong> poll task queues and execute your workflow &amp; activity code</li>
+      <li><strong>Clients</strong> start, signal, query, and cancel workflows</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 5: Core Concepts - Workflows -->
+  <div class="slide">
+    <h2 class="animate">Core Concept: Workflows</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A <span class="highlight">Workflow</span> is a durable function that orchestrates your business logic</li>
+        <li class="animate">Must be <strong>deterministic</strong> &mdash; same input always produces same sequence of commands</li>
+        <li class="animate">Can run for <strong>seconds to years</strong> &mdash; Temporal persists state automatically</li>
+        <li class="animate">Survives crashes: Temporal <strong>replays</strong> the workflow from event history on recovery</li>
+      </ul>
+      <pre class="animate">
+// TypeScript Workflow Example
+export async function orderWorkflow(orderId: string): Promise&lt;string&gt; {
+  await validateOrder(orderId);       // Activity
+  await chargePayment(orderId);       // Activity
+  await shipOrder(orderId);           // Activity
+  return `Order ${orderId} completed`;
+}
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Core Concepts - Activities -->
+  <div class="slide">
+    <h2 class="animate">Core Concept: Activities</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An <span class="highlight">Activity</span> is a function that performs a single, well-defined action</li>
+        <li class="animate">Can be <strong>non-deterministic</strong> &mdash; API calls, DB writes, file I/O, etc.</li>
+        <li class="animate">Automatically retried on failure according to <strong>retry policies</strong></li>
+        <li class="animate">Support <strong>heartbeats</strong> for long-running activities</li>
+      </ul>
+      <pre class="animate">
+// TypeScript Activity Example
+export async function chargePayment(orderId: string): Promise&lt;void&gt; {
+  const order = await db.getOrder(orderId);
+  await paymentGateway.charge(order.amount, order.paymentMethod);
+  await db.updateOrderStatus(orderId, 'paid');
+}
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Workflow vs Activity -->
+  <div class="slide">
+    <h2 class="animate">Workflow vs Activity</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Aspect</th><th>Workflow</th><th>Activity</th></tr>
+        <tr><td>Determinism</td><td><strong>Must be deterministic</strong></td><td>Can be non-deterministic</td></tr>
+        <tr><td>Side effects</td><td>No direct side effects</td><td><strong>Where side effects happen</strong></td></tr>
+        <tr><td>Duration</td><td>Seconds to years</td><td>Typically short-lived</td></tr>
+        <tr><td>Retries</td><td>Replayed from history</td><td>Re-executed from scratch</td></tr>
+        <tr><td>I/O</td><td>No direct I/O</td><td><strong>All I/O goes here</strong></td></tr>
+        <tr><td>Examples</td><td>Orchestration logic</td><td>API calls, DB queries, emails</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Workers -->
+  <div class="slide">
+    <h2 class="animate">Workers</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Workers are <strong>processes you run</strong> that execute workflow and activity code</li>
+        <li class="animate">Poll the Temporal Server for <span class="highlight">tasks</span> on specific <strong>task queues</strong></li>
+        <li class="animate">Scale horizontally &mdash; add more workers for higher throughput</li>
+        <li class="animate">Stateless &mdash; all state is managed by the Temporal Server</li>
+      </ul>
+      <pre class="animate">
+// TypeScript Worker Setup
+import { Worker } from '@temporalio/worker';
+import * as activities from './activities';
+
+const worker = await Worker.create({
+  workflowsPath: require.resolve('./workflows'),
+  activities,
+  taskQueue: 'order-processing',
+});
+
+await worker.run();
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: Signals & Queries -->
+  <div class="slide">
+    <h2 class="animate">Signals &amp; Queries</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Signals</h3>
+        <p>Send data <strong>into</strong> a running workflow asynchronously. The workflow can react and change behavior.</p>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Define signal
+const approvalSignal = defineSignal&lt;
+  [boolean]
+&gt;('approval');
+
+// Handle in workflow
+setHandler(approvalSignal,
+  (approved) =&gt; {
+    isApproved = approved;
+  }
+);
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>Queries</h3>
+        <p><strong>Read</strong> workflow state without affecting execution. Synchronous request/response.</p>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Define query
+const statusQuery = defineQuery&lt;
+  string
+&gt;('status');
+
+// Handle in workflow
+setHandler(statusQuery,
+  () =&gt; currentStatus
+);
+
+// Client queries
+const status = await handle
+  .query(statusQuery);
+        </pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Retry Policies -->
+  <div class="slide">
+    <h2 class="animate">Retry Policies</h2>
+    <div class="content">
+      <p class="animate">Configure how activities are retried on failure:</p>
+      <pre class="animate">
+const { chargePayment } = proxyActivities&lt;typeof activities&gt;({
+  startToCloseTimeout: '30s',
+  retry: {
+    initialInterval: '1s',          // First retry after 1s
+    backoffCoefficient: 2,           // Double the interval each retry
+    maximumInterval: '60s',          // Cap at 60s between retries
+    maximumAttempts: 5,              // Give up after 5 attempts
+    nonRetryableErrorTypes: [        // Don't retry these
+      'InvalidCardError',
+      'InsufficientFundsError',
+    ],
+  },
+});
+      </pre>
+      <ul>
+        <li class="animate">Default policy retries <strong>indefinitely</strong> with exponential backoff</li>
+        <li class="animate">Use <code>nonRetryableErrorTypes</code> for business logic failures</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Timers & Sleep -->
+  <div class="slide">
+    <h2 class="animate">Timers &amp; Durable Sleep</h2>
+    <div class="content">
+      <p class="animate">Workflows can <span class="highlight">sleep for days, weeks, or months</span> &mdash; durably:</p>
+      <pre class="animate">
+export async function subscriptionWorkflow(userId: string) {
+  while (true) {
+    await chargeMonthlySub(userId);    // Activity
+
+    // Sleep for 30 days - survives server restarts!
+    await sleep('30 days');
+
+    if (await isCancelled()) break;
+  }
+}
+      </pre>
+      <ul>
+        <li class="animate"><code>sleep()</code> is persisted &mdash; not an in-memory timer</li>
+        <li class="animate">Workflow can sleep for <strong>years</strong> without consuming resources</li>
+        <li class="animate">Use <code>condition()</code> to wait for a signal with a timeout</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Task Queues -->
+  <div class="slide">
+    <h2 class="animate">Task Queues</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Task Queues route tasks from the server to the right <span class="highlight">workers</span></li>
+        <li class="animate">Multiple workers can listen on the <strong>same queue</strong> for load balancing</li>
+        <li class="animate">Use <strong>different queues</strong> for different workloads or priorities</li>
+        <li class="animate">Enable <strong>task routing</strong> &mdash; send specific activities to specific workers</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Workflow Task<br><small>"order-queue"</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Temporal<br>Server</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Worker A<br><small>"order-queue"</small></div>
+      </div>
+      <div class="diagram animate">
+        <div class="box">Activity Task<br><small>"email-queue"</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Temporal<br>Server</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Worker B<br><small>"email-queue"</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Error Handling -->
+  <div class="slide">
+    <h2 class="animate">Error Handling</h2>
+    <div class="content">
+      <pre class="animate">
+export async function orderWorkflow(orderId: string) {
+  try {
+    await chargePayment(orderId);
+    await shipOrder(orderId);
+  } catch (err) {
+    // Compensate on failure (Saga pattern)
+    await refundPayment(orderId);
+    await cancelShipment(orderId);
+    throw ApplicationFailure.nonRetryable(
+      `Order ${orderId} failed: ${err.message}`
+    );
+  }
+}
+      </pre>
+      <ul>
+        <li class="animate"><strong>ApplicationFailure</strong> &mdash; use <code>.retryable()</code> or <code>.nonRetryable()</code></li>
+        <li class="animate"><strong>Saga pattern</strong> &mdash; compensating actions to undo partial work</li>
+        <li class="animate"><strong>Cancellation</strong> &mdash; workflows can handle cancel requests gracefully</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Client API -->
+  <div class="slide">
+    <h2 class="animate">Starting &amp; Interacting with Workflows</h2>
+    <div class="content">
+      <pre class="animate">
+import { Client } from '@temporalio/client';
+
+const client = new Client();
+
+// Start a workflow
+const handle = await client.workflow.start(orderWorkflow, {
+  taskQueue: 'order-processing',
+  workflowId: `order-${orderId}`,
+  args: [orderId],
+});
+
+// Wait for result
+const result = await handle.result();
+
+// Send a signal
+await handle.signal(approvalSignal, true);
+
+// Query state
+const status = await handle.query(statusQuery);
+
+// Cancel
+await handle.cancel();
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Visibility & Search -->
+  <div class="slide">
+    <h2 class="animate">Visibility &amp; Search Attributes</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">The <span class="highlight">Web UI</span> shows all workflows, their status, and full event history</li>
+        <li class="animate"><strong>Search Attributes</strong> let you query workflows with custom fields</li>
+        <li class="animate">Supports <strong>Elasticsearch</strong> or <strong>SQL-based</strong> visibility stores</li>
+      </ul>
+      <pre class="animate">
+// Add custom search attributes to a workflow
+upsertSearchAttributes({
+  CustomerId: ['cust-12345'],
+  OrderTotal: [99.99],
+  Region: ['us-east-1'],
+});
+
+// Query workflows via CLI or API
+// tctl: tctl workflow list -q 'Region="us-east-1" AND OrderTotal > 50'
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Temporal Cloud vs Self-Hosted -->
+  <div class="slide">
+    <h2 class="animate">Cloud vs Self-Hosted</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Aspect</th><th>Temporal Cloud</th><th>Self-Hosted</th></tr>
+        <tr><td>Operations</td><td class="green">Fully managed</td><td>You manage infra</td></tr>
+        <tr><td>Scaling</td><td class="green">Automatic</td><td>Manual configuration</td></tr>
+        <tr><td>Cost</td><td>Pay per action</td><td class="green">Free (infra cost)</td></tr>
+        <tr><td>Multi-region</td><td class="green">Built-in</td><td>Complex setup</td></tr>
+        <tr><td>Updates</td><td class="green">Automatic</td><td>Manual upgrades</td></tr>
+        <tr><td>Data residency</td><td>Temporal managed</td><td class="green">Full control</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Temporal vs Alternatives -->
+  <div class="slide">
+    <h2 class="animate">Temporal vs Alternatives</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>Temporal</th><th>AWS Step Functions</th><th>Apache Airflow</th></tr>
+        <tr><td>Programming Model</td><td class="green">Code-first</td><td>JSON/YAML (ASL)</td><td>Python DAGs</td></tr>
+        <tr><td>Durability</td><td class="green">Full replay</td><td>State machine</td><td>Task-level</td></tr>
+        <tr><td>Long-running</td><td class="green">Years</td><td>1 year max</td><td>Not designed for</td></tr>
+        <tr><td>Hosting</td><td>Self / Cloud</td><td>AWS only</td><td>Self-hosted</td></tr>
+        <tr><td>Cost</td><td class="green">OSS / Cloud</td><td>Per transition</td><td class="green">Free (OSS)</td></tr>
+        <tr><td>Use Case</td><td>Microservices</td><td>AWS orchestration</td><td>Data pipelines</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Keep workflows <strong>deterministic</strong> &mdash; no random, time, or I/O</div>
+      <div class="bp-item animate"><span>2</span> Put all side effects in <strong>activities</strong>, never in workflows</div>
+      <div class="bp-item animate"><span>3</span> Use <strong>unique workflow IDs</strong> for idempotency (e.g., order ID)</div>
+      <div class="bp-item animate"><span>4</span> Set appropriate <strong>timeouts</strong> on all activities</div>
+      <div class="bp-item animate"><span>5</span> Use <strong>versioning</strong> (<code>patched()</code>) for workflow code changes</div>
+      <div class="bp-item animate"><span>6</span> Keep <strong>event history small</strong> &mdash; use Continue-As-New for long loops</div>
+      <div class="bp-item animate"><span>7</span> Use <strong>child workflows</strong> for complex sub-processes</div>
+      <div class="bp-item animate"><span>8</span> Implement the <strong>Saga pattern</strong> for distributed transactions</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Quick Start -->
+  <div class="slide">
+    <h2 class="animate">Quick Start</h2>
+    <div class="content">
+      <pre class="animate">
+# Install Temporal CLI
+brew install temporal
+
+# Start local dev server
+temporal server start-dev
+
+# Open Web UI: http://localhost:8233
+
+# Create a new TypeScript project
+npx @temporalio/create@latest my-app
+cd my-app
+
+# Start the worker
+npm run start.watch
+
+# Execute a workflow
+npm run workflow
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x23F3;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Temporal provides <span class="highlight">durable execution</span> &mdash; your code survives any failure</li>
+        <li class="animate"><strong>Workflows</strong> = orchestration logic, <strong>Activities</strong> = side effects</li>
+        <li class="animate">Built-in <strong>retries, timers, signals, queries</strong> out of the box</li>
+        <li class="animate">SDKs: <span class="tag">Go</span> <span class="tag">TypeScript</span> <span class="tag">Python</span> <span class="tag">Java</span> <span class="tag">.NET</span></li>
+        <li class="animate">Scale from a single workflow to <strong>millions of concurrent executions</strong></li>
+        <li class="animate">Use <strong>Temporal Cloud</strong> for managed hosting or <strong>self-host</strong> for full control</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
