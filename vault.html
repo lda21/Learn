@@ -48,7 +48,7 @@
     .slide {
       position: absolute; inset: 0; display: flex; flex-direction: column;
       justify-content: center; align-items: center; padding: 60px 80px;
-      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
     }
     .slide.active { opacity: 1; pointer-events: auto; }
 
@@ -460,31 +460,22 @@ vault write auth/approle/login   role_id="abc-123-..."   secret_id="def-456-..."
     <div class="content">
       <pre class="animate">
 # my-app-policy.hcl
-
-# Read database credentials
 path "database/creds/app-role" {
   capabilities = ["read"]
 }
 
-# Read and list app secrets
 path "secret/data/myapp/*" {
   capabilities = ["read", "list"]
 }
 
-# No access to other apps
 path "secret/data/other-app/*" {
   capabilities = ["deny"]
 }
 
+# Apply: vault policy write my-app-policy my-app-policy.hcl
+# List:  vault policy list
+# Read:  vault policy read my-app-policy
 # Capabilities: create, read, update, delete, list, sudo, deny
-      </pre>
-      <pre class="animate" style="margin-top:12px;">
-# Apply the policy
-vault policy write my-app-policy my-app-policy.hcl
-
-# List policies
-vault policy list
-vault policy read my-app-policy
       </pre>
     </div>
   </div>
