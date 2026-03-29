@@ -245,7 +245,7 @@
       width: max-content;
       box-shadow: 0 8px 32px rgba(0,0,0,0.15);
       z-index: 1000;
-      pointer-events: none;
+      pointer-events: auto;
     }
 
     .term-tooltip.visible { display: block; }
@@ -641,16 +641,15 @@ const ttName = document.getElementById('ttName');
 const ttDef = document.getElementById('ttDef');
 const ttTags = document.getElementById('ttTags');
 let tooltipTimeout;
+let activeLink = null;  // track which link has tooltip open
 
-document.addEventListener('mouseover', function(e) {
-  const link = e.target.closest('.term-link');
-  if (!link) return;
+function showTooltip(link) {
   clearTimeout(tooltipTimeout);
-
   const name = link.getAttribute('data-term');
   const term = termIndex[name.toLowerCase()];
   if (!term) return;
 
+  activeLink = link;
   ttName.textContent = term.t;
   ttDef.textContent = term.d.replace(/<[^>]+>/g, '');
   ttTags.innerHTML = term.tags.map(tag => `<span class="tt-tag">${tag}</span>`).join('');
@@ -659,7 +658,6 @@ document.addEventListener('mouseover', function(e) {
   let top = rect.bottom + 8;
   let left = rect.left;
 
-  // Keep tooltip on screen
   tooltip.classList.add('visible');
   const tw = tooltip.offsetWidth;
   const th = tooltip.offsetHeight;
@@ -669,21 +667,14 @@ document.addEventListener('mouseover', function(e) {
 
   tooltip.style.top = top + 'px';
   tooltip.style.left = left + 'px';
-});
+}
 
-document.addEventListener('mouseout', function(e) {
-  const link = e.target.closest('.term-link');
-  if (!link) return;
-  tooltipTimeout = setTimeout(() => tooltip.classList.remove('visible'), 150);
-});
-
-// Click a cross-link to scroll to that term
-document.addEventListener('click', function(e) {
-  const link = e.target.closest('.term-link');
-  if (!link) return;
+function hideTooltip() {
   tooltip.classList.remove('visible');
-  const name = link.getAttribute('data-term');
-  // Find the term card with this name
+  activeLink = null;
+}
+
+function scrollToTerm(name) {
   const cards = document.querySelectorAll('.term-name');
   for (const card of cards) {
     if (card.textContent === name) {
@@ -693,6 +684,47 @@ document.addEventListener('click', function(e) {
       break;
     }
   }
+}
+
+// Desktop: hover shows tooltip
+document.addEventListener('mouseover', function(e) {
+  const link = e.target.closest('.term-link');
+  if (!link) return;
+  showTooltip(link);
+});
+
+document.addEventListener('mouseout', function(e) {
+  const link = e.target.closest('.term-link');
+  if (!link) return;
+  tooltipTimeout = setTimeout(hideTooltip, 300);
+});
+
+// Keep tooltip visible when hovering over the tooltip itself
+tooltip.addEventListener('mouseenter', function() { clearTimeout(tooltipTimeout); });
+tooltip.addEventListener('mouseleave', function() { tooltipTimeout = setTimeout(hideTooltip, 300); });
+
+// Mobile & desktop click: first tap shows tooltip, second tap scrolls
+document.addEventListener('click', function(e) {
+  const link = e.target.closest('.term-link');
+
+  // Tap outside any term-link: dismiss tooltip
+  if (!link) {
+    if (activeLink) { hideTooltip(); }
+    return;
+  }
+
+  e.preventDefault();
+  const name = link.getAttribute('data-term');
+
+  // If tooltip is already showing for THIS link, scroll to the term
+  if (activeLink === link && tooltip.classList.contains('visible')) {
+    hideTooltip();
+    scrollToTerm(name);
+    return;
+  }
+
+  // Otherwise show tooltip (first tap)
+  showTooltip(link);
 });
 
 // Coverage stats
