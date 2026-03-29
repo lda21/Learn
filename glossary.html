@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Glossary - Learning Hub</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --card-bg: #fff;
+      --shadow: rgba(0,0,0,0.06);
+      --border-color: #D9D2CB;
+      --code-bg: #2D2B28;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --card-bg: #252220;
+      --shadow: rgba(0,0,0,0.3);
+      --border-color: #3D3935;
+      --code-bg: #131210;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    header {
+      text-align: center;
+      padding: 50px 24px 20px;
+      position: relative;
+    }
+
+    header h1 { font-size: 2.8rem; margin-bottom: 8px; }
+    header p { font-size: 1.2rem; color: var(--text-muted); }
+
+    .back-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-decoration: none;
+      color: var(--text-muted);
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: border-color 0.3s;
+    }
+    .back-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    /* Search */
+    .search-bar {
+      max-width: 600px;
+      margin: 20px auto 10px;
+      padding: 0 24px;
+    }
+
+    .search-bar input {
+      width: 100%;
+      padding: 14px 20px;
+      font-size: 1.1rem;
+      border: 2px solid var(--border-color);
+      border-radius: 12px;
+      background: var(--card-bg);
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .search-bar input:focus { border-color: var(--accent); }
+    .search-bar input::placeholder { color: var(--text-muted); }
+
+    /* Filter tabs */
+    .filter-bar {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 8px;
+      padding: 16px 24px;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .filter-btn {
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 2px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+    .filter-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    /* Term count */
+    .term-count {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      padding: 8px 24px 16px;
+    }
+
+    /* Glossary list */
+    .glossary {
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 0 24px 60px;
+    }
+
+    .letter-group { margin-bottom: 32px; }
+
+    .letter-heading {
+      font-size: 1.8rem;
+      color: var(--accent);
+      font-weight: 700;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--border-color);
+      margin-bottom: 16px;
+      position: sticky;
+      top: 0;
+      background: var(--bg);
+      z-index: 10;
+    }
+
+    .term-card {
+      background: var(--card-bg);
+      border-radius: 12px;
+      padding: 20px 24px;
+      margin-bottom: 12px;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+
+    .term-name {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 6px;
+    }
+
+    .term-def {
+      font-size: 1.05rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .term-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+      margin-top: 10px;
+    }
+
+    .term-tag {
+      display: inline-block;
+      background: var(--accent2);
+      color: var(--accent);
+      font-weight: 600;
+      padding: 2px 12px;
+      border-radius: 16px;
+      font-size: 0.8rem;
+    }
+
+    code {
+      font-family: 'Fira Code', 'Consolas', monospace;
+      background: var(--accent2);
+      color: var(--accent);
+      padding: 1px 6px;
+      border-radius: 4px;
+      font-size: 0.95rem;
+    }
+
+    .no-results {
+      text-align: center;
+      color: var(--text-muted);
+      padding: 40px;
+      font-size: 1.2rem;
+      display: none;
+    }
+
+    footer {
+      text-align: center;
+      padding: 30px;
+      color: var(--text-muted);
+      font-size: 1rem;
+    }
+
+    @media (max-width: 768px) {
+      header { padding: 40px 20px 16px; }
+      header h1 { font-size: 2.2rem; }
+      header p { font-size: 1.1rem; }
+      .search-bar input { font-size: 1rem; padding: 12px 16px; }
+      .term-card { padding: 16px 18px; }
+      .term-name { font-size: 1.15rem; }
+      .term-def { font-size: 1rem; }
+      .glossary { padding: 0 16px 40px; }
+    }
+
+    @media (max-width: 480px) {
+      header h1 { font-size: 1.8rem; }
+      .letter-heading { font-size: 1.5rem; }
+    }
+  </style>
+</head>
+<body>
+
+<a href="index.html" class="back-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<header>
+  <h1>Glossary</h1>
+  <p>Key terms across all courses</p>
+</header>
+
+<div class="search-bar">
+  <input type="text" id="searchInput" placeholder="Search terms..." oninput="filterTerms()">
+</div>
+
+<div class="filter-bar" id="filterBar">
+  <button class="filter-btn active" onclick="setFilter('all', this)">All</button>
+</div>
+
+<div class="term-count" id="termCount"></div>
+
+<div class="glossary" id="glossary"></div>
+<div class="no-results" id="noResults">No terms found matching your search.</div>
+
+<footer>Built with care for learning</footer>
+
+<script>
+function toggleTheme() {
+  const html = document.documentElement;
+  const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+  html.setAttribute('data-theme', next);
+  localStorage.setItem('theme', next);
+  document.getElementById('themeToggle').innerHTML = next === 'dark' ? '&#x2600;' : '&#x263E;';
+}
+(function() {
+  const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+  document.documentElement.setAttribute('data-theme', saved);
+  document.getElementById('themeToggle').innerHTML = saved === 'dark' ? '&#x2600;' : '&#x263E;';
+})();
+
+const TERMS = [
+  // --- Git ---
+  {t:"Branch", d:"A parallel line of development in Git. Branches let you work on features or fixes without affecting the main codebase.", tags:["Git"]},
+  {t:"Cherry-pick", d:"Apply a specific commit from one branch onto another without merging the entire branch.", tags:["Git"]},
+  {t:"Clone", d:"Create a local copy of a remote Git repository, including all history and branches.", tags:["Git"]},
+  {t:"Commit", d:"A snapshot of changes saved to the Git history with a message describing what changed.", tags:["Git"]},
+  {t:"Fast-forward", d:"A merge strategy where the branch pointer moves forward linearly because no divergent commits exist.", tags:["Git"]},
+  {t:"Fork", d:"A personal copy of someone else's repository on GitHub, used for contributing to open-source projects.", tags:["Git","GitHub"]},
+  {t:"HEAD", d:"A pointer to the current commit or branch you're working on in Git.", tags:["Git"]},
+  {t:"Merge", d:"Combine changes from one branch into another, creating a merge commit if histories diverged.", tags:["Git"]},
+  {t:"Pull Request (PR)", d:"A request to merge changes from one branch into another, enabling code review and discussion before merging.", tags:["Git","GitHub"]},
+  {t:"Rebase", d:"Re-apply commits on top of another base commit, creating a linear history. Avoid rebasing shared branches.", tags:["Git"]},
+  {t:"Reflog", d:"Git's safety net — a log of all HEAD movements that lets you recover lost commits.", tags:["Git"]},
+  {t:"Remote", d:"A reference to a repository hosted on a server (e.g., <code>origin</code> on GitHub).", tags:["Git"]},
+  {t:"Stash", d:"Temporarily save uncommitted changes so you can switch branches, then re-apply them later.", tags:["Git"]},
+  {t:"Tag", d:"A named reference to a specific commit, typically used to mark release versions (e.g., <code>v1.0.0</code>).", tags:["Git"]},
+  // --- GitHub ---
+  {t:"GitHub Actions", d:"GitHub's built-in CI/CD platform. Define workflows in YAML that run on events like push, PR, or schedule.", tags:["GitHub","CI/CD"]},
+  {t:"CODEOWNERS", d:"A file that defines which teams or people are automatically requested for review when files are changed.", tags:["GitHub"]},
+  {t:"Dependabot", d:"GitHub tool that automatically creates PRs to update vulnerable or outdated dependencies.", tags:["GitHub","Security"]},
+  {t:"GitHub Pages", d:"Free static site hosting directly from a GitHub repository, with custom domain and HTTPS support.", tags:["GitHub"]},
+  {t:"Secret Scanning", d:"GitHub feature that detects accidentally committed API keys, tokens, and credentials.", tags:["GitHub","Security"]},
+  // --- Linux ---
+  {t:"chmod", d:"Change file permissions in Linux. Uses numeric (755) or symbolic (u+x) notation.", tags:["Linux"]},
+  {t:"chown", d:"Change file or directory ownership (user and group) in Linux.", tags:["Linux"]},
+  {t:"Cron", d:"A time-based job scheduler in Linux. Define recurring tasks in crontab with minute/hour/day/month/weekday format.", tags:["Linux"]},
+  {t:"Daemon", d:"A background process in Linux that runs continuously, typically started at boot (e.g., sshd, nginx).", tags:["Linux"]},
+  {t:"File Descriptor", d:"An integer handle for I/O resources. 0=stdin, 1=stdout, 2=stderr.", tags:["Linux"]},
+  {t:"inode", d:"A data structure in Linux filesystems that stores metadata about a file (permissions, owner, timestamps, block locations).", tags:["Linux"]},
+  {t:"Kernel", d:"The core of the operating system that manages hardware, memory, processes, and system calls.", tags:["Linux"]},
+  {t:"Pipe", d:"Connect the stdout of one command to the stdin of another using <code>|</code>. Fundamental to Unix philosophy.", tags:["Linux"]},
+  {t:"SSH", d:"Secure Shell — encrypted protocol for remote login and command execution. Uses key-based or password authentication.", tags:["Linux","Security"]},
+  {t:"systemd", d:"The init system and service manager for most modern Linux distributions. Manages services, logging, and boot.", tags:["Linux"]},
+  // --- AWS ---
+  {t:"Availability Zone (AZ)", d:"An isolated data center within an AWS Region. Deploy across multiple AZs for high availability.", tags:["AWS"]},
+  {t:"Auto Scaling Group (ASG)", d:"Automatically adjusts the number of EC2 instances based on demand or scheduled rules.", tags:["AWS"]},
+  {t:"CloudFormation", d:"AWS Infrastructure as Code service. Define resources in YAML/JSON templates for repeatable deployments.", tags:["AWS","IaC"]},
+  {t:"CloudFront", d:"AWS global CDN with 400+ edge locations. Caches content close to users for low latency.", tags:["AWS"]},
+  {t:"DynamoDB", d:"AWS fully managed NoSQL key-value database with single-digit millisecond latency at any scale.", tags:["AWS"]},
+  {t:"EC2", d:"Elastic Compute Cloud — virtual servers in AWS. Choose instance type, AMI, and scaling configuration.", tags:["AWS"]},
+  {t:"IAM", d:"Identity and Access Management — controls who can access which AWS resources with policies and roles.", tags:["AWS","Security"]},
+  {t:"Lambda", d:"AWS serverless compute. Run code in response to events without managing servers. Pay per invocation.", tags:["AWS"]},
+  {t:"RDS", d:"Relational Database Service — managed SQL databases (PostgreSQL, MySQL, Aurora) with backups and Multi-AZ.", tags:["AWS"]},
+  {t:"S3", d:"Simple Storage Service — object storage with 11 nines durability. Supports lifecycle policies and versioning.", tags:["AWS"]},
+  {t:"Security Group", d:"A stateful virtual firewall for EC2 instances that controls inbound and outbound traffic at the instance level.", tags:["AWS","Security"]},
+  {t:"VPC", d:"Virtual Private Cloud — an isolated network in AWS where you launch resources with custom IP ranges, subnets, and routing.", tags:["AWS"]},
+  // --- Terraform ---
+  {t:"HCL", d:"HashiCorp Configuration Language — the declarative language used to write Terraform configurations.", tags:["Terraform","IaC"]},
+  {t:"Provider", d:"A Terraform plugin that interfaces with an API (AWS, Azure, GCP, Kubernetes, etc.) to manage resources.", tags:["Terraform","IaC"]},
+  {t:"State", d:"Terraform's record of the real-world resources it manages. Stored in <code>terraform.tfstate</code>. Use remote backends for teams.", tags:["Terraform","IaC"]},
+  {t:"Plan", d:"<code>terraform plan</code> — preview changes Terraform will make before applying them.", tags:["Terraform","IaC"]},
+  {t:"Module", d:"A reusable, self-contained package of Terraform configuration. Promotes DRY infrastructure code.", tags:["Terraform","IaC"]},
+  {t:"Resource", d:"A single infrastructure object managed by Terraform (e.g., an EC2 instance, S3 bucket, DNS record).", tags:["Terraform","IaC"]},
+  {t:"Data Source", d:"A Terraform read-only query to fetch information about existing infrastructure not managed by the current config.", tags:["Terraform","IaC"]},
+  // --- Prometheus ---
+  {t:"Counter", d:"A Prometheus metric that only goes up (and resets on restart). Use for request counts, errors, etc.", tags:["Prometheus"]},
+  {t:"Gauge", d:"A Prometheus metric that can go up or down. Use for temperature, memory usage, active connections.", tags:["Prometheus"]},
+  {t:"Histogram", d:"A Prometheus metric that samples observations into configurable buckets. Use for latency distributions.", tags:["Prometheus"]},
+  {t:"PromQL", d:"Prometheus Query Language — used to select, aggregate, and transform time series data.", tags:["Prometheus"]},
+  {t:"Scrape", d:"The process of Prometheus pulling metrics from a target endpoint via HTTP at a configured interval.", tags:["Prometheus"]},
+  {t:"Alertmanager", d:"Handles alerts from Prometheus — deduplication, grouping, routing, silencing, and notification dispatch.", tags:["Prometheus"]},
+  {t:"Exporter", d:"A component that exposes metrics from third-party systems (Node Exporter, MySQL Exporter, etc.) in Prometheus format.", tags:["Prometheus"]},
+  {t:"Recording Rule", d:"A pre-computed PromQL query saved as a new time series to reduce query-time computation.", tags:["Prometheus"]},
+  // --- Vault ---
+  {t:"Secret Engine", d:"A Vault component that stores, generates, or encrypts data. Examples: KV, database, AWS, PKI, transit.", tags:["Vault","Security"]},
+  {t:"Dynamic Secret", d:"A credential generated on-demand by Vault with a TTL. Automatically revoked after expiry. Eliminates long-lived passwords.", tags:["Vault","Security"]},
+  {t:"Auth Method", d:"How a client proves its identity to Vault. Methods include AppRole, Kubernetes, OIDC, AWS IAM, LDAP.", tags:["Vault","Security"]},
+  {t:"Policy (Vault)", d:"An HCL rule defining which secret paths a Vault token can access and what operations are allowed.", tags:["Vault","Security"]},
+  {t:"Seal/Unseal", d:"Vault starts sealed (encrypted). Unsealing requires threshold key shares (Shamir's) or auto-unseal via cloud KMS.", tags:["Vault","Security"]},
+  {t:"Transit Engine", d:"Vault's encryption-as-a-service. Apps send data to Vault for encryption/decryption without ever seeing the key.", tags:["Vault","Security"]},
+  // --- Temporal ---
+  {t:"Workflow (Temporal)", d:"A durable function orchestrated by Temporal. Survives crashes, restarts, and outages via event sourcing.", tags:["Temporal"]},
+  {t:"Activity (Temporal)", d:"A single unit of work in Temporal (e.g., API call, DB write). Activities have retry policies and timeouts.", tags:["Temporal"]},
+  {t:"Worker (Temporal)", d:"A process that polls Temporal for workflow and activity tasks to execute. You run workers in your infrastructure.", tags:["Temporal"]},
+  {t:"Task Queue", d:"A named queue in Temporal that routes workflow and activity tasks to the appropriate workers.", tags:["Temporal"]},
+  {t:"Signal", d:"An async message sent to a running Temporal workflow to trigger behavior or pass data.", tags:["Temporal"]},
+  // --- Crew AI ---
+  {t:"Agent (Crew AI)", d:"An autonomous AI unit with a role, goal, and backstory. Agents collaborate within a Crew to complete tasks.", tags:["Crew AI"]},
+  {t:"Crew", d:"A team of Crew AI agents that work together on a set of tasks using a defined process (sequential or hierarchical).", tags:["Crew AI"]},
+  {t:"Task (Crew AI)", d:"A specific piece of work assigned to a Crew AI agent, with a description and expected output.", tags:["Crew AI"]},
+  {t:"Tool (Crew AI)", d:"A capability given to a Crew AI agent — search, scraping, file I/O, or custom Python functions.", tags:["Crew AI"]},
+  // --- Zero Trust ---
+  {t:"Zero Trust", d:"A security model that assumes no implicit trust. Every request is authenticated, authorized, and encrypted regardless of network location.", tags:["Zero Trust","Security"]},
+  {t:"ZTNA", d:"Zero Trust Network Access — identity-based, per-application access that replaces traditional VPNs.", tags:["Zero Trust","Security"]},
+  {t:"Micro-segmentation", d:"Dividing a network into isolated segments so a breach in one workload cannot spread laterally to others.", tags:["Zero Trust","Security"]},
+  {t:"MFA", d:"Multi-Factor Authentication — requiring two or more verification factors (password + OTP, biometric, FIDO2 key).", tags:["Security"]},
+  {t:"mTLS", d:"Mutual TLS — both client and server present certificates to authenticate each other. Used in service meshes.", tags:["Security","Zero Trust"]},
+  {t:"SPIFFE", d:"Secure Production Identity Framework For Everyone — a CNCF standard for cryptographic workload identity.", tags:["Zero Trust","Security"]},
+  {t:"SIEM", d:"Security Information and Event Management — aggregates and correlates security logs for threat detection (Splunk, Sentinel).", tags:["Security"]},
+  {t:"Least Privilege", d:"Granting only the minimum permissions needed to perform a task. A core principle of zero trust and IAM.", tags:["Security","Zero Trust","AWS"]},
+  {t:"Service Mesh", d:"An infrastructure layer (Istio, Linkerd) that handles service-to-service communication with mTLS, observability, and traffic control.", tags:["Zero Trust","Security"]},
+  // --- General / Cross-cutting ---
+  {t:"API Gateway", d:"A reverse proxy that routes, authenticates, rate-limits, and transforms API requests before they reach backend services.", tags:["AWS","GitHub"]},
+  {t:"CI/CD", d:"Continuous Integration / Continuous Deployment — automating build, test, and deployment pipelines for every code change.", tags:["GitHub","CI/CD"]},
+  {t:"Container", d:"A lightweight, isolated runtime environment for applications. Docker containers package code + dependencies together.", tags:["Linux","AWS"]},
+  {t:"DNS", d:"Domain Name System — translates domain names (example.com) to IP addresses. AWS Route 53 is a managed DNS service.", tags:["Linux","AWS"]},
+  {t:"Encryption at Rest", d:"Encrypting stored data so it's unreadable without the decryption key. Standard for databases, S3, EBS.", tags:["Security","AWS","Vault"]},
+  {t:"Encryption in Transit", d:"Encrypting data while it moves between systems using TLS/SSL. Prevents eavesdropping.", tags:["Security","AWS","Vault"]},
+  {t:"Idempotent", d:"An operation that produces the same result regardless of how many times it's executed. Critical for APIs and IaC.", tags:["Terraform","Temporal"]},
+  {t:"Infrastructure as Code (IaC)", d:"Managing and provisioning infrastructure through code rather than manual processes. Terraform, CloudFormation, Pulumi.", tags:["Terraform","AWS"]},
+  {t:"Load Balancer", d:"Distributes incoming traffic across multiple targets (instances, containers). AWS ALB (L7) and NLB (L4).", tags:["AWS"]},
+  {t:"Observability", d:"The ability to understand system behavior from its outputs: metrics, logs, and traces. Prometheus + Grafana + tracing.", tags:["Prometheus"]},
+  {t:"RBAC", d:"Role-Based Access Control — assigning permissions to roles rather than individual users.", tags:["Security","AWS"]},
+  {t:"TTL", d:"Time To Live — how long a piece of data (secret, DNS record, token, cache entry) remains valid before expiring.", tags:["Vault","Prometheus","AWS"]},
+];
+
+// Build category list from tags
+const allTags = [...new Set(TERMS.flatMap(t => t.tags))].sort();
+const filterBar = document.getElementById('filterBar');
+allTags.forEach(tag => {
+  const btn = document.createElement('button');
+  btn.className = 'filter-btn';
+  btn.textContent = tag;
+  btn.onclick = function() { setFilter(tag, this); };
+  filterBar.appendChild(btn);
+});
+
+let activeFilter = 'all';
+
+function setFilter(filter, btn) {
+  activeFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  filterTerms();
+}
+
+function filterTerms() {
+  const query = document.getElementById('searchInput').value.toLowerCase();
+  const filtered = TERMS.filter(t => {
+    const matchSearch = !query || t.t.toLowerCase().includes(query) || t.d.toLowerCase().includes(query);
+    const matchFilter = activeFilter === 'all' || t.tags.includes(activeFilter);
+    return matchSearch && matchFilter;
+  });
+
+  const sorted = filtered.sort((a, b) => a.t.localeCompare(b.t));
+  const glossary = document.getElementById('glossary');
+  const noResults = document.getElementById('noResults');
+  const termCount = document.getElementById('termCount');
+
+  termCount.textContent = `${sorted.length} term${sorted.length !== 1 ? 's' : ''}`;
+
+  if (sorted.length === 0) {
+    glossary.innerHTML = '';
+    noResults.style.display = 'block';
+    return;
+  }
+
+  noResults.style.display = 'none';
+
+  // Group by letter
+  const groups = {};
+  sorted.forEach(t => {
+    const letter = t.t[0].toUpperCase();
+    if (!groups[letter]) groups[letter] = [];
+    groups[letter].push(t);
+  });
+
+  let html = '';
+  Object.keys(groups).sort().forEach(letter => {
+    html += `<div class="letter-group"><div class="letter-heading">${letter}</div>`;
+    groups[letter].forEach(t => {
+      html += `<div class="term-card">
+        <div class="term-name">${t.t}</div>
+        <div class="term-def">${t.d}</div>
+        <div class="term-tags">${t.tags.map(tag => `<span class="term-tag">${tag}</span>`).join('')}</div>
+      </div>`;
+    });
+    html += '</div>';
+  });
+
+  glossary.innerHTML = html;
+}
+
+// Initial render
+filterTerms();
+</script>
+
+</body>
+</html>
