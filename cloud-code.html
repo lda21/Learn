@@ -672,29 +672,176 @@ This is a Next.js 14 app with App Router, TypeScript, and Prisma.
   </div>
 
   <div class="slide">
-    <h2 class="animate">Custom Agents</h2>
+    <h2 class="animate">Sub-Agents &amp; Parallelism</h2>
     <div class="content animate">
-      <p>Claude can spawn sub-agents to parallelize work.</p>
+      <p>Claude spawns specialized sub-agents for complex tasks, running them in parallel.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Explore Agent</h3>
+          <p>Fast codebase search. Use for finding files, patterns, and answering questions about code structure.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Plan Agent</h3>
+          <p>Software architect. Designs implementation strategies, identifies critical files, considers trade-offs.</p>
+        </div>
+        <div class="metric-card">
+          <h3>General Agent</h3>
+          <p>Multi-step tasks. Research, code search, and execution. Can use all tools available to Claude.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Background Agents</h3>
+          <p>Run agents in the background while you continue working. Get notified when they complete.</p>
+        </div>
+      </div>
+<pre style="margin-top:12px">
+# Claude decides when to use agents. You can also hint:
+"Search the codebase for all usages of the auth middleware"
+# Claude spawns an Explore agent to search in parallel
+
+"Plan how to migrate from REST to GraphQL"
+# Claude spawns a Plan agent for architecture design
+
+# Agents can run in isolated git worktrees for safe experiments
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Skills (Custom Slash Commands)</h2>
+    <div class="content animate">
+      <p>Skills are reusable prompt templates invoked via <code>/skill-name</code>. Define workflows your team uses repeatedly.</p>
+<pre>
+# .claude/skills/deploy.md
+---
+description: Deploy the current branch to staging
+---
+
+1. Run the test suite: `npm test`
+2. Build the project: `npm run build`
+3. Deploy to staging: `npm run deploy:staging`
+4. Verify the deployment is healthy
+5. Report the deployment URL
+</pre>
       <div class="two-col" style="margin-top:16px">
         <div class="card">
-          <h3>Agent Types</h3>
+          <h3>Built-in Skills</h3>
           <ul>
-            <li><span class="highlight">Explore</span> &mdash; fast codebase search</li>
-            <li><span class="highlight">Plan</span> &mdash; architecture design</li>
-            <li><span class="highlight">General</span> &mdash; multi-step tasks</li>
+            <li><code>/commit</code> &mdash; smart git commit</li>
+            <li><code>/review</code> &mdash; PR code review</li>
+            <li><code>/pr</code> &mdash; create pull request</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Usage Patterns</h3>
+          <h3>Custom Skills</h3>
           <ul>
-            <li>Research multiple files in parallel</li>
-            <li>Run in background while you continue</li>
-            <li>Isolated worktree for experiments</li>
-            <li>Agent results feed into main task</li>
+            <li>Place <code>.md</code> files in <code>.claude/skills/</code></li>
+            <li>Frontmatter for description &amp; args</li>
+            <li>Shared across team via version control</li>
+            <li>Invoke with <code>/skill-name</code></li>
           </ul>
         </div>
       </div>
-      <p style="margin-top:16px;text-align:center">The Claude Agent SDK lets you build custom CLI agents with specialized tools and workflows.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Claude Agent SDK</h2>
+    <div class="content animate">
+      <p>Build custom AI agents powered by Claude. The SDK provides tool execution, conversation management, and agent orchestration.</p>
+<pre>
+import { Agent, tool } from "@anthropic-ai/agent-sdk";
+
+const agent = new Agent({
+  model: "claude-sonnet-4-6",
+  tools: [
+    tool("search_docs", {
+      description: "Search internal documentation",
+      parameters: { query: { type: "string" } },
+      execute: async ({ query }) =&gt; searchDocs(query),
+    }),
+  ],
+  system: "You are a helpful documentation assistant.",
+});
+
+const result = await agent.run("How do I configure SSO?");
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card">
+          <h3>Key Features</h3>
+          <ul>
+            <li>Custom tool definitions</li>
+            <li>Multi-agent orchestration</li>
+            <li>Streaming responses</li>
+            <li>Conversation history management</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Use Cases</h3>
+          <ul>
+            <li>Internal support bots</li>
+            <li>Code review automation</li>
+            <li>Data pipeline agents</li>
+            <li>Custom IDE integrations</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Headless Mode &amp; CI/CD</h2>
+    <div class="content animate">
+      <p>Run Claude Code non-interactively in CI pipelines, scripts, and automation workflows.</p>
+<pre>
+# Headless mode: pass prompt via -p flag
+claude -p "fix all TypeScript errors in src/"
+
+# Pipe input
+echo "explain this error: $(cat error.log)" | claude -p
+
+# Use in GitHub Actions
+- name: Fix lint errors
+  run: claude -p "fix all ESLint errors and commit"
+  env:
+    ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+# JSON output for scripting
+claude -p "list all TODO comments" --output-format json
+
+# Full auto mode for CI (no prompts)
+claude -p "run tests and fix failures" --permission-mode full-auto
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Use cases:</span> Automated code fixes, PR review bots, migration scripts, release automation.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Extended Thinking &amp; Context</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Extended Thinking</h3>
+        <ul>
+          <li>Claude reasons deeply about complex problems</li>
+          <li>Thinks through architecture before coding</li>
+          <li>Plans multi-step refactors carefully</li>
+          <li>Better results for ambiguous tasks</li>
+          <li>Use <code>/model</code> to pick Opus for hardest tasks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Context Management</h3>
+        <ul>
+          <li><code>/compact</code> &mdash; summarize conversation</li>
+          <li>Auto-compaction when context fills up</li>
+          <li>CLAUDE.md survives compaction</li>
+          <li>Sub-agents get their own context windows</li>
+          <li>Use <code>/clear</code> between unrelated tasks</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Model Selection</h3>
+      <p><span class="highlight">Opus</span> for complex architecture &amp; debugging &mdash; <span class="highlight">Sonnet</span> for everyday coding &mdash; <span class="highlight">Haiku</span> for quick lookups. Use <code>/model</code> or <code>/fast</code> to switch.</p>
     </div>
   </div>
 
@@ -750,9 +897,9 @@ This is a Next.js 14 app with App Router, TypeScript, and Prisma.
     <div class="content animate" style="text-align:center">
       <p>You're now a Claude Code expert:</p>
       <div style="margin:20px 0">
-        <span class="tag">Tools</span><span class="tag">CLAUDE.md</span><span class="tag">Permissions</span>
-        <span class="tag">MCP</span><span class="tag">Hooks</span><span class="tag">Git</span>
-        <span class="tag">Testing</span><span class="tag">Debugging</span><span class="tag">Agents</span>
+        <span class="tag">Tools</span><span class="tag">CLAUDE.md</span><span class="tag">Skills</span>
+        <span class="tag">MCP</span><span class="tag">Hooks</span><span class="tag">Agents</span>
+        <span class="tag">Agent SDK</span><span class="tag">CI/CD</span><span class="tag">Headless</span>
       </div>
       <p style="color:var(--text-muted)">The best way to learn is to use it. Start with small tasks and grow from there.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
@@ -762,7 +909,7 @@ This is a Next.js 14 app with App Router, TypeScript, and Prisma.
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 25</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>

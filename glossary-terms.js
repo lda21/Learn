@@ -192,6 +192,10 @@ const GLOSSARY_TERMS = [
   {t:"Codebase Indexing", d:"Cursor's automatic embedding of your project files for semantic search. Powers @codebase queries. Configure exclusions with .cursorignore.", tags:["Cursor AI"]},
   {t:"MCP", d:"Model Context Protocol — an open standard for connecting AI tools to external services. Claude Code uses MCP servers for GitHub, databases, and custom tools.", tags:["Claude Code"]},
   {t:"CLAUDE.md", d:"A project-level instruction file for Claude Code. Defines coding standards, project context, and preferences. Read automatically when entering a directory.", tags:["Claude Code"]},
+  {t:"Claude Agent SDK", d:"A TypeScript SDK for building custom AI agents powered by Claude. Provides tool execution, multi-agent orchestration, streaming, and conversation management.", tags:["Claude Code"]},
+  {t:"Skill (Claude Code)", d:"A reusable prompt template invoked via /skill-name in Claude Code. Stored as .md files in .claude/skills/. Enables team-shared workflows like deploy, review, and migration scripts.", tags:["Claude Code"]},
+  {t:"Headless Mode", d:"Running Claude Code non-interactively via the -p flag. Used in CI/CD pipelines, scripts, and automation. Supports JSON output and full-auto permissions.", tags:["Claude Code"]},
+  {t:"Sub-Agent", d:"A specialized child process spawned by Claude Code for parallel work. Types: Explore (search), Plan (architecture), General (multi-step). Can run in background or isolated worktrees.", tags:["Claude Code"]},
   {t:"JSX", d:"JavaScript XML — a syntax extension that lets you write HTML-like markup inside JavaScript. Compiled by Babel/SWC into React.createElement calls.", tags:["React"]},
   {t:"React Hook", d:"Functions (useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer) that let functional components manage state and side effects.", tags:["React"]},
   {t:"Redux Toolkit", d:"The official, recommended way to write Redux. Includes createSlice, configureStore, createAsyncThunk, and RTK Query. Eliminates boilerplate.", tags:["React","Redux"]},
@@ -404,4 +408,5 @@ const GLOSSARY_TERMS = [
     linkifySlides();
   }
 })();
+
 
