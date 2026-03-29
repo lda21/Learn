@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Zero Trust Security</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h1 class="animate title-fire">Zero Trust Security</h1>
+    <p class="subtitle animate">Never Trust, Always Verify</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <h2 class="animate">What is Zero Trust?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A security model that assumes <span class="highlight">no implicit trust</span> &mdash; inside or outside the network</li>
+        <li class="animate">Every request must be <strong>authenticated, authorized, and encrypted</strong> before access is granted</li>
+        <li class="animate">Coined by Forrester Research (2010), popularized by Google&#39;s <strong>BeyondCorp</strong> (2014)</li>
+        <li class="animate">Replaces the traditional <strong>castle-and-moat</strong> (perimeter-based) security model</li>
+        <li class="animate">Now mandated by <strong>NIST SP 800-207</strong> and U.S. Executive Order 14028</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <h2 class="animate">Traditional vs Zero Trust</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Perimeter Security (Old)</h3>
+        <ul>
+          <li>Trust everything inside the firewall</li>
+          <li>VPN = full network access</li>
+          <li>Flat internal network</li>
+          <li>Once inside, move laterally freely</li>
+          <li>Hard exterior, soft interior</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Zero Trust (Modern)</h3>
+        <ul>
+          <li>Trust nothing, verify everything</li>
+          <li>Identity-based access per resource</li>
+          <li>Micro-segmented network</li>
+          <li>Continuous verification</li>
+          <li>Assume breach at all times</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <h2 class="animate">Core Principles</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Verify Explicitly</h3>
+        <p>Authenticate and authorize every request based on all available data points</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Least Privilege Access</h3>
+        <p>Grant minimum permissions needed, just-in-time, just-enough-access</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Assume Breach</h3>
+        <p>Minimize blast radius with segmentation, encryption, and continuous monitoring</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Continuous Validation</h3>
+        <p>Don&#39;t trust a session forever &mdash; re-evaluate risk signals continuously</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <h2 class="animate">Zero Trust Architecture (NIST)</h2>
+    <div class="diagram animate">
+      <div class="box">Subject<br><small>(user / device)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Policy Enforcement<br>Point (PEP)<br><small>proxy / gateway</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Resource<br><small>(app / data)</small></div>
+    </div>
+    <div class="diagram animate" style="margin-top:10px;">
+      <div class="box">Policy Decision<br>Point (PDP)</div>
+      <div class="arrow">&uarr;</div>
+      <div class="box">Identity Provider</div>
+      <div class="arrow">&uarr;</div>
+      <div class="box">Threat Intel<br><small>& Context</small></div>
+    </div>
+    <ul class="content animate" style="margin-top:20px;">
+      <li><strong>PEP</strong> gates access &mdash; blocks by default</li>
+      <li><strong>PDP</strong> evaluates identity + device + context + policy to decide allow/deny</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <h2 class="animate">The Five Pillars</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Pillar</th><th>What to Protect</th><th>Key Actions</th></tr>
+        <tr><td><strong>Identity</strong></td><td>Users &amp; service accounts</td><td>MFA, SSO, passwordless, conditional access</td></tr>
+        <tr><td><strong>Devices</strong></td><td>Endpoints &amp; IoT</td><td>MDM, health checks, compliance posture</td></tr>
+        <tr><td><strong>Network</strong></td><td>Communication paths</td><td>Micro-segmentation, encrypted transit, ZTNA</td></tr>
+        <tr><td><strong>Applications</strong></td><td>Workloads &amp; APIs</td><td>RBAC, API gateways, runtime protection</td></tr>
+        <tr><td><strong>Data</strong></td><td>Sensitive information</td><td>Classification, encryption, DLP, access controls</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <h2 class="animate">Identity &amp; Access Management</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>MFA everywhere</strong> &mdash; passwords alone are not enough</li>
+        <li class="animate"><strong>SSO + OIDC/SAML</strong> &mdash; centralized identity via Okta, Azure AD, Google Workspace</li>
+        <li class="animate"><strong>Conditional access</strong> &mdash; evaluate risk signals before granting access</li>
+        <li class="animate"><strong>Passwordless</strong> &mdash; FIDO2 / passkeys / biometrics</li>
+      </ul>
+      <pre class="animate">
+# Conditional access decision inputs:
+User Identity      -> Who are you? (verified via MFA)
+Device Posture     -> Is your device compliant? (patched, encrypted)
+Location / IP      -> Where are you connecting from?
+Risk Score         -> Any anomalous behavior detected?
+Resource Sensitivity -> How sensitive is this resource?
+
+# Decision: Allow / Deny / Step-up MFA / Read-only
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <h2 class="animate">Device Trust</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Device inventory</strong> &mdash; know every device on your network</li>
+        <li class="animate"><strong>Health attestation</strong> &mdash; OS patched? Disk encrypted? Firewall on?</li>
+        <li class="animate"><strong>MDM / EDR</strong> &mdash; Mobile Device Management + Endpoint Detection &amp; Response</li>
+        <li class="animate"><strong>Device certificates</strong> &mdash; mTLS to prove device identity</li>
+        <li class="animate"><strong>Posture checks</strong> at every access request, not just enrollment</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Device<br><small>requests access</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Posture Check<br><small>patched? encrypted?</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Access Granted<br><small>or denied</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <h2 class="animate">Network: Micro-Segmentation</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Micro-segmentation</strong> &mdash; isolate workloads so a breach in one doesn&#39;t spread</li>
+        <li class="animate"><strong>East-west traffic</strong> inspection &mdash; don&#39;t just guard the perimeter</li>
+        <li class="animate"><strong>Software-defined perimeter (SDP)</strong> &mdash; resources invisible until authenticated</li>
+        <li class="animate"><strong>mTLS</strong> &mdash; mutual TLS between all services (service mesh)</li>
+      </ul>
+      <pre class="animate">
+# Traditional flat network:
+[App A] <---> [App B] <---> [Database] <---> [Admin Tools]
+# Attacker compromises App A -> can reach everything
+
+# Micro-segmented:
+[App A] --x-- [App B]     (blocked)
+[App A] ----> [Database]   (only port 5432, read-only)
+[App B] ----> [Database]   (only port 5432, read-write)
+[Admin] ----> [All]        (after MFA + device check)
+# Attacker compromises App A -> can only reach its own DB
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide">
+    <h2 class="animate">ZTNA vs VPN</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Aspect</th><th>VPN (Legacy)</th><th>ZTNA (Zero Trust)</th></tr>
+        <tr><td>Access scope</td><td>Full network</td><td class="green">Per-application</td></tr>
+        <tr><td>Authentication</td><td>Once at connect</td><td class="green">Continuous</td></tr>
+        <tr><td>Visibility</td><td>Resources exposed</td><td class="green">Resources hidden until auth</td></tr>
+        <tr><td>Lateral movement</td><td>Easy for attackers</td><td class="green">Blocked by segmentation</td></tr>
+        <tr><td>User experience</td><td>Slow, clunky client</td><td class="green">Seamless, browser-based</td></tr>
+        <tr><td>Scalability</td><td>Bottleneck at VPN gateway</td><td class="green">Cloud-native, edge-distributed</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted);">ZTNA providers: Zscaler, Cloudflare Access, Tailscale, Google BeyondCorp</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 -->
+  <div class="slide">
+    <h2 class="animate">Google BeyondCorp</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Google&#39;s <span class="highlight">pioneering zero trust implementation</span> (started 2011)</li>
+        <li class="animate">Eliminated the corporate VPN entirely</li>
+        <li class="animate">All apps accessible via the internet &mdash; protected by identity &amp; device trust</li>
+        <li class="animate">Every request evaluated by an <strong>Access Proxy</strong> checking user + device + context</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box">Employee<br><small>any location</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Access Proxy<br><small>identity + device<br>+ context check</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Internal App<br><small>no VPN needed</small></div>
+      </div>
+      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:12px;">Same security whether in the office, at home, or at a coffee shop</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 -->
+  <div class="slide">
+    <h2 class="animate">Service-to-Service Zero Trust</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Service mesh</strong> (Istio, Linkerd) &mdash; mTLS between all microservices</li>
+        <li class="animate"><strong>SPIFFE / SPIRE</strong> &mdash; cryptographic service identity standard</li>
+        <li class="animate"><strong>API gateways</strong> &mdash; authenticate and authorize every API call</li>
+        <li class="animate"><strong>Workload identity</strong> &mdash; no shared secrets, identity tied to workload</li>
+      </ul>
+      <pre class="animate">
+# SPIFFE ID format:
+spiffe://trust-domain/workload-identifier
+spiffe://mycompany.com/ns/prod/sa/payment-service
+
+# Istio PeerAuthentication (enforce mTLS)
+apiVersion: security.istio.io/v1beta1
+kind: PeerAuthentication
+metadata:
+  name: default
+  namespace: production
+spec:
+  mtls:
+    mode: STRICT    # All traffic must be mTLS
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 -->
+  <div class="slide">
+    <h2 class="animate">Data Protection</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Classification</strong> &mdash; label data: public, internal, confidential, restricted</li>
+        <li class="animate"><strong>Encryption at rest</strong> &mdash; AES-256 for storage (S3 SSE, EBS, RDS)</li>
+        <li class="animate"><strong>Encryption in transit</strong> &mdash; TLS 1.3 everywhere, mTLS between services</li>
+        <li class="animate"><strong>DLP</strong> (Data Loss Prevention) &mdash; detect and block sensitive data exfiltration</li>
+        <li class="animate"><strong>Tokenization</strong> &mdash; replace sensitive data with non-sensitive tokens</li>
+        <li class="animate"><strong>Key management</strong> &mdash; AWS KMS, HashiCorp Vault, GCP Cloud KMS</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:16px;">
+        <div class="box">Classify</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Encrypt</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Control Access</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Monitor</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 -->
+  <div class="slide">
+    <h2 class="animate">Continuous Monitoring &amp; Analytics</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>SIEM</strong> &mdash; aggregate and correlate security events (Splunk, Sentinel, Elastic)</li>
+        <li class="animate"><strong>UEBA</strong> &mdash; User and Entity Behavior Analytics &mdash; detect anomalies</li>
+        <li class="animate"><strong>SOAR</strong> &mdash; automate incident response playbooks</li>
+        <li class="animate"><strong>NDR</strong> &mdash; Network Detection and Response for east-west traffic</li>
+      </ul>
+      <pre class="animate">
+# Signals to monitor continuously:
+- Login from new device or impossible travel
+- Privilege escalation attempts
+- Unusual data access patterns or volume
+- Failed authentication spikes
+- Service-to-service traffic anomalies
+- Configuration changes to critical systems
+- DNS queries to known malicious domains
+
+# Response: auto-revoke session, require step-up MFA,
+#           isolate workload, alert SOC team
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 -->
+  <div class="slide">
+    <h2 class="animate">Privileged Access Management</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>JIT (Just-In-Time)</strong> access &mdash; elevate privileges only when needed, time-limited</li>
+        <li class="animate"><strong>JEA (Just-Enough-Access)</strong> &mdash; minimum scope for the task at hand</li>
+        <li class="animate"><strong>PAM solutions</strong> &mdash; CyberArk, HashiCorp Vault, AWS SSM Session Manager</li>
+        <li class="animate"><strong>Break-glass procedures</strong> &mdash; emergency access with full audit trail</li>
+      </ul>
+      <pre class="animate">
+# Example: JIT access flow
+1. Engineer requests prod DB access via Slack/portal
+2. Manager approves (or auto-approved for on-call)
+3. Vault generates temporary credentials (TTL: 1 hour)
+4. Engineer accesses DB with short-lived creds
+5. Credentials auto-revoked after TTL
+6. Full session recorded in audit log
+
+# No standing privileges = smaller blast radius
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 -->
+  <div class="slide">
+    <h2 class="animate">Zero Trust for Cloud (AWS Example)</h2>
+    <div class="content">
+      <pre class="animate">
+# Identity: IAM + SSO
+- AWS IAM Identity Center (SSO) with MFA
+- IAM roles with least privilege policies
+- No long-lived access keys; use IAM roles + STS
+
+# Network: VPC + Security Groups
+- Private subnets for workloads (no public IPs)
+- Security groups: deny all, allow specific ports
+- VPC endpoints for AWS services (no internet transit)
+
+# Data: Encryption everywhere
+- S3: SSE-KMS, bucket policies, Block Public Access
+- RDS: encrypted at rest + in transit + IAM auth
+- KMS: customer-managed keys, key rotation
+
+# Monitoring: CloudTrail + GuardDuty
+- CloudTrail: audit every API call
+- GuardDuty: threat detection
+- Config: compliance rules
+- SecurityHub: unified security dashboard
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 -->
+  <div class="slide">
+    <h2 class="animate">Zero Trust Maturity Model</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Stage</th><th>Description</th><th>Focus</th></tr>
+        <tr><td><strong>1. Traditional</strong></td><td>Perimeter-based, VPN, flat network</td><td>Firewalls, basic auth</td></tr>
+        <tr><td><strong>2. Initial</strong></td><td>MFA deployed, some segmentation started</td><td>Identity + basic device checks</td></tr>
+        <tr><td><strong>3. Advanced</strong></td><td>ZTNA, micro-segmentation, PAM in place</td><td>Context-aware access, automation</td></tr>
+        <tr><td><strong>4. Optimal</strong></td><td>Continuous verification, full visibility</td><td>AI-driven analytics, auto-response</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted);">Most organizations are between stages 1-2. Full zero trust is a journey, not a project.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">Implementation Roadmap</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> <strong>Identify</strong> your crown jewels &mdash; what data/systems matter most?</div>
+      <div class="bp-item animate"><span>2</span> <strong>Map</strong> transaction flows &mdash; who/what accesses what?</div>
+      <div class="bp-item animate"><span>3</span> <strong>Deploy MFA</strong> &mdash; fastest, highest-impact step</div>
+      <div class="bp-item animate"><span>4</span> <strong>Implement SSO</strong> &mdash; centralize identity with OIDC/SAML</div>
+      <div class="bp-item animate"><span>5</span> <strong>Micro-segment</strong> &mdash; start with critical workloads</div>
+      <div class="bp-item animate"><span>6</span> <strong>Replace VPN</strong> with ZTNA for remote access</div>
+      <div class="bp-item animate"><span>7</span> <strong>Encrypt</strong> all data at rest and in transit</div>
+      <div class="bp-item animate"><span>8</span> <strong>Monitor</strong> continuously with SIEM + UEBA</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">Zero Trust Tooling</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Category</th><th>Tools</th></tr>
+        <tr><td><strong>Identity / SSO</strong></td><td>Okta, Azure AD, Google Workspace, Keycloak</td></tr>
+        <tr><td><strong>ZTNA</strong></td><td>Zscaler, Cloudflare Access, Tailscale, Twingate</td></tr>
+        <tr><td><strong>Service Mesh</strong></td><td>Istio, Linkerd, Consul Connect</td></tr>
+        <tr><td><strong>Secrets</strong></td><td>HashiCorp Vault, AWS Secrets Manager, CyberArk</td></tr>
+        <tr><td><strong>PAM</strong></td><td>CyberArk, Teleport, StrongDM, AWS SSM</td></tr>
+        <tr><td><strong>SIEM / SOAR</strong></td><td>Splunk, Microsoft Sentinel, Elastic SIEM</td></tr>
+        <tr><td><strong>EDR</strong></td><td>CrowdStrike, SentinelOne, Microsoft Defender</td></tr>
+        <tr><td><strong>SPIFFE/SPIRE</strong></td><td>CNCF SPIFFE framework for workload identity</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Zero Trust means <span class="highlight">never trust, always verify</span></li>
+        <li class="animate">Three principles: <span class="tag">Verify Explicitly</span> <span class="tag">Least Privilege</span> <span class="tag">Assume Breach</span></li>
+        <li class="animate"><strong>Identity is the new perimeter</strong> &mdash; not the firewall</li>
+        <li class="animate"><strong>MFA + SSO</strong> is the fastest, highest-impact first step</li>
+        <li class="animate"><strong>Micro-segmentation</strong> limits blast radius of breaches</li>
+        <li class="animate">It&#39;s a <strong>journey</strong> &mdash; start with identity, expand to network, data, and workloads</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
