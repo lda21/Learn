@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PostgreSQL</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F418;</span>
+    <h1 class="animate">PostgreSQL</h1>
+    <p class="subtitle animate">The world's most advanced open-source database</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">SQL</span><span class="tag">ACID</span><span class="tag">Relational</span><span class="tag">JSONB</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why PostgreSQL?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Features</h3>
+        <ul>
+          <li>Full ACID compliance</li>
+          <li>Advanced SQL: CTEs, window functions, lateral joins</li>
+          <li>JSONB for document-style queries</li>
+          <li>Full-text search built in</li>
+          <li>Extensions: PostGIS, pgvector, TimescaleDB</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>When to Use</h3>
+        <ul>
+          <li>Web applications (Django, Rails, Next.js)</li>
+          <li>Complex queries and reporting</li>
+          <li>OLTP workloads at scale</li>
+          <li>GIS / geospatial data (PostGIS)</li>
+          <li>AI/ML vector search (pgvector)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tables &amp; Data Types</h2>
+    <div class="content animate">
+<pre>
+CREATE TABLE users (
+  id          SERIAL PRIMARY KEY,       -- auto-increment integer
+  uuid        UUID DEFAULT gen_random_uuid(),
+  name        VARCHAR(100) NOT NULL,
+  email       TEXT UNIQUE NOT NULL,
+  age         INTEGER CHECK (age >= 0),
+  role        VARCHAR(20) DEFAULT 'user',
+  metadata    JSONB DEFAULT '{}',
+  tags        TEXT[] DEFAULT '{}',       -- array type
+  created_at  TIMESTAMPTZ DEFAULT NOW(),
+  updated_at  TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Common types: INTEGER, BIGINT, NUMERIC(10,2), TEXT, VARCHAR(n),
+-- BOOLEAN, DATE, TIMESTAMP, TIMESTAMPTZ, UUID, JSONB, ARRAY,
+-- INET, CIDR, BYTEA, INTERVAL, SERIAL, BIGSERIAL
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CRUD Operations</h2>
+    <div class="content animate">
+<pre>
+-- INSERT
+INSERT INTO users (name, email, role)
+VALUES ('Alice', 'alice@example.com', 'admin')
+RETURNING id, uuid, created_at;
+
+-- SELECT
+SELECT name, email, created_at
+FROM users
+WHERE role = 'admin' AND age > 25
+ORDER BY created_at DESC
+LIMIT 20 OFFSET 0;
+
+-- UPDATE
+UPDATE users
+SET role = 'admin', updated_at = NOW()
+WHERE email = 'alice@example.com'
+RETURNING *;
+
+-- DELETE
+DELETE FROM users WHERE id = 42 RETURNING *;
+
+-- UPSERT (insert or update on conflict)
+INSERT INTO users (email, name) VALUES ('alice@ex.com', 'Alice')
+ON CONFLICT (email) DO UPDATE SET name = EXCLUDED.name, updated_at = NOW();
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Joins &amp; Relationships</h2>
+    <div class="content animate">
+<pre>
+-- Foreign key
+CREATE TABLE posts (
+  id       SERIAL PRIMARY KEY,
+  user_id  INTEGER REFERENCES users(id) ON DELETE CASCADE,
+  title    TEXT NOT NULL,
+  body     TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- INNER JOIN (matching rows only)
+SELECT u.name, p.title
+FROM users u
+JOIN posts p ON p.user_id = u.id;
+
+-- LEFT JOIN (all users, even without posts)
+SELECT u.name, COUNT(p.id) AS post_count
+FROM users u
+LEFT JOIN posts p ON p.user_id = u.id
+GROUP BY u.id;
+
+-- Many-to-many
+CREATE TABLE post_tags (
+  post_id INTEGER REFERENCES posts(id),
+  tag_id  INTEGER REFERENCES tags(id),
+  PRIMARY KEY (post_id, tag_id)
+);
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Indexes</h2>
+    <div class="content animate">
+<pre>
+-- B-tree (default, most common)
+CREATE INDEX idx_users_email ON users(email);
+
+-- Unique index
+CREATE UNIQUE INDEX idx_users_uuid ON users(uuid);
+
+-- Composite index
+CREATE INDEX idx_posts_user_created ON posts(user_id, created_at DESC);
+
+-- Partial index (only index active users)
+CREATE INDEX idx_active_users ON users(email) WHERE role = 'admin';
+
+-- GIN index for JSONB
+CREATE INDEX idx_users_metadata ON users USING gin(metadata);
+
+-- GIN index for arrays
+CREATE INDEX idx_users_tags ON users USING gin(tags);
+
+-- GIN for full-text search
+CREATE INDEX idx_posts_search ON posts USING gin(to_tsvector('english', title || ' ' || body));
+</pre>
+      <p style="margin-top:10px"><span class="highlight">EXPLAIN ANALYZE</span> your queries to verify indexes are being used. Don't over-index &mdash; each index slows writes.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Advanced SQL</h2>
+    <div class="content animate">
+<pre>
+-- CTE (Common Table Expression)
+WITH active_users AS (
+  SELECT * FROM users WHERE last_login > NOW() - INTERVAL '30 days'
+)
+SELECT role, COUNT(*) FROM active_users GROUP BY role;
+
+-- Window functions
+SELECT name, role, salary,
+  RANK() OVER (PARTITION BY role ORDER BY salary DESC) AS rank,
+  AVG(salary) OVER (PARTITION BY role) AS avg_salary
+FROM employees;
+
+-- Lateral join (correlated subquery as a join)
+SELECT u.name, latest.title
+FROM users u
+CROSS JOIN LATERAL (
+  SELECT title FROM posts WHERE user_id = u.id ORDER BY created_at DESC LIMIT 3
+) latest;
+
+-- GROUPING SETS
+SELECT department, role, COUNT(*)
+FROM employees
+GROUP BY GROUPING SETS ((department), (role), (department, role), ());
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">JSONB</h2>
+    <div class="content animate">
+<pre>
+-- Store JSON data
+UPDATE users SET metadata = '{"theme": "dark", "lang": "en", "prefs": {"notify": true}}';
+
+-- Query JSONB
+SELECT * FROM users WHERE metadata->>'theme' = 'dark';
+SELECT * FROM users WHERE metadata @> '{"prefs": {"notify": true}}';
+
+-- Extract values
+SELECT metadata->'prefs'->>'notify' AS notify FROM users;
+
+-- Update nested field
+UPDATE users SET metadata = jsonb_set(metadata, '{prefs,notify}', 'false');
+
+-- Array operations in JSONB
+SELECT * FROM users WHERE metadata->'tags' ? 'premium';
+
+-- Index for fast JSONB queries
+CREATE INDEX idx_meta ON users USING gin(metadata);
+</pre>
+      <p style="margin-top:10px"><span class="highlight">When to use JSONB:</span> Flexible schemas, user preferences, API responses, logs. Not for highly relational data.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Transactions &amp; Concurrency</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Transactions</h3>
+<pre style="font-size:0.85rem">
+BEGIN;
+  UPDATE accounts SET balance = balance - 100
+    WHERE id = 1;
+  UPDATE accounts SET balance = balance + 100
+    WHERE id = 2;
+COMMIT;
+-- Or ROLLBACK on error
+
+-- Savepoints
+BEGIN;
+  INSERT INTO orders ...;
+  SAVEPOINT sp1;
+  INSERT INTO payments ...;  -- fails
+  ROLLBACK TO sp1;
+  INSERT INTO payments ...;  -- retry
+COMMIT;
+</pre>
+      </div>
+      <div class="card">
+        <h3>Isolation Levels</h3>
+        <ul>
+          <li><span class="highlight">Read Committed</span> &mdash; default. Sees committed data only.</li>
+          <li><span class="highlight">Repeatable Read</span> &mdash; snapshot at start. No phantom reads.</li>
+          <li><span class="highlight">Serializable</span> &mdash; strictest. As if transactions ran sequentially.</li>
+        </ul>
+<pre style="font-size:0.85rem">
+SET TRANSACTION ISOLATION LEVEL
+  SERIALIZABLE;
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Performance &amp; EXPLAIN</h2>
+    <div class="content animate">
+<pre>
+-- Analyze query plan
+EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'alice@example.com';
+
+-- Output:
+-- Index Scan using idx_users_email on users (cost=0.29..8.30 rows=1)
+--   Index Cond: (email = 'alice@example.com')
+-- Planning Time: 0.1 ms
+-- Execution Time: 0.05 ms
+</pre>
+      <div class="metric-grid" style="margin-top:14px">
+        <div class="metric-card">
+          <h3>Seq Scan</h3>
+          <p>Full table scan. Fine for small tables. Bad for large ones &mdash; add an index.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Index Scan</h3>
+          <p>Uses an index to find rows. Fast. What you want for WHERE clauses.</p>
+        </div>
+        <div class="metric-card">
+          <h3>VACUUM</h3>
+          <p>Reclaims dead tuple space. Autovacuum runs automatically. Essential for MVCC health.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Connection Pooling</h3>
+          <p>Use PgBouncer or Supavisor. PostgreSQL forks a process per connection &mdash; limit to 100-200.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Extensions</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>pgvector</h3>
+        <p>Vector similarity search for AI/ML embeddings. Nearest neighbor search with HNSW or IVFFlat indexes.</p>
+      </div>
+      <div class="metric-card">
+        <h3>PostGIS</h3>
+        <p>Geospatial data types, functions, and indexes. Distance queries, geometry, geography, routing.</p>
+      </div>
+      <div class="metric-card">
+        <h3>TimescaleDB</h3>
+        <p>Time-series extension. Automatic partitioning by time, compression, continuous aggregates.</p>
+      </div>
+      <div class="metric-card">
+        <h3>pg_cron</h3>
+        <p>Run scheduled SQL jobs inside PostgreSQL. Cron syntax: VACUUM, aggregation, cleanup.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center"><code>CREATE EXTENSION pgvector;</code> &mdash; Extensions are one of PostgreSQL s greatest strengths.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Backup &amp; Replication</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Backup</h3>
+<pre style="font-size:0.85rem">
+# Logical backup (SQL dump)
+pg_dump -Fc mydb > backup.dump
+pg_restore -d mydb backup.dump
+
+# Physical backup (point-in-time)
+pg_basebackup -D /backup -Fp -Xs -P
+
+# Continuous archiving (WAL)
+archive_mode = on
+archive_command = 'cp %p /wal/%f'
+</pre>
+      </div>
+      <div class="card">
+        <h3>Replication</h3>
+        <ul>
+          <li><span class="highlight">Streaming replication</span> &mdash; async/sync replicas</li>
+          <li><span class="highlight">Logical replication</span> &mdash; selective table replication</li>
+          <li><span class="highlight">Read replicas</span> &mdash; scale reads across replicas</li>
+          <li>Managed: AWS RDS, Supabase, Neon, Render</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Always use TIMESTAMPTZ, never TIMESTAMP</div>
+      <div class="bp-item"><span>2.</span> Use UUID primary keys for distributed systems</div>
+      <div class="bp-item"><span>3.</span> EXPLAIN ANALYZE before optimizing</div>
+      <div class="bp-item"><span>4.</span> Use connection pooling (PgBouncer)</div>
+      <div class="bp-item"><span>5.</span> Index foreign keys and WHERE clause columns</div>
+      <div class="bp-item"><span>6.</span> Use JSONB for flexible data, not for everything</div>
+      <div class="bp-item"><span>7.</span> Monitor: pg_stat_statements, auto_explain</div>
+      <div class="bp-item"><span>8.</span> Automate backups and test restores</div>
+      <div class="bp-item"><span>9.</span> Use migrations (Prisma, Flyway, Alembic)</div>
+      <div class="bp-item"><span>10.</span> Keep transactions short to avoid lock contention</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F418;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered PostgreSQL:</p>
+      <div style="margin:20px 0">
+        <span class="tag">SQL</span><span class="tag">Indexes</span><span class="tag">JSONB</span>
+        <span class="tag">CTEs</span><span class="tag">Window Functions</span><span class="tag">Transactions</span>
+        <span class="tag">Extensions</span><span class="tag">Replication</span><span class="tag">Performance</span>
+      </div>
+      <p style="color:var(--text-muted)">PostgreSQL can handle almost anything. Start simple, add complexity only when needed.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>

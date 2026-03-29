@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Apache Kafka</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4E8;</span>
+    <h1 class="animate">Apache Kafka</h1>
+    <p class="subtitle animate">Distributed event streaming at scale</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Streaming</span><span class="tag">Events</span><span class="tag">Messaging</span><span class="tag">Distributed</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Kafka?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Distributed event streaming platform</li>
+          <li>Publish-subscribe messaging at massive scale</li>
+          <li>Durable, fault-tolerant, high-throughput</li>
+          <li>Millions of messages per second</li>
+          <li>Created at LinkedIn, now Apache project</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Use Cases</h3>
+        <ul>
+          <li><span class="highlight">Event Streaming</span> &mdash; real-time data pipelines</li>
+          <li><span class="highlight">Log Aggregation</span> &mdash; centralize app logs</li>
+          <li><span class="highlight">Microservices</span> &mdash; async communication</li>
+          <li><span class="highlight">CDC</span> &mdash; Change Data Capture from databases</li>
+          <li><span class="highlight">Analytics</span> &mdash; real-time dashboards</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Core Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Producer<br><small>App / Service</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Kafka Broker<br><small>Cluster (3+ nodes)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Consumer<br><small>App / Service</small></div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>Broker</h3>
+          <p>A Kafka server that stores data and serves clients. A cluster has 3+ brokers for fault tolerance.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Topic</h3>
+          <p>A named category/feed of messages. Like a database table. Producers write to topics, consumers read from them.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Partition</h3>
+          <p>A topic is split into partitions for parallelism. Each partition is an ordered, immutable log of records.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Offset</h3>
+          <p>A unique sequential ID for each record within a partition. Consumers track their position by offset.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Topics &amp; Partitions</h2>
+    <div class="content animate">
+<pre>
+# Create a topic with 6 partitions and replication factor 3
+kafka-topics.sh --create \
+  --bootstrap-server localhost:9092 \
+  --topic orders \
+  --partitions 6 \
+  --replication-factor 3
+
+# List topics
+kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Describe topic
+kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092
+
+# Topic: orders  Partitions: 6  Replication: 3
+# Partition 0:  Leader: 1  Replicas: 1,2,3  ISR: 1,2,3
+# Partition 1:  Leader: 2  Replicas: 2,3,1  ISR: 2,3,1
+</pre>
+      <p style="margin-top:12px"><span class="highlight">Key rule:</span> Messages with the same key always go to the same partition (ordering guarantee per key).</p>
+      <p><span class="highlight">Replication:</span> Each partition has 1 leader + N-1 followers. ISR = in-sync replicas.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Producers</h2>
+    <div class="content animate">
+<pre>
+// Java producer example
+Properties props = new Properties();
+props.put("bootstrap.servers", "localhost:9092");
+props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+props.put("acks", "all");  // strongest durability guarantee
+
+Producer&lt;String, String&gt; producer = new KafkaProducer&lt;&gt;(props);
+
+// Send message (async)
+producer.send(new ProducerRecord&lt;&gt;("orders", orderId, orderJson),
+  (metadata, exception) -&gt; {
+    if (exception != null) log.error("Send failed", exception);
+    else log.info("Sent to partition {} offset {}", metadata.partition(), metadata.offset());
+  });
+
+// Key determines partition: hash(key) % numPartitions
+// null key = round-robin across partitions
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card"><h3>acks=0</h3><p>Fire and forget. Fastest, may lose data.</p></div>
+        <div class="card"><h3>acks=all</h3><p>Wait for all ISR replicas. Slowest, no data loss.</p></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Consumers &amp; Consumer Groups</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Consumer Basics</h3>
+          <ul>
+            <li>Subscribe to one or more topics</li>
+            <li>Poll for new records in a loop</li>
+            <li>Track position via offsets</li>
+            <li>Can seek to any offset (replay)</li>
+            <li>At-least-once delivery by default</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Consumer Groups</h3>
+          <ul>
+            <li>Group of consumers sharing the work</li>
+            <li>Each partition assigned to ONE consumer in group</li>
+            <li>More consumers than partitions = idle consumers</li>
+            <li>Consumer dies? Partitions rebalance automatically</li>
+            <li>Different groups read independently</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Scaling rule:</span> Max parallelism = number of partitions. 6 partitions = max 6 consumers in a group.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Kafka Connect</h2>
+    <div class="content animate">
+      <p>Pre-built connectors to move data between Kafka and external systems. No code needed.</p>
+      <div class="diagram" style="margin:16px 0">
+        <div class="box">Database<br><small>PostgreSQL, MySQL</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Source Connector</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Kafka Topic</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Sink Connector</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">S3 / Elastic<br><small>Data Lake</small></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Popular Source Connectors</h3>
+          <ul><li>Debezium (CDC from PostgreSQL, MySQL)</li><li>JDBC Source</li><li>File Source</li><li>MongoDB Source</li></ul>
+        </div>
+        <div class="card">
+          <h3>Popular Sink Connectors</h3>
+          <ul><li>S3 Sink</li><li>Elasticsearch Sink</li><li>JDBC Sink</li><li>Redis Sink</li></ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Kafka Streams</h2>
+    <div class="content animate">
+      <p>A Java library for real-time stream processing on top of Kafka. No separate cluster needed.</p>
+<pre>
+StreamsBuilder builder = new StreamsBuilder();
+
+// Read from topic, process, write to topic
+KStream&lt;String, String&gt; orders = builder.stream("raw-orders");
+
+orders
+  .filter((key, value) -&gt; value.contains("premium"))
+  .mapValues(value -&gt; enrichOrder(value))
+  .to("processed-orders");
+
+// Aggregation: count orders per customer
+KTable&lt;String, Long&gt; orderCounts = orders
+  .groupByKey()
+  .count(Materialized.as("order-counts"));
+
+// Windowed aggregation: orders per minute
+orders
+  .groupByKey()
+  .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)))
+  .count();
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Schema Registry</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Schemas?</h3>
+        <ul>
+          <li>Producers and consumers need to agree on data format</li>
+          <li>Schema Registry stores Avro, Protobuf, or JSON schemas</li>
+          <li>Compatibility checks prevent breaking changes</li>
+          <li>Schema evolution: add fields safely</li>
+          <li>Each schema gets a version and ID</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Compatibility Modes</h3>
+        <ul>
+          <li><span class="highlight">BACKWARD</span> &mdash; new schema reads old data (default)</li>
+          <li><span class="highlight">FORWARD</span> &mdash; old schema reads new data</li>
+          <li><span class="highlight">FULL</span> &mdash; both directions compatible</li>
+          <li><span class="highlight">NONE</span> &mdash; no checks (dangerous)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Configuration &amp; Tuning</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Setting</th><th>Default</th><th>Purpose</th></tr>
+        <tr><td><code>retention.ms</code></td><td>7 days</td><td>How long messages are kept</td></tr>
+        <tr><td><code>retention.bytes</code></td><td>-1 (unlimited)</td><td>Max partition size before deletion</td></tr>
+        <tr><td><code>min.insync.replicas</code></td><td>1</td><td>Min ISR for acks=all (set to 2)</td></tr>
+        <tr><td><code>compression.type</code></td><td>none</td><td>lz4, snappy, zstd, gzip</td></tr>
+        <tr><td><code>batch.size</code></td><td>16384</td><td>Producer batch size (bytes)</td></tr>
+        <tr><td><code>linger.ms</code></td><td>0</td><td>Wait time to fill batch</td></tr>
+        <tr><td><code>max.poll.records</code></td><td>500</td><td>Max records per consumer poll</td></tr>
+      </table>
+      <p style="margin-top:10px"><span class="highlight">Production tip:</span> Set <code>min.insync.replicas=2</code> + <code>acks=all</code> + replication factor 3 for zero data loss.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Monitoring &amp; Operations</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Key Metrics</h3>
+        <p>Consumer lag, under-replicated partitions, request latency, bytes in/out, active controller count.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Tools</h3>
+        <p>Kafka UI, Confluent Control Center, Burrow (consumer lag), JMX metrics exported to Prometheus + Grafana.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Common Issues</h3>
+        <p>Consumer lag growing, ISR shrinking, uneven partition distribution, rebalance storms.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Managed Options</h3>
+        <p>Confluent Cloud, AWS MSK, Redpanda (Kafka-compatible, no JVM), Aiven, Upstash.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Delivery Semantics</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Guarantees</h3>
+        <ul>
+          <li><span class="highlight">At-most-once</span> &mdash; may lose messages. Commit before processing.</li>
+          <li><span class="highlight">At-least-once</span> &mdash; may get duplicates. Process then commit (default).</li>
+          <li><span class="highlight">Exactly-once</span> &mdash; idempotent producer + transactions. enable.idempotence=true.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Exactly-Once Setup</h3>
+<pre style="font-size:0.85rem">
+// Producer config
+enable.idempotence=true
+transactional.id=my-tx-id
+acks=all
+
+// Transactional send
+producer.initTransactions();
+producer.beginTransaction();
+producer.send(record);
+producer.commitTransaction();
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Kafka vs Alternatives</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>Kafka</th><th>RabbitMQ</th><th>AWS SQS/SNS</th></tr>
+        <tr><td>Model</td><td>Log-based streaming</td><td>Message queue</td><td>Managed queue/pub-sub</td></tr>
+        <tr><td>Throughput</td><td><span class="green">Millions/sec</span></td><td>Thousands/sec</td><td>Thousands/sec</td></tr>
+        <tr><td>Retention</td><td><span class="green">Days/weeks/forever</span></td><td>Until consumed</td><td>14 days max</td></tr>
+        <tr><td>Replay</td><td><span class="green">Yes (seek to offset)</span></td><td>No</td><td>No</td></tr>
+        <tr><td>Ordering</td><td>Per partition</td><td>Per queue</td><td>FIFO queues only</td></tr>
+        <tr><td>Operations</td><td>Complex (ZK/KRaft)</td><td>Moderate</td><td><span class="green">Fully managed</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use descriptive topic names: domain.entity.event</div>
+      <div class="bp-item"><span>2.</span> Choose partition count carefully (hard to reduce later)</div>
+      <div class="bp-item"><span>3.</span> Always use message keys for ordering guarantees</div>
+      <div class="bp-item"><span>4.</span> Set replication factor to 3, min.insync.replicas to 2</div>
+      <div class="bp-item"><span>5.</span> Use Schema Registry for all topics</div>
+      <div class="bp-item"><span>6.</span> Monitor consumer lag closely</div>
+      <div class="bp-item"><span>7.</span> Use Avro or Protobuf over JSON for efficiency</div>
+      <div class="bp-item"><span>8.</span> Enable compression (lz4 or zstd)</div>
+      <div class="bp-item"><span>9.</span> Design for idempotent consumers</div>
+      <div class="bp-item"><span>10.</span> Use KRaft mode (no ZooKeeper) for new clusters</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4E8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Apache Kafka:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Topics</span><span class="tag">Partitions</span><span class="tag">Producers</span>
+        <span class="tag">Consumers</span><span class="tag">Connect</span><span class="tag">Streams</span>
+        <span class="tag">Schema Registry</span><span class="tag">Exactly-Once</span><span class="tag">Monitoring</span>
+      </div>
+      <p style="color:var(--text-muted)">Kafka is the backbone of event-driven architectures. Design topics well and scale with confidence.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Redis</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h1 class="animate">Redis</h1>
+    <p class="subtitle animate">In-memory data store for speed</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Cache</span><span class="tag">In-Memory</span><span class="tag">Key-Value</span><span class="tag">Pub/Sub</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Redis?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>In-memory data structure store</li>
+          <li>Sub-millisecond latency</li>
+          <li>Rich data types beyond key-value</li>
+          <li>Optional persistence (RDB + AOF)</li>
+          <li>Single-threaded event loop (no locks)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Use Cases</h3>
+        <ul>
+          <li><span class="highlight">Caching</span> &mdash; database query results, API responses</li>
+          <li><span class="highlight">Sessions</span> &mdash; user session storage</li>
+          <li><span class="highlight">Rate Limiting</span> &mdash; API throttling</li>
+          <li><span class="highlight">Leaderboards</span> &mdash; sorted sets</li>
+          <li><span class="highlight">Queues</span> &mdash; task queues, pub/sub</li>
+          <li><span class="highlight">Real-time</span> &mdash; chat, notifications</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data Types</h2>
+    <div class="content animate">
+<pre>
+# Strings (most basic)
+SET user:1:name "Alice"
+GET user:1:name            # "Alice"
+SET counter 0
+INCR counter               # 1
+INCRBY counter 10          # 11
+SET session:abc "data" EX 3600  # expires in 1 hour
+
+# Hash (object / map)
+HSET user:1 name "Alice" email "alice@ex.com" age 30
+HGET user:1 name           # "Alice"
+HGETALL user:1             # {name: "Alice", email: ..., age: 30}
+HINCRBY user:1 age 1       # 31
+
+# List (ordered, duplicates allowed)
+LPUSH queue:tasks "task1" "task2"
+RPOP queue:tasks           # "task1" (FIFO queue)
+LRANGE queue:tasks 0 -1    # all items
+
+# Set (unique, unordered)
+SADD tags:post:1 "redis" "database" "cache"
+SMEMBERS tags:post:1       # {"redis", "database", "cache"}
+SINTER tags:post:1 tags:post:2  # intersection
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Sorted Sets &amp; Streams</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Sorted Sets</h3>
+<pre style="font-size:0.85rem">
+# Leaderboard
+ZADD leaderboard 100 "alice"
+ZADD leaderboard 85 "bob"
+ZADD leaderboard 92 "charlie"
+
+# Top 3 (highest first)
+ZREVRANGE leaderboard 0 2 WITHSCORES
+# charlie:92, alice:100... wait
+ZREVRANGEBYSCORE leaderboard +inf -inf LIMIT 0 3
+
+# Rank
+ZREVRANK leaderboard "alice"  # 0 (top)
+
+# Increment score
+ZINCRBY leaderboard 15 "bob"  # 100
+</pre>
+      </div>
+      <div class="card">
+        <h3>Streams</h3>
+<pre style="font-size:0.85rem">
+# Append to stream
+XADD events * user "alice" action "login"
+XADD events * user "bob" action "purchase"
+
+# Read latest
+XRANGE events - + COUNT 10
+
+# Consumer groups (like Kafka)
+XGROUP CREATE events grp1 0
+XREADGROUP GROUP grp1 consumer1 COUNT 5 BLOCK 2000 STREAMS events >
+
+# Acknowledge processing
+XACK events grp1 1234567890-0
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Caching Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Cache-Aside</h3>
+        <p>App checks Redis first. Cache miss? Query DB, store in Redis. Most common pattern.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Write-Through</h3>
+        <p>Write to Redis and DB simultaneously. Ensures cache is always fresh. Higher write latency.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Write-Behind</h3>
+        <p>Write to Redis first, async flush to DB. Fastest writes. Risk of data loss on crash.</p>
+      </div>
+      <div class="metric-card">
+        <h3>TTL Strategy</h3>
+        <p>Set expiry on all cached data. Short TTL (5min) for volatile data. Long TTL (24h) for stable data.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Cache-aside in pseudocode
+result = redis.get("user:42")
+if not result:
+    result = db.query("SELECT * FROM users WHERE id = 42")
+    redis.setex("user:42", 3600, serialize(result))  # cache 1 hour
+return result
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pub/Sub &amp; Rate Limiting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pub/Sub</h3>
+<pre style="font-size:0.85rem">
+# Publisher
+PUBLISH chat:room1 "Hello everyone!"
+
+# Subscriber (blocking)
+SUBSCRIBE chat:room1
+
+# Pattern subscribe
+PSUBSCRIBE chat:*
+</pre>
+        <p style="margin-top:8px">Fire-and-forget messaging. No persistence. Use Streams for durability.</p>
+      </div>
+      <div class="card">
+        <h3>Rate Limiting</h3>
+<pre style="font-size:0.85rem">
+# Sliding window rate limiter
+# Allow 100 requests per minute per user
+
+key = f"rate:{user_id}:{minute}"
+current = redis.incr(key)
+if current == 1:
+    redis.expire(key, 60)
+if current > 100:
+    return 429  # Too Many Requests
+
+# Or use Redis MULTI/EXEC
+# for atomic check-and-increment
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Persistence</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>RDB Snapshots</h3>
+        <ul>
+          <li>Point-in-time snapshots to disk</li>
+          <li>Compact binary format</li>
+          <li>Great for backups</li>
+          <li>May lose data between snapshots</li>
+          <li><code>save 60 1000</code> &mdash; snapshot if 1000 keys changed in 60s</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>AOF (Append Only File)</h3>
+        <ul>
+          <li>Logs every write operation</li>
+          <li>More durable (fsync every second or always)</li>
+          <li>Larger files, slower recovery</li>
+          <li><code>appendonly yes</code></li>
+          <li><code>appendfsync everysec</code> (recommended)</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Production:</span> Enable both RDB + AOF. RDB for fast restarts, AOF for minimal data loss.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Redis Cluster &amp; Sentinel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Sentinel (HA)</h3>
+        <ul>
+          <li>Monitors master + replicas</li>
+          <li>Automatic failover if master dies</li>
+          <li>3+ Sentinel processes for quorum</li>
+          <li>Clients connect via Sentinel for discovery</li>
+          <li>Good for single-shard high availability</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Cluster (Sharding)</h3>
+        <ul>
+          <li>Data split across 16384 hash slots</li>
+          <li>Multiple masters, each owns a slot range</li>
+          <li>Each master has 1+ replicas</li>
+          <li>Automatic resharding and failover</li>
+          <li>Horizontal scaling for large datasets</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Lua Scripts &amp; Transactions</h2>
+    <div class="content animate">
+<pre>
+-- MULTI/EXEC: atomic command batch
+MULTI
+SET user:1:balance 100
+SET user:2:balance 200
+EXEC
+
+-- Lua scripting: atomic + logic
+EVAL "
+  local current = redis.call('GET', KEYS[1])
+  if tonumber(current) >= tonumber(ARGV[1]) then
+    redis.call('DECRBY', KEYS[1], ARGV[1])
+    return 1
+  else
+    return 0
+  end
+" 1 user:1:balance 50
+
+-- Redis Functions (Redis 7+)
+-- Register reusable server-side functions
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Lua scripts are atomic</span> &mdash; no other command runs while a script executes. Perfect for check-and-set operations.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Client Libraries</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Node.js (ioredis)</h3>
+<pre style="font-size:0.85rem">
+import Redis from "ioredis";
+const redis = new Redis("redis://localhost:6379");
+
+await redis.set("key", "value", "EX", 3600);
+const val = await redis.get("key");
+
+// Pipeline (batch commands)
+const pipe = redis.pipeline();
+pipe.set("a", 1);
+pipe.set("b", 2);
+pipe.get("a");
+const results = await pipe.exec();
+</pre>
+      </div>
+      <div class="card">
+        <h3>Python (redis-py)</h3>
+<pre style="font-size:0.85rem">
+import redis
+
+r = redis.Redis(host="localhost", port=6379, decode_responses=True)
+
+r.set("key", "value", ex=3600)
+val = r.get("key")
+
+# Pipeline
+with r.pipeline() as pipe:
+    pipe.set("a", 1)
+    pipe.set("b", 2)
+    pipe.get("a")
+    results = pipe.execute()
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use descriptive key names: entity:id:field</div>
+      <div class="bp-item"><span>2.</span> Always set TTL on cache keys to prevent memory bloat</div>
+      <div class="bp-item"><span>3.</span> Use pipelines for bulk operations (10-100x faster)</div>
+      <div class="bp-item"><span>4.</span> Avoid large keys (keep values under 1MB)</div>
+      <div class="bp-item"><span>5.</span> Use SCAN instead of KEYS in production</div>
+      <div class="bp-item"><span>6.</span> Monitor memory with INFO memory and maxmemory-policy</div>
+      <div class="bp-item"><span>7.</span> Use Sentinel or Cluster for production HA</div>
+      <div class="bp-item"><span>8.</span> Enable both RDB + AOF persistence</div>
+      <div class="bp-item"><span>9.</span> Use Lua scripts for atomic multi-step operations</div>
+      <div class="bp-item"><span>10.</span> Consider managed: AWS ElastiCache, Upstash, Redis Cloud</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Redis:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Data Types</span><span class="tag">Caching</span><span class="tag">Pub/Sub</span>
+        <span class="tag">Streams</span><span class="tag">Sorted Sets</span><span class="tag">Persistence</span>
+        <span class="tag">Cluster</span><span class="tag">Lua Scripts</span><span class="tag">Rate Limiting</span>
+      </div>
+      <p style="color:var(--text-muted)">Redis is the Swiss Army knife of infrastructure. Use the right data type for each problem.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>
