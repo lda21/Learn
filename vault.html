@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HashiCorp Vault - Secrets Management</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg);
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F510;</span>
+    <h1 class="animate title-fire">HashiCorp Vault</h1>
+    <p class="subtitle animate">Secrets Management &amp; Data Protection</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+  <!-- SLIDE 2 -->
+  <div class="slide">
+    <h2 class="animate">What is Vault?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A tool for <span class="highlight">securely managing secrets, encryption, and access</span></li>
+        <li class="animate">Built by <strong>HashiCorp</strong> &mdash; open-source with Enterprise and HCP Cloud tiers</li>
+        <li class="animate">Central place to store and tightly control access to <strong>tokens, passwords, certificates, API keys</strong></li>
+        <li class="animate">Provides <strong>dynamic secrets</strong> &mdash; generate credentials on-demand with automatic revocation</li>
+        <li class="animate">Industry standard for <span class="highlight">zero-trust secret management</span> in cloud-native environments</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 3 -->
+  <div class="slide">
+    <h2 class="animate">Why Vault?</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Without Vault</h3>
+        <ul>
+          <li>Secrets in env vars &amp; config files</li>
+          <li>Hard-coded credentials in code</li>
+          <li>Shared passwords across teams</li>
+          <li>No audit trail</li>
+          <li>Manual credential rotation</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>With Vault</h3>
+        <ul>
+          <li>Centralized secret storage</li>
+          <li>Dynamic, short-lived credentials</li>
+          <li>Fine-grained access policies</li>
+          <li>Full audit logging</li>
+          <li>Automatic rotation &amp; revocation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4 -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">Client<br><small>(app / human)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Vault Server<br><small>API + Policy Engine</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Storage Backend<br><small>Consul / Raft / S3</small></div>
+    </div>
+    <div class="diagram animate" style="margin-top:10px;">
+      <div class="box">Auth Methods<br><small>LDAP, OIDC, AWS</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Vault Server</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Secret Engines<br><small>KV, PKI, DB, AWS</small></div>
+    </div>
+    <ul class="content animate" style="margin-top:20px;">
+      <li><strong>Seal/Unseal</strong> &mdash; Vault starts sealed; requires unseal keys to decrypt master key</li>
+      <li><strong>Barrier</strong> &mdash; all data encrypted at rest with AES-256-GCM</li>
+    </ul>
+  </div>
+
+  <!-- SLIDE 5 -->
+  <div class="slide">
+    <h2 class="animate">Core Concepts</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Secret Engines</h3>
+        <p>Components that store, generate, or encrypt data (KV, PKI, databases, cloud IAM)</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Auth Methods</h3>
+        <p>How clients prove identity (tokens, LDAP, OIDC, AWS IAM, Kubernetes)</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Policies</h3>
+        <p>HCL rules defining what paths a token can access and what operations are allowed</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Audit Devices</h3>
+        <p>Log every request and response for compliance (file, syslog, socket)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6 -->
+  <div class="slide">
+    <h2 class="animate">Getting Started</h2>
+    <div class="content">
+      <pre class="animate">
+# Start Vault in dev mode (NOT for production)
+vault server -dev
+
+# Set address and token
+export VAULT_ADDR='http://127.0.0.1:8200'
+export VAULT_TOKEN='hvs.roottoken...'
+
+# Check status
+vault status
+
+# Docker (dev mode)
+docker run -d --name vault   -p 8200:8200   -e 'VAULT_DEV_ROOT_TOKEN_ID=myroot'   hashicorp/vault
+
+# Production: use Raft or Consul storage backend
+# with TLS, auto-unseal, and HA clustering
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 7 -->
+  <div class="slide">
+    <h2 class="animate">KV Secret Engine (v2)</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable KV v2 secret engine
+vault secrets enable -path=secret kv-v2
+
+# Write a secret
+vault kv put secret/myapp/config   db_host="postgres.prod.internal"   db_user="app"   db_pass="s3cur3P@ss!"
+
+# Read a secret
+vault kv get secret/myapp/config
+vault kv get -field=db_pass secret/myapp/config
+
+# List secrets
+vault kv list secret/myapp/
+
+# Version history (KV v2)
+vault kv get -version=2 secret/myapp/config
+
+# Delete / undelete / destroy
+vault kv delete secret/myapp/config
+vault kv undelete -versions=3 secret/myapp/config
+vault kv destroy -versions=1 secret/myapp/config
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8 -->
+  <div class="slide">
+    <h2 class="animate">Dynamic Secrets: Databases</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable database secret engine
+vault secrets enable database
+
+# Configure PostgreSQL connection
+vault write database/config/mydb   plugin_name=postgresql-database-plugin   allowed_roles="app-role"   connection_url="postgresql://{{username}}:{{password}}@db:5432/mydb"   username="vault_admin"   password="admin_pass"
+
+# Create a role (generates dynamic credentials)
+vault write database/roles/app-role   db_name=mydb   creation_statements="CREATE ROLE "{{name}}" WITH LOGIN PASSWORD '{{password}}' VALID UNTIL '{{expiration}}'; GRANT SELECT ON ALL TABLES IN SCHEMA public TO "{{name}}";"   default_ttl="1h"   max_ttl="24h"
+
+# Get dynamic credentials (unique per request!)
+vault read database/creds/app-role
+# username: v-app-role-abc123
+# password: A1b2C3d4E5-random
+# ttl: 1h (auto-revoked after expiry)
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9 -->
+  <div class="slide">
+    <h2 class="animate">Dynamic Secrets: AWS</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable AWS secret engine
+vault secrets enable aws
+
+# Configure root credentials
+vault write aws/config/root   access_key=AKIAIOSFODNN7EXAMPLE   secret_key=wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY   region=us-east-1
+
+# Create a role for dynamic IAM credentials
+vault write aws/roles/deploy-role   credential_type=iam_user   policy_document=-<<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Effect": "Allow",
+      "Action": ["s3:*", "ec2:Describe*"],
+      "Resource": "*"
+    }
+  ]
+}
+EOF
+
+# Generate temporary AWS credentials
+vault read aws/creds/deploy-role
+# access_key: AKIAI...
+# secret_key: wJalr...
+# security_token: ...
+# lease_duration: 1h
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10 -->
+  <div class="slide">
+    <h2 class="animate">Auth Methods</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Method</th><th>Use Case</th></tr>
+        <tr><td><strong>Token</strong></td><td>Default; every auth produces a token</td></tr>
+        <tr><td><strong>AppRole</strong></td><td>Machine-to-machine authentication (CI/CD, apps)</td></tr>
+        <tr><td><strong>Kubernetes</strong></td><td>Pods authenticate via service account JWT</td></tr>
+        <tr><td><strong>AWS IAM</strong></td><td>EC2 instances / Lambda authenticate via IAM role</td></tr>
+        <tr><td><strong>OIDC / JWT</strong></td><td>SSO via Okta, Auth0, Azure AD</td></tr>
+        <tr><td><strong>LDAP</strong></td><td>Enterprise directory authentication</td></tr>
+        <tr><td><strong>Userpass</strong></td><td>Simple username/password (dev/small teams)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 11 -->
+  <div class="slide">
+    <h2 class="animate">AppRole Authentication</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable AppRole auth
+vault auth enable approle
+
+# Create a role
+vault write auth/approle/role/my-app   secret_id_ttl=10m   token_ttl=20m   token_max_ttl=30m   token_policies="my-app-policy"
+
+# Get RoleID (embedded in app config)
+vault read auth/approle/role/my-app/role-id
+
+# Generate SecretID (delivered securely at deploy time)
+vault write -f auth/approle/role/my-app/secret-id
+
+# App authenticates with both
+vault write auth/approle/login   role_id="abc-123-..."   secret_id="def-456-..."
+# Returns a Vault token the app uses for secret access
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12 -->
+  <div class="slide">
+    <h2 class="animate">Policies (ACL)</h2>
+    <div class="content">
+      <pre class="animate">
+# my-app-policy.hcl
+
+# Read database credentials
+path "database/creds/app-role" {
+  capabilities = ["read"]
+}
+
+# Read and list app secrets
+path "secret/data/myapp/*" {
+  capabilities = ["read", "list"]
+}
+
+# No access to other apps
+path "secret/data/other-app/*" {
+  capabilities = ["deny"]
+}
+
+# Capabilities: create, read, update, delete, list, sudo, deny
+      </pre>
+      <pre class="animate" style="margin-top:12px;">
+# Apply the policy
+vault policy write my-app-policy my-app-policy.hcl
+
+# List policies
+vault policy list
+vault policy read my-app-policy
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13 -->
+  <div class="slide">
+    <h2 class="animate">PKI &mdash; Certificate Authority</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable PKI secret engine
+vault secrets enable pki
+vault secrets tune -max-lease-ttl=87600h pki
+
+# Generate root CA
+vault write pki/root/generate/internal   common_name="My Company Root CA"   ttl=87600h
+
+# Create a role for issuing certs
+vault write pki/roles/web-server   allowed_domains="example.com"   allow_subdomains=true   max_ttl=720h
+
+# Issue a certificate
+vault write pki/issue/web-server   common_name="api.example.com"   ttl=24h
+# Returns: certificate, private_key, ca_chain
+      </pre>
+      <p class="animate" style="color:var(--text-muted);">Automate TLS certificate lifecycle &mdash; no more manual renewals</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 14 -->
+  <div class="slide">
+    <h2 class="animate">Transit &mdash; Encryption as a Service</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable transit secret engine
+vault secrets enable transit
+
+# Create an encryption key
+vault write -f transit/keys/my-app-key
+
+# Encrypt data (base64 input)
+vault write transit/encrypt/my-app-key   plaintext=$(echo "secret data" | base64)
+# ciphertext: vault:v1:abc123...
+
+# Decrypt data
+vault write transit/decrypt/my-app-key   ciphertext="vault:v1:abc123..."
+# plaintext: c2VjcmV0IGRhdGE=  (base64 decode -> "secret data")
+
+# Key rotation (old data still decryptable)
+vault write -f transit/keys/my-app-key/rotate
+      </pre>
+      <ul>
+        <li class="animate">App never sees the encryption key &mdash; Vault handles all crypto</li>
+        <li class="animate">Supports AES-GCM, ChaCha20, RSA, ECDSA, Ed25519</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 15 -->
+  <div class="slide">
+    <h2 class="animate">Kubernetes Integration</h2>
+    <div class="content">
+      <pre class="animate">
+# Enable Kubernetes auth
+vault auth enable kubernetes
+vault write auth/kubernetes/config   kubernetes_host="https://kubernetes.default.svc"
+
+# Create a role mapping K8s service account to Vault policy
+vault write auth/kubernetes/role/my-app   bound_service_account_names=my-app-sa   bound_service_account_namespaces=production   policies=my-app-policy   ttl=1h
+      </pre>
+      <pre class="animate" style="margin-top:12px;">
+# Pod with Vault Agent sidecar (auto-injects secrets)
+# annotations:
+#   vault.hashicorp.com/agent-inject: "true"
+#   vault.hashicorp.com/role: "my-app"
+#   vault.hashicorp.com/agent-inject-secret-db: "secret/data/myapp/db"
+
+# Or use the Vault CSI Provider
+# Mounts secrets as files in the pod
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 16 -->
+  <div class="slide">
+    <h2 class="animate">Seal / Unseal &amp; Auto-Unseal</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Seal</strong> &mdash; Vault encrypts its master key; cannot read data when sealed</li>
+        <li class="animate"><strong>Shamir&#39;s Secret Sharing</strong> &mdash; master key split into N shares, requires threshold K to unseal</li>
+        <li class="animate"><strong>Auto-Unseal</strong> &mdash; use a cloud KMS to automatically unseal on restart</li>
+      </ul>
+      <pre class="animate">
+# Initialize Vault (first time)
+vault operator init -key-shares=5 -key-threshold=3
+
+# Manual unseal (need 3 of 5 keys)
+vault operator unseal <key-1>
+vault operator unseal <key-2>
+vault operator unseal <key-3>
+
+# Auto-unseal config (e.g., AWS KMS)
+seal "awskms" {
+  region     = "us-east-1"
+  kms_key_id = "alias/vault-unseal"
+}
+      </pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 17 -->
+  <div class="slide">
+    <h2 class="animate">High Availability &amp; DR</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Integrated Raft Storage</strong> &mdash; built-in HA consensus (recommended)</li>
+        <li class="animate"><strong>Active/Standby</strong> &mdash; one active node handles requests; standbys forward</li>
+        <li class="animate"><strong>Performance Replicas</strong> (Enterprise) &mdash; read replicas in other regions</li>
+        <li class="animate"><strong>DR Replication</strong> (Enterprise) &mdash; async replication to disaster recovery cluster</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:20px;">
+        <div class="box" style="border-color:var(--warning);">Active<br><small>Node 1</small></div>
+        <div class="arrow">&harr;</div>
+        <div class="box">Standby<br><small>Node 2</small></div>
+        <div class="arrow">&harr;</div>
+        <div class="box">Standby<br><small>Node 3</small></div>
+      </div>
+      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:8px;">3 or 5 node Raft cluster for production</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">Vault in CI/CD</h2>
+    <div class="content">
+      <pre class="animate">
+# GitHub Actions with Vault
+- name: Import Secrets from Vault
+  uses: hashicorp/vault-action@v3
+  with:
+    url: https://vault.mycompany.com
+    method: approle
+    roleId: ${{ secrets.VAULT_ROLE_ID }}
+    secretId: ${{ secrets.VAULT_SECRET_ID }}
+    secrets: |
+      secret/data/myapp/prod db_password | DB_PASSWORD ;
+      secret/data/myapp/prod api_key | API_KEY
+
+- name: Deploy
+  env:
+    DB_PASSWORD: ${{ steps.vault.outputs.DB_PASSWORD }}
+  run: ./deploy.sh
+      </pre>
+      <p class="animate" style="color:var(--text-muted);">Never store secrets in CI/CD variables &mdash; fetch them at runtime from Vault</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Use <strong>dynamic secrets</strong> over static &mdash; short TTLs, auto-revoked</div>
+      <div class="bp-item animate"><span>2</span> <strong>Least privilege</strong> policies &mdash; apps get only what they need</div>
+      <div class="bp-item animate"><span>3</span> Enable <strong>audit logging</strong> on all clusters</div>
+      <div class="bp-item animate"><span>4</span> Use <strong>auto-unseal</strong> with cloud KMS for production</div>
+      <div class="bp-item animate"><span>5</span> <strong>Namespace</strong> secrets by team/app: <code>secret/team/app/env</code></div>
+      <div class="bp-item animate"><span>6</span> Rotate <strong>root tokens</strong> and store unseal keys securely</div>
+      <div class="bp-item animate"><span>7</span> Use <strong>AppRole or K8s auth</strong> for machines, <strong>OIDC</strong> for humans</div>
+      <div class="bp-item animate"><span>8</span> Run a <strong>3 or 5 node Raft cluster</strong> for HA in production</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F510;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Vault is the <span class="highlight">industry standard for secrets management</span></li>
+        <li class="animate"><strong>Dynamic secrets</strong> eliminate long-lived credentials</li>
+        <li class="animate">Core engines: <span class="tag">KV</span> <span class="tag">Database</span> <span class="tag">AWS</span> <span class="tag">PKI</span> <span class="tag">Transit</span></li>
+        <li class="animate"><strong>Policies</strong> enforce least privilege access</li>
+        <li class="animate">Integrates natively with <strong>Kubernetes</strong>, CI/CD, and cloud providers</li>
+        <li class="animate"><strong>Encrypt, audit, rotate</strong> &mdash; the three pillars of secret security</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
