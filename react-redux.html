@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>React &amp; Redux</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x269B;</span>
+    <h1 class="animate">React &amp; Redux</h1>
+    <p class="subtitle animate">Build modern UIs with confidence</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Frontend</span><span class="tag">Hooks</span><span class="tag">State</span><span class="tag">Components</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why React?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Core Concepts</h3>
+        <ul>
+          <li>Declarative UI &mdash; describe what, not how</li>
+          <li>Component-based architecture</li>
+          <li>Virtual DOM for efficient updates</li>
+          <li>One-way data flow (props down, events up)</li>
+          <li>Massive ecosystem and community</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>React 19 Highlights</h3>
+        <ul>
+          <li><span class="highlight">Server Components</span> &mdash; render on server by default</li>
+          <li><span class="highlight">Actions</span> &mdash; async transitions for forms</li>
+          <li><span class="highlight">use() hook</span> &mdash; read promises and context</li>
+          <li><span class="highlight">Document metadata</span> &mdash; title, meta in components</li>
+          <li>Improved error handling and hydration</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">JSX &amp; Components</h2>
+    <div class="content animate">
+<pre>
+// Functional component with JSX
+function Welcome({ name, role = "user" }) {
+  return (
+    &lt;div className="card"&gt;
+      &lt;h2&gt;Hello, {name}!&lt;/h2&gt;
+      &lt;p&gt;Role: {role}&lt;/p&gt;
+      {role === "admin" &amp;&amp; &lt;AdminBadge /&gt;}
+    &lt;/div&gt;
+  );
+}
+
+// Usage
+&lt;Welcome name="Alice" role="admin" /&gt;
+
+// Children pattern
+function Layout({ children }) {
+  return (
+    &lt;main className="container"&gt;
+      &lt;Header /&gt;
+      {children}
+      &lt;Footer /&gt;
+    &lt;/main&gt;
+  );
+}
+
+// Conditional rendering
+{isLoading ? &lt;Spinner /&gt; : &lt;UserList users={users} /&gt;}
+
+// List rendering
+{users.map(user =&gt; &lt;UserCard key={user.id} user={user} /&gt;)}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">useState &amp; useEffect</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>useState</h3>
+<pre style="font-size:0.85rem">
+import { useState } from "react";
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Count: {count}&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(c =&gt; c + 1)}&gt;
+        Increment
+      &lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+
+// Object state
+const [form, setForm] = useState({
+  name: "", email: ""
+});
+setForm(prev =&gt; ({ ...prev, name: "Alice" }));
+</pre>
+      </div>
+      <div class="card">
+        <h3>useEffect</h3>
+<pre style="font-size:0.85rem">
+import { useEffect } from "react";
+
+function UserProfile({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() =&gt; {
+    // Runs after render
+    fetch(`/api/users/${userId}`)
+      .then(res =&gt; res.json())
+      .then(setUser);
+
+    // Cleanup (optional)
+    return () =&gt; console.log("unmount");
+  }, [userId]); // deps array
+
+  // [] = run once on mount
+  // [userId] = run when userId changes
+  // no array = run every render (avoid!)
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">More Hooks</h2>
+    <div class="content animate">
+<pre>
+// useRef - persist values without re-render, access DOM
+const inputRef = useRef(null);
+inputRef.current.focus();
+
+// useMemo - cache expensive computation
+const sorted = useMemo(() =&gt;
+  items.sort((a, b) =&gt; a.name.localeCompare(b.name)),
+  [items]
+);
+
+// useCallback - cache a function reference
+const handleClick = useCallback((id) =&gt; {
+  setSelected(id);
+}, []);
+
+// useContext - consume context without prop drilling
+const theme = useContext(ThemeContext);
+
+// useReducer - complex state logic
+const [state, dispatch] = useReducer(reducer, initialState);
+dispatch({ type: "INCREMENT" });
+
+// Custom hook - reusable logic
+function useLocalStorage(key, initial) {
+  const [value, setValue] = useState(
+    () =&gt; JSON.parse(localStorage.getItem(key)) ?? initial
+  );
+  useEffect(() =&gt; {
+    localStorage.setItem(key, JSON.stringify(value));
+  }, [key, value]);
+  return [value, setValue];
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Event Handling &amp; Forms</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Events</h3>
+<pre style="font-size:0.85rem">
+// onClick
+&lt;button onClick={handleClick}&gt;Go&lt;/button&gt;
+
+// With arguments
+&lt;button onClick={() =&gt; deleteUser(id)}&gt;
+  Delete
+&lt;/button&gt;
+
+// Event object
+function handleChange(e) {
+  setQuery(e.target.value);
+}
+
+// Prevent default
+function handleSubmit(e) {
+  e.preventDefault();
+  submitForm(data);
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Controlled Forms</h3>
+<pre style="font-size:0.85rem">
+function LoginForm() {
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+
+  const handleSubmit = (e) =&gt; {
+    e.preventDefault();
+    login({ email, password });
+  };
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input
+        value={email}
+        onChange={e =&gt; setEmail(e.target.value)}
+        placeholder="Email"
+      /&gt;
+      &lt;input
+        type="password"
+        value={password}
+        onChange={e =&gt; setPassword(e.target.value)}
+      /&gt;
+      &lt;button type="submit"&gt;Log In&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Component Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Container / Presentational</h3>
+        <p>Separate data fetching (container) from UI rendering (presentational). Clean separation of concerns.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Composition</h3>
+        <p>Use children and render props instead of deep inheritance. <code>&lt;Card&gt;&lt;UserInfo /&gt;&lt;/Card&gt;</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Custom Hooks</h3>
+        <p>Extract reusable logic: useAuth(), useFetch(), useDebounce(), useLocalStorage(). The React way to share behavior.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Compound Components</h3>
+        <p>Related components that share state: <code>&lt;Tabs&gt;&lt;Tab /&gt;&lt;Panel /&gt;&lt;/Tabs&gt;</code>. Flexible API design.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">React Router</h2>
+    <div class="content animate">
+<pre>
+import { BrowserRouter, Routes, Route, Link, useParams, useNavigate } from "react-router-dom";
+
+function App() {
+  return (
+    &lt;BrowserRouter&gt;
+      &lt;nav&gt;
+        &lt;Link to="/"&gt;Home&lt;/Link&gt;
+        &lt;Link to="/users"&gt;Users&lt;/Link&gt;
+      &lt;/nav&gt;
+
+      &lt;Routes&gt;
+        &lt;Route path="/" element={&lt;Home /&gt;} /&gt;
+        &lt;Route path="/users" element={&lt;Users /&gt;} /&gt;
+        &lt;Route path="/users/:id" element={&lt;UserProfile /&gt;} /&gt;
+        &lt;Route path="*" element={&lt;NotFound /&gt;} /&gt;
+      &lt;/Routes&gt;
+    &lt;/BrowserRouter&gt;
+  );
+}
+
+function UserProfile() {
+  const { id } = useParams();
+  const navigate = useNavigate();
+  // navigate("/users") to redirect programmatically
+}
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Protected routes:</span> Wrap with an auth check component that redirects to /login if not authenticated.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Context API</h2>
+    <div class="content animate">
+<pre>
+import { createContext, useContext, useState } from "react";
+
+// 1. Create context
+const AuthContext = createContext(null);
+
+// 2. Provider component
+function AuthProvider({ children }) {
+  const [user, setUser] = useState(null);
+
+  const login = async (credentials) =&gt; {
+    const user = await api.login(credentials);
+    setUser(user);
+  };
+
+  const logout = () =&gt; setUser(null);
+
+  return (
+    &lt;AuthContext.Provider value={{ user, login, logout }}&gt;
+      {children}
+    &lt;/AuthContext.Provider&gt;
+  );
+}
+
+// 3. Custom hook for consuming
+function useAuth() {
+  const context = useContext(AuthContext);
+  if (!context) throw new Error("useAuth must be inside AuthProvider");
+  return context;
+}
+
+// 4. Usage anywhere in the tree
+function Navbar() {
+  const { user, logout } = useAuth();
+  return user ? &lt;button onClick={logout}&gt;Log out&lt;/button&gt; : &lt;Link to="/login"&gt;Log in&lt;/Link&gt;;
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Redux Toolkit (RTK)</h2>
+    <div class="content animate">
+      <p>The official, recommended way to write Redux. Eliminates boilerplate.</p>
+<pre>
+// store.js
+import { configureStore } from "@reduxjs/toolkit";
+import counterReducer from "./counterSlice";
+import usersReducer from "./usersSlice";
+
+export const store = configureStore({
+  reducer: {
+    counter: counterReducer,
+    users: usersReducer,
+  },
+});
+
+// main.jsx - wrap app with Provider
+import { Provider } from "react-redux";
+import { store } from "./store";
+
+&lt;Provider store={store}&gt;
+  &lt;App /&gt;
+&lt;/Provider&gt;
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Redux Slices</h2>
+    <div class="content animate">
+<pre>
+// counterSlice.js
+import { createSlice } from "@reduxjs/toolkit";
+
+const counterSlice = createSlice({
+  name: "counter",
+  initialState: { value: 0 },
+  reducers: {
+    increment: (state) =&gt; { state.value += 1; },  // Immer allows "mutation"
+    decrement: (state) =&gt; { state.value -= 1; },
+    incrementByAmount: (state, action) =&gt; {
+      state.value += action.payload;
+    },
+  },
+});
+
+export const { increment, decrement, incrementByAmount } = counterSlice.actions;
+export default counterSlice.reducer;
+
+// Component usage
+import { useSelector, useDispatch } from "react-redux";
+import { increment } from "./counterSlice";
+
+function Counter() {
+  const count = useSelector((state) =&gt; state.counter.value);
+  const dispatch = useDispatch();
+
+  return &lt;button onClick={() =&gt; dispatch(increment())}&gt;Count: {count}&lt;/button&gt;;
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">RTK Async Thunks</h2>
+    <div class="content animate">
+<pre>
+import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+
+// Async thunk for API calls
+export const fetchUsers = createAsyncThunk("users/fetchAll", async () =&gt; {
+  const res = await fetch("/api/users");
+  return res.json();
+});
+
+const usersSlice = createSlice({
+  name: "users",
+  initialState: { items: [], status: "idle", error: null },
+  reducers: {},
+  extraReducers: (builder) =&gt; {
+    builder
+      .addCase(fetchUsers.pending, (state) =&gt; {
+        state.status = "loading";
+      })
+      .addCase(fetchUsers.fulfilled, (state, action) =&gt; {
+        state.status = "succeeded";
+        state.items = action.payload;
+      })
+      .addCase(fetchUsers.rejected, (state, action) =&gt; {
+        state.status = "failed";
+        state.error = action.error.message;
+      });
+  },
+});
+
+// Dispatch in component
+useEffect(() =&gt; { dispatch(fetchUsers()); }, [dispatch]);
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">RTK Query</h2>
+    <div class="content animate">
+      <p>Data fetching and caching built into Redux Toolkit. Replaces useEffect + fetch patterns.</p>
+<pre>
+import { createApi, fetchBaseQuery } from "@reduxjs/toolkit/query/react";
+
+export const api = createApi({
+  baseQuery: fetchBaseQuery({ baseUrl: "/api" }),
+  tagTypes: ["User"],
+  endpoints: (builder) =&gt; ({
+    getUsers: builder.query({ query: () =&gt; "/users", providesTags: ["User"] }),
+    getUser: builder.query({ query: (id) =&gt; `/users/${id}` }),
+    createUser: builder.mutation({
+      query: (body) =&gt; ({ url: "/users", method: "POST", body }),
+      invalidatesTags: ["User"],  // refetches getUsers
+    }),
+  }),
+});
+
+export const { useGetUsersQuery, useGetUserQuery, useCreateUserMutation } = api;
+
+// Usage - auto-fetches, caches, and re-fetches
+function UserList() {
+  const { data: users, isLoading, error } = useGetUsersQuery();
+  if (isLoading) return &lt;Spinner /&gt;;
+  return users.map(u =&gt; &lt;UserCard key={u.id} user={u} /&gt;);
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Performance</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>React.memo</h3>
+        <p>Wrap components to skip re-renders when props haven't changed. <code>export default memo(UserCard)</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>useMemo / useCallback</h3>
+        <p>Cache computed values and function references. Prevents unnecessary child re-renders and recalculations.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Code Splitting</h3>
+        <p><code>lazy(() =&gt; import("./Page"))</code> + <code>&lt;Suspense&gt;</code>. Load components on demand. Reduces initial bundle.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Virtualization</h3>
+        <p>Use react-window or @tanstack/virtual for long lists. Renders only visible items. 10,000 rows? No problem.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">React DevTools Profiler:</span> Measure render times, find unnecessary re-renders, and trace component updates.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Styling in React</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Popular Approaches</h3>
+        <ul>
+          <li><span class="highlight">Tailwind CSS</span> &mdash; utility classes, most popular</li>
+          <li><span class="highlight">CSS Modules</span> &mdash; scoped CSS, built-in with Vite</li>
+          <li><span class="highlight">styled-components</span> &mdash; CSS-in-JS</li>
+          <li><span class="highlight">Vanilla CSS</span> &mdash; global stylesheets, simple</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Tailwind Example</h3>
+<pre style="font-size:0.85rem">
+function Card({ title, children }) {
+  return (
+    &lt;div className="bg-white rounded-lg
+      shadow-md p-6 hover:shadow-lg
+      transition-shadow"&gt;
+      &lt;h2 className="text-xl font-bold
+        text-gray-800 mb-2"&gt;
+        {title}
+      &lt;/h2&gt;
+      {children}
+    &lt;/div&gt;
+  );
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Testing React</h2>
+    <div class="content animate">
+<pre>
+// UserCard.test.jsx
+import { render, screen, fireEvent } from "@testing-library/react";
+import UserCard from "./UserCard";
+
+test("renders user name", () =&gt; {
+  render(&lt;UserCard user={{ name: "Alice", email: "a@b.com" }} /&gt;);
+  expect(screen.getByText("Alice")).toBeInTheDocument();
+});
+
+test("calls onDelete when button clicked", () =&gt; {
+  const onDelete = vi.fn();
+  render(&lt;UserCard user={{ id: 1, name: "Alice" }} onDelete={onDelete} /&gt;);
+  fireEvent.click(screen.getByRole("button", { name: /delete/i }));
+  expect(onDelete).toHaveBeenCalledWith(1);
+});
+
+test("shows loading state", () =&gt; {
+  render(&lt;UserList /&gt;);
+  expect(screen.getByText("Loading...")).toBeInTheDocument();
+});
+
+// Run: npx vitest
+// Coverage: npx vitest --coverage
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Stack:</span> Vitest + React Testing Library + jsdom. Test behavior, not implementation.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Project Setup &amp; Ecosystem</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Create a Project</h3>
+<pre style="font-size:0.85rem">
+# Vite (recommended)
+npm create vite@latest my-app -- --template react-ts
+cd my-app
+npm install
+npm run dev
+
+# Next.js (full-stack SSR)
+npx create-next-app@latest my-app
+
+# Key dependencies
+npm install react-router-dom
+npm install @reduxjs/toolkit react-redux
+npm install axios       # or use fetch
+npm install tailwindcss
+</pre>
+      </div>
+      <div class="card">
+        <h3>Ecosystem</h3>
+        <ul>
+          <li><span class="highlight">Next.js</span> &mdash; SSR, routing, API routes</li>
+          <li><span class="highlight">TanStack Query</span> &mdash; server state management</li>
+          <li><span class="highlight">Zustand</span> &mdash; lightweight state (Redux alternative)</li>
+          <li><span class="highlight">React Hook Form</span> &mdash; performant forms</li>
+          <li><span class="highlight">Framer Motion</span> &mdash; animations</li>
+          <li><span class="highlight">Storybook</span> &mdash; component documentation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Keep components small and focused (single responsibility)</div>
+      <div class="bp-item"><span>2.</span> Lift state up only as far as needed</div>
+      <div class="bp-item"><span>3.</span> Use TypeScript for props and state types</div>
+      <div class="bp-item"><span>4.</span> Custom hooks for reusable logic</div>
+      <div class="bp-item"><span>5.</span> Avoid unnecessary useEffect &mdash; derive state from props</div>
+      <div class="bp-item"><span>6.</span> Use React.memo and useMemo sparingly (profile first)</div>
+      <div class="bp-item"><span>7.</span> RTK Query or TanStack Query for server state</div>
+      <div class="bp-item"><span>8.</span> Test behavior with Testing Library, not implementation</div>
+      <div class="bp-item"><span>9.</span> Structure: features/ folder, co-locate related files</div>
+      <div class="bp-item"><span>10.</span> Use Suspense and lazy() for code splitting</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x269B;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered React and Redux:</p>
+      <div style="margin:20px 0">
+        <span class="tag">JSX</span><span class="tag">Hooks</span><span class="tag">State</span>
+        <span class="tag">Redux Toolkit</span><span class="tag">RTK Query</span><span class="tag">Router</span>
+        <span class="tag">Context</span><span class="tag">Performance</span><span class="tag">Testing</span>
+      </div>
+      <p style="color:var(--text-muted)">Think in components, manage state wisely, and let React handle the DOM.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>

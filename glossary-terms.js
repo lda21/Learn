@@ -192,7 +192,14 @@ const GLOSSARY_TERMS = [
   {t:"Cursor Rules",d:"Project-level AI instructions stored in .cursor/rules. Define coding standards, frameworks, naming conventions, and preferences that shape AI responses.",tags:["Cursor AI"]},
   {t:"Codebase Indexing",d:"Cursor's automatic embedding of your project files for semantic search. Powers @codebase queries. Configure exclusions with .cursorignore.",tags:["Cursor AI"]},
   {t:"MCP",d:"Model Context Protocol — an open standard for connecting AI tools to external services. Claude Code uses MCP servers for GitHub, databases, and custom tools.",tags:["Claude Code"]},
-  {t:"CLAUDE.md",d:"A project-level instruction file for Claude Code. Defines coding standards, project context, and preferences. Read automatically when entering a directory.",tags:["Claude Code"]}
+  {t:"CLAUDE.md",d:"A project-level instruction file for Claude Code. Defines coding standards, project context, and preferences. Read automatically when entering a directory.",tags:["Claude Code"]},
+  {t:"JSX",d:"JavaScript XML — a syntax extension that lets you write HTML-like markup inside JavaScript. Compiled by Babel/SWC into React.createElement calls.",tags:["React"]},
+  {t:"React Hook",d:"Functions (useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer) that let functional components manage state and side effects.",tags:["React"]},
+  {t:"Redux Toolkit",d:"The official, recommended way to write Redux. Includes createSlice, configureStore, createAsyncThunk, and RTK Query. Eliminates boilerplate.",tags:["React","Redux"]},
+  {t:"RTK Query",d:"Data fetching and caching built into Redux Toolkit. Auto-generates hooks (useGetUsersQuery). Handles loading, caching, and cache invalidation.",tags:["React","Redux"]},
+  {t:"React Router",d:"The standard routing library for React SPAs. Provides BrowserRouter, Routes, Route, Link, useParams, useNavigate for client-side navigation.",tags:["React"]},
+  {t:"Virtual DOM",d:"React's in-memory representation of the real DOM. React diffs the virtual DOM to compute minimal updates, making re-renders efficient.",tags:["React"]},
+  {t:"Server Component",d:"A React 19 component that renders on the server. Zero client-side JS bundle. Can directly access databases, file systems, and APIs.",tags:["React"]}
 ];
 
 (function() {
