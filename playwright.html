@@ -1,0 +1,956 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Playwright</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3AD;</span>
+    <h1 class="animate">Playwright</h1>
+    <p class="subtitle animate">End-to-end testing for modern web applications</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Testing</span><span class="tag">E2E</span><span class="tag">Automation</span><span class="tag">Cross-Browser</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Playwright?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>E2E testing framework by Microsoft</li>
+          <li>Chromium, Firefox, WebKit &mdash; one API</li>
+          <li>Auto-waiting for elements &amp; actions</li>
+          <li>Runs on Windows, macOS, Linux, CI</li>
+          <li>TypeScript, JavaScript, Python, Java, C#</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Playwright?</h3>
+        <ul>
+          <li><span class="highlight">Auto-wait</span> &mdash; no manual sleep/wait</li>
+          <li><span class="highlight">Test isolation</span> &mdash; browser contexts</li>
+          <li><span class="highlight">Parallelism</span> &mdash; built-in workers</li>
+          <li><span class="highlight">Codegen</span> &mdash; record tests visually</li>
+          <li><span class="highlight">Trace viewer</span> &mdash; time-travel debugging</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Installation &amp; Setup</h2>
+    <div class="content animate">
+<pre>
+# Create a new Playwright project
+npm init playwright@latest
+
+# Project structure created:
+# playwright.config.ts   - configuration
+# tests/                  - test files
+# tests/example.spec.ts  - sample test
+# .github/workflows/     - CI config (optional)
+</pre>
+<pre style="margin-top:12px">
+// playwright.config.ts
+import { defineConfig, devices } from '@playwright/test';
+
+export default defineConfig({
+  testDir: './tests',
+  fullyParallel: true,
+  retries: process.env.CI ? 2 : 0,
+  workers: process.env.CI ? 1 : undefined,
+  reporter: 'html',
+  use: {
+    baseURL: 'http://localhost:3000',
+    trace: 'on-first-retry',
+  },
+  projects: [
+    { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
+    { name: 'firefox', use: { ...devices['Desktop Firefox'] } },
+    { name: 'webkit', use: { ...devices['Desktop Safari'] } },
+  ],
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Writing Your First Test</h2>
+    <div class="content animate">
+<pre>
+// tests/example.spec.ts
+import { test, expect } from '@playwright/test';
+
+test('homepage has title and links', async ({ page }) =&gt; {
+  await page.goto('https://example.com');
+
+  // Expect the title to contain a substring
+  await expect(page).toHaveTitle(/Example/);
+
+  // Click the "More information" link
+  await page.getByRole('link', { name: 'More information' }).click();
+
+  // Expect the URL to change
+  await expect(page).toHaveURL(/iana.org/);
+});
+
+test('user can log in', async ({ page }) =&gt; {
+  await page.goto('/login');
+  await page.getByLabel('Email').fill('user@test.com');
+  await page.getByLabel('Password').fill('secret123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByText('Welcome back')).toBeVisible();
+});
+</pre>
+<pre style="margin-top:8px">
+# Run tests
+npx playwright test              # all tests
+npx playwright test login.spec   # specific file
+npx playwright test --headed     # see the browser
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Locators</h2>
+    <div class="content animate">
+      <p>Locators are Playwright's primary way to find elements. They auto-wait and auto-retry.</p>
+      <table>
+        <tr><th>Locator</th><th>Example</th><th>Best For</th></tr>
+        <tr><td><code>getByRole</code></td><td><code>page.getByRole('button', { name: 'Submit' })</code></td><td>Accessible elements</td></tr>
+        <tr><td><code>getByText</code></td><td><code>page.getByText('Welcome')</code></td><td>Visible text</td></tr>
+        <tr><td><code>getByLabel</code></td><td><code>page.getByLabel('Email')</code></td><td>Form inputs</td></tr>
+        <tr><td><code>getByTestId</code></td><td><code>page.getByTestId('submit-btn')</code></td><td>data-testid attrs</td></tr>
+        <tr><td><code>getByPlaceholder</code></td><td><code>page.getByPlaceholder('Search...')</code></td><td>Placeholder text</td></tr>
+        <tr><td><code>locator</code></td><td><code>page.locator('.card &gt;&gt; h3')</code></td><td>CSS/chaining</td></tr>
+      </table>
+      <p style="margin-top:12px"><span class="highlight">Priority:</span> <code>getByRole</code> &gt; <code>getByLabel</code> &gt; <code>getByText</code> &gt; <code>getByTestId</code> &gt; CSS selectors</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Actions</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Click &amp; Type</h3>
+<pre style="font-size:0.85rem;margin-top:6px">
+await page.getByRole('button').click();
+await page.getByLabel('Name').fill('Alice');
+await page.getByLabel('Name').type('Bob'); // key by key
+await page.getByLabel('Name').clear();
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Form Controls</h3>
+<pre style="font-size:0.85rem;margin-top:6px">
+await page.getByLabel('Agree').check();
+await page.getByLabel('Agree').uncheck();
+await page.getByRole('combobox').selectOption('blue');
+await page.getByLabel('File').setInputFiles('doc.pdf');
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Keyboard &amp; Mouse</h3>
+<pre style="font-size:0.85rem;margin-top:6px">
+await page.keyboard.press('Enter');
+await page.keyboard.press('Control+A');
+await locator.hover();
+await locator.dblclick();
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Drag &amp; Drop</h3>
+<pre style="font-size:0.85rem;margin-top:6px">
+await page.locator('#source').dragTo(
+  page.locator('#target')
+);
+// Or manual drag with mouse
+await page.mouse.move(0, 0);
+await page.mouse.down();
+await page.mouse.move(100, 100);
+await page.mouse.up();
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Assertions</h2>
+    <div class="content animate">
+<pre>
+// Auto-retrying assertions (recommended)
+await expect(locator).toBeVisible();
+await expect(locator).toBeHidden();
+await expect(locator).toHaveText('Hello');
+await expect(locator).toContainText('Hello');
+await expect(locator).toHaveAttribute('href', '/about');
+await expect(locator).toHaveClass(/active/);
+await expect(locator).toHaveCount(3);
+await expect(locator).toBeEnabled();
+await expect(locator).toBeChecked();
+
+// Page assertions
+await expect(page).toHaveTitle(/Dashboard/);
+await expect(page).toHaveURL('/dashboard');
+
+// Non-retrying (snapshot)
+expect(await page.title()).toBe('Dashboard');
+
+// Negative assertions
+await expect(locator).not.toBeVisible();
+
+// Soft assertions (don't stop the test)
+await expect.soft(locator).toHaveText('Hello');
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Page Object Model</h2>
+    <div class="content animate">
+<pre>
+// pages/login.page.ts
+import { Page, Locator, expect } from '@playwright/test';
+
+export class LoginPage {
+  readonly page: Page;
+  readonly email: Locator;
+  readonly password: Locator;
+  readonly submitBtn: Locator;
+
+  constructor(page: Page) {
+    this.page = page;
+    this.email = page.getByLabel('Email');
+    this.password = page.getByLabel('Password');
+    this.submitBtn = page.getByRole('button', { name: 'Sign in' });
+  }
+
+  async goto() { await this.page.goto('/login'); }
+
+  async login(email: string, password: string) {
+    await this.email.fill(email);
+    await this.password.fill(password);
+    await this.submitBtn.click();
+  }
+}
+
+// tests/login.spec.ts
+test('successful login', async ({ page }) =&gt; {
+  const loginPage = new LoginPage(page);
+  await loginPage.goto();
+  await loginPage.login('user@test.com', 'secret');
+  await expect(page).toHaveURL('/dashboard');
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Auto-Waiting &amp; Retries</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Auto-Wait (Built-in)</h3>
+        <ul>
+          <li>Every action waits for element to be <span class="highlight">actionable</span></li>
+          <li>Visible, stable, enabled, not obscured</li>
+          <li>No manual <code>waitFor</code> needed</li>
+          <li>Default timeout: 30 seconds</li>
+          <li>Assertions auto-retry until passing</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Test Retries</h3>
+<pre style="font-size:0.85rem">
+// playwright.config.ts
+export default defineConfig({
+  retries: process.env.CI ? 2 : 0,
+  // Retry failed tests up to 2x in CI
+});
+
+// Per-test retry
+test('flaky test', async ({ page }) =&gt; {
+  test.info().annotations.push({
+    type: 'retries', description: '3'
+  });
+});
+</pre>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Custom Timeouts</h3>
+<pre style="font-size:0.85rem">
+await expect(locator).toBeVisible({ timeout: 10000 });  // 10s for this assertion
+test.setTimeout(120000);                                  // 2 min for this test
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Browser Contexts &amp; Fixtures</h2>
+    <div class="content animate">
+      <p>Every test runs in an isolated browser context &mdash; like a fresh incognito window.</p>
+<pre>
+// Custom fixture: auto-login for every test
+import { test as base, expect } from '@playwright/test';
+
+type MyFixtures = { authedPage: Page };
+
+export const test = base.extend&lt;MyFixtures&gt;({
+  authedPage: async ({ browser }, use) =&gt; {
+    const context = await browser.newContext({
+      storageState: 'auth.json',  // saved cookies/localStorage
+    });
+    const page = await context.newPage();
+    await use(page);
+    await context.close();
+  },
+});
+
+// Use in tests
+test('dashboard loads', async ({ authedPage }) =&gt; {
+  await authedPage.goto('/dashboard');
+  await expect(authedPage.getByText('Welcome')).toBeVisible();
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">API Testing</h2>
+    <div class="content animate">
+<pre>
+import { test, expect } from '@playwright/test';
+
+test('GET /api/users', async ({ request }) =&gt; {
+  const response = await request.get('/api/users');
+  expect(response.status()).toBe(200);
+
+  const users = await response.json();
+  expect(users.length).toBeGreaterThan(0);
+  expect(users[0]).toHaveProperty('email');
+});
+
+test('POST /api/users', async ({ request }) =&gt; {
+  const response = await request.post('/api/users', {
+    data: { name: 'Alice', email: 'alice@test.com' },
+  });
+  expect(response.status()).toBe(201);
+  expect(await response.json()).toMatchObject({
+    name: 'Alice',
+    email: 'alice@test.com',
+  });
+});
+
+test('authenticated API call', async ({ request }) =&gt; {
+  const response = await request.get('/api/profile', {
+    headers: { Authorization: 'Bearer token123' },
+  });
+  expect(response.ok()).toBeTruthy();
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Authentication Patterns</h2>
+    <div class="content animate">
+<pre>
+// global-setup.ts &mdash; runs once before all tests
+import { chromium } from '@playwright/test';
+
+async function globalSetup() {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+
+  await page.goto('http://localhost:3000/login');
+  await page.getByLabel('Email').fill('admin@test.com');
+  await page.getByLabel('Password').fill('admin123');
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await page.waitForURL('/dashboard');
+
+  // Save authentication state to file
+  await page.context().storageState({ path: 'auth.json' });
+  await browser.close();
+}
+
+export default globalSetup;
+</pre>
+<pre style="margin-top:10px">
+// playwright.config.ts
+export default defineConfig({
+  globalSetup: require.resolve('./global-setup'),
+  use: {
+    storageState: 'auth.json',  // all tests start logged in
+  },
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Visual Testing &amp; Screenshots</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Screenshot Comparison</h3>
+<pre style="font-size:0.85rem">
+// Full page screenshot comparison
+await expect(page).toHaveScreenshot();
+
+// Element screenshot
+await expect(
+  page.locator('.hero')
+).toHaveScreenshot('hero.png');
+
+// With threshold (0-1)
+await expect(page).toHaveScreenshot({
+  maxDiffPixelRatio: 0.05,
+});
+
+// Update snapshots
+// npx playwright test --update-snapshots
+</pre>
+      </div>
+      <div class="card">
+        <h3>Manual Screenshots</h3>
+<pre style="font-size:0.85rem">
+// Save to file
+await page.screenshot({
+  path: 'screenshot.png',
+  fullPage: true,
+});
+
+// Clip a region
+await page.screenshot({
+  clip: { x: 0, y: 0, width: 300, height: 200 }
+});
+
+// Element screenshot
+await page.locator('.card').screenshot({
+  path: 'card.png'
+});
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Baseline screenshots stored in <code>tests/*.spec.ts-snapshots/</code>. Platform-specific by default.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Network Interception</h2>
+    <div class="content animate">
+<pre>
+// Mock API responses
+await page.route('**/api/users', async (route) =&gt; {
+  await route.fulfill({
+    status: 200,
+    contentType: 'application/json',
+    body: JSON.stringify([{ id: 1, name: 'Mock User' }]),
+  });
+});
+
+// Abort requests (block images, analytics)
+await page.route('**/*.{png,jpg}', route =&gt; route.abort());
+await page.route('**/analytics/**', route =&gt; route.abort());
+
+// Modify response
+await page.route('**/api/config', async (route) =&gt; {
+  const response = await route.fetch();
+  const json = await response.json();
+  json.featureFlag = true;
+  await route.fulfill({ response, body: JSON.stringify(json) });
+});
+
+// Record network as HAR file
+const context = await browser.newContext({
+  recordHar: { path: 'network.har' }
+});
+// ... run tests ...
+await context.close(); // HAR saved
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Code Generation &amp; Trace Viewer</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Codegen</h3>
+<pre style="font-size:0.85rem">
+# Record actions as test code
+npx playwright codegen localhost:3000
+
+# With specific device
+npx playwright codegen \
+  --device="iPhone 13" \
+  localhost:3000
+
+# With saved auth
+npx playwright codegen \
+  --load-storage=auth.json \
+  localhost:3000
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Opens a browser + inspector. Click around, copy the generated test code.</p>
+      </div>
+      <div class="card">
+        <h3>Trace Viewer</h3>
+<pre style="font-size:0.85rem">
+# Enable traces in config
+use: {
+  trace: 'on-first-retry',
+  // 'on' | 'off' | 'retain-on-failure'
+}
+
+# View traces after test run
+npx playwright show-trace \
+  test-results/trace.zip
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Time-travel debugger: see DOM snapshots, network, console, and action log for each step.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Parallel Execution &amp; Sharding</h2>
+    <div class="content animate">
+<pre>
+// playwright.config.ts
+export default defineConfig({
+  fullyParallel: true,  // run tests within files in parallel
+  workers: 4,           // number of parallel workers
+
+  // Or percentage of CPU cores
+  workers: process.env.CI ? 1 : '50%',
+});
+</pre>
+<pre style="margin-top:12px">
+# Run with specific workers
+npx playwright test --workers=4
+
+# Shard tests across CI machines
+# Machine 1:
+npx playwright test --shard=1/3
+# Machine 2:
+npx playwright test --shard=2/3
+# Machine 3:
+npx playwright test --shard=3/3
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card">
+          <h3>Serial Tests</h3>
+<pre style="font-size:0.85rem">
+// Force sequential execution
+test.describe.serial('checkout', () =&gt; {
+  test('add to cart', ...);
+  test('enter address', ...);
+  test('pay', ...);
+});
+</pre>
+        </div>
+        <div class="card">
+          <h3>Worker Isolation</h3>
+          <ul>
+            <li>Each worker = separate process</li>
+            <li>Own browser instance</li>
+            <li>No shared state between workers</li>
+            <li>Fixtures scoped to worker or test</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Reporters &amp; CI/CD</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Built-in Reporters</h3>
+<pre style="font-size:0.85rem">
+// playwright.config.ts
+reporter: [
+  ['html', { open: 'never' }],
+  ['junit', { outputFile: 'results.xml' }],
+  ['list'],            // terminal output
+  ['json', { outputFile: 'results.json' }],
+  ['dot'],             // minimal dots
+],
+</pre>
+      </div>
+      <div class="card">
+        <h3>GitHub Actions</h3>
+<pre style="font-size:0.85rem">
+# .github/workflows/test.yml
+name: Playwright Tests
+on: [push, pull_request]
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+      - run: npm ci
+      - run: npx playwright install --with-deps
+      - run: npx playwright test
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Debugging</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Debug Mode</h3>
+        <p><code>npx playwright test --debug</code><br>Step through tests with Playwright Inspector. Pause, inspect, and resume.</p>
+      </div>
+      <div class="metric-card">
+        <h3>UI Mode</h3>
+        <p><code>npx playwright test --ui</code><br>Watch tests run in a visual timeline. Filter, search, and re-run instantly.</p>
+      </div>
+      <div class="metric-card">
+        <h3>VS Code Extension</h3>
+        <p>Run/debug tests from the editor. Set breakpoints, see live browser, pick locators.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Trace Viewer</h3>
+        <p>Time-travel through test execution. See DOM snapshots, network, console at each step.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:12px">
+// Pause inside a test
+await page.pause();  // opens Inspector at this point
+
+// Verbose logging
+DEBUG=pw:api npx playwright test
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use <code>getByRole</code> and <code>getByLabel</code> over CSS selectors</div>
+      <div class="bp-item"><span>2.</span> Never use hard-coded waits (<code>page.waitForTimeout</code>)</div>
+      <div class="bp-item"><span>3.</span> Keep tests isolated &mdash; no shared state between tests</div>
+      <div class="bp-item"><span>4.</span> Use Page Object Model for large test suites</div>
+      <div class="bp-item"><span>5.</span> Mock external APIs to avoid flakiness</div>
+      <div class="bp-item"><span>6.</span> Run tests in parallel with <code>fullyParallel: true</code></div>
+      <div class="bp-item"><span>7.</span> Use <code>storageState</code> to skip login in every test</div>
+      <div class="bp-item"><span>8.</span> Enable traces on retry for CI debugging</div>
+      <div class="bp-item"><span>9.</span> Use <code>test.describe</code> to group related tests</div>
+      <div class="bp-item"><span>10.</span> Add <code>data-testid</code> for elements without good ARIA roles</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3AD;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a solid foundation in Playwright:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Locators</span><span class="tag">Actions</span><span class="tag">Assertions</span>
+        <span class="tag">POM</span><span class="tag">API Testing</span><span class="tag">Auth</span>
+        <span class="tag">Network Mocks</span><span class="tag">Visual Testing</span><span class="tag">CI/CD</span>
+      </div>
+      <p style="color:var(--text-muted)">Start with codegen, build your first Page Object, and run in CI.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>

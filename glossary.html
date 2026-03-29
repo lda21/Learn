@@ -614,6 +614,15 @@ const TERMS = [
   {t:"React Router", d:"The standard routing library for React SPAs. Provides BrowserRouter, Routes, Route, Link, useParams, useNavigate for client-side navigation.", tags:["React"]},
   {t:"Virtual DOM", d:"React's in-memory representation of the real DOM. React diffs the virtual DOM to compute minimal updates, making re-renders efficient.", tags:["React"]},
   {t:"Server Component", d:"A React 19 component that renders on the server. Zero client-side JS bundle. Can directly access databases, file systems, and APIs.", tags:["React"]},
+  // --- Playwright ---
+  {t:"Playwright", d:"A cross-browser E2E testing framework by Microsoft. Supports Chromium, Firefox, and WebKit with a single API, auto-waiting, and test isolation.", tags:["Playwright"]},
+  {t:"Locator (Playwright)", d:"Playwright's primary element selection API. Auto-waits and auto-retries. Prefer getByRole, getByLabel, getByText, and getByTestId over CSS selectors.", tags:["Playwright"]},
+  {t:"Page Object Model", d:"A design pattern for E2E tests that encapsulates page elements and actions into reusable classes. Reduces duplication and improves test maintainability.", tags:["Playwright"]},
+  {t:"Browser Context", d:"An isolated browser session in Playwright. Like an incognito window — separate cookies, storage, and cache. Each test gets its own context for isolation.", tags:["Playwright"]},
+  {t:"Fixture (Playwright)", d:"A setup/teardown mechanism in Playwright tests. Built-in fixtures provide page, browser, context. Custom fixtures add auth, test data, or page objects.", tags:["Playwright"]},
+  {t:"Trace Viewer", d:"Playwright's time-travel debugger. Records DOM snapshots, network requests, console logs, and actions at each step. View with npx playwright show-trace.", tags:["Playwright"]},
+  {t:"Codegen", d:"Playwright's test recorder. Run npx playwright codegen to open a browser, interact with the app, and auto-generate test code from your actions.", tags:["Playwright"]},
+  {t:"Network Interception", d:"Playwright's page.route() API for mocking, modifying, or aborting network requests. Used to mock APIs, block analytics, or simulate errors in tests.", tags:["Playwright"]},
   // --- Kafka ---
   {t:"Kafka Topic", d:"A named, append-only log in Apache Kafka. Producers write messages to topics and consumers read from them. Topics are split into partitions for parallelism.", tags:["Kafka"]},
   {t:"Kafka Partition", d:"A unit of parallelism within a Kafka Topic. Each partition is an ordered, immutable sequence of messages. Partitions enable horizontal scaling of consumers.", tags:["Kafka"]},
