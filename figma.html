@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Figma</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3A8;</span>
+    <h1 class="animate">Figma</h1>
+    <p class="subtitle animate">Collaborative design for the modern web</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Design</span><span class="tag">Prototyping</span><span class="tag">Collaboration</span><span class="tag">UI/UX</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Figma?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Browser-based design tool (also desktop app)</li>
+          <li>Real-time multiplayer collaboration</li>
+          <li>Design, prototype, and handoff in one tool</li>
+          <li>Free tier for up to 3 projects</li>
+          <li>Acquired by Adobe (2023, later cancelled)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Figma?</h3>
+        <ul>
+          <li>No install needed &mdash; works in any browser</li>
+          <li>Real-time collaboration like Google Docs</li>
+          <li>Single source of truth for design</li>
+          <li>Developer handoff built in (Dev Mode)</li>
+          <li>Massive plugin ecosystem</li>
+          <li>Free for individuals and education</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Interface Overview</h2>
+    <div class="content animate">
+      <div class="diagram" style="flex-direction:column;gap:4px;max-width:800px">
+        <div class="box" style="width:100%;border-color:var(--success)">Toolbar: Move, Frame, Shape, Pen, Text, Hand, Comment</div>
+        <div style="display:flex;gap:4px;width:100%">
+          <div class="box" style="width:200px;min-width:150px">Layers Panel<br><small>Pages, frames, groups, components</small></div>
+          <div class="box" style="flex:1;border-color:var(--success)">Canvas<br><small>Infinite workspace &mdash; zoom, pan, navigate</small></div>
+          <div class="box" style="width:200px;min-width:150px">Properties<br><small>Design, Prototype, Inspect</small></div>
+        </div>
+      </div>
+      <div class="bp-grid" style="margin-top:16px">
+        <div class="bp-item"><span>Ctrl+0</span> Zoom to 100%</div>
+        <div class="bp-item"><span>Shift+1</span> Zoom to fit</div>
+        <div class="bp-item"><span>Space+drag</span> Pan canvas</div>
+        <div class="bp-item"><span>Ctrl+/</span> Quick actions (command palette)</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Frames &amp; Layout</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Frames vs Groups</h3>
+        <ul>
+          <li><span class="highlight">Frame</span> &mdash; like an HTML div. Has size, clip, auto layout, constraints. Use for everything.</li>
+          <li><span class="highlight">Group</span> &mdash; just a container. No layout control. Avoid for complex designs.</li>
+          <li>Press <code>F</code> for frame tool</li>
+          <li>Device presets: iPhone, Desktop, Tablet</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Constraints</h3>
+        <ul>
+          <li>Pin elements to frame edges</li>
+          <li><span class="highlight">Left, Right, Center</span> (horizontal)</li>
+          <li><span class="highlight">Top, Bottom, Center</span> (vertical)</li>
+          <li><span class="highlight">Left &amp; Right</span> = stretch horizontally</li>
+          <li><span class="highlight">Scale</span> = resize proportionally</li>
+          <li>Essential for responsive frame resizing</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Auto Layout</h2>
+    <div class="content animate">
+      <p>Figma's most powerful feature &mdash; think CSS Flexbox for design.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Direction</h3>
+          <p>Horizontal (row) or Vertical (column). Wrap option for multi-line layouts.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Padding &amp; Gap</h3>
+          <p>Independent padding per side. Gap = space between children. Like CSS gap property.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Sizing</h3>
+          <p><span class="highlight">Hug</span> = shrink to fit content. <span class="highlight">Fill</span> = expand to parent. <span class="highlight">Fixed</span> = exact size.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Alignment</h3>
+          <p>9-point alignment grid (top-left, center, bottom-right, etc). Space between option.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px"><span class="highlight">Shortcut:</span> <code>Shift+A</code> to add auto layout to any frame. Nest auto layouts for complex layouts.</p>
+      <p><span class="highlight">Pro tip:</span> Build buttons as auto layout frames: Icon + Text with padding = perfectly responsive button.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Components &amp; Variants</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Components</h3>
+        <ul>
+          <li>Reusable design elements (like React components)</li>
+          <li><span class="highlight">Main component</span> = source of truth</li>
+          <li><span class="highlight">Instance</span> = copy that inherits changes</li>
+          <li><code>Ctrl+Alt+K</code> to create component</li>
+          <li>Override text, colors, visibility per instance</li>
+          <li>Detach instance to break link</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Variants</h3>
+        <ul>
+          <li>Multiple states in one component</li>
+          <li><span class="highlight">Properties:</span> Size (sm, md, lg), State (default, hover, active), Type (primary, secondary)</li>
+          <li>Boolean props: show/hide icon</li>
+          <li>Instance swap: change nested component</li>
+          <li>Text props: expose editable text</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">Example: Button component with variants for size, style, state, and icon = one component replaces dozens of designs.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Design Tokens &amp; Styles</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Color Styles</h3>
+          <p>Define brand colors: Primary/500, Neutral/100-900, Error, Success. Apply to fills and strokes.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Text Styles</h3>
+          <p>Heading 1-6, Body, Caption, Overline. Font family, size, weight, line height, letter spacing.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Effect Styles</h3>
+          <p>Drop shadows, inner shadows, blur. Elevation levels: shadow-sm, shadow-md, shadow-lg.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Variables (New)</h3>
+          <p>Design tokens with modes (light/dark). Color, number, string, boolean. Alias and reference other variables.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px"><span class="highlight">Shared Libraries:</span> Publish styles and components to your team. Everyone uses the same source of truth.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Typography &amp; Colors</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Typography Best Practices</h3>
+        <ul>
+          <li>Use a type scale (1.25 or 1.333 ratio)</li>
+          <li>Max 2 font families (heading + body)</li>
+          <li>Line height: 1.5 for body, 1.2 for headings</li>
+          <li>Popular: Inter, Plus Jakarta Sans, DM Sans</li>
+          <li>Use text styles for consistency</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Color System</h3>
+        <ul>
+          <li><span class="highlight">Primary</span> &mdash; brand color (buttons, links)</li>
+          <li><span class="highlight">Neutral</span> &mdash; grays for text, borders, bg</li>
+          <li><span class="highlight">Semantic</span> &mdash; success, warning, error, info</li>
+          <li>Generate scales: 50, 100, 200...900</li>
+          <li>Check contrast: WCAG AA = 4.5:1 minimum</li>
+          <li>Use Variables for light/dark mode</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Prototyping</h2>
+    <div class="content animate">
+      <p>Create interactive prototypes without code. Switch to the <span class="highlight">Prototype</span> tab.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Interactions</h3>
+          <p>Connect frames with wires. Triggers: click, hover, drag, keyboard, delay, mouse enter/leave.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Animations</h3>
+          <p><span class="highlight">Smart Animate</span> detects matching layers and animates differences. Dissolve, move in, push, slide.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Overlays</h3>
+          <p>Open frames as modals, dropdowns, tooltips. Position: centered, top-left, manual. Dismiss on click outside.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Scroll &amp; Overflow</h3>
+          <p>Vertical/horizontal scrolling. Fixed elements (headers, nav bars) stay in place. Clip content option.</p>
+        </div>
+      </div>
+      <p style="margin-top:12px"><span class="highlight">Present:</span> Press play button or <code>Ctrl+Alt+Enter</code> to preview. Share prototype link with stakeholders.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Developer Handoff</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Inspect Panel</h3>
+        <ul>
+          <li>Select any element to see CSS properties</li>
+          <li>Spacing, sizing, colors, fonts, effects</li>
+          <li>Copy CSS, iOS, or Android code</li>
+          <li>Measure distances between elements</li>
+          <li>Export assets (SVG, PNG, PDF)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Dev Mode (Paid)</h3>
+        <ul>
+          <li>Dedicated developer view</li>
+          <li>Auto-generated code snippets</li>
+          <li>Compare design changes over time</li>
+          <li>Link to Jira, GitHub, VS Code</li>
+          <li>Section-ready annotations</li>
+          <li>Variable/token mapping</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Export:</span> Select element &rarr; bottom-right Export section &rarr; choose format (SVG for icons, PNG for images, PDF for docs).</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Useful Plugins</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Unsplash</h3>
+        <p>Free stock photos directly in Figma. Fill shapes with beautiful images instantly.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Iconify</h3>
+        <p>200,000+ icons from 100+ sets (Material, Heroicons, Lucide). Search and insert as vectors.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Content Reel</h3>
+        <p>Realistic placeholder content: names, avatars, addresses, dates. Great for mockups.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Stark</h3>
+        <p>Accessibility checker: contrast ratios, color blindness simulation, WCAG compliance.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Install plugins: Figma menu &rarr; Plugins &rarr; Browse. Run with <code>Ctrl+/</code> then type plugin name.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Version History &amp; Branching</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Version History</h3>
+        <ul>
+          <li>Auto-saved every 30 minutes</li>
+          <li>Name versions manually for milestones</li>
+          <li>Browse and restore any version</li>
+          <li><code>Ctrl+Alt+S</code> to save named version</li>
+          <li>Compare side-by-side with current</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Branching (Paid)</h3>
+        <ul>
+          <li>Like Git branches for design files</li>
+          <li>Experiment without affecting main file</li>
+          <li>Merge branch back with conflict resolution</li>
+          <li>Review changes before merging</li>
+          <li>Great for design explorations</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center"><span class="highlight">Naming convention:</span> Use dates or feature names: "v2.1 - Dashboard Redesign - 2024-03-15"</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Design Systems</h2>
+    <div class="content animate">
+      <p>A shared library of components, styles, and patterns used across your organization.</p>
+      <div class="diagram" style="margin:16px 0">
+        <div class="box">Tokens<br><small>Colors, spacing, type</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Atoms<br><small>Button, Input, Icon</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Molecules<br><small>Card, Nav, Form</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Pages<br><small>Dashboard, Profile</small></div>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Building Blocks</h3>
+          <ul>
+            <li>Color variables with light/dark modes</li>
+            <li>Text styles for typography scale</li>
+            <li>Spacing scale (4, 8, 12, 16, 24, 32, 48)</li>
+            <li>Border radius tokens</li>
+            <li>Shadow/elevation styles</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Publishing</h3>
+          <ul>
+            <li>Publish library to team</li>
+            <li>Team members get update notifications</li>
+            <li>Accept/reject updates per component</li>
+            <li>Add documentation to components</li>
+            <li>Use description field for usage guidelines</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Responsive Design</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Techniques</h3>
+          <ul>
+            <li><span class="highlight">Constraints</span> &mdash; pin to edges, stretch</li>
+            <li><span class="highlight">Auto Layout</span> &mdash; Hug/Fill sizing</li>
+            <li><span class="highlight">Min/Max width</span> &mdash; set size boundaries</li>
+            <li><span class="highlight">Text truncation</span> &mdash; auto-truncate with ellipsis</li>
+            <li><span class="highlight">Wrap</span> &mdash; auto layout wrapping for grids</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Breakpoint Strategy</h3>
+          <ul>
+            <li>Mobile: 375px (iPhone)</li>
+            <li>Tablet: 768px (iPad)</li>
+            <li>Desktop: 1440px</li>
+            <li>Design mobile-first, then expand</li>
+            <li>Use component variants per breakpoint</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Tip:</span> Create a responsive component that uses Auto Layout + Fill sizing. Resize the parent frame and watch children adapt.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">FigJam</h2>
+    <div class="content animate">
+      <p>Figma's whiteboarding tool for brainstorming and planning.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Sticky Notes</h3>
+          <p>Color-coded notes for brainstorming. Vote with stamps. Organize into groups.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Diagrams</h3>
+          <p>Flowcharts, mind maps, user journey maps. Connectors snap between shapes.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Templates</h3>
+          <p>Sprint retro, user story mapping, competitive analysis, wireframe templates.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Collaboration</h3>
+          <p>Cursor chat, emoji reactions, timer, music. Great for remote workshops.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Collaboration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Real-time Features</h3>
+        <ul>
+          <li>See cursors of all collaborators</li>
+          <li>Click avatar to follow someone</li>
+          <li>Spotlight mode for presentations</li>
+          <li>Audio chat built in</li>
+          <li>Observation mode (view-only following)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sharing &amp; Permissions</h3>
+        <ul>
+          <li><span class="highlight">Can edit</span> &mdash; full design access</li>
+          <li><span class="highlight">Can view</span> &mdash; inspect + comment</li>
+          <li>Share via link (password optional)</li>
+          <li>Team libraries for shared components</li>
+          <li>Comments with @mentions and threads</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Figma to Code</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Built-in Export</h3>
+          <ul>
+            <li>CSS code in Inspect panel</li>
+            <li>SVG code for vector graphics</li>
+            <li>Export assets at 1x, 2x, 3x</li>
+            <li>PDF export for documentation</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Code Generation Plugins</h3>
+          <ul>
+            <li><span class="highlight">Locofy</span> &mdash; Figma to React/Next.js</li>
+            <li><span class="highlight">Anima</span> &mdash; export to React, Vue, HTML</li>
+            <li><span class="highlight">Figma Tokens</span> &mdash; export design tokens as JSON</li>
+            <li><span class="highlight">Figma API</span> &mdash; programmatic access to files</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Best practice:</span> Use Figma for design intent, not pixel-perfect code generation. Build your own component library that maps to Figma components.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use frames for everything (not groups)</div>
+      <div class="bp-item"><span>2.</span> Auto Layout on every frame</div>
+      <div class="bp-item"><span>3.</span> Name all layers meaningfully</div>
+      <div class="bp-item"><span>4.</span> Use styles/variables for all colors and text</div>
+      <div class="bp-item"><span>5.</span> Build components for repeated elements</div>
+      <div class="bp-item"><span>6.</span> Use variants instead of duplicate components</div>
+      <div class="bp-item"><span>7.</span> Organize pages: Cover, Components, Screens, Archive</div>
+      <div class="bp-item"><span>8.</span> Publish and version your design system</div>
+      <div class="bp-item"><span>9.</span> Use consistent spacing scale (multiples of 4 or 8)</div>
+      <div class="bp-item"><span>10.</span> Check accessibility (contrast, font size, touch targets)</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3A8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You've mastered Figma for design and collaboration:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Auto Layout</span><span class="tag">Components</span><span class="tag">Variants</span>
+        <span class="tag">Prototyping</span><span class="tag">Design Systems</span><span class="tag">Dev Handoff</span>
+        <span class="tag">Responsive</span><span class="tag">Plugins</span><span class="tag">Collaboration</span>
+      </div>
+      <p style="color:var(--text-muted)">Design is iteration. Start with wireframes, refine with feedback, ship with confidence.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JavaScript</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4DC;</span>
+    <h1 class="animate">JavaScript</h1>
+    <p class="subtitle animate">The language of the web</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">ES6+</span><span class="tag">DOM</span><span class="tag">Async</span><span class="tag">Web APIs</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Fundamentals</h2>
+    <div class="content animate">
+<pre>
+// Variables
+const PI = 3.14159;        // immutable binding
+let count = 0;             // mutable, block-scoped
+var old = "avoid";         // function-scoped (legacy)
+
+// Data types
+typeof 42          // "number"
+typeof "hello"     // "string"
+typeof true        // "boolean"
+typeof undefined   // "undefined"
+typeof null        // "object" (historical bug)
+typeof {}          // "object"
+typeof []          // "object" (use Array.isArray())
+typeof Symbol()    // "symbol"
+
+// Template literals
+const name = "World";
+const greeting = `Hello, ${name}!`;
+const multiline = `
+  Line 1
+  Line 2
+`;
+
+// Strict mode
+"use strict";  // Catches common errors
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Arrays</h2>
+    <div class="content animate">
+<pre>
+const nums = [1, 2, 3, 4, 5];
+
+// Transform
+nums.map(n => n * 2);          // [2, 4, 6, 8, 10]
+nums.filter(n => n > 3);       // [4, 5]
+nums.reduce((sum, n) => sum + n, 0);  // 15
+nums.find(n => n > 3);         // 4
+nums.findIndex(n => n > 3);    // 3
+nums.some(n => n > 4);         // true
+nums.every(n => n > 0);        // true
+
+// Iterate
+nums.forEach(n => console.log(n));
+
+// Mutate
+nums.push(6);                  // add to end
+nums.pop();                    // remove from end
+nums.unshift(0);               // add to start
+nums.splice(1, 2);             // remove 2 items at index 1
+
+// Immutable operations
+const copy = [...nums];                  // spread copy
+const merged = [...arr1, ...arr2];       // concat
+const sorted = [...nums].sort((a, b) => a - b);
+const unique = [...new Set(nums)];       // dedupe
+
+// Destructuring
+const [first, second, ...rest] = nums;
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Objects</h2>
+    <div class="content animate">
+<pre>
+// Object literals
+const user = {
+  name: "Alice",
+  age: 30,
+  greet() { return `Hi, I'm ${this.name}`; }
+};
+
+// Access
+user.name;            // "Alice"
+user["age"];          // 30
+
+// Destructuring
+const { name, age, email = "N/A" } = user;
+
+// Spread / merge
+const updated = { ...user, age: 31, role: "admin" };
+
+// Optional chaining (?.)
+const city = user?.address?.city;          // undefined (no error)
+const first = users?.[0]?.name;
+
+// Nullish coalescing (??)
+const display = user.nickname ?? user.name;  // "Alice"
+
+// Useful methods
+Object.keys(user);     // ["name", "age", "greet"]
+Object.values(user);   // ["Alice", 30, fn]
+Object.entries(user);  // [["name","Alice"], ...]
+
+// Computed properties
+const key = "role";
+const obj = { [key]: "admin" };  // { role: "admin" }
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Functions</h2>
+    <div class="content animate">
+<pre>
+// Arrow functions
+const add = (a, b) => a + b;
+const square = x => x * x;         // single param: no parens
+const greet = () => "Hello!";
+
+// Default parameters
+function createUser(name, role = "user") {
+  return { name, role };
+}
+
+// Rest parameters
+function sum(...numbers) {
+  return numbers.reduce((a, b) => a + b, 0);
+}
+
+// Closures (function remembers its scope)
+function counter() {
+  let count = 0;
+  return {
+    increment: () => ++count,
+    getCount: () => count
+  };
+}
+const c = counter();
+c.increment();  // 1
+c.increment();  // 2
+
+// Higher-order functions
+const withLogging = (fn) => (...args) => {
+  console.log(`Calling with: ${args}`);
+  return fn(...args);
+};
+const loggedAdd = withLogging(add);
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Control Flow</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Conditionals</h3>
+<pre style="font-size:0.85rem">
+// if/else
+if (score >= 90) {
+  grade = "A";
+} else if (score >= 80) {
+  grade = "B";
+} else {
+  grade = "C";
+}
+
+// Ternary
+const status = age >= 18 ? "adult" : "minor";
+
+// Switch
+switch (action) {
+  case "start": run(); break;
+  case "stop":  halt(); break;
+  default: console.log("unknown");
+}
+
+// Nullish coalescing
+const val = input ?? "default";
+</pre>
+      </div>
+      <div class="card">
+        <h3>Loops</h3>
+<pre style="font-size:0.85rem">
+// for...of (values - arrays, strings)
+for (const item of items) {
+  console.log(item);
+}
+
+// for...in (keys - objects)
+for (const key in user) {
+  console.log(key, user[key]);
+}
+
+// Classic for
+for (let i = 0; i &lt; 10; i++) {
+  console.log(i);
+}
+
+// Array methods (preferred)
+items.forEach(item => process(item));
+const results = items.map(transform);
+const filtered = items.filter(check);
+
+// try/catch
+try {
+  JSON.parse(input);
+} catch (e) {
+  console.error("Invalid JSON:", e.message);
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">DOM Manipulation</h2>
+    <div class="content animate">
+<pre>
+// Selecting elements
+const el = document.querySelector(".card");        // first match
+const all = document.querySelectorAll(".card");     // NodeList
+const byId = document.getElementById("app");
+
+// Modifying content
+el.textContent = "Hello";           // text only (safe)
+el.innerHTML = "&lt;b&gt;Bold&lt;/b&gt;";     // parses HTML (XSS risk!)
+
+// Classes
+el.classList.add("active");
+el.classList.remove("hidden");
+el.classList.toggle("open");
+el.classList.contains("active");    // true
+
+// Attributes &amp; styles
+el.setAttribute("data-id", "42");
+el.style.color = "red";            // inline style
+el.style.display = "none";
+
+// Creating elements
+const div = document.createElement("div");
+div.textContent = "New element";
+div.className = "card";
+document.body.appendChild(div);
+
+// Removing
+el.remove();  // modern
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Events</h2>
+    <div class="content animate">
+<pre>
+// Add event listener
+button.addEventListener("click", (e) => {
+  console.log("Clicked!", e.target);
+});
+
+// Common events: click, submit, input, keydown, mouseover,
+//   focus, blur, scroll, resize, DOMContentLoaded
+
+// Event delegation (handle children from parent)
+document.querySelector(".list").addEventListener("click", (e) => {
+  if (e.target.matches(".item")) {
+    handleItemClick(e.target);
+  }
+});
+
+// Prevent default behavior
+form.addEventListener("submit", (e) => {
+  e.preventDefault();    // stop form submission
+  handleSubmit(e);
+});
+
+// Stop propagation
+el.addEventListener("click", (e) => {
+  e.stopPropagation();   // stop event bubbling
+});
+
+// Custom events
+const event = new CustomEvent("userLoggedIn", {
+  detail: { userId: 42 }
+});
+document.dispatchEvent(event);
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Async JavaScript</h2>
+    <div class="content animate">
+<pre>
+// Promises
+function fetchUser(id) {
+  return new Promise((resolve, reject) => {
+    setTimeout(() => {
+      if (id > 0) resolve({ id, name: "Alice" });
+      else reject(new Error("Invalid ID"));
+    }, 1000);
+  });
+}
+
+// .then() chaining
+fetchUser(1)
+  .then(user => fetchPosts(user.id))
+  .then(posts => console.log(posts))
+  .catch(err => console.error(err));
+
+// async/await (preferred)
+async function loadDashboard() {
+  try {
+    const user = await fetchUser(1);
+    const posts = await fetchPosts(user.id);
+    render(user, posts);
+  } catch (err) {
+    showError(err.message);
+  }
+}
+
+// Parallel execution
+const [users, posts] = await Promise.all([
+  fetchUsers(),
+  fetchPosts()
+]);
+
+// Promise.allSettled - doesn't short-circuit on rejection
+const results = await Promise.allSettled([fetch1, fetch2, fetch3]);
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Fetch API</h2>
+    <div class="content animate">
+<pre>
+// GET request
+const response = await fetch("/api/users");
+if (!response.ok) throw new Error(`HTTP ${response.status}`);
+const users = await response.json();
+
+// POST request
+const newUser = await fetch("/api/users", {
+  method: "POST",
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ name: "Alice", email: "a@b.com" })
+});
+
+// With error handling
+async function api(url, options = {}) {
+  const res = await fetch(url, {
+    headers: { "Content-Type": "application/json", ...options.headers },
+    ...options
+  });
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(error.message || `HTTP ${res.status}`);
+  }
+  return res.json();
+}
+
+// AbortController (cancel requests)
+const controller = new AbortController();
+fetch("/api/data", { signal: controller.signal });
+controller.abort();  // cancel the request
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">ES6+ Features</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Destructuring</h3>
+        <p><code>const { name, age } = user;</code><br><code>const [first, ...rest] = arr;</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Spread / Rest</h3>
+        <p><code>const copy = { ...obj };</code><br><code>function(...args) {}</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Modules</h3>
+        <p><code>export function add() {}</code><br><code>import { add } from './math.js';</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Map &amp; Set</h3>
+        <p><code>new Map([["key", "val"]])</code><br><code>new Set([1, 2, 2, 3])</code> &rarr; {1,2,3}</p>
+      </div>
+      <div class="metric-card">
+        <h3>Optional Chaining</h3>
+        <p><code>user?.address?.city</code><br>Returns undefined instead of throwing</p>
+      </div>
+      <div class="metric-card">
+        <h3>Nullish Coalescing</h3>
+        <p><code>value ?? "default"</code><br>Only for null/undefined (not 0 or "")</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Classes</h2>
+    <div class="content animate">
+<pre>
+class Animal {
+  #sound;  // private field
+
+  constructor(name, sound) {
+    this.name = name;
+    this.#sound = sound;
+  }
+
+  speak() {
+    return `${this.name} says ${this.#sound}`;
+  }
+
+  get info() {
+    return `${this.name} (${this.constructor.name})`;
+  }
+
+  static create(name, sound) {
+    return new Animal(name, sound);
+  }
+}
+
+class Dog extends Animal {
+  constructor(name, breed) {
+    super(name, "Woof");
+    this.breed = breed;
+  }
+
+  fetch(item) {
+    return `${this.name} fetches ${item}!`;
+  }
+}
+
+const rex = new Dog("Rex", "Labrador");
+rex.speak();      // "Rex says Woof"
+rex.fetch("ball"); // "Rex fetches ball!"
+rex instanceof Animal;  // true
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Error Handling &amp; Modules</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Error Handling</h3>
+<pre style="font-size:0.85rem">
+// Custom error
+class AppError extends Error {
+  constructor(message, code) {
+    super(message);
+    this.name = "AppError";
+    this.code = code;
+  }
+}
+
+try {
+  throw new AppError("Not found", 404);
+} catch (err) {
+  if (err instanceof AppError) {
+    console.log(err.code);  // 404
+  }
+} finally {
+  cleanup();
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>ES Modules</h3>
+<pre style="font-size:0.85rem">
+// Named exports (math.js)
+export const PI = 3.14;
+export function add(a, b) {
+  return a + b;
+}
+
+// Default export (User.js)
+export default class User {
+  constructor(name) {
+    this.name = name;
+  }
+}
+
+// Importing
+import User from "./User.js";
+import { add, PI } from "./math.js";
+import * as math from "./math.js";
+
+// Dynamic import
+const mod = await import("./heavy.js");
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Storage &amp; JSON</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>localStorage / sessionStorage</h3>
+<pre style="font-size:0.85rem">
+// Store (strings only)
+localStorage.setItem("theme", "dark");
+const theme = localStorage.getItem("theme");
+localStorage.removeItem("theme");
+localStorage.clear();
+
+// Store objects via JSON
+const user = { name: "Alice", age: 30 };
+localStorage.setItem("user",
+  JSON.stringify(user));
+const saved = JSON.parse(
+  localStorage.getItem("user"));
+
+// sessionStorage: same API
+// Cleared when tab closes
+</pre>
+      </div>
+      <div class="card">
+        <h3>JSON</h3>
+<pre style="font-size:0.85rem">
+// Parse (string -> object)
+const obj = JSON.parse('{"a": 1}');
+
+// Stringify (object -> string)
+const str = JSON.stringify(obj, null, 2);
+
+// With replacer
+JSON.stringify(data, (key, val) => {
+  if (key === "password") return undefined;
+  return val;
+});
+
+// Structured Clone (deep copy)
+const deep = structuredClone(original);
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Regular Expressions</h2>
+    <div class="content animate">
+<pre>
+// Create regex
+const re = /pattern/flags;
+const re2 = new RegExp("pattern", "gi");
+
+// Flags: g (global), i (case-insensitive), m (multiline)
+
+// Methods
+re.test("string");          // true/false
+"string".match(re);         // matches array
+"string".replace(re, "new");
+"string".split(re);
+
+// Common patterns
+/^\d{3}-\d{4}$/            // 123-4567
+/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/  // email
+/^https?:\/\//              // URL start
+/\b\w+\b/g                 // all words
+
+// Capture groups
+const match = "2024-03-15".match(/(\d{4})-(\d{2})-(\d{2})/);
+// match[1] = "2024", match[2] = "03", match[3] = "15"
+
+// Named groups
+const { groups } = "2024-03-15".match(
+  /(?&lt;year&gt;\d{4})-(?&lt;month&gt;\d{2})-(?&lt;day&gt;\d{2})/
+);
+// groups.year = "2024"
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Web APIs</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Intersection Observer</h3>
+        <p>Detect when elements enter/exit viewport. Perfect for lazy loading and infinite scroll.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Web Workers</h3>
+        <p>Run CPU-intensive tasks in background threads. No UI blocking. Communicate via postMessage.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Service Workers</h3>
+        <p>Proxy between app and network. Enable offline support, caching, push notifications (PWA).</p>
+      </div>
+      <div class="metric-card">
+        <h3>WebSockets</h3>
+        <p>Full-duplex real-time communication. <code>new WebSocket(url)</code>. Events: open, message, close.</p>
+      </div>
+      <div class="metric-card">
+        <h3>ResizeObserver</h3>
+        <p>Watch element size changes. Better than window resize events for component-level responsiveness.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Clipboard API</h3>
+        <p><code>navigator.clipboard.writeText(text)</code>. Modern async replacement for execCommand.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>const</span> Use const by default, let only when reassignment needed</div>
+      <div class="bp-item"><span>===</span> Always use strict equality (=== not ==)</div>
+      <div class="bp-item"><span>Arrow</span> Prefer arrow functions for callbacks and closures</div>
+      <div class="bp-item"><span>Async</span> Use async/await over .then() chains</div>
+      <div class="bp-item"><span>ESLint</span> Lint your code. Popular config: eslint-config-airbnb</div>
+      <div class="bp-item"><span>Modules</span> Use ES modules (import/export) everywhere</div>
+      <div class="bp-item"><span>Security</span> Avoid innerHTML (XSS), validate user input</div>
+      <div class="bp-item"><span>?.  ??</span> Use optional chaining and nullish coalescing</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4DC;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered modern JavaScript:</p>
+      <div style="margin:20px 0">
+        <span class="tag">ES6+</span><span class="tag">Async/Await</span><span class="tag">DOM</span>
+        <span class="tag">Events</span><span class="tag">Fetch</span><span class="tag">Classes</span>
+        <span class="tag">Modules</span><span class="tag">Web APIs</span><span class="tag">Regex</span>
+      </div>
+      <p style="color:var(--text-muted)">JavaScript runs everywhere. Master the fundamentals and frameworks become easy.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

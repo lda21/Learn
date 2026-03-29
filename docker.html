@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Docker</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F433;</span>
+    <h1 class="animate">Docker</h1>
+    <p class="subtitle animate">Build, ship, and run anywhere</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Containers</span><span class="tag">DevOps</span><span class="tag">Microservices</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: What is Docker? -->
+  <div class="slide">
+    <h2 class="animate">What is Docker?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Containers vs VMs</h3>
+        <ul>
+          <li><span class="highlight">VM</span> &mdash; full OS, hypervisor, GBs, minutes to boot</li>
+          <li><span class="highlight">Container</span> &mdash; shared kernel, MBs, starts in seconds</li>
+          <li>Containers isolate processes, not entire OS</li>
+          <li>Uses Linux namespaces + cgroups</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Docker Architecture</h3>
+        <div class="diagram" style="flex-direction:column;gap:6px">
+          <div class="box" style="min-width:90%">Docker CLI (client)</div>
+          <div class="arrow">&darr;</div>
+          <div class="box" style="min-width:90%;border-color:var(--success)">Docker Daemon (dockerd)</div>
+          <div class="arrow">&darr;</div>
+          <div class="box" style="min-width:90%">containerd &rarr; runc</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: Images & Containers -->
+  <div class="slide">
+    <h2 class="animate">Images &amp; Containers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Images</h3>
+        <ul>
+          <li>Read-only template with app + dependencies</li>
+          <li>Built from layers (each instruction = layer)</li>
+          <li>Stored in registries (Docker Hub, ECR)</li>
+          <li>Tagged: <code>nginx:1.25-alpine</code></li>
+          <li>Layers are cached and shared</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Containers</h3>
+        <ul>
+          <li>Running instance of an image</li>
+          <li>Thin writable layer on top</li>
+          <li>Isolated process with own filesystem</li>
+          <li>Ephemeral by default &mdash; data lost on removal</li>
+          <li>Lifecycle: create &rarr; start &rarr; stop &rarr; remove</li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:16px">
+      <div class="box">Image<br><small>(read-only layers)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success)">Container<br><small>(+ writable layer)</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Container<br><small>(another instance)</small></div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Dockerfile -->
+  <div class="slide">
+    <h2 class="animate">Dockerfile Basics</h2>
+    <div class="content animate">
+<pre>
+# Start from a base image
+FROM node:20-alpine
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files first (layer caching!)
+COPY package*.json ./
+RUN npm ci --production
+
+# Copy application code
+COPY . .
+
+# Expose port (documentation only)
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK CMD curl -f http://localhost:3000/health || exit 1
+
+# Default command
+CMD ["node", "server.js"]
+</pre>
+      <div class="bp-grid" style="margin-top:16px">
+        <div class="bp-item"><span>FROM</span> Base image to build on</div>
+        <div class="bp-item"><span>RUN</span> Execute command during build</div>
+        <div class="bp-item"><span>COPY</span> Copy files into image</div>
+        <div class="bp-item"><span>CMD</span> Default run command (overridable)</div>
+        <div class="bp-item"><span>ENTRYPOINT</span> Fixed run command</div>
+        <div class="bp-item"><span>ENV</span> Set environment variables</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Building Images -->
+  <div class="slide">
+    <h2 class="animate">Building Images</h2>
+    <div class="content animate">
+<pre>
+# Build with tag
+docker build -t myapp:1.0 .
+
+# Build with build args
+docker build --build-arg NODE_ENV=production -t myapp:prod .
+
+# Build from different Dockerfile
+docker build -f Dockerfile.dev -t myapp:dev .
+
+# View image layers
+docker history myapp:1.0
+</pre>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>.dockerignore</h3>
+<pre style="font-size:0.85rem">
+node_modules
+.git
+.env
+*.md
+Dockerfile
+docker-compose.yml
+</pre>
+        </div>
+        <div class="card">
+          <h3>Build Context Tips</h3>
+          <ul>
+            <li>Build context = files sent to daemon</li>
+            <li>Smaller context = faster builds</li>
+            <li>Order matters: least-changing layers first</li>
+            <li>Use <code>.dockerignore</code> to exclude files</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: Docker CLI -->
+  <div class="slide">
+    <h2 class="animate">Docker CLI Essentials</h2>
+    <div class="content animate">
+<pre>
+# Run a container
+docker run -d --name web -p 8080:80 nginx:alpine
+
+# List running containers
+docker ps
+docker ps -a          # include stopped
+
+# Logs & exec
+docker logs -f web    # follow logs
+docker exec -it web sh  # interactive shell
+
+# Stop & remove
+docker stop web
+docker rm web
+docker rm -f web      # force remove running
+
+# Inspect details
+docker inspect web
+
+# Resource usage
+docker stats
+
+# Clean up
+docker system prune -a   # remove unused everything
+</pre>
+      <p style="margin-top:10px"><span class="highlight">-d</span> detached &bull; <span class="highlight">-it</span> interactive tty &bull; <span class="highlight">-p</span> port map &bull; <span class="highlight">--rm</span> auto-remove on exit &bull; <span class="highlight">-e</span> env var</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Networking -->
+  <div class="slide">
+    <h2 class="animate">Container Networking</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Driver</th><th>Description</th><th>Use Case</th></tr>
+        <tr><td><code>bridge</code></td><td>Default isolated network on host</td><td>Single-host containers</td></tr>
+        <tr><td><code>host</code></td><td>Shares host network stack</td><td>Performance-critical apps</td></tr>
+        <tr><td><code>none</code></td><td>No networking</td><td>Isolated batch jobs</td></tr>
+        <tr><td><code>overlay</code></td><td>Multi-host networking</td><td>Swarm / distributed apps</td></tr>
+      </table>
+<pre style="margin-top:16px">
+# Create custom network
+docker network create mynet
+
+# Run containers on same network (can resolve by name)
+docker run -d --name api --network mynet myapi
+docker run -d --name db  --network mynet postgres
+
+# api can reach db via: postgres://db:5432
+
+# Port mapping
+docker run -p 8080:80 nginx     # host:container
+docker run -p 127.0.0.1:8080:80 nginx  # bind to localhost only
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: Volumes -->
+  <div class="slide">
+    <h2 class="animate">Volumes &amp; Storage</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Volume Types</h3>
+        <ul>
+          <li><span class="highlight">Named Volume</span> &mdash; managed by Docker, best for persistence</li>
+          <li><span class="highlight">Bind Mount</span> &mdash; maps host path, good for dev</li>
+          <li><span class="highlight">tmpfs</span> &mdash; in-memory, ephemeral</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>When to Use</h3>
+        <ul>
+          <li>Databases: named volumes</li>
+          <li>Source code (dev): bind mounts</li>
+          <li>Secrets/temp: tmpfs</li>
+          <li>Never store data in container layer</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+# Named volume
+docker volume create pgdata
+docker run -d -v pgdata:/var/lib/postgresql/data postgres
+
+# Bind mount (development)
+docker run -d -v $(pwd)/src:/app/src -p 3000:3000 myapp:dev
+
+# tmpfs (in-memory)
+docker run -d --tmpfs /tmp:size=100m myapp
+
+# List and inspect volumes
+docker volume ls
+docker volume inspect pgdata
+</pre>
+  </div>
+
+  <!-- SLIDE 9: Docker Compose -->
+  <div class="slide">
+    <h2 class="animate">Docker Compose</h2>
+    <div class="content animate">
+<pre>
+# docker-compose.yml
+services:
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgres://db:5432/myapp
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - backend
+
+  db:
+    image: postgres:16-alpine
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: myapp
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_pass
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+    networks:
+      - backend
+
+volumes:
+  pgdata:
+
+networks:
+  backend:
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Compose Advanced -->
+  <div class="slide">
+    <h2 class="animate">Compose Commands &amp; Features</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Commands</h3>
+<pre style="font-size:0.85rem">
+docker compose up -d      # start all
+docker compose down        # stop & remove
+docker compose logs -f api # follow logs
+docker compose ps          # list services
+docker compose exec api sh # shell into service
+docker compose build       # rebuild images
+docker compose pull        # pull latest images
+</pre>
+      </div>
+      <div class="card">
+        <h3>Advanced Features</h3>
+        <ul>
+          <li><span class="highlight">profiles</span> &mdash; optional services (debug, test)</li>
+          <li><span class="highlight">healthcheck</span> &mdash; readiness probes</li>
+          <li><span class="highlight">depends_on + condition</span> &mdash; startup order</li>
+          <li><span class="highlight">env_file</span> &mdash; load from .env file</li>
+          <li><span class="highlight">deploy.replicas</span> &mdash; scale services</li>
+          <li><span class="highlight">extends</span> &mdash; compose inheritance</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:12px">
+# Scale a service
+docker compose up -d --scale worker=3
+
+# Override for development
+docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+</pre>
+  </div>
+
+  <!-- SLIDE 11: Multi-stage Builds -->
+  <div class="slide">
+    <h2 class="animate">Multi-stage Builds</h2>
+    <div class="content animate">
+      <p>Use multiple FROM statements to create minimal production images.</p>
+<pre>
+# Stage 1: Build
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+# Stage 2: Production (only copies artifacts)
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+EXPOSE 3000
+CMD ["node", "dist/server.js"]
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card">
+          <h3>Before Multi-stage</h3>
+          <p style="font-size:1.6rem;text-align:center;color:var(--warning)">~800 MB</p>
+          <p>Build tools, source code, dev dependencies all included</p>
+        </div>
+        <div class="card">
+          <h3>After Multi-stage</h3>
+          <p style="font-size:1.6rem;text-align:center;color:var(--success)">~120 MB</p>
+          <p>Only production artifacts and runtime dependencies</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: Registries -->
+  <div class="slide">
+    <h2 class="animate">Image Registries</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">docker build</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Registry<br><small>Docker Hub / ECR / GCR</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">docker pull</div>
+      </div>
+<pre style="margin-top:16px">
+# Tag for registry
+docker tag myapp:1.0 registry.example.com/myapp:1.0
+
+# Push to Docker Hub
+docker login
+docker push myuser/myapp:1.0
+
+# Push to AWS ECR
+aws ecr get-login-password | docker login --username AWS --password-stdin 123456.dkr.ecr.us-east-1.amazonaws.com
+docker push 123456.dkr.ecr.us-east-1.amazonaws.com/myapp:1.0
+</pre>
+      <table style="margin-top:12px">
+        <tr><th>Registry</th><th>Provider</th><th>Free Tier</th></tr>
+        <tr><td>Docker Hub</td><td>Docker</td><td>Unlimited public, 1 private</td></tr>
+        <tr><td>ECR</td><td>AWS</td><td>500 MB/month</td></tr>
+        <tr><td>GCR / Artifact Registry</td><td>Google</td><td>500 MB free storage</td></tr>
+        <tr><td>GHCR</td><td>GitHub</td><td>500 MB free</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Security -->
+  <div class="slide">
+    <h2 class="animate">Container Security</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Run as Non-Root</h3>
+        <p>Never run containers as root in production.</p>
+<pre style="font-size:0.8rem;margin-top:6px">
+RUN addgroup -S app && adduser -S app -G app
+USER app
+</pre>
+      </div>
+      <div class="metric-card">
+        <h3>Read-Only Filesystem</h3>
+        <p>Prevent runtime file modifications.</p>
+        <code>docker run --read-only --tmpfs /tmp myapp</code>
+      </div>
+      <div class="metric-card">
+        <h3>Image Scanning</h3>
+        <p>Scan for CVEs before deploying.</p>
+        <code>docker scout cves myapp:latest</code>
+        <p style="margin-top:4px">Tools: Trivy, Snyk, Scout, Grype</p>
+      </div>
+      <div class="metric-card">
+        <h3>Secrets Management</h3>
+        <p>Never put secrets in images or ENV.</p>
+        <ul style="font-size:0.95rem">
+          <li>Use Docker secrets or mounted files</li>
+          <li>Use Vault or AWS Secrets Manager</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 14: Resource Limits -->
+  <div class="slide">
+    <h2 class="animate">Resource Limits</h2>
+    <div class="content animate">
+<pre>
+# Memory limit (hard + soft)
+docker run --memory=512m --memory-reservation=256m myapp
+
+# CPU limit
+docker run --cpus=1.5 myapp         # 1.5 CPU cores
+docker run --cpu-shares=512 myapp   # relative weight
+
+# Combined
+docker run -d \
+  --memory=1g \
+  --cpus=2 \
+  --pids-limit=100 \
+  --name api myapp
+</pre>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>What Happens at Limit?</h3>
+          <ul>
+            <li><span class="highlight">Memory</span> &mdash; OOM killer terminates container</li>
+            <li><span class="highlight">CPU</span> &mdash; throttled, not killed</li>
+            <li><span class="highlight">PIDs</span> &mdash; fork bomb protection</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Monitoring</h3>
+<pre style="font-size:0.85rem">
+# Real-time stats
+docker stats
+
+# Output
+CONTAINER  CPU%  MEM USAGE/LIMIT
+api        2.3%  245MiB / 1GiB
+db         8.1%  512MiB / 2GiB
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Networking Deep Dive -->
+  <div class="slide">
+    <h2 class="animate">Networking Deep Dive</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>DNS Resolution</h3>
+          <ul>
+            <li>Containers on same network resolve by name</li>
+            <li>Docker embedded DNS: <code>127.0.0.11</code></li>
+            <li>Service discovery without external tools</li>
+          </ul>
+<pre style="font-size:0.85rem;margin-top:8px">
+# From api container:
+curl http://db:5432
+ping redis
+</pre>
+        </div>
+        <div class="card">
+          <h3>Network Inspection</h3>
+<pre style="font-size:0.85rem">
+# List networks
+docker network ls
+
+# Inspect network
+docker network inspect bridge
+
+# Connect running container
+docker network connect mynet api
+
+# Disconnect
+docker network disconnect mynet api
+</pre>
+        </div>
+      </div>
+      <p style="margin-top:16px"><span class="highlight">Tip:</span> Always create custom bridge networks. The default bridge doesn't support DNS resolution between containers.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: Logging -->
+  <div class="slide">
+    <h2 class="animate">Logging &amp; Monitoring</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Log Drivers</h3>
+          <table style="font-size:0.95rem">
+            <tr><th>Driver</th><th>Output</th></tr>
+            <tr><td><code>json-file</code></td><td>Default, local JSON</td></tr>
+            <tr><td><code>syslog</code></td><td>Syslog daemon</td></tr>
+            <tr><td><code>fluentd</code></td><td>Fluentd collector</td></tr>
+            <tr><td><code>awslogs</code></td><td>CloudWatch Logs</td></tr>
+          </table>
+<pre style="font-size:0.8rem;margin-top:8px">
+docker run --log-driver=awslogs \
+  --log-opt awslogs-group=myapp \
+  myapp
+</pre>
+        </div>
+        <div class="card">
+          <h3>Health Checks</h3>
+<pre style="font-size:0.85rem">
+# In Dockerfile
+HEALTHCHECK --interval=30s \
+  --timeout=3s \
+  --retries=3 \
+  CMD curl -f http://localhost:3000/health
+
+# Check status
+docker inspect --format='{{.State.Health.Status}}' api
+</pre>
+          <p style="margin-top:8px">States: <span class="green">healthy</span>, <span class="highlight">unhealthy</span>, starting</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: CI/CD -->
+  <div class="slide">
+    <h2 class="animate">Docker in CI/CD</h2>
+    <div class="content animate">
+<pre>
+# .github/workflows/docker.yml
+name: Build and Push
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - uses: docker/build-push-action@v5
+        with:
+          push: true
+          tags: ghcr.io/${{ github.repository }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Layer caching</span> in CI dramatically speeds up builds &mdash; use <code>cache-from</code> / <code>cache-to</code>.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Orchestration -->
+  <div class="slide">
+    <h2 class="animate">Orchestration Overview</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>Docker Swarm</th><th>Kubernetes</th></tr>
+        <tr><td>Complexity</td><td>Simple, built into Docker</td><td>Complex, powerful</td></tr>
+        <tr><td>Scaling</td><td>Basic auto-scaling</td><td>Advanced HPA, VPA</td></tr>
+        <tr><td>Networking</td><td>Overlay network</td><td>CNI plugins (Calico, Cilium)</td></tr>
+        <tr><td>Config</td><td>docker-compose + deploy</td><td>YAML manifests, Helm charts</td></tr>
+        <tr><td>Ecosystem</td><td>Small</td><td>Massive (CNCF)</td></tr>
+        <tr><td>Best For</td><td>Small teams, simple apps</td><td>Enterprise, microservices</td></tr>
+      </table>
+      <p style="margin-top:16px"><span class="highlight">Rule of thumb:</span> Start with Compose for development, consider Kubernetes for production at scale. Docker Swarm is fine for small deployments.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use specific image tags, never <code>latest</code> in prod</div>
+      <div class="bp-item"><span>2.</span> Use multi-stage builds for smaller images</div>
+      <div class="bp-item"><span>3.</span> Run as non-root user</div>
+      <div class="bp-item"><span>4.</span> Use <code>.dockerignore</code> to exclude unnecessary files</div>
+      <div class="bp-item"><span>5.</span> Order Dockerfile for optimal layer caching</div>
+      <div class="bp-item"><span>6.</span> Use Alpine or distroless base images</div>
+      <div class="bp-item"><span>7.</span> Scan images for vulnerabilities</div>
+      <div class="bp-item"><span>8.</span> One process per container</div>
+      <div class="bp-item"><span>9.</span> Use health checks everywhere</div>
+      <div class="bp-item"><span>10.</span> Set resource limits in production</div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F433;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You've mastered the essentials of Docker:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Images</span><span class="tag">Dockerfile</span><span class="tag">Compose</span>
+        <span class="tag">Networking</span><span class="tag">Volumes</span><span class="tag">Multi-stage</span>
+        <span class="tag">Security</span><span class="tag">CI/CD</span><span class="tag">Best Practices</span>
+      </div>
+      <p style="color:var(--text-muted)">Practice with real projects. Containerize everything!</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

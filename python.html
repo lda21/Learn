@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Python</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F40D;</span>
+    <h1 class="animate">Python</h1>
+    <p class="subtitle animate">Readable, powerful, everywhere</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Programming</span><span class="tag">Scripting</span><span class="tag">Data</span><span class="tag">Web</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Python?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Language Features</h3>
+        <ul>
+          <li>Interpreted &amp; dynamically typed</li>
+          <li>Clean, readable syntax (indentation-based)</li>
+          <li>Batteries included standard library</li>
+          <li>Huge ecosystem: 500,000+ PyPI packages</li>
+          <li>#1 most popular language (TIOBE 2024)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Use Cases</h3>
+        <ul>
+          <li><span class="highlight">Web</span> &mdash; Django, Flask, FastAPI</li>
+          <li><span class="highlight">Data Science</span> &mdash; pandas, numpy, matplotlib</li>
+          <li><span class="highlight">AI/ML</span> &mdash; PyTorch, TensorFlow, scikit-learn</li>
+          <li><span class="highlight">Automation</span> &mdash; scripts, bots, scraping</li>
+          <li><span class="highlight">DevOps</span> &mdash; Ansible, CLI tools</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data Types</h2>
+    <div class="content animate">
+<pre>
+# Numbers
+x = 42          # int
+pi = 3.14       # float
+big = 10 ** 100 # arbitrary precision
+
+# Strings (immutable)
+name = "Alice"
+msg = f"Hello, {name}!"   # f-string (formatted)
+multi = """line 1
+line 2"""
+
+# Boolean
+active = True
+empty = False
+
+# None (null equivalent)
+result = None
+
+# Type checking
+type(42)        # &lt;class 'int'&gt;
+isinstance(x, int)  # True
+
+# Type casting
+int("42")       # 42
+str(3.14)       # "3.14"
+float("2.5")    # 2.5
+bool(0)         # False
+bool("")        # False
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Collections</h2>
+    <div class="content animate">
+<pre>
+# List (mutable, ordered)
+fruits = ["apple", "banana", "cherry"]
+fruits.append("date")
+fruits[0]       # "apple"
+fruits[-1]      # "date"
+fruits[1:3]     # ["banana", "cherry"]
+
+# Tuple (immutable, ordered)
+point = (10, 20)
+x, y = point    # unpacking
+
+# Dictionary (key-value pairs)
+user = {"name": "Alice", "age": 30, "active": True}
+user["name"]    # "Alice"
+user.get("email", "N/A")  # "N/A" (default)
+
+# Set (unique values, unordered)
+tags = {"python", "web", "python"}  # {"python", "web"}
+tags.add("api")
+
+# Comprehensions
+squares = [x**2 for x in range(10)]
+evens = [x for x in range(20) if x % 2 == 0]
+name_map = {u["id"]: u["name"] for u in users}
+unique = {x.lower() for x in words}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Control Flow</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Conditionals</h3>
+<pre style="font-size:0.85rem">
+# if / elif / else
+if score >= 90:
+    grade = "A"
+elif score >= 80:
+    grade = "B"
+else:
+    grade = "C"
+
+# Ternary
+status = "even" if x % 2 == 0 else "odd"
+
+# Match (Python 3.10+)
+match command:
+    case "start":
+        run()
+    case "stop":
+        halt()
+    case _:
+        print("unknown")
+</pre>
+      </div>
+      <div class="card">
+        <h3>Loops</h3>
+<pre style="font-size:0.85rem">
+# for loop
+for item in fruits:
+    print(item)
+
+for i, item in enumerate(fruits):
+    print(f"{i}: {item}")
+
+for key, val in user.items():
+    print(f"{key}={val}")
+
+# while loop
+while count > 0:
+    count -= 1
+
+# range
+for i in range(5):       # 0,1,2,3,4
+for i in range(2, 10, 2): # 2,4,6,8
+
+# break / continue
+for n in numbers:
+    if n < 0:
+        continue  # skip
+    if n > 100:
+        break     # stop
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Functions</h2>
+    <div class="content animate">
+<pre>
+# Basic function
+def greet(name: str, greeting: str = "Hello") -> str:
+    return f"{greeting}, {name}!"
+
+greet("Alice")             # "Hello, Alice!"
+greet("Bob", "Hey")        # "Hey, Bob!"
+
+# *args and **kwargs
+def log(*args, **kwargs):
+    print(f"Args: {args}")       # tuple
+    print(f"Kwargs: {kwargs}")   # dict
+
+log(1, 2, 3, level="info")
+
+# Lambda (anonymous function)
+double = lambda x: x * 2
+sorted_users = sorted(users, key=lambda u: u["age"])
+
+# First-class functions
+def apply(fn, value):
+    return fn(value)
+
+apply(double, 5)  # 10
+
+# Unpacking in calls
+args = [1, 2, 3]
+kwargs = {"sep": "-", "end": "\n"}
+print(*args, **kwargs)  # 1-2-3
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">String Operations</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Methods</h3>
+<pre style="font-size:0.85rem">
+s = "  Hello, World!  "
+
+s.strip()         # "Hello, World!"
+s.lower()         # "  hello, world!  "
+s.upper()         # "  HELLO, WORLD!  "
+s.replace("World", "Python")
+s.split(", ")     # ["  Hello", "World!  "]
+"-".join(["a", "b", "c"])  # "a-b-c"
+s.startswith("  He")  # True
+s.find("World")   # 9 (index)
+</pre>
+      </div>
+      <div class="card">
+        <h3>f-strings &amp; Formatting</h3>
+<pre style="font-size:0.85rem">
+name = "Alice"
+age = 30
+
+# f-strings (Python 3.6+)
+f"{name} is {age}"
+f"{age:05d}"      # "00030"
+f"{3.14159:.2f}"  # "3.14"
+f"{1000000:,}"    # "1,000,000"
+
+# Slicing
+s = "Python"
+s[0:3]   # "Pyt"
+s[::-1]  # "nohtyP" (reverse)
+s[2:]    # "thon"
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">File I/O</h2>
+    <div class="content animate">
+<pre>
+# Reading files (always use 'with' for auto-close)
+with open("data.txt", "r") as f:
+    content = f.read()          # entire file
+    lines = f.readlines()       # list of lines
+
+# Writing files
+with open("output.txt", "w") as f:
+    f.write("Hello\n")
+    f.writelines(["line 1\n", "line 2\n"])
+
+# JSON
+import json
+with open("config.json") as f:
+    data = json.load(f)         # file -> dict
+with open("out.json", "w") as f:
+    json.dump(data, f, indent=2) # dict -> file
+
+# pathlib (modern approach)
+from pathlib import Path
+p = Path("src/data")
+p.mkdir(parents=True, exist_ok=True)
+text = (p / "file.txt").read_text()
+
+# CSV
+import csv
+with open("data.csv") as f:
+    reader = csv.DictReader(f)
+    for row in reader:
+        print(row["name"], row["age"])
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Error Handling</h2>
+    <div class="content animate">
+<pre>
+# try / except / finally
+try:
+    result = 10 / 0
+except ZeroDivisionError:
+    print("Cannot divide by zero")
+except (TypeError, ValueError) as e:
+    print(f"Error: {e}")
+except Exception as e:
+    print(f"Unexpected: {e}")
+else:
+    print("Success!")        # runs if no exception
+finally:
+    print("Always runs")     # cleanup
+
+# Raising exceptions
+def withdraw(amount):
+    if amount &lt;= 0:
+        raise ValueError("Amount must be positive")
+
+# Custom exceptions
+class AppError(Exception):
+    pass
+
+class NotFoundError(AppError):
+    def __init__(self, resource, id):
+        super().__init__(f"{resource} {id} not found")
+
+# Usage
+raise NotFoundError("User", 42)
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">OOP Basics</h2>
+    <div class="content animate">
+<pre>
+class User:
+    count = 0  # Class variable
+
+    def __init__(self, name: str, email: str):
+        self.name = name
+        self.email = email
+        self._active = True
+        User.count += 1
+
+    @property
+    def active(self) -> bool:
+        return self._active
+
+    @active.setter
+    def active(self, value: bool):
+        self._active = value
+
+    def greet(self) -> str:
+        return f"Hi, I'm {self.name}"
+
+    @classmethod
+    def from_dict(cls, data: dict):
+        return cls(data["name"], data["email"])
+
+    @staticmethod
+    def validate_email(email: str) -> bool:
+        return "@" in email
+
+# Inheritance
+class Admin(User):
+    def __init__(self, name, email, role="admin"):
+        super().__init__(name, email)
+        self.role = role
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Dataclasses &amp; Dunder Methods</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Dataclasses</h3>
+<pre style="font-size:0.85rem">
+from dataclasses import dataclass, field
+
+@dataclass
+class Product:
+    name: str
+    price: float
+    tags: list[str] = field(
+        default_factory=list
+    )
+
+# Auto: __init__, __repr__, __eq__
+p = Product("Widget", 9.99, ["sale"])
+
+# Frozen (immutable)
+@dataclass(frozen=True)
+class Point:
+    x: float
+    y: float
+</pre>
+      </div>
+      <div class="card">
+        <h3>Dunder Methods</h3>
+<pre style="font-size:0.85rem">
+class Money:
+    def __init__(self, amount):
+        self.amount = amount
+
+    def __repr__(self):
+        return f"Money({self.amount})"
+
+    def __str__(self):
+        return f"${self.amount:.2f}"
+
+    def __eq__(self, other):
+        return self.amount == other.amount
+
+    def __add__(self, other):
+        return Money(self.amount + other.amount)
+
+    def __lt__(self, other):
+        return self.amount < other.amount
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Virtual Environments &amp; Packages</h2>
+    <div class="content animate">
+<pre>
+# Built-in venv
+python -m venv .venv
+source .venv/bin/activate      # Linux/Mac
+pip install flask requests
+pip freeze > requirements.txt
+deactivate
+
+# Poetry (modern dependency management)
+poetry init
+poetry add flask requests
+poetry add --group dev pytest black
+poetry install
+poetry run python app.py
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card">
+          <h3>Why Virtual Envs?</h3>
+          <ul>
+            <li>Isolate project dependencies</li>
+            <li>Avoid version conflicts</li>
+            <li>Reproducible environments</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Modern Tools</h3>
+          <ul>
+            <li><span class="highlight">uv</span> &mdash; fast Rust-based pip</li>
+            <li><span class="highlight">Poetry</span> &mdash; deps + packaging</li>
+            <li><span class="highlight">pyenv</span> &mdash; Python versions</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Decorators &amp; Generators</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Decorators</h3>
+<pre style="font-size:0.85rem">
+import functools, time
+
+def timer(func):
+    @functools.wraps(func)
+    def wrapper(*args, **kwargs):
+        start = time.time()
+        result = func(*args, **kwargs)
+        print(f"{func.__name__}: "
+              f"{time.time()-start:.3f}s")
+        return result
+    return wrapper
+
+@timer
+def slow():
+    time.sleep(1)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Generators</h3>
+<pre style="font-size:0.85rem">
+# yield produces values lazily
+def fibonacci():
+    a, b = 0, 1
+    while True:
+        yield a
+        a, b = b, a + b
+
+fib = fibonacci()
+next(fib)  # 0
+next(fib)  # 1
+
+# Generator expression (no memory!)
+squares = (x**2 for x in range(10**6))
+
+# Great for large files
+def read_large(path):
+    with open(path) as f:
+        for line in f:
+            yield line.strip()
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Type Hints &amp; Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Type Hints</h3>
+<pre style="font-size:0.85rem">
+from typing import Optional
+
+def greet(name: str) -> str:
+    return f"Hello, {name}!"
+
+def find(id: int) -> Optional[User]:
+    return db.get(id)  # User | None
+
+# Python 3.10+ syntax
+def parse(val: int | str) -> str:
+    return str(val)
+
+# Collections
+def process(items: list[str]) -> dict[str, int]:
+    return {i: len(i) for i in items}
+
+# Check with: mypy src/
+</pre>
+      </div>
+      <div class="card">
+        <h3>Testing (pytest)</h3>
+<pre style="font-size:0.85rem">
+import pytest
+
+def test_add():
+    assert add(2, 3) == 5
+
+@pytest.mark.parametrize("a,b,expected", [
+    (1, 2, 3), (0, 0, 0), (-1, -1, -2)
+])
+def test_add_cases(a, b, expected):
+    assert add(a, b) == expected
+
+@pytest.fixture
+def sample_user():
+    return User("Alice", "a@test.com")
+
+def test_greet(sample_user):
+    assert "Alice" in sample_user.greet()
+
+# Run: pytest -v --cov=src
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Web Development</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Flask (Simple)</h3>
+<pre style="font-size:0.85rem">
+from flask import Flask, jsonify
+
+app = Flask(__name__)
+
+@app.route("/api/users")
+def get_users():
+    return jsonify(users)
+
+@app.route("/api/users", methods=["POST"])
+def create_user():
+    data = request.get_json()
+    return jsonify(user), 201
+
+app.run(debug=True)
+</pre>
+      </div>
+      <div class="card">
+        <h3>FastAPI (Modern)</h3>
+<pre style="font-size:0.85rem">
+from fastapi import FastAPI
+from pydantic import BaseModel
+
+app = FastAPI()
+
+class UserCreate(BaseModel):
+    name: str
+    email: str
+
+@app.get("/api/users")
+async def get_users():
+    return users
+
+@app.post("/api/users", status_code=201)
+async def create_user(user: UserCreate):
+    return save(user)
+
+# Auto docs at /docs
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data &amp; Automation</h2>
+    <div class="content animate">
+<pre>
+# HTTP requests
+import requests
+resp = requests.get("https://api.example.com/data")
+data = resp.json()
+
+# pandas for data analysis
+import pandas as pd
+df = pd.read_csv("sales.csv")
+df.head()
+df.groupby("region")["revenue"].sum()
+df[df["revenue"] > 1000].sort_values("revenue", ascending=False)
+
+# Web scraping
+from bs4 import BeautifulSoup
+resp = requests.get("https://example.com")
+soup = BeautifulSoup(resp.text, "html.parser")
+titles = [h.text for h in soup.find_all("h2")]
+
+# Automation script
+from pathlib import Path
+for f in Path("downloads").glob("*.csv"):
+    df = pd.read_csv(f)
+    df.to_excel(f.with_suffix(".xlsx"), index=False)
+    print(f"Converted {f.name}")
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>PEP 8</span> Style guide: snake_case, 4 spaces, 79 char lines</div>
+      <div class="bp-item"><span>Linting</span> Use ruff (fast) or flake8 + black (formatter)</div>
+      <div class="bp-item"><span>Types</span> Add type hints, run mypy in CI</div>
+      <div class="bp-item"><span>Tests</span> Use pytest, aim for 80%+ coverage</div>
+      <div class="bp-item"><span>Venvs</span> Always use virtual environments</div>
+      <div class="bp-item"><span>Structure</span> src/ layout, tests/, pyproject.toml</div>
+      <div class="bp-item"><span>EAFP</span> Try/except over permission checks</div>
+      <div class="bp-item"><span>Pythonic</span> Comprehensions, context managers, f-strings</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F40D;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have covered Python from basics to intermediate:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Data Types</span><span class="tag">OOP</span><span class="tag">Functions</span>
+        <span class="tag">Decorators</span><span class="tag">Testing</span><span class="tag">Web</span>
+        <span class="tag">Type Hints</span><span class="tag">Generators</span><span class="tag">Best Practices</span>
+      </div>
+      <p style="color:var(--text-muted)">Python s superpower is readability. Write code that reads like English.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

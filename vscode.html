@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>VS Code</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h1 class="animate">VS Code</h1>
+    <p class="subtitle animate">The editor that conquered the world</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Editor</span><span class="tag">Extensions</span><span class="tag">Debugging</span><span class="tag">Git</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why VS Code?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Key Strengths</h3>
+        <ul>
+          <li>Free &amp; open source (MIT license)</li>
+          <li>Cross-platform: Windows, macOS, Linux</li>
+          <li>Built on Electron + Monaco editor</li>
+          <li>50,000+ extensions</li>
+          <li>73% of developers use it (Stack Overflow 2024)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Built-in Features</h3>
+        <ul>
+          <li>IntelliSense (autocomplete)</li>
+          <li>Integrated terminal</li>
+          <li>Git source control</li>
+          <li>Debugger</li>
+          <li>Extension marketplace</li>
+          <li>Settings sync across devices</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Interface Tour</h2>
+    <div class="content animate">
+      <div class="diagram" style="flex-direction:column;gap:4px;max-width:800px">
+        <div class="box" style="width:100%;border-color:var(--success)">Title Bar &amp; Menu</div>
+        <div style="display:flex;gap:4px;width:100%">
+          <div class="box" style="width:50px;min-width:50px">Act. Bar</div>
+          <div class="box" style="width:200px;min-width:150px">Sidebar<br><small>Explorer, Search, Git, Debug, Extensions</small></div>
+          <div class="box" style="flex:1;border-color:var(--success)">Editor Area<br><small>Tabs, Split views, Minimap</small></div>
+        </div>
+        <div class="box" style="width:100%">Panel: Terminal / Output / Problems / Debug Console</div>
+        <div class="box" style="width:100%;font-size:0.9rem">Status Bar: Branch, Errors, Line/Col, Language, Encoding</div>
+      </div>
+      <p style="margin-top:16px"><span class="highlight">Command Palette</span> (<code>Ctrl+Shift+P</code>) &mdash; the single most important shortcut. Access every command.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Essential Shortcuts</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Shortcut</th><th>Action</th></tr>
+        <tr><td><code>Ctrl+Shift+P</code></td><td>Command Palette</td></tr>
+        <tr><td><code>Ctrl+P</code></td><td>Quick Open file</td></tr>
+        <tr><td><code>Ctrl+D</code></td><td>Select next occurrence (multi-cursor)</td></tr>
+        <tr><td><code>Alt+Up/Down</code></td><td>Move line up/down</td></tr>
+        <tr><td><code>Shift+Alt+Up/Down</code></td><td>Copy line up/down</td></tr>
+        <tr><td><code>Ctrl+Shift+K</code></td><td>Delete entire line</td></tr>
+        <tr><td><code>Ctrl+/</code></td><td>Toggle line comment</td></tr>
+        <tr><td><code>Ctrl+`</code></td><td>Toggle terminal</td></tr>
+        <tr><td><code>Ctrl+B</code></td><td>Toggle sidebar</td></tr>
+        <tr><td><code>Ctrl+Shift+F</code></td><td>Search across all files</td></tr>
+        <tr><td><code>F12</code></td><td>Go to Definition</td></tr>
+        <tr><td><code>Alt+Click</code></td><td>Add cursor at click position</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Command Palette &amp; Navigation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Command Palette Prefixes</h3>
+        <ul>
+          <li><code>&gt;</code> &mdash; commands (default)</li>
+          <li><code>@</code> &mdash; go to symbol in file</li>
+          <li><code>@:</code> &mdash; go to symbol by category</li>
+          <li><code>#</code> &mdash; go to symbol in workspace</li>
+          <li><code>:</code> &mdash; go to line number</li>
+          <li>No prefix &mdash; quick open file</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Navigation</h3>
+        <ul>
+          <li><code>F12</code> &mdash; Go to Definition</li>
+          <li><code>Alt+F12</code> &mdash; Peek Definition</li>
+          <li><code>Shift+F12</code> &mdash; Find All References</li>
+          <li><code>Ctrl+Tab</code> &mdash; Switch open editors</li>
+          <li><code>Ctrl+G</code> &mdash; Go to line</li>
+          <li>Breadcrumbs &mdash; click path segments</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Editing Power</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Multi-Cursor</h3>
+          <p><code>Ctrl+D</code> select next match. <code>Ctrl+Shift+L</code> select ALL matches. <code>Alt+Click</code> add cursor anywhere.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Find &amp; Replace</h3>
+          <p><code>Ctrl+H</code> with regex support. Use capture groups <code>$1</code> for powerful transformations.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Emmet</h3>
+          <p>Type <code>div.container>ul>li*5</code> then Tab to expand HTML. Built-in, no extension needed.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Code Folding</h3>
+          <p><code>Ctrl+Shift+[</code> fold, <code>Ctrl+Shift+]</code> unfold. <code>Ctrl+K Ctrl+0</code> fold all.</p>
+        </div>
+      </div>
+<pre style="margin-top:16px">
+// Emmet example: ul>li.item{Item $}*3 + Tab
+&lt;ul&gt;
+  &lt;li class="item"&gt;Item 1&lt;/li&gt;
+  &lt;li class="item"&gt;Item 2&lt;/li&gt;
+  &lt;li class="item"&gt;Item 3&lt;/li&gt;
+&lt;/ul&gt;
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Integrated Terminal</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Features</h3>
+        <ul>
+          <li><code>Ctrl+`</code> toggle terminal panel</li>
+          <li>Multiple terminals (split with icon)</li>
+          <li>Rename, color-code terminals</li>
+          <li>Shell integration (bash, zsh, PowerShell)</li>
+          <li>Click file paths to open in editor</li>
+          <li>Link detection for URLs and errors</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Profiles</h3>
+        <ul>
+          <li>Set default shell per OS</li>
+          <li>Create custom profiles (bash, zsh, node)</li>
+          <li>Custom environment variables per profile</li>
+          <li><code>Ctrl+Shift+`</code> new terminal</li>
+          <li>Tasks run in terminal automatically</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center"><span class="highlight">Tip:</span> Use <code>Ctrl+Shift+5</code> to split terminal. Run server on left, tests on right.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Git Integration</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Source Control Panel</h3>
+          <ul>
+            <li>View changes, stage files with +</li>
+            <li>Inline diff view (click any file)</li>
+            <li>Commit with message box</li>
+            <li>Branch switching in status bar</li>
+            <li>Sync, push, pull buttons</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Merge Conflicts</h3>
+          <ul>
+            <li>Visual merge editor (3-way)</li>
+            <li>Accept Current / Incoming / Both</li>
+            <li>Inline conflict markers with buttons</li>
+            <li>Compare side by side</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:16px"><span class="highlight">GitLens extension</span> adds: blame annotations, file history, line history, commit graph, and remote repository browsing.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Essential Extensions</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Prettier</h3>
+        <p>Auto-format on save. Supports JS, TS, CSS, HTML, JSON, Markdown.</p>
+      </div>
+      <div class="metric-card">
+        <h3>ESLint</h3>
+        <p>JavaScript/TypeScript linting with auto-fix. Integrates with Prettier.</p>
+      </div>
+      <div class="metric-card">
+        <h3>GitLens</h3>
+        <p>Git supercharged: blame, history, stash, commit graph, remote repos.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Live Server</h3>
+        <p>Local dev server with hot reload for static HTML/CSS/JS files.</p>
+      </div>
+      <div class="metric-card">
+        <h3>REST Client</h3>
+        <p>Send HTTP requests from <code>.http</code> files. Like Postman in your editor.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Error Lens</h3>
+        <p>Inline error/warning messages right next to the code. No need to hover.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Debugging</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Breakpoints</h3>
+          <ul>
+            <li>Click gutter to set breakpoint</li>
+            <li><span class="highlight">Conditional</span> &mdash; break when expression is true</li>
+            <li><span class="highlight">Logpoints</span> &mdash; log without stopping</li>
+            <li><span class="highlight">Hit Count</span> &mdash; break after N hits</li>
+            <li>Exception breakpoints (caught/uncaught)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Debug Features</h3>
+          <ul>
+            <li>Variables panel (local, closure, global)</li>
+            <li>Watch expressions</li>
+            <li>Call stack navigation</li>
+            <li>Debug console (evaluate expressions)</li>
+            <li>Step over / into / out controls</li>
+          </ul>
+        </div>
+      </div>
+<pre style="margin-top:12px">
+// launch.json (Node.js)
+{
+  "type": "node",
+  "request": "launch",
+  "name": "Debug Server",
+  "program": "${workspaceFolder}/src/server.ts",
+  "preLaunchTask": "tsc: build",
+  "outFiles": ["${workspaceFolder}/dist/**/*.js"]
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Settings &amp; Configuration</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Settings Scope</h3>
+          <ul>
+            <li><span class="highlight">User</span> &mdash; global, all projects</li>
+            <li><span class="highlight">Workspace</span> &mdash; per-project (.vscode/)</li>
+            <li>Workspace overrides User settings</li>
+            <li>GUI or JSON (<code>settings.json</code>)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Must-Have Settings</h3>
+<pre style="font-size:0.8rem">
+{
+  "editor.formatOnSave": true,
+  "editor.tabSize": 2,
+  "editor.minimap.enabled": false,
+  "editor.bracketPairColorization.enabled": true,
+  "files.autoSave": "onFocusChange",
+  "editor.stickyScroll.enabled": true
+}
+</pre>
+        </div>
+      </div>
+      <p style="margin-top:12px"><span class="highlight">Settings Sync:</span> Sign in with GitHub/Microsoft to sync settings, keybindings, extensions, and snippets across machines.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Workspaces &amp; Tasks</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Multi-Root Workspaces</h3>
+        <ul>
+          <li>Open multiple folders in one window</li>
+          <li>Save as <code>.code-workspace</code> file</li>
+          <li>Per-folder settings and extensions</li>
+          <li>Useful for monorepos and microservices</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Tasks (tasks.json)</h3>
+<pre style="font-size:0.8rem">
+{
+  "label": "Build",
+  "type": "npm",
+  "script": "build",
+  "group": {
+    "kind": "build",
+    "isDefault": true
+  },
+  "problemMatcher": ["$tsc"]
+}
+</pre>
+        <p style="margin-top:6px"><code>Ctrl+Shift+B</code> runs default build task.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Remote Development</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Remote - SSH</h3>
+        <p>Edit files on remote servers as if local. Full IntelliSense, debugging, terminal.</p>
+      </div>
+      <div class="metric-card">
+        <h3>WSL</h3>
+        <p>Develop in Windows Subsystem for Linux. Native Linux toolchain with VS Code UI.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Dev Containers</h3>
+        <p>Develop inside Docker containers. Consistent environments via <code>devcontainer.json</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>GitHub Codespaces</h3>
+        <p>Cloud-hosted dev environments. Full VS Code in the browser. Pre-configured repos.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center"><span class="highlight">Remote - Tunnels:</span> Access any machine's VS Code from a browser, without SSH config.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI Features</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>GitHub Copilot</h3>
+        <ul>
+          <li>Inline code suggestions (Tab to accept)</li>
+          <li>Ghost text completions</li>
+          <li>Multi-line suggestions</li>
+          <li>Context-aware from open files</li>
+          <li>$10/month or free for students/OSS</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Claude Code Integration</h3>
+        <ul>
+          <li>VS Code extension for Claude Code</li>
+          <li>Terminal-based agentic workflow</li>
+          <li>Reads and edits files autonomously</li>
+          <li>Runs tests and debugging</li>
+          <li>Full codebase understanding</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center"><span class="highlight">Copilot Chat:</span> Ask questions about code inline. Explain, fix, generate tests, and refactor with <code>Ctrl+I</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Snippets &amp; Customization</h2>
+    <div class="content animate">
+<pre>
+// User snippets (Preferences: Configure User Snippets)
+{
+  "React Component": {
+    "prefix": "rfc",
+    "body": [
+      "export function ${1:Component}({ ${2:props} }) {",
+      "  return (",
+      "    &lt;div&gt;",
+      "      $0",
+      "    &lt;/div&gt;",
+      "  );",
+      "}"
+    ],
+    "description": "React functional component"
+  }
+}
+</pre>
+      <div class="two-col" style="margin-top:12px">
+        <div class="card">
+          <h3>Snippet Variables</h3>
+          <p><code>$1, $2</code> tab stops, <code>$0</code> final cursor, <code>${1:default}</code> placeholder, <code>$TM_FILENAME</code> file name.</p>
+        </div>
+        <div class="card">
+          <h3>Customization</h3>
+          <ul>
+            <li>Color themes: One Dark Pro, GitHub, Catppuccin</li>
+            <li>Icon themes: Material Icons, VSCode Icons</li>
+            <li>Font: Fira Code with ligatures</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Advanced Tips</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>CLI</span> <code>code .</code> opens folder, <code>code file.txt</code> opens file, <code>code --diff a b</code></div>
+      <div class="bp-item"><span>Profiles</span> Switch between config sets (work, personal, teaching)</div>
+      <div class="bp-item"><span>Timeline</span> View local file edit history (no git needed)</div>
+      <div class="bp-item"><span>Sticky Scroll</span> Keep scope context visible at top of editor</div>
+      <div class="bp-item"><span>Zen Mode</span> <code>Ctrl+K Z</code> distraction-free editing</div>
+      <div class="bp-item"><span>Portable</span> Carry VS Code on USB drive with custom config</div>
+      <div class="bp-item"><span>Peek</span> <code>Alt+F12</code> view definition inline without leaving current file</div>
+      <div class="bp-item"><span>Refactor</span> <code>F2</code> rename symbol across entire project</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You've mastered VS Code:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Shortcuts</span><span class="tag">Extensions</span><span class="tag">Debugging</span>
+        <span class="tag">Git</span><span class="tag">Remote Dev</span><span class="tag">AI</span>
+        <span class="tag">Tasks</span><span class="tag">Snippets</span><span class="tag">Settings</span>
+      </div>
+      <p style="color:var(--text-muted)">Master the shortcuts and you'll fly. The Command Palette is your best friend.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

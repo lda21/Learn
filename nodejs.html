@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Node.js</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate">Node.js</h1>
+    <p class="subtitle animate">JavaScript on the server</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Backend</span><span class="tag">Express</span><span class="tag">APIs</span><span class="tag">npm</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Node.js?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>JavaScript runtime built on Chrome V8 engine</li>
+          <li>Event-driven, non-blocking I/O</li>
+          <li>Single-threaded with async event loop</li>
+          <li>Ideal for I/O-heavy apps (APIs, real-time)</li>
+          <li>Not ideal for CPU-intensive tasks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Use Cases</h3>
+        <ul>
+          <li><span class="highlight">REST APIs</span> &mdash; Express, Fastify, Hono</li>
+          <li><span class="highlight">Real-time</span> &mdash; WebSockets, Socket.io</li>
+          <li><span class="highlight">SSR</span> &mdash; Next.js, Nuxt, Remix</li>
+          <li><span class="highlight">CLI tools</span> &mdash; commander, inquirer</li>
+          <li><span class="highlight">Microservices</span> &mdash; lightweight, scalable</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Event Loop</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Call Stack<br><small>Executes sync code</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Event Loop<br><small>Checks queues</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Callback Queue<br><small>setTimeout, I/O</small></div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>Execution Order</h3>
+          <ul>
+            <li>1. Synchronous code (call stack)</li>
+            <li>2. Microtasks (Promise.then, queueMicrotask)</li>
+            <li>3. process.nextTick (Node-specific)</li>
+            <li>4. Macrotasks (setTimeout, setInterval, I/O)</li>
+            <li>5. setImmediate (after I/O)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Why It Matters</h3>
+<pre style="font-size:0.85rem">
+console.log("1: sync");
+setTimeout(() => console.log("4: timeout"), 0);
+Promise.resolve().then(() => console.log("3: micro"));
+process.nextTick(() => console.log("2: nextTick"));
+
+// Output: 1, 2, 3, 4
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Modules</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>CommonJS (CJS)</h3>
+<pre style="font-size:0.85rem">
+// math.js
+function add(a, b) { return a + b; }
+module.exports = { add };
+
+// app.js
+const { add } = require("./math");
+
+// Default
+module.exports = class User {};
+const User = require("./User");
+</pre>
+        <p style="margin-top:8px">Traditional Node.js format. Synchronous loading.</p>
+      </div>
+      <div class="card">
+        <h3>ES Modules (ESM)</h3>
+<pre style="font-size:0.85rem">
+// math.js
+export function add(a, b) { return a + b; }
+
+// app.js
+import { add } from "./math.js";
+
+// Enable ESM:
+// package.json: "type": "module"
+// or use .mjs extension
+</pre>
+        <p style="margin-top:8px">Modern standard. Async loading. Preferred for new projects.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center"><span class="highlight">Recommendation:</span> Use ESM (<code>"type": "module"</code> in package.json) for new projects.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">npm &amp; Package Management</h2>
+    <div class="content animate">
+<pre>
+# Initialize project
+npm init -y
+
+# Install dependencies
+npm install express         # production dependency
+npm install -D jest         # dev dependency
+npm install -g nodemon      # global
+
+# package.json scripts
+{
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
+    "test": "jest --coverage",
+    "build": "tsc",
+    "lint": "eslint src/"
+  }
+}
+
+# Run scripts
+npm run dev
+npm test        # shortcut for "npm run test"
+npm start       # shortcut for "npm run start"
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Semantic Versioning:</span> <code>^1.2.3</code> = compatible (1.x.x) &bull; <code>~1.2.3</code> = patch only (1.2.x) &bull; <code>1.2.3</code> = exact</p>
+      <p><span class="highlight">Lock file:</span> <code>package-lock.json</code> ensures reproducible installs. Always commit it.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">File System &amp; Path</h2>
+    <div class="content animate">
+<pre>
+import { readFile, writeFile, mkdir } from "fs/promises";
+import { createReadStream } from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+
+// ESM __dirname equivalent
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// Read file
+const data = await readFile("config.json", "utf-8");
+const config = JSON.parse(data);
+
+// Write file
+await writeFile("output.txt", "Hello, Node!");
+
+// Create directory
+await mkdir("logs", { recursive: true });
+
+// Path helpers
+path.join(__dirname, "data", "file.txt");  // OS-aware joining
+path.resolve("./src");                     // absolute path
+path.extname("file.txt");                  // ".txt"
+path.basename("/a/b/file.txt");            // "file.txt"
+
+// Streams (memory-efficient for large files)
+const stream = createReadStream("huge.csv", "utf-8");
+for await (const chunk of stream) {
+  process(chunk);
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">HTTP Server</h2>
+    <div class="content animate">
+<pre>
+import http from "http";
+
+const server = http.createServer((req, res) => {
+  const { method, url } = req;
+
+  // Simple routing
+  if (method === "GET" &amp;&amp; url === "/api/health") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ status: "ok" }));
+  }
+  else if (method === "GET" &amp;&amp; url === "/api/users") {
+    res.writeHead(200, { "Content-Type": "application/json" });
+    res.end(JSON.stringify(users));
+  }
+  else {
+    res.writeHead(404);
+    res.end("Not Found");
+  }
+});
+
+server.listen(3000, () => {
+  console.log("Server running on http://localhost:3000");
+});
+</pre>
+      <p style="margin-top:10px">Raw <code>http</code> module for learning. Use <span class="highlight">Express</span> or <span class="highlight">Fastify</span> for real apps.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Express.js Basics</h2>
+    <div class="content animate">
+<pre>
+import express from "express";
+
+const app = express();
+
+// Built-in middleware
+app.use(express.json());                    // parse JSON body
+app.use(express.static("public"));          // serve static files
+
+// Routes
+app.get("/api/users", (req, res) => {
+  res.json(users);
+});
+
+app.get("/api/users/:id", (req, res) => {
+  const user = users.find(u => u.id === +req.params.id);
+  if (!user) return res.status(404).json({ error: "Not found" });
+  res.json(user);
+});
+
+app.post("/api/users", (req, res) => {
+  const { name, email } = req.body;
+  const user = { id: Date.now(), name, email };
+  users.push(user);
+  res.status(201).json(user);
+});
+
+app.delete("/api/users/:id", (req, res) => {
+  users = users.filter(u => u.id !== +req.params.id);
+  res.status(204).end();
+});
+
+app.listen(3000, () => console.log("Running on :3000"));
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Express Middleware</h2>
+    <div class="content animate">
+<pre>
+// Middleware = function(req, res, next)
+// Runs in order for every matching request
+
+// Logging middleware
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.url}`);
+  next();  // pass to next middleware
+});
+
+// Auth middleware
+function authenticate(req, res, next) {
+  const token = req.headers.authorization?.split(" ")[1];
+  if (!token) return res.status(401).json({ error: "No token" });
+  try {
+    req.user = jwt.verify(token, SECRET);
+    next();
+  } catch {
+    res.status(403).json({ error: "Invalid token" });
+  }
+}
+
+// Apply to specific routes
+app.get("/api/profile", authenticate, (req, res) => {
+  res.json(req.user);
+});
+
+// Error middleware (4 params)
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(err.status || 500).json({ error: err.message });
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">RESTful API Design</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Method</th><th>Route</th><th>Action</th><th>Status</th></tr>
+        <tr><td>GET</td><td>/api/users</td><td>List all users</td><td>200</td></tr>
+        <tr><td>GET</td><td>/api/users/:id</td><td>Get one user</td><td>200 / 404</td></tr>
+        <tr><td>POST</td><td>/api/users</td><td>Create user</td><td>201</td></tr>
+        <tr><td>PUT</td><td>/api/users/:id</td><td>Replace user</td><td>200</td></tr>
+        <tr><td>PATCH</td><td>/api/users/:id</td><td>Update fields</td><td>200</td></tr>
+        <tr><td>DELETE</td><td>/api/users/:id</td><td>Delete user</td><td>204</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Query Parameters</h3>
+          <p><code>/api/users?page=2&amp;limit=20&amp;sort=name</code></p>
+          <p style="margin-top:6px"><code>req.query.page</code> &rarr; "2"</p>
+        </div>
+        <div class="card">
+          <h3>Status Codes</h3>
+          <p>200 OK &bull; 201 Created &bull; 204 No Content<br>400 Bad Request &bull; 401 Unauthorized<br>403 Forbidden &bull; 404 Not Found &bull; 500 Server Error</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Database Integration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Prisma (Modern ORM)</h3>
+<pre style="font-size:0.85rem">
+// schema.prisma
+model User {
+  id    Int    @id @default(autoincrement())
+  name  String
+  email String @unique
+  posts Post[]
+}
+
+// Usage
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
+
+const users = await prisma.user.findMany({
+  where: { active: true },
+  include: { posts: true }
+});
+
+const user = await prisma.user.create({
+  data: { name: "Alice", email: "a@b.com" }
+});
+</pre>
+      </div>
+      <div class="card">
+        <h3>MongoDB (Mongoose)</h3>
+<pre style="font-size:0.85rem">
+import mongoose from "mongoose";
+
+await mongoose.connect(process.env.MONGO_URL);
+
+const userSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  email: { type: String, unique: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+const User = mongoose.model("User", userSchema);
+
+const users = await User.find({ active: true });
+const user = await User.create({
+  name: "Alice",
+  email: "a@b.com"
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Authentication</h2>
+    <div class="content animate">
+<pre>
+import jwt from "jsonwebtoken";
+import bcrypt from "bcrypt";
+
+// Register
+app.post("/api/register", async (req, res) => {
+  const { email, password } = req.body;
+  const hash = await bcrypt.hash(password, 12);
+  const user = await db.createUser({ email, password: hash });
+  res.status(201).json({ id: user.id, email: user.email });
+});
+
+// Login
+app.post("/api/login", async (req, res) => {
+  const { email, password } = req.body;
+  const user = await db.findByEmail(email);
+  if (!user) return res.status(401).json({ error: "Invalid credentials" });
+
+  const valid = await bcrypt.compare(password, user.password);
+  if (!valid) return res.status(401).json({ error: "Invalid credentials" });
+
+  const token = jwt.sign({ id: user.id, email }, process.env.JWT_SECRET, {
+    expiresIn: "24h"
+  });
+  res.json({ token });
+});
+
+// Protected route (use authenticate middleware from earlier)
+app.get("/api/me", authenticate, (req, res) => {
+  res.json(req.user);
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Error Handling Patterns</h2>
+    <div class="content animate">
+<pre>
+// Custom error class
+class AppError extends Error {
+  constructor(message, statusCode) {
+    super(message);
+    this.statusCode = statusCode;
+    this.isOperational = true;
+  }
+}
+
+// Async handler wrapper (no try/catch in routes)
+const asyncHandler = (fn) => (req, res, next) =>
+  Promise.resolve(fn(req, res, next)).catch(next);
+
+// Usage in routes
+app.get("/api/users/:id", asyncHandler(async (req, res) => {
+  const user = await db.findUser(req.params.id);
+  if (!user) throw new AppError("User not found", 404);
+  res.json(user);
+}));
+
+// Global error handler
+app.use((err, req, res, next) => {
+  const status = err.statusCode || 500;
+  const message = err.isOperational ? err.message : "Internal server error";
+  console.error(err);
+  res.status(status).json({ error: message });
+});
+
+// Process-level handlers
+process.on("unhandledRejection", (err) => {
+  console.error("Unhandled rejection:", err);
+  process.exit(1);
+});
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Streams &amp; Buffers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Stream Types</h3>
+        <ul>
+          <li><span class="highlight">Readable</span> &mdash; fs.createReadStream, http.IncomingMessage</li>
+          <li><span class="highlight">Writable</span> &mdash; fs.createWriteStream, http.ServerResponse</li>
+          <li><span class="highlight">Transform</span> &mdash; zlib.createGzip, crypto.createCipher</li>
+          <li><span class="highlight">Duplex</span> &mdash; net.Socket, WebSocket</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Piping</h3>
+<pre style="font-size:0.85rem">
+import { createReadStream } from "fs";
+import { createGzip } from "zlib";
+import { pipeline } from "stream/promises";
+
+// Pipe: read -> transform -> write
+await pipeline(
+  createReadStream("input.log"),
+  createGzip(),
+  createWriteStream("input.log.gz")
+);
+
+// Stream to HTTP response
+app.get("/download", (req, res) => {
+  res.setHeader("Content-Type", "text/csv");
+  createReadStream("data.csv").pipe(res);
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Jest</h3>
+<pre style="font-size:0.85rem">
+// math.test.js
+import { add } from "./math.js";
+
+describe("add", () => {
+  test("adds two numbers", () => {
+    expect(add(2, 3)).toBe(5);
+  });
+
+  test("handles negatives", () => {
+    expect(add(-1, 1)).toBe(0);
+  });
+});
+
+// Mocking
+jest.mock("./db");
+import { getUser } from "./db";
+getUser.mockResolvedValue({ id: 1, name: "Alice" });
+</pre>
+      </div>
+      <div class="card">
+        <h3>Supertest (API testing)</h3>
+<pre style="font-size:0.85rem">
+import request from "supertest";
+import app from "./app.js";
+
+describe("GET /api/users", () => {
+  test("returns users list", async () => {
+    const res = await request(app)
+      .get("/api/users")
+      .expect(200);
+
+    expect(res.body).toBeInstanceOf(Array);
+    expect(res.body[0]).toHaveProperty("name");
+  });
+
+  test("creates a user", async () => {
+    await request(app)
+      .post("/api/users")
+      .send({ name: "Bob", email: "b@b.com" })
+      .expect(201);
+  });
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Environment &amp; Deployment</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Environment Config</h3>
+<pre style="font-size:0.85rem">
+// .env file
+PORT=3000
+DATABASE_URL=postgres://localhost/mydb
+JWT_SECRET=supersecret
+NODE_ENV=production
+
+// Load with dotenv
+import "dotenv/config";
+const port = process.env.PORT || 3000;
+
+// Or Node 20.6+ built-in:
+// node --env-file=.env server.js
+</pre>
+      </div>
+      <div class="card">
+        <h3>Deployment</h3>
+<pre style="font-size:0.85rem">
+// PM2 process manager
+pm2 start server.js -i max  # cluster mode
+pm2 save
+pm2 startup
+
+// Graceful shutdown
+process.on("SIGTERM", async () => {
+  console.log("Shutting down...");
+  await server.close();
+  await db.disconnect();
+  process.exit(0);
+});
+</pre>
+        <ul style="margin-top:8px;font-size:0.95rem">
+          <li>Docker for containerization</li>
+          <li>PM2 for process management</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use ESM modules with <code>"type": "module"</code></div>
+      <div class="bp-item"><span>2.</span> Always handle errors (async + global handlers)</div>
+      <div class="bp-item"><span>3.</span> Use environment variables for config (never hardcode secrets)</div>
+      <div class="bp-item"><span>4.</span> Validate input at API boundaries (Zod, Joi)</div>
+      <div class="bp-item"><span>5.</span> Use async/await consistently</div>
+      <div class="bp-item"><span>6.</span> Structure: routes/, controllers/, services/, models/</div>
+      <div class="bp-item"><span>7.</span> Use helmet, cors, rate-limiting middleware</div>
+      <div class="bp-item"><span>8.</span> Log with pino or winston (not console.log)</div>
+      <div class="bp-item"><span>9.</span> Implement graceful shutdown (SIGTERM handler)</div>
+      <div class="bp-item"><span>10.</span> Test APIs with supertest, mock external services</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Node.js backend development:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Event Loop</span><span class="tag">Express</span><span class="tag">REST APIs</span>
+        <span class="tag">Auth</span><span class="tag">Database</span><span class="tag">Streams</span>
+        <span class="tag">Testing</span><span class="tag">Deployment</span><span class="tag">npm</span>
+      </div>
+      <p style="color:var(--text-muted)">Build APIs, ship to production, and scale with confidence.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>

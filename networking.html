@@ -1,0 +1,825 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Networking</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1 -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F310;</span>
+    <h1 class="animate">Networking</h1>
+    <p class="subtitle animate">CCNA Fundamentals &mdash; From OSI layers to routing protocols</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">CCNA</span><span class="tag">Routing</span><span class="tag">Switching</span><span class="tag">TCP/IP</span>
+    </div>
+  </div>
+
+  <!-- SLIDE 2: OSI Model -->
+  <div class="slide">
+    <h2 class="animate">The OSI Model</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>#</th><th>Layer</th><th>Function</th><th>Protocols</th></tr>
+        <tr><td>7</td><td>Application</td><td>User interface &amp; services</td><td>HTTP, DNS, SMTP, FTP</td></tr>
+        <tr><td>6</td><td>Presentation</td><td>Encryption, compression, format</td><td>SSL/TLS, JPEG, ASCII</td></tr>
+        <tr><td>5</td><td>Session</td><td>Session management</td><td>NetBIOS, RPC, PPTP</td></tr>
+        <tr><td>4</td><td>Transport</td><td>Reliable delivery, segmentation</td><td>TCP, UDP</td></tr>
+        <tr><td>3</td><td>Network</td><td>Logical addressing &amp; routing</td><td>IP, ICMP, OSPF, EIGRP</td></tr>
+        <tr><td>2</td><td>Data Link</td><td>MAC addressing, framing</td><td>Ethernet, 802.11, ARP</td></tr>
+        <tr><td>1</td><td>Physical</td><td>Bits on the wire</td><td>Cables, hubs, signals</td></tr>
+      </table>
+      <p style="margin-top:12px;color:var(--text-muted)">Mnemonic: <span class="highlight">P</span>lease <span class="highlight">D</span>o <span class="highlight">N</span>ot <span class="highlight">T</span>hrow <span class="highlight">S</span>ausage <span class="highlight">P</span>izza <span class="highlight">A</span>way (bottom-up)</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 3: TCP/IP Model -->
+  <div class="slide">
+    <h2 class="animate">TCP/IP Model</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>4-Layer Model</h3>
+        <ul>
+          <li><span class="highlight">Application</span> &mdash; HTTP, DNS, SSH, DHCP</li>
+          <li><span class="highlight">Transport</span> &mdash; TCP (reliable), UDP (fast)</li>
+          <li><span class="highlight">Internet</span> &mdash; IP, ICMP, ARP</li>
+          <li><span class="highlight">Network Access</span> &mdash; Ethernet, Wi-Fi</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>OSI vs TCP/IP</h3>
+        <ul>
+          <li>OSI = reference model (7 layers)</li>
+          <li>TCP/IP = practical model (4 layers)</li>
+          <li>OSI layers 5-7 &rarr; TCP/IP Application</li>
+          <li>OSI layers 1-2 &rarr; TCP/IP Network Access</li>
+          <li>TCP/IP is what the internet actually uses</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: IPv4 Addressing -->
+  <div class="slide">
+    <h2 class="animate">IPv4 Addressing</h2>
+    <div class="content animate">
+      <p>32-bit address written as 4 octets: <code>192.168.1.100</code></p>
+      <table style="margin-top:16px">
+        <tr><th>Class</th><th>Range</th><th>Default Mask</th><th>Networks</th></tr>
+        <tr><td>A</td><td>1.0.0.0 &ndash; 126.255.255.255</td><td>/8 (255.0.0.0)</td><td>Large orgs</td></tr>
+        <tr><td>B</td><td>128.0.0.0 &ndash; 191.255.255.255</td><td>/16 (255.255.0.0)</td><td>Medium orgs</td></tr>
+        <tr><td>C</td><td>192.0.0.0 &ndash; 223.255.255.255</td><td>/24 (255.255.255.0)</td><td>Small orgs</td></tr>
+      </table>
+      <h3 style="margin-top:18px">Private IP Ranges (RFC 1918)</h3>
+      <ul>
+        <li><code>10.0.0.0/8</code> &mdash; 16M addresses (Class A)</li>
+        <li><code>172.16.0.0/12</code> &mdash; 1M addresses (Class B)</li>
+        <li><code>192.168.0.0/16</code> &mdash; 65K addresses (Class C)</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- SLIDE 5: Subnetting -->
+  <div class="slide">
+    <h2 class="animate">Subnetting</h2>
+    <div class="content animate">
+      <p>Divide a network into smaller segments for security, performance, and organization.</p>
+      <table style="margin-top:16px">
+        <tr><th>CIDR</th><th>Subnet Mask</th><th>Hosts</th><th>Use Case</th></tr>
+        <tr><td>/24</td><td>255.255.255.0</td><td>254</td><td>Standard LAN</td></tr>
+        <tr><td>/25</td><td>255.255.255.128</td><td>126</td><td>Split /24 in half</td></tr>
+        <tr><td>/26</td><td>255.255.255.192</td><td>62</td><td>Small department</td></tr>
+        <tr><td>/27</td><td>255.255.255.224</td><td>30</td><td>Server VLAN</td></tr>
+        <tr><td>/30</td><td>255.255.255.252</td><td>2</td><td>Point-to-point link</td></tr>
+      </table>
+      <p style="margin-top:12px"><span class="highlight">Formula:</span> Usable hosts = 2<sup>host bits</sup> &minus; 2 (network + broadcast)</p>
+      <p><span class="highlight">VLSM</span> (Variable Length Subnet Mask): use different mask sizes per subnet to avoid wasting addresses.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 6: IPv6 -->
+  <div class="slide">
+    <h2 class="animate">IPv6 Fundamentals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why IPv6?</h3>
+        <ul>
+          <li>IPv4 has ~4.3 billion addresses (exhausted)</li>
+          <li>IPv6 = 128-bit = 3.4 &times; 10<sup>38</sup> addresses</li>
+          <li>No NAT needed &mdash; end-to-end connectivity</li>
+          <li>Built-in IPsec, simplified headers</li>
+        </ul>
+        <p style="margin-top:10px"><code>2001:0db8:85a3::8a2e:0370:7334</code></p>
+      </div>
+      <div class="card">
+        <h3>Address Types</h3>
+        <ul>
+          <li><span class="highlight">Unicast</span> &mdash; one-to-one (Global, Link-local <code>fe80::</code>)</li>
+          <li><span class="highlight">Multicast</span> &mdash; one-to-many (<code>ff00::/8</code>)</li>
+          <li><span class="highlight">Anycast</span> &mdash; one-to-nearest (same as unicast format)</li>
+          <li>No broadcast in IPv6 (uses multicast instead)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 7: Ethernet & Switching -->
+  <div class="slide">
+    <h2 class="animate">Ethernet &amp; Switching</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">PC-A<br><small>AA:BB:CC:11:22:33</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Switch<br><small>CAM Table</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">PC-B<br><small>DD:EE:FF:44:55:66</small></div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>MAC Addresses</h3>
+          <ul>
+            <li>48-bit hardware address (Layer 2)</li>
+            <li>Format: <code>AA:BB:CC:DD:EE:FF</code></li>
+            <li>First 3 bytes = OUI (vendor)</li>
+            <li>Last 3 bytes = unique identifier</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Switch Operation</h3>
+          <ul>
+            <li><span class="highlight">Learn</span> &mdash; record source MAC + port</li>
+            <li><span class="highlight">Forward</span> &mdash; send to known destination port</li>
+            <li><span class="highlight">Flood</span> &mdash; unknown destination &rarr; all ports</li>
+            <li><span class="highlight">Filter</span> &mdash; don't forward to source port</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 8: VLANs -->
+  <div class="slide">
+    <h2 class="animate">VLANs</h2>
+    <div class="content animate">
+      <p>Virtual LANs segment a physical switch into isolated broadcast domains.</p>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>VLAN Basics</h3>
+          <ul>
+            <li>Each VLAN = separate broadcast domain</li>
+            <li>Traffic between VLANs requires a router</li>
+            <li>VLAN 1 = default (avoid using it)</li>
+            <li>Access ports carry one VLAN</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>802.1Q Trunking</h3>
+          <ul>
+            <li>Trunk ports carry multiple VLANs</li>
+            <li>Inserts 4-byte VLAN tag into frame</li>
+            <li>Native VLAN = untagged traffic</li>
+            <li>DTP negotiates trunks (disable in production)</li>
+          </ul>
+        </div>
+      </div>
+<pre>
+! Create VLAN and assign port
+Switch(config)# vlan 10
+Switch(config-vlan)# name SALES
+Switch(config)# interface fa0/1
+Switch(config-if)# switchport mode access
+Switch(config-if)# switchport access vlan 10
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 9: STP -->
+  <div class="slide">
+    <h2 class="animate">Spanning Tree Protocol</h2>
+    <div class="content animate">
+      <p>STP (802.1D) prevents Layer 2 loops by blocking redundant paths.</p>
+      <div class="diagram" style="margin:20px 0">
+        <div class="box" style="border-color:var(--success)">Root Bridge<br><small>Lowest Bridge ID</small></div>
+        <div class="arrow">&darr;</div>
+        <div class="box">Switch A<br><small>Root Port &rarr; Best path</small></div>
+        <div class="arrow">&darr;</div>
+        <div class="box" style="opacity:0.5">Switch B<br><small>Blocked Port</small></div>
+      </div>
+      <table>
+        <tr><th>Port State</th><th>Forwards?</th><th>Learns MACs?</th><th>Duration</th></tr>
+        <tr><td>Blocking</td><td>No</td><td>No</td><td>20s (max age)</td></tr>
+        <tr><td>Listening</td><td>No</td><td>No</td><td>15s</td></tr>
+        <tr><td>Learning</td><td>No</td><td>Yes</td><td>15s</td></tr>
+        <tr><td>Forwarding</td><td>Yes</td><td>Yes</td><td>&mdash;</td></tr>
+      </table>
+      <p style="margin-top:10px"><span class="highlight">RSTP (802.1w)</span> converges in seconds vs STP's 50 seconds.</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 10: Routing Fundamentals -->
+  <div class="slide">
+    <h2 class="animate">Routing Fundamentals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Static vs Dynamic</h3>
+        <ul>
+          <li><span class="highlight">Static</span> &mdash; manually configured, no overhead</li>
+          <li><span class="highlight">Dynamic</span> &mdash; protocols discover routes automatically</li>
+          <li>Static for small/stub networks</li>
+          <li>Dynamic for large/changing topologies</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+Router(config)# ip route 10.1.0.0 255.255.0.0 192.168.1.1
+</pre>
+      </div>
+      <div class="card">
+        <h3>Administrative Distance</h3>
+        <table>
+          <tr><th>Source</th><th>AD</th></tr>
+          <tr><td>Connected</td><td>0</td></tr>
+          <tr><td>Static</td><td>1</td></tr>
+          <tr><td>EIGRP</td><td>90</td></tr>
+          <tr><td>OSPF</td><td>110</td></tr>
+          <tr><td>RIP</td><td>120</td></tr>
+        </table>
+        <p style="margin-top:8px;font-size:1rem">Lower AD = more trusted route</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: OSPF -->
+  <div class="slide">
+    <h2 class="animate">OSPF</h2>
+    <div class="content animate">
+      <p>Open Shortest Path First &mdash; link-state protocol using Dijkstra's algorithm.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Areas</h3>
+          <p>Hierarchical design. Area 0 = backbone. All areas connect to Area 0. Reduces LSA flooding.</p>
+        </div>
+        <div class="metric-card">
+          <h3>DR / BDR</h3>
+          <p>Designated Router elected on multi-access networks to reduce adjacencies. Highest priority or Router ID wins.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Cost Metric</h3>
+          <p>Cost = Reference BW / Interface BW. Default ref = 100 Mbps. Lower cost = preferred path.</p>
+          <code>auto-cost reference-bandwidth 10000</code>
+        </div>
+        <div class="metric-card">
+          <h3>LSA Types</h3>
+          <p>Type 1: Router LSA, Type 2: Network LSA, Type 3: Summary LSA, Type 5: External LSA</p>
+        </div>
+      </div>
+<pre style="margin-top:16px">
+Router(config)# router ospf 1
+Router(config-router)# network 10.0.0.0 0.0.0.255 area 0
+Router(config-router)# passive-interface default
+Router(config-router)# no passive-interface gi0/0
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 12: EIGRP & RIP -->
+  <div class="slide">
+    <h2 class="animate">EIGRP &amp; RIP</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>EIGRP</th><th>RIPv2</th></tr>
+        <tr><td>Type</td><td>Advanced distance-vector (hybrid)</td><td>Distance-vector</td></tr>
+        <tr><td>Metric</td><td>Bandwidth + Delay (composite)</td><td>Hop count (max 15)</td></tr>
+        <tr><td>Convergence</td><td>Fast (DUAL algorithm)</td><td>Slow (30s updates)</td></tr>
+        <tr><td>AD</td><td>90 (internal), 170 (external)</td><td>120</td></tr>
+        <tr><td>VLSM/CIDR</td><td>Yes</td><td>Yes (v2), No (v1)</td></tr>
+        <tr><td>Scalability</td><td>Large networks</td><td>Small networks only</td></tr>
+        <tr><td>Protocol</td><td>Cisco proprietary (now open)</td><td>Open standard</td></tr>
+      </table>
+<pre style="margin-top:16px">
+! EIGRP config
+Router(config)# router eigrp 100
+Router(config-router)# network 192.168.1.0 0.0.0.255
+Router(config-router)# no auto-summary
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: ACLs -->
+  <div class="slide">
+    <h2 class="animate">Access Control Lists</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Standard ACL (1-99)</h3>
+        <ul>
+          <li>Filters by <span class="highlight">source IP only</span></li>
+          <li>Place close to the destination</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+access-list 10 deny 10.1.1.0 0.0.0.255
+access-list 10 permit any
+!
+interface gi0/1
+ ip access-group 10 out
+</pre>
+      </div>
+      <div class="card">
+        <h3>Extended ACL (100-199)</h3>
+        <ul>
+          <li>Filters by source, dest, protocol, port</li>
+          <li>Place close to the source</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+access-list 110 permit tcp 10.1.0.0 0.0.0.255 host 10.2.1.10 eq 443
+access-list 110 deny ip any any
+!
+interface gi0/0
+ ip access-group 110 in
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px">Implicit <code>deny any</code> at the end of every ACL. Order matters &mdash; first match wins!</p>
+  </div>
+
+  <!-- SLIDE 14: NAT & PAT -->
+  <div class="slide">
+    <h2 class="animate">NAT &amp; PAT</h2>
+    <div class="content animate">
+      <p>Network Address Translation maps private IPs to public IPs for internet access.</p>
+      <div class="diagram" style="margin:16px 0">
+        <div class="box">Inside Local<br><code>192.168.1.10</code></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">NAT Router</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Inside Global<br><code>203.0.113.5</code></div>
+      </div>
+      <table>
+        <tr><th>Type</th><th>Description</th><th>Use Case</th></tr>
+        <tr><td>Static NAT</td><td>1:1 permanent mapping</td><td>Servers (web, mail)</td></tr>
+        <tr><td>Dynamic NAT</td><td>Pool of public IPs, first-come</td><td>Medium offices</td></tr>
+        <tr><td>PAT (Overload)</td><td>Many:1 using port numbers</td><td>Home/office internet</td></tr>
+      </table>
+<pre style="margin-top:12px">
+! PAT config (most common)
+Router(config)# access-list 1 permit 192.168.1.0 0.0.0.255
+Router(config)# ip nat inside source list 1 interface gi0/1 overload
+Router(config)# interface gi0/0
+Router(config-if)# ip nat inside
+Router(config)# interface gi0/1
+Router(config-if)# ip nat outside
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: DHCP & DNS -->
+  <div class="slide">
+    <h2 class="animate">DHCP &amp; DNS</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>DHCP (Dynamic Host Config)</h3>
+        <p>Automatically assigns IP, mask, gateway, DNS.</p>
+        <p style="margin-top:8px"><span class="highlight">DORA Process:</span></p>
+        <ul>
+          <li><span class="highlight">D</span>iscover &mdash; client broadcasts</li>
+          <li><span class="highlight">O</span>ffer &mdash; server responds with IP</li>
+          <li><span class="highlight">R</span>equest &mdash; client accepts offer</li>
+          <li><span class="highlight">A</span>ck &mdash; server confirms lease</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+ip dhcp pool OFFICE
+ network 10.1.1.0 255.255.255.0
+ default-router 10.1.1.1
+ dns-server 8.8.8.8
+</pre>
+      </div>
+      <div class="card">
+        <h3>DNS Resolution Flow</h3>
+        <ul>
+          <li>1. Check local cache</li>
+          <li>2. Query recursive resolver</li>
+          <li>3. Root server &rarr; TLD server</li>
+          <li>4. Authoritative server &rarr; IP</li>
+          <li>5. Cache result (TTL)</li>
+        </ul>
+        <p style="margin-top:10px">Common records:</p>
+        <ul>
+          <li><code>A</code> &mdash; name &rarr; IPv4</li>
+          <li><code>AAAA</code> &mdash; name &rarr; IPv6</li>
+          <li><code>CNAME</code> &mdash; alias</li>
+          <li><code>MX</code> &mdash; mail server</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 16: TCP vs UDP -->
+  <div class="slide">
+    <h2 class="animate">TCP vs UDP</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>TCP</th><th>UDP</th></tr>
+        <tr><td>Connection</td><td>Connection-oriented (3-way handshake)</td><td>Connectionless</td></tr>
+        <tr><td>Reliability</td><td>Guaranteed delivery, ordering, retransmission</td><td>Best-effort, no guarantees</td></tr>
+        <tr><td>Speed</td><td>Slower (overhead)</td><td>Faster (minimal overhead)</td></tr>
+        <tr><td>Flow Control</td><td>Yes (windowing)</td><td>No</td></tr>
+        <tr><td>Use Cases</td><td>HTTP, SSH, FTP, SMTP, BGP</td><td>DNS, DHCP, VoIP, video, SNMP</td></tr>
+      </table>
+      <h3 style="margin-top:20px">TCP 3-Way Handshake</h3>
+      <div class="diagram">
+        <div class="box">Client<br><small>SYN</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Server<br><small>SYN-ACK</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Client<br><small>ACK</small></div>
+      </div>
+      <h3 style="margin-top:10px">Common Ports</h3>
+      <p><code>22</code> SSH &bull; <code>53</code> DNS &bull; <code>80</code> HTTP &bull; <code>443</code> HTTPS &bull; <code>25</code> SMTP &bull; <code>3389</code> RDP</p>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Wireless -->
+  <div class="slide">
+    <h2 class="animate">Wireless Networking</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Standard</th><th>Name</th><th>Frequency</th><th>Max Speed</th></tr>
+        <tr><td>802.11a</td><td>&mdash;</td><td>5 GHz</td><td>54 Mbps</td></tr>
+        <tr><td>802.11n</td><td>Wi-Fi 4</td><td>2.4/5 GHz</td><td>600 Mbps</td></tr>
+        <tr><td>802.11ac</td><td>Wi-Fi 5</td><td>5 GHz</td><td>6.9 Gbps</td></tr>
+        <tr><td>802.11ax</td><td>Wi-Fi 6/6E</td><td>2.4/5/6 GHz</td><td>9.6 Gbps</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Security Standards</h3>
+          <ul>
+            <li><s>WEP</s> &mdash; broken, never use</li>
+            <li><s>WPA</s> &mdash; TKIP, deprecated</li>
+            <li><span class="highlight">WPA2</span> &mdash; AES/CCMP, standard</li>
+            <li><span class="green">WPA3</span> &mdash; SAE, latest &amp; strongest</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Key Concepts</h3>
+          <ul>
+            <li><span class="highlight">SSID</span> &mdash; network name</li>
+            <li><span class="highlight">AP</span> &mdash; Access Point (bridge wireless &harr; wired)</li>
+            <li><span class="highlight">Channels</span> &mdash; 2.4GHz: use 1, 6, or 11</li>
+            <li><span class="highlight">WLC</span> &mdash; Wireless LAN Controller</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 18: Network Security -->
+  <div class="slide">
+    <h2 class="animate">Network Security Basics</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Port Security</h3>
+        <p>Limit MAC addresses per port. Violation modes: protect, restrict, shutdown.</p>
+        <code>switchport port-security maximum 2</code>
+      </div>
+      <div class="metric-card">
+        <h3>DHCP Snooping</h3>
+        <p>Prevents rogue DHCP servers. Trusted ports (uplinks) vs untrusted ports (access).</p>
+        <code>ip dhcp snooping vlan 10</code>
+      </div>
+      <div class="metric-card">
+        <h3>DAI (Dynamic ARP Inspection)</h3>
+        <p>Validates ARP packets against DHCP snooping binding table. Prevents ARP spoofing.</p>
+        <code>ip arp inspection vlan 10</code>
+      </div>
+      <div class="metric-card">
+        <h3>AAA Framework</h3>
+        <p><span class="highlight">Authentication</span> (who?), <span class="highlight">Authorization</span> (what?), <span class="highlight">Accounting</span> (log it). Uses RADIUS or TACACS+.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19: Troubleshooting -->
+  <div class="slide">
+    <h2 class="animate">Network Troubleshooting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Essential Commands</h3>
+<pre style="font-size:0.85rem">
+# Connectivity
+ping 10.1.1.1
+traceroute 10.1.1.1
+
+# Interface status
+show ip interface brief
+show interfaces gi0/0
+
+# Routing
+show ip route
+show ip ospf neighbor
+
+# Switching
+show vlan brief
+show mac address-table
+show spanning-tree
+</pre>
+      </div>
+      <div class="card">
+        <h3>Troubleshooting Methodology</h3>
+        <ul>
+          <li><span class="highlight">1.</span> Define the problem</li>
+          <li><span class="highlight">2.</span> Gather information</li>
+          <li><span class="highlight">3.</span> Analyze information</li>
+          <li><span class="highlight">4.</span> Test hypothesis</li>
+          <li><span class="highlight">5.</span> Solve &amp; document</li>
+        </ul>
+        <h3 style="margin-top:16px">Bottom-Up Approach</h3>
+        <ul>
+          <li>Physical: cable, link lights?</li>
+          <li>Data Link: MAC, VLAN, STP?</li>
+          <li>Network: IP, routing, ACL?</li>
+          <li>Transport: port open, firewall?</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20: Summary -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F310;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You've covered the essential CCNA networking topics:</p>
+      <div style="margin:20px 0">
+        <span class="tag">OSI / TCP/IP</span><span class="tag">IPv4 / IPv6</span><span class="tag">Subnetting</span>
+        <span class="tag">VLANs</span><span class="tag">STP</span><span class="tag">OSPF</span>
+        <span class="tag">EIGRP</span><span class="tag">ACLs</span><span class="tag">NAT/PAT</span>
+        <span class="tag">DHCP/DNS</span><span class="tag">TCP/UDP</span><span class="tag">Wireless</span>
+        <span class="tag">Security</span><span class="tag">Troubleshooting</span>
+      </div>
+      <p style="color:var(--text-muted)">Practice with Packet Tracer and lab environments. Good luck on the CCNA exam!</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
