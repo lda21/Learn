@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cursor AI</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: center; align-items: center; padding: 60px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F5B1;</span>
+    <h1 class="animate">Cursor AI</h1>
+    <p class="subtitle animate">The AI-first code editor</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">AI</span><span class="tag">Editor</span><span class="tag">Productivity</span><span class="tag">Coding</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Cursor?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>AI-native code editor built on VS Code</li>
+          <li>Deep integration with Claude, GPT-4, and other LLMs</li>
+          <li>All VS Code extensions and keybindings work</li>
+          <li>Tab completion, inline edits, and chat built in</li>
+          <li>Founded 2022, rapidly growing developer tool</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Cursor?</h3>
+        <ul>
+          <li><span class="highlight">AI-first</span> &mdash; every feature designed around AI</li>
+          <li><span class="highlight">Context-aware</span> &mdash; understands your entire codebase</li>
+          <li><span class="highlight">Multi-model</span> &mdash; Claude, GPT-4o, Gemini, custom</li>
+          <li><span class="highlight">VS Code compatible</span> &mdash; zero learning curve</li>
+          <li><span class="highlight">Privacy</span> &mdash; Privacy Mode keeps code off servers</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Installation &amp; Setup</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Getting Started</h3>
+          <ul>
+            <li>Download from <span class="highlight">cursor.com</span></li>
+            <li>Available for macOS, Windows, Linux</li>
+            <li>Import VS Code settings, extensions, keybindings</li>
+            <li>Sign in for AI features (free tier available)</li>
+            <li>Pro plan: unlimited completions + premium models</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>First Steps</h3>
+          <ul>
+            <li>Open a project folder</li>
+            <li>Let Cursor index your codebase (automatic)</li>
+            <li>Try <code>Ctrl+K</code> for inline edit</li>
+            <li>Try <code>Ctrl+L</code> for AI chat</li>
+            <li>Accept Tab completions as you type</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Migration:</span> Cursor imports everything from VS Code &mdash; themes, extensions, settings, keybindings. Switch in seconds.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Core Features</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Tab Completion</h3>
+        <p>AI-powered autocomplete that predicts multi-line edits. Understands context from your entire file and project.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Inline Edit (Ctrl+K)</h3>
+        <p>Select code, describe the change in natural language. AI rewrites the selection in place.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Chat (Ctrl+L)</h3>
+        <p>Side panel chat with full codebase context. Ask questions, generate code, debug issues.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Composer (Ctrl+I)</h3>
+        <p>Multi-file editing agent. Describe a feature and Cursor edits multiple files simultaneously.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center">These four features cover 90% of daily AI-assisted coding workflows.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tab Completion</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>How It Works</h3>
+          <ul>
+            <li>Predicts your next edit as you type</li>
+            <li>Shows ghost text (gray) inline</li>
+            <li>Press <code>Tab</code> to accept</li>
+            <li>Press <code>Esc</code> to dismiss</li>
+            <li>Learns from your editing patterns</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What Makes It Special</h3>
+          <ul>
+            <li><span class="highlight">Multi-line</span> &mdash; predicts entire blocks, not just one line</li>
+            <li><span class="highlight">Edit prediction</span> &mdash; suggests changes to existing code, not just insertions</li>
+            <li><span class="highlight">Context-aware</span> &mdash; reads surrounding files, imports, types</li>
+            <li><span class="highlight">Cursor prediction</span> &mdash; predicts where you will move next</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Pro tip:</span> After accepting a Tab completion, press <code>Tab</code> again &mdash; Cursor often chains multiple related edits. It knows the next logical place to edit.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Inline Edit (Ctrl+K)</h2>
+    <div class="content animate">
+      <p>Select code (or place cursor on a line), press <code>Ctrl+K</code>, type what you want.</p>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Example Prompts</h3>
+          <ul>
+            <li>"Add error handling for the API call"</li>
+            <li>"Convert this to async/await"</li>
+            <li>"Add TypeScript types"</li>
+            <li>"Make this function pure"</li>
+            <li>"Optimize this SQL query"</li>
+            <li>"Add input validation"</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Tips</h3>
+          <ul>
+            <li>Select the exact code you want changed</li>
+            <li>Be specific about the desired outcome</li>
+            <li><code>Ctrl+Shift+K</code> for terminal command generation</li>
+            <li>Shows diff preview before applying</li>
+            <li>Accept with <code>Enter</code>, reject with <code>Esc</code></li>
+            <li>Works in any file type</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">No selection?</span> Ctrl+K with no selection generates new code at cursor position. Great for "write a function that..."</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Chat Panel (Ctrl+L)</h2>
+    <div class="content animate">
+      <div class="two-col">
+        <div class="card">
+          <h3>Capabilities</h3>
+          <ul>
+            <li>Ask questions about your codebase</li>
+            <li>Generate new code with full context</li>
+            <li>Debug errors &mdash; paste stack traces</li>
+            <li>Explain complex code sections</li>
+            <li>Plan architecture and refactoring</li>
+            <li>Apply code directly from chat to editor</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Context Controls</h3>
+          <ul>
+            <li><code>@file</code> &mdash; reference a specific file</li>
+            <li><code>@folder</code> &mdash; reference a directory</li>
+            <li><code>@code</code> &mdash; reference a symbol/function</li>
+            <li><code>@web</code> &mdash; search the web for context</li>
+            <li><code>@docs</code> &mdash; reference documentation</li>
+            <li><code>@git</code> &mdash; reference git history/diff</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Apply button:</span> Chat generates code? Click "Apply" to insert it directly into the right file at the right location.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Composer (Ctrl+I)</h2>
+    <div class="content animate">
+      <p>Cursor's most powerful feature &mdash; an AI agent that edits multiple files at once.</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Multi-file Edits</h3>
+          <p>Describe a feature: "Add user authentication with JWT, including routes, middleware, and tests." Composer edits all relevant files.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Agentic Mode</h3>
+          <p>Composer can run terminal commands, read files, and iterate on errors automatically. Like having a pair programmer.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Checkpoints</h3>
+          <p>Every Composer action creates a checkpoint. Review changes file-by-file, accept or revert individual files.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Iterate</h3>
+          <p>Not satisfied? Follow up: "Also add rate limiting" or "Use bcrypt instead of argon2." Composer builds on previous context.</p>
+        </div>
+      </div>
+      <p style="margin-top:12px"><span class="highlight">Best for:</span> New features, refactoring across files, adding tests, migrations, boilerplate generation.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">@ Context Symbols</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Symbol</th><th>What It Does</th><th>Example</th></tr>
+        <tr><td><code>@file</code></td><td>Include a specific file as context</td><td>@file:src/auth.ts</td></tr>
+        <tr><td><code>@folder</code></td><td>Include all files in a directory</td><td>@folder:src/components</td></tr>
+        <tr><td><code>@code</code></td><td>Reference a function or class</td><td>@code:handleLogin</td></tr>
+        <tr><td><code>@web</code></td><td>Search the internet for context</td><td>@web latest React 19 features</td></tr>
+        <tr><td><code>@docs</code></td><td>Search indexed documentation</td><td>@docs:Next.js app router</td></tr>
+        <tr><td><code>@git</code></td><td>Reference git diff or history</td><td>@git recent changes</td></tr>
+        <tr><td><code>@codebase</code></td><td>Search entire codebase</td><td>@codebase how is auth handled?</td></tr>
+        <tr><td><code>@definitions</code></td><td>Include type definitions</td><td>@definitions of User</td></tr>
+      </table>
+      <p style="margin-top:14px"><span class="highlight">Pro tip:</span> Combine symbols: "Using @file:schema.prisma and @file:routes/users.ts, add a delete endpoint with proper error handling."</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Codebase Indexing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How It Works</h3>
+        <ul>
+          <li>Cursor creates embeddings of your entire codebase</li>
+          <li>Indexes on project open (automatic)</li>
+          <li>Re-indexes on file changes</li>
+          <li>Enables semantic search across all files</li>
+          <li>Powers <code>@codebase</code> queries</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Optimize Indexing</h3>
+        <ul>
+          <li>Use <code>.cursorignore</code> to exclude files</li>
+          <li>Exclude: node_modules, dist, build, .git</li>
+          <li>Exclude: large data files, binary assets</li>
+          <li>Check indexing status in Settings &rarr; Features</li>
+          <li>Re-index manually if results seem stale</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+# .cursorignore (same syntax as .gitignore)
+node_modules/
+dist/
+build/
+*.min.js
+*.map
+coverage/
+.next/
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cursor Rules</h2>
+    <div class="content animate">
+      <p>Custom instructions that shape how Cursor AI responds. Like a system prompt for your project.</p>
+<pre>
+# .cursor/rules (project-level rules)
+
+You are an expert in TypeScript, React 19, and Next.js 15 App Router.
+
+Key principles:
+- Use functional components with TypeScript interfaces
+- Prefer server components; use "use client" only when needed
+- Use Tailwind CSS for styling, no inline styles
+- Follow the project structure in src/
+- Write tests for all new utilities using Vitest
+- Use Zod for runtime validation
+- Prefer named exports over default exports
+- Error messages should be user-friendly
+
+Naming conventions:
+- Components: PascalCase (UserCard.tsx)
+- Utilities: camelCase (formatDate.ts)
+- Types: PascalCase with prefix (type UserProps)
+- API routes: kebab-case (/api/user-profile)
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Location:</span> <code>.cursor/rules</code> for project rules. Settings &rarr; General &rarr; Rules for global rules.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Model Selection</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Model</th><th>Best For</th><th>Speed</th></tr>
+        <tr><td><span class="highlight">Claude Sonnet 4</span></td><td>Best overall coding, complex reasoning</td><td>Medium</td></tr>
+        <tr><td><span class="highlight">Claude Opus 4</span></td><td>Most complex tasks, architecture</td><td>Slower</td></tr>
+        <tr><td><span class="highlight">GPT-4o</span></td><td>General coding, fast responses</td><td>Fast</td></tr>
+        <tr><td><span class="highlight">Claude Haiku</span></td><td>Quick edits, simple tasks</td><td>Very fast</td></tr>
+        <tr><td><span class="highlight">cursor-small</span></td><td>Tab completions (specialized)</td><td>Instant</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Switching Models</h3>
+          <ul>
+            <li>Click model name in chat panel</li>
+            <li>Different models for chat vs Composer</li>
+            <li>Tab uses cursor-small by default</li>
+            <li>Configure defaults in Settings</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Strategy</h3>
+          <ul>
+            <li>Use fast models for simple edits</li>
+            <li>Use Claude Sonnet/Opus for complex features</li>
+            <li>Switch mid-conversation if needed</li>
+            <li>Pro plan includes premium model access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Debugging with Cursor</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Paste Error Messages</h3>
+          <p>Copy a stack trace into Chat (<code>Ctrl+L</code>). Cursor reads the referenced files and explains the fix.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Terminal Integration</h3>
+          <p>Errors in the terminal? Cursor detects them and offers "Fix with AI" suggestions automatically.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Lint Errors</h3>
+          <p>Hover over red squiggles &rarr; Quick Fix &rarr; "Fix with Cursor." AI understands ESLint, TypeScript errors.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Explain Code</h3>
+          <p>Select confusing code, <code>Ctrl+L</code>, ask "What does this do?" Get a plain-English explanation with context.</p>
+        </div>
+      </div>
+      <p style="margin-top:14px"><span class="highlight">Workflow:</span> See error &rarr; Ctrl+L &rarr; Paste error &rarr; AI diagnoses &rarr; Click Apply &rarr; Fixed. 30 seconds.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Privacy &amp; Security</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Privacy Mode</h3>
+        <ul>
+          <li>Enable in Settings &rarr; General &rarr; Privacy Mode</li>
+          <li>Code is <span class="highlight">not stored</span> on Cursor servers</li>
+          <li>Not used for training AI models</li>
+          <li>SOC 2 compliant</li>
+          <li>Essential for proprietary/enterprise code</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Security Best Practices</h3>
+        <ul>
+          <li>Enable Privacy Mode for work projects</li>
+          <li>Use <code>.cursorignore</code> for sensitive files</li>
+          <li>Don't paste API keys into chat</li>
+          <li>Review AI-generated code before committing</li>
+          <li>Use your organization's approved models</li>
+          <li>Check compliance requirements (HIPAA, GDPR)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Advanced Workflows</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Test-Driven Development</h3>
+        <p>Write a failing test, then ask Composer: "Make this test pass." AI implements the feature to match your test.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Code Review</h3>
+        <p>Paste a PR diff into Chat: "Review this for bugs, security issues, and performance." AI reviews like a senior dev.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Documentation</h3>
+        <p>Select a module, Ctrl+K: "Add JSDoc comments." Or Chat: "Generate README for @folder:src/utils."</p>
+      </div>
+      <div class="metric-card">
+        <h3>Refactoring</h3>
+        <p>Composer: "Extract the auth logic from UserController into a separate AuthService class with proper types."</p>
+      </div>
+      <div class="metric-card">
+        <h3>Migration</h3>
+        <p>"Migrate @folder:src/api from Express to Fastify, keeping the same route structure and middleware patterns."</p>
+      </div>
+      <div class="metric-card">
+        <h3>Learning</h3>
+        <p>Select unfamiliar code, ask Chat to explain it. Or: "Show me how @code:useAuth works step by step."</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Keyboard Shortcuts</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Shortcut</th><th>Action</th><th>When to Use</th></tr>
+        <tr><td><code>Tab</code></td><td>Accept AI completion</td><td>While typing</td></tr>
+        <tr><td><code>Ctrl+K</code></td><td>Inline edit</td><td>Quick targeted changes</td></tr>
+        <tr><td><code>Ctrl+L</code></td><td>Open Chat panel</td><td>Questions, debugging, generation</td></tr>
+        <tr><td><code>Ctrl+I</code></td><td>Open Composer</td><td>Multi-file features</td></tr>
+        <tr><td><code>Ctrl+Shift+K</code></td><td>Terminal AI command</td><td>Generate shell commands</td></tr>
+        <tr><td><code>Ctrl+Shift+L</code></td><td>Add selection to Chat</td><td>Send highlighted code to chat</td></tr>
+        <tr><td><code>Ctrl+Enter</code></td><td>Accept all Composer changes</td><td>After reviewing diffs</td></tr>
+        <tr><td><code>Esc</code></td><td>Dismiss suggestion/close panel</td><td>Cancel AI action</td></tr>
+      </table>
+      <p style="margin-top:14px">All standard VS Code shortcuts still work: <code>Ctrl+P</code> (files), <code>Ctrl+Shift+P</code> (commands), <code>Ctrl+D</code> (multi-select).</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cursor vs Other AI Tools</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>Cursor</th><th>Copilot</th><th>Claude Code</th></tr>
+        <tr><td>Type</td><td>Full editor (VS Code fork)</td><td>VS Code extension</td><td>CLI tool</td></tr>
+        <tr><td>Multi-file edit</td><td><span class="green">Composer agent</span></td><td><span class="green">Copilot Edits</span></td><td><span class="green">Agent tool</span></td></tr>
+        <tr><td>Codebase awareness</td><td><span class="green">Full indexing</span></td><td><span class="green">Workspace index</span></td><td><span class="green">Full access</span></td></tr>
+        <tr><td>Model choice</td><td><span class="green">Claude, GPT, Gemini</span></td><td>GPT, Claude</td><td>Claude only</td></tr>
+        <tr><td>Terminal agent</td><td><span class="green">Composer agentic</span></td><td>Limited</td><td><span class="green">Native</span></td></tr>
+        <tr><td>Custom rules</td><td>.cursor/rules</td><td>.github/copilot</td><td>CLAUDE.md</td></tr>
+        <tr><td>Pricing</td><td>Free / $20 Pro</td><td>$10 / $19</td><td>API usage</td></tr>
+      </table>
+      <p style="margin-top:12px"><span class="highlight">They complement each other.</span> Many developers use Cursor for visual editing + Claude Code for terminal-heavy tasks.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Write clear <code>.cursor/rules</code> for every project</div>
+      <div class="bp-item"><span>2.</span> Use @ symbols to give precise context</div>
+      <div class="bp-item"><span>3.</span> Review AI diffs carefully before accepting</div>
+      <div class="bp-item"><span>4.</span> Use Ctrl+K for small edits, Composer for features</div>
+      <div class="bp-item"><span>5.</span> Let Tab completion chain &mdash; keep pressing Tab</div>
+      <div class="bp-item"><span>6.</span> Enable Privacy Mode for proprietary code</div>
+      <div class="bp-item"><span>7.</span> Use .cursorignore for large/sensitive files</div>
+      <div class="bp-item"><span>8.</span> Match model to task complexity</div>
+      <div class="bp-item"><span>9.</span> Break complex tasks into smaller Composer prompts</div>
+      <div class="bp-item"><span>10.</span> Commit before major Composer changes (easy rollback)</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F5B1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You are now a Cursor AI expert:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Tab Completion</span><span class="tag">Inline Edit</span><span class="tag">Chat</span>
+        <span class="tag">Composer</span><span class="tag">@ Symbols</span><span class="tag">Rules</span>
+        <span class="tag">Models</span><span class="tag">Privacy</span><span class="tag">Workflows</span>
+      </div>
+      <p style="color:var(--text-muted)">The best AI tool is the one that fits your workflow. Master the shortcuts, write great rules, and ship faster.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
