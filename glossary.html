@@ -746,6 +746,13 @@ function renderCoverage() {
 
 renderCoverage();
 
+// Handle ?search= parameter from course links
+const urlParams = new URLSearchParams(window.location.search);
+const searchParam = urlParams.get('search');
+if (searchParam) {
+  document.getElementById('searchInput').value = searchParam;
+}
+
 // Initial render
 filterTerms();
 </script>
