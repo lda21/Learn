@@ -664,8 +664,9 @@ git config --list
       <table class="animate">
         <tr><th>Strategy</th><th>Branches</th><th>Best For</th></tr>
         <tr><td><strong>GitHub Flow</strong></td><td>main + feature</td><td>Simple, continuous deployment</td></tr>
-        <tr><td><strong>Git Flow</strong></td><td>main, develop, feature, release, hotfix</td><td>Scheduled releases</td></tr>
+        <tr><td><strong>Git Flow</strong></td><td>main, develop, feature, release, hotfix</td><td>Scheduled releases with versioning</td></tr>
         <tr><td><strong>Trunk-Based</strong></td><td>main + short-lived feature</td><td>CI/CD, experienced teams</td></tr>
+        <tr><td><strong>GitLab Flow</strong></td><td>main + environment branches</td><td>Environment-based deployments</td></tr>
       </table>
       <div class="diagram animate" style="margin-top:20px;">
         <div class="box">main</div>
@@ -674,11 +675,95 @@ git config --list
         <div class="arrow">&larr;</div>
         <div class="box" style="border-color:var(--success);">PR +<br>review</div>
       </div>
-      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:8px;">GitHub Flow (recommended for most teams)</p>
+      <p class="animate" style="text-align:center; color:var(--text-muted); margin-top:8px;">GitHub Flow &mdash; simplest model for continuous deployment</p>
     </div>
   </div>
 
   <!-- SLIDE 18 -->
+  <div class="slide">
+    <h2 class="animate">Git Flow &mdash; Full SDLC</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">The most structured branching model &mdash; maps directly to the software development lifecycle with versioned releases and hotfix support.</p>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:950px; width:100%;">
+        <div class="card animate">
+          <h3>Long-Lived Branches</h3>
+          <ul>
+            <li><code>main</code> &mdash; production code, every commit is a release (tagged <code>v1.0</code>, <code>v2.0</code>)</li>
+            <li><code>develop</code> &mdash; integration branch for the next release, always ahead of main</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Short-Lived Branches</h3>
+          <ul>
+            <li><code>feature/*</code> &mdash; branch from <strong>develop</strong>, merge back via PR</li>
+            <li><code>release/*</code> &mdash; branch from develop when ready, merge to <strong>main + develop</strong></li>
+            <li><code>hotfix/*</code> &mdash; branch from <strong>main</strong>, merge to <strong>main + develop</strong></li>
+          </ul>
+        </div>
+      </div>
+      <div class="diagram animate" style="margin-top:20px; flex-direction:column; gap:8px;">
+        <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap; justify-content:center;">
+          <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">main<br><small>v1.0 &rarr; v1.1 &rarr; v2.0</small></div>
+          <div class="arrow">&larr;</div>
+          <div class="box" style="border-color:var(--success);">release/2.0<br><small>QA &amp; bug fixes</small></div>
+          <div class="arrow">&larr;</div>
+          <div class="box">develop<br><small>next version</small></div>
+          <div class="arrow">&larr;</div>
+          <div class="box" style="border-color:var(--warning);">feature/*<br><small>new work</small></div>
+        </div>
+        <div style="display:flex; align-items:center; gap:12px; margin-top:8px;">
+          <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">main</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="border-color:#e74c3c; color:#e74c3c;">hotfix/*<br><small>urgent fix</small></div>
+          <div class="arrow">&rarr;</div>
+          <span style="font-size:1.1rem;">merge to <strong>main</strong> (tag <code>v1.1</code>) <strong>+</strong> <strong>develop</strong></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 19 -->
+  <div class="slide">
+    <h2 class="animate">Release &amp; Hotfix Lifecycle</h2>
+    <div class="content">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:24px; max-width:950px; width:100%;">
+        <div class="card animate">
+          <h3 style="color:var(--success);">Planned Release (v2.0)</h3>
+          <ul>
+            <li><strong>1.</strong> Features developed on <code>feature/*</code> branches</li>
+            <li><strong>2.</strong> PRs merged into <code>develop</code></li>
+            <li><strong>3.</strong> Create <code>release/2.0</code> from develop</li>
+            <li><strong>4.</strong> QA testing &amp; bug fixes on release branch</li>
+            <li><strong>5.</strong> Merge to <code>main</code> &rarr; tag <code>v2.0</code></li>
+            <li><strong>6.</strong> Merge back to <code>develop</code></li>
+            <li><strong>7.</strong> Deploy <code>v2.0</code> to production</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3 style="color:#e74c3c;">Hotfix (v2.0.1)</h3>
+          <ul>
+            <li><strong>1.</strong> Critical bug found in production</li>
+            <li><strong>2.</strong> Create <code>hotfix/2.0.1</code> from <code>main</code></li>
+            <li><strong>3.</strong> Fix the bug, test locally</li>
+            <li><strong>4.</strong> Merge to <code>main</code> &rarr; tag <code>v2.0.1</code></li>
+            <li><strong>5.</strong> Merge to <code>develop</code> (don't lose the fix)</li>
+            <li><strong>6.</strong> Deploy immediately to production</li>
+          </ul>
+        </div>
+      </div>
+      <div class="card animate" style="margin-top:20px; max-width:950px; width:100%;">
+        <h3>Semantic Versioning (SemVer)</h3>
+        <p style="font-size:1.15rem;"><code>MAJOR.MINOR.PATCH</code> &mdash; e.g., <code>v2.1.3</code></p>
+        <ul>
+          <li><strong>MAJOR</strong> (2.x.x) &mdash; breaking changes, new architecture</li>
+          <li><strong>MINOR</strong> (x.1.x) &mdash; new features, backward-compatible</li>
+          <li><strong>PATCH</strong> (x.x.3) &mdash; bug fixes, hotfixes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 20 - Best Practices -->
   <div class="slide">
     <h2 class="animate">Best Practices</h2>
     <div class="bp-grid">
@@ -693,7 +778,7 @@ git config --list
     </div>
   </div>
 
-  <!-- SLIDE 19 -->
+  <!-- SLIDE 21 -->
   <div class="slide">
     <h2 class="animate">Commit Message Convention</h2>
     <div class="content">
@@ -718,7 +803,7 @@ BREAKING CHANGE: Response now returns array instead of object
     </div>
   </div>
 
-  <!-- SLIDE 20 -->
+  <!-- SLIDE 22 -->
   <div class="slide">
     <span class="logo-icon animate">&#x1F500;</span>
     <h2 class="animate">Key Takeaways</h2>
@@ -740,7 +825,7 @@ BREAKING CHANGE: Response now returns array instead of object
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 22</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
