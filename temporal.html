@@ -48,13 +48,13 @@
       height: 100vh;
     }
 
-    .deck { width: 100vw; height: 100vh; position: relative; }
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
 
     .slide {
       position: absolute; inset: 0;
       display: flex; flex-direction: column; justify-content: center; align-items: center;
       padding: 60px 80px; opacity: 0; pointer-events: none;
-      transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+      transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
     }
     .slide.active { opacity: 1; pointer-events: auto; }
 
@@ -181,7 +181,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: auto; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
       h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
       p, li { font-size: 1.3rem; line-height: 1.7; }
       .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
