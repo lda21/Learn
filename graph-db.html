@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Apache Kafka</title>
+  <title>Graph Databases</title>
   <style>
     :root {
       --bg: #FAF9F7;
@@ -209,354 +209,412 @@
 
 <div class="deck" id="deck">
 
-
   <div class="slide active">
-    <span class="logo-icon animate">&#x1F4E8;</span>
-    <h1 class="animate">Apache Kafka</h1>
-    <p class="subtitle animate">Distributed event streaming at scale</p>
+    <span class="logo-icon animate">&#x1F578;</span>
+    <h1 class="animate">Graph Databases</h1>
+    <p class="subtitle animate">Model and traverse connected data naturally</p>
     <div class="animate" style="margin-top:20px">
-      <span class="tag">Streaming</span><span class="tag">Events</span><span class="tag">Messaging</span><span class="tag">Distributed</span>
+      <span class="tag">Neo4j</span><span class="tag">Cypher</span><span class="tag">Relationships</span><span class="tag">Knowledge Graphs</span>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">What is Kafka?</h2>
+    <h2 class="animate">Why Graph Databases?</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Overview</h3>
+        <h3>The Problem with SQL Joins</h3>
         <ul>
-          <li>Distributed event streaming platform</li>
-          <li>Publish-subscribe messaging at massive scale</li>
-          <li>Durable, fault-tolerant, high-throughput</li>
-          <li>Millions of messages per second</li>
-          <li>Created at LinkedIn, now Apache project</li>
+          <li>Highly connected data = many JOINs</li>
+          <li>JOINs get exponentially slower with depth</li>
+          <li>"Friends of friends of friends" = 3 JOINs</li>
+          <li>Graph queries stay fast at any depth</li>
+          <li>Relationships are first-class citizens</li>
         </ul>
       </div>
       <div class="card">
         <h3>Use Cases</h3>
         <ul>
-          <li><span class="highlight">Event Streaming</span> &mdash; real-time data pipelines</li>
-          <li><span class="highlight">Log Aggregation</span> &mdash; centralize app logs</li>
-          <li><span class="highlight">Microservices</span> &mdash; async communication</li>
-          <li><span class="highlight">CDC</span> &mdash; Change Data Capture from databases</li>
-          <li><span class="highlight">Analytics</span> &mdash; real-time dashboards</li>
+          <li><span class="highlight">Social Networks</span> &mdash; friends, followers, feeds</li>
+          <li><span class="highlight">Recommendations</span> &mdash; "people also bought"</li>
+          <li><span class="highlight">Fraud Detection</span> &mdash; suspicious patterns</li>
+          <li><span class="highlight">Knowledge Graphs</span> &mdash; connected knowledge</li>
+          <li><span class="highlight">Network/IT</span> &mdash; dependencies, impact analysis</li>
+          <li><span class="highlight">Identity &amp; Access</span> &mdash; permission graphs</li>
         </ul>
       </div>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Core Architecture</h2>
+    <h2 class="animate">Graph Data Model</h2>
     <div class="content animate">
       <div class="diagram">
-        <div class="box">Producer<br><small>App / Service</small></div>
-        <div class="arrow">&rarr;</div>
-        <div class="box" style="border-color:var(--success)">Kafka Broker<br><small>Cluster (3+ nodes)</small></div>
-        <div class="arrow">&rarr;</div>
-        <div class="box">Consumer<br><small>App / Service</small></div>
+        <div class="box" style="border-color:var(--success)">Node<br><small>(Alice)</small></div>
+        <div class="arrow">&mdash; KNOWS &rarr;</div>
+        <div class="box" style="border-color:var(--success)">Node<br><small>(Bob)</small></div>
+        <div class="arrow">&mdash; WORKS_AT &rarr;</div>
+        <div class="box">Node<br><small>(Acme Inc)</small></div>
       </div>
-      <div class="metric-grid" style="margin-top:20px">
-        <div class="metric-card">
-          <h3>Broker</h3>
-          <p>A Kafka server that stores data and serves clients. A cluster has 3+ brokers for fault tolerance.</p>
-        </div>
-        <div class="metric-card">
-          <h3>Topic</h3>
-          <p>A named category/feed of messages. Like a database table. Producers write to topics, consumers read from them.</p>
-        </div>
-        <div class="metric-card">
-          <h3>Partition</h3>
-          <p>A topic is split into partitions for parallelism. Each partition is an ordered, immutable log of records.</p>
-        </div>
-        <div class="metric-card">
-          <h3>Offset</h3>
-          <p>A unique sequential ID for each record within a partition. Consumers track their position by offset.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Topics &amp; Partitions</h2>
-    <div class="content animate">
-<pre>
-# Create a topic with 6 partitions and replication factor 3
-kafka-topics.sh --create \
-  --bootstrap-server localhost:9092 \
-  --topic orders \
-  --partitions 6 \
-  --replication-factor 3
-
-# List topics
-kafka-topics.sh --list --bootstrap-server localhost:9092
-
-# Describe topic
-kafka-topics.sh --describe --topic orders --bootstrap-server localhost:9092
-
-# Topic: orders  Partitions: 6  Replication: 3
-# Partition 0:  Leader: 1  Replicas: 1,2,3  ISR: 1,2,3
-# Partition 1:  Leader: 2  Replicas: 2,3,1  ISR: 2,3,1
-</pre>
-      <p style="margin-top:12px"><span class="highlight">Key rule:</span> Messages with the same key always go to the same partition (ordering guarantee per key).</p>
-      <p><span class="highlight">Replication:</span> Each partition has 1 leader + N-1 followers. ISR = in-sync replicas.</p>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Producers</h2>
-    <div class="content animate">
-<pre>
-// Java producer example
-Properties props = new Properties();
-props.put("bootstrap.servers", "localhost:9092");
-props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-props.put("acks", "all");  // strongest durability guarantee
-
-Producer&lt;String, String&gt; producer = new KafkaProducer&lt;&gt;(props);
-
-// Send message (async)
-producer.send(new ProducerRecord&lt;&gt;("orders", orderId, orderJson),
-  (metadata, exception) -&gt; {
-    if (exception != null) log.error("Send failed", exception);
-    else log.info("Sent to partition {} offset {}", metadata.partition(), metadata.offset());
-  });
-
-// Key determines partition: hash(key) % numPartitions
-// null key = round-robin across partitions
-</pre>
-      <div class="two-col" style="margin-top:12px">
-        <div class="card"><h3>acks=0</h3><p>Fire and forget. Fastest, may lose data.</p></div>
-        <div class="card"><h3>acks=all</h3><p>Wait for all ISR replicas. Slowest, no data loss.</p></div>
-      </div>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Consumers &amp; Consumer Groups</h2>
-    <div class="content animate">
-      <div class="two-col">
+      <div class="two-col" style="margin-top:20px">
         <div class="card">
-          <h3>Consumer Basics</h3>
+          <h3>Components</h3>
           <ul>
-            <li>Subscribe to one or more topics</li>
-            <li>Poll for new records in a loop</li>
-            <li>Track position via offsets</li>
-            <li>Can seek to any offset (replay)</li>
-            <li>At-least-once delivery by default</li>
+            <li><span class="highlight">Nodes</span> &mdash; entities (people, products, places)</li>
+            <li><span class="highlight">Relationships</span> &mdash; connections between nodes</li>
+            <li><span class="highlight">Labels</span> &mdash; node types (:Person, :Company)</li>
+            <li><span class="highlight">Properties</span> &mdash; key-value data on nodes &amp; edges</li>
           </ul>
         </div>
         <div class="card">
-          <h3>Consumer Groups</h3>
-          <ul>
-            <li>Group of consumers sharing the work</li>
-            <li>Each partition assigned to ONE consumer in group</li>
-            <li>More consumers than partitions = idle consumers</li>
-            <li>Consumer dies? Partitions rebalance automatically</li>
-            <li>Different groups read independently</li>
-          </ul>
-        </div>
-      </div>
-      <p style="margin-top:14px"><span class="highlight">Scaling rule:</span> Max parallelism = number of partitions. 6 partitions = max 6 consumers in a group.</p>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Kafka Connect</h2>
-    <div class="content animate">
-      <p>Pre-built connectors to move data between Kafka and external systems. No code needed.</p>
-      <div class="diagram" style="margin:16px 0">
-        <div class="box">Database<br><small>PostgreSQL, MySQL</small></div>
-        <div class="arrow">&rarr;</div>
-        <div class="box" style="border-color:var(--success)">Source Connector</div>
-        <div class="arrow">&rarr;</div>
-        <div class="box">Kafka Topic</div>
-        <div class="arrow">&rarr;</div>
-        <div class="box" style="border-color:var(--success)">Sink Connector</div>
-        <div class="arrow">&rarr;</div>
-        <div class="box">S3 / Elastic<br><small>Data Lake</small></div>
-      </div>
-      <div class="two-col">
-        <div class="card">
-          <h3>Popular Source Connectors</h3>
-          <ul><li>Debezium (CDC from PostgreSQL, MySQL)</li><li>JDBC Source</li><li>File Source</li><li>MongoDB Source</li></ul>
-        </div>
-        <div class="card">
-          <h3>Popular Sink Connectors</h3>
-          <ul><li>S3 Sink</li><li>Elasticsearch Sink</li><li>JDBC Sink</li><li>Redis Sink</li></ul>
+          <h3>vs Relational</h3>
+          <table style="font-size:0.95rem">
+            <tr><th>Relational</th><th>Graph</th></tr>
+            <tr><td>Table</td><td>Label</td></tr>
+            <tr><td>Row</td><td>Node</td></tr>
+            <tr><td>Column</td><td>Property</td></tr>
+            <tr><td>JOIN</td><td>Relationship</td></tr>
+            <tr><td>Foreign Key</td><td>Edge</td></tr>
+          </table>
         </div>
       </div>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Kafka Streams</h2>
+    <h2 class="animate">Cypher: The Query Language</h2>
     <div class="content animate">
-      <p>A Java library for real-time stream processing on top of Kafka. No separate cluster needed.</p>
 <pre>
-StreamsBuilder builder = new StreamsBuilder();
+// CREATE nodes
+CREATE (alice:Person {name: 'Alice', age: 30})
+CREATE (bob:Person {name: 'Bob', age: 28})
+CREATE (acme:Company {name: 'Acme Inc', industry: 'Tech'})
 
-// Read from topic, process, write to topic
-KStream&lt;String, String&gt; orders = builder.stream("raw-orders");
+// CREATE relationships
+CREATE (alice)-[:KNOWS {since: 2020}]-&gt;(bob)
+CREATE (alice)-[:WORKS_AT {role: 'Engineer'}]-&gt;(acme)
+CREATE (bob)-[:WORKS_AT {role: 'Designer'}]-&gt;(acme)
 
-orders
-  .filter((key, value) -&gt; value.contains("premium"))
-  .mapValues(value -&gt; enrichOrder(value))
-  .to("processed-orders");
+// Pattern: (node)-[relationship]-&gt;(node)
+// () = node,  [] = relationship,  -&gt; = direction
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Cypher</span> uses ASCII art patterns to match graph structures. Think of it as "drawing" your query.</p>
+    </div>
+  </div>
 
-// Aggregation: count orders per customer
-KTable&lt;String, Long&gt; orderCounts = orders
-  .groupByKey()
-  .count(Materialized.as("order-counts"));
+  <div class="slide">
+    <h2 class="animate">Cypher Queries: MATCH</h2>
+    <div class="content animate">
+<pre>
+// Find a person
+MATCH (p:Person {name: 'Alice'})
+RETURN p
 
-// Windowed aggregation: orders per minute
-orders
-  .groupByKey()
-  .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(1)))
-  .count();
+// Find Alice's friends
+MATCH (alice:Person {name: 'Alice'})-[:KNOWS]-&gt;(friend)
+RETURN friend.name, friend.age
+
+// Friends of friends (2 hops)
+MATCH (alice:Person {name: 'Alice'})-[:KNOWS*2]-&gt;(fof)
+WHERE fof &lt;&gt; alice
+RETURN DISTINCT fof.name
+
+// Variable-length paths (1 to 5 hops)
+MATCH path = (a:Person)-[:KNOWS*1..5]-&gt;(b:Person)
+WHERE a.name = 'Alice' AND b.name = 'Dave'
+RETURN path, length(path)
+
+// Shortest path
+MATCH path = shortestPath(
+  (a:Person {name: 'Alice'})-[:KNOWS*]-&gt;(b:Person {name: 'Dave'})
+)
+RETURN path
 </pre>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Schema Registry</h2>
+    <h2 class="animate">Cypher: Filtering &amp; Aggregation</h2>
+    <div class="content animate">
+<pre>
+// WHERE clause
+MATCH (p:Person)-[:WORKS_AT]-&gt;(c:Company)
+WHERE p.age &gt; 25 AND c.industry = 'Tech'
+RETURN p.name, c.name
+
+// Aggregation
+MATCH (c:Company)&lt;-[:WORKS_AT]-(employee)
+RETURN c.name, count(employee) AS headcount, avg(employee.age) AS avgAge
+ORDER BY headcount DESC
+
+// OPTIONAL MATCH (left outer join equivalent)
+MATCH (p:Person)
+OPTIONAL MATCH (p)-[:REVIEWED]-&gt;(product)
+RETURN p.name, count(product) AS reviews
+
+// WITH for pipeline (like subquery)
+MATCH (p:Person)-[:KNOWS]-&gt;(friend)
+WITH p, count(friend) AS friendCount
+WHERE friendCount &gt; 5
+RETURN p.name, friendCount
+ORDER BY friendCount DESC
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cypher: UPDATE &amp; DELETE</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Why Schemas?</h3>
+        <h3>Update</h3>
+<pre style="font-size:0.85rem">
+// Set properties
+MATCH (p:Person {name: 'Alice'})
+SET p.age = 31, p.city = 'Portland'
+
+// Add a label
+MATCH (p:Person {name: 'Alice'})
+SET p:Employee
+
+// Merge (create if not exists)
+MERGE (p:Person {email: 'bob@ex.com'})
+ON CREATE SET p.name = 'Bob',
+              p.createdAt = datetime()
+ON MATCH SET p.lastSeen = datetime()
+</pre>
+      </div>
+      <div class="card">
+        <h3>Delete</h3>
+<pre style="font-size:0.85rem">
+// Delete a node (must remove
+// relationships first)
+MATCH (p:Person {name: 'Charlie'})
+DETACH DELETE p
+// DETACH removes all relationships
+
+// Delete a relationship
+MATCH (a)-[r:KNOWS]-&gt;(b)
+WHERE a.name = 'Alice'
+  AND b.name = 'Bob'
+DELETE r
+
+// Delete all (careful!)
+MATCH (n)
+DETACH DELETE n
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Neo4j Architecture</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Storage Engine</h3>
         <ul>
-          <li>Producers and consumers need to agree on data format</li>
-          <li>Schema Registry stores Avro, Protobuf, or JSON schemas</li>
-          <li>Compatibility checks prevent breaking changes</li>
-          <li>Schema evolution: add fields safely</li>
-          <li>Each schema gets a version and ID</li>
+          <li><span class="highlight">Native graph storage</span> &mdash; not mapped onto tables</li>
+          <li>Index-free adjacency: each node directly references its neighbors</li>
+          <li>Traversals are O(1) per hop, regardless of total graph size</li>
+          <li>Separate stores for nodes, relationships, properties</li>
         </ul>
       </div>
       <div class="card">
-        <h3>Compatibility Modes</h3>
+        <h3>Deployment</h3>
         <ul>
-          <li><span class="highlight">BACKWARD</span> &mdash; new schema reads old data (default)</li>
-          <li><span class="highlight">FORWARD</span> &mdash; old schema reads new data</li>
-          <li><span class="highlight">FULL</span> &mdash; both directions compatible</li>
-          <li><span class="highlight">NONE</span> &mdash; no checks (dangerous)</li>
+          <li><span class="highlight">Neo4j Community</span> &mdash; free, single instance</li>
+          <li><span class="highlight">Neo4j Enterprise</span> &mdash; clustering, causal consistency</li>
+          <li><span class="highlight">Neo4j Aura</span> &mdash; fully managed cloud (AWS, GCP)</li>
+          <li>APOC library &mdash; 450+ procedures &amp; functions</li>
+          <li>GDS library &mdash; graph algorithms (PageRank, community detection)</li>
         </ul>
       </div>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Configuration &amp; Tuning</h2>
-    <div class="content animate">
-      <table>
-        <tr><th>Setting</th><th>Default</th><th>Purpose</th></tr>
-        <tr><td><code>retention.ms</code></td><td>7 days</td><td>How long messages are kept</td></tr>
-        <tr><td><code>retention.bytes</code></td><td>-1 (unlimited)</td><td>Max partition size before deletion</td></tr>
-        <tr><td><code>min.insync.replicas</code></td><td>1</td><td>Min ISR for acks=all (set to 2)</td></tr>
-        <tr><td><code>compression.type</code></td><td>none</td><td>lz4, snappy, zstd, gzip</td></tr>
-        <tr><td><code>batch.size</code></td><td>16384</td><td>Producer batch size (bytes)</td></tr>
-        <tr><td><code>linger.ms</code></td><td>0</td><td>Wait time to fill batch</td></tr>
-        <tr><td><code>max.poll.records</code></td><td>500</td><td>Max records per consumer poll</td></tr>
-      </table>
-      <p style="margin-top:10px"><span class="highlight">Production tip:</span> Set <code>min.insync.replicas=2</code> + <code>acks=all</code> + replication factor 3 for zero data loss.</p>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Monitoring &amp; Operations</h2>
+    <h2 class="animate">Graph Algorithms</h2>
     <div class="metric-grid animate">
       <div class="metric-card">
-        <h3>Key Metrics</h3>
-        <p>Consumer lag, under-replicated partitions, request latency, bytes in/out, active controller count.</p>
+        <h3>PageRank</h3>
+        <p>Measures node importance by counting and weighting incoming connections. Used by Google for web ranking.</p>
+<pre style="font-size:0.8rem;margin-top:6px">
+CALL gds.pageRank.stream('myGraph')
+YIELD nodeId, score
+RETURN gds.util.asNode(nodeId).name, score
+ORDER BY score DESC LIMIT 10
+</pre>
       </div>
       <div class="metric-card">
-        <h3>Tools</h3>
-        <p>Kafka UI, Confluent Control Center, Burrow (consumer lag), JMX metrics exported to Prometheus + Grafana.</p>
+        <h3>Community Detection</h3>
+        <p>Find clusters of densely connected nodes. Louvain algorithm identifies natural groups.</p>
+<pre style="font-size:0.8rem;margin-top:6px">
+CALL gds.louvain.stream('myGraph')
+YIELD nodeId, communityId
+RETURN communityId, count(*) AS size
+ORDER BY size DESC
+</pre>
       </div>
       <div class="metric-card">
-        <h3>Common Issues</h3>
-        <p>Consumer lag growing, ISR shrinking, uneven partition distribution, rebalance storms.</p>
+        <h3>Shortest Path</h3>
+        <p>Find the shortest route between two nodes. Dijkstra for weighted, BFS for unweighted.</p>
       </div>
       <div class="metric-card">
-        <h3>Managed Options</h3>
-        <p>Confluent Cloud, AWS MSK, Redpanda (Kafka-compatible, no JVM), Aiven, Upstash.</p>
+        <h3>Node Similarity</h3>
+        <p>Find similar nodes based on shared neighbors. Jaccard or Cosine similarity. Powers recommendations.</p>
       </div>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Delivery Semantics</h2>
+    <h2 class="animate">Graph Database Landscape</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Database</th><th>Query Language</th><th>Type</th><th>Best For</th></tr>
+        <tr><td><span class="highlight">Neo4j</span></td><td>Cypher</td><td>Native graph</td><td>General purpose, most popular</td></tr>
+        <tr><td><span class="highlight">Amazon Neptune</span></td><td>Gremlin / SPARQL</td><td>Managed cloud</td><td>AWS-native, RDF + property graphs</td></tr>
+        <tr><td><span class="highlight">Azure Cosmos DB</span></td><td>Gremlin</td><td>Multi-model</td><td>Global distribution, multi-API</td></tr>
+        <tr><td><span class="highlight">ArangoDB</span></td><td>AQL</td><td>Multi-model</td><td>Graph + document + key-value</td></tr>
+        <tr><td><span class="highlight">TigerGraph</span></td><td>GSQL</td><td>Native graph</td><td>Real-time analytics, large scale</td></tr>
+        <tr><td><span class="highlight">Dgraph</span></td><td>DQL (GraphQL)</td><td>Native graph</td><td>GraphQL-native, distributed</td></tr>
+        <tr><td><span class="highlight">JanusGraph</span></td><td>Gremlin</td><td>Open source</td><td>Scalable, pluggable backends</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Knowledge Graphs &amp; AI</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Guarantees</h3>
+        <h3>Knowledge Graphs</h3>
         <ul>
-          <li><span class="highlight">At-most-once</span> &mdash; may lose messages. Commit before processing.</li>
-          <li><span class="highlight">At-least-once</span> &mdash; may get duplicates. Process then commit (default).</li>
-          <li><span class="highlight">Exactly-once</span> &mdash; idempotent producer + transactions. enable.idempotence=true.</li>
+          <li>Structured representation of real-world entities</li>
+          <li>Google Knowledge Graph, Wikidata, DBpedia</li>
+          <li>Entity &rarr; Relationship &rarr; Entity triples</li>
+          <li>Ontologies define schemas (RDF/OWL)</li>
+          <li>Power search engines, chatbots, recommendations</li>
         </ul>
       </div>
       <div class="card">
-        <h3>Exactly-Once Setup</h3>
-<pre style="font-size:0.85rem">
-// Producer config
-enable.idempotence=true
-transactional.id=my-tx-id
-acks=all
+        <h3>Graphs + LLMs (RAG)</h3>
+        <ul>
+          <li><span class="highlight">GraphRAG</span> &mdash; retrieval augmented generation using graph context</li>
+          <li>Store embeddings on nodes for vector search</li>
+          <li>LLM generates Cypher from natural language</li>
+          <li>Combine vector similarity + graph traversal</li>
+          <li>Better context than flat document chunks</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Graphs give LLMs <span class="highlight">structured context</span> &mdash; relationships, hierarchies, and provenance that flat text lacks.</p>
+  </div>
 
-// Transactional send
-producer.initTransactions();
-producer.beginTransaction();
-producer.send(record);
-producer.commitTransaction();
+  <div class="slide">
+    <h2 class="animate">Gremlin Query Language</h2>
+    <div class="content animate">
+      <p>Apache TinkerPop's graph traversal language. Used by Neptune, Cosmos DB, JanusGraph.</p>
+<pre>
+// Add vertices and edges
+g.addV('Person').property('name', 'Alice').property('age', 30)
+g.addV('Person').property('name', 'Bob')
+g.V().has('name', 'Alice').addE('KNOWS').to(g.V().has('name', 'Bob'))
+
+// Traversal: find Alice's friends
+g.V().has('name', 'Alice').out('KNOWS').values('name')
+
+// Friends of friends
+g.V().has('name', 'Alice').out('KNOWS').out('KNOWS')
+  .dedup().values('name')
+
+// Filter and aggregate
+g.V().hasLabel('Person')
+  .has('age', gt(25))
+  .groupCount().by('city')
+
+// Path queries
+g.V().has('name', 'Alice')
+  .repeat(out('KNOWS')).until(has('name', 'Dave'))
+  .path().by('name')
 </pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Modeling Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Intermediate Nodes</h3>
+        <p>Convert complex relationships into nodes. A :Purchase node between :Person and :Product captures date, quantity, price.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Temporal Graphs</h3>
+        <p>Add <code>validFrom</code> / <code>validTo</code> properties on relationships to model how connections change over time.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Hyperedges</h3>
+        <p>When a relationship connects 3+ nodes, model it as an intermediate node connected to all participants.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Tree Structures</h3>
+        <p>Org charts, file systems, categories. Use <code>[:CHILD_OF]</code> or <code>[:REPORTS_TO]</code> relationships. Traverse with <code>*</code> depth.</p>
       </div>
     </div>
   </div>
 
   <div class="slide">
-    <h2 class="animate">Kafka vs Alternatives</h2>
-    <div class="content animate">
-      <table>
-        <tr><th>Feature</th><th>Kafka</th><th>RabbitMQ</th><th>AWS SQS/SNS</th></tr>
-        <tr><td>Model</td><td>Log-based streaming</td><td>Message queue</td><td>Managed queue/pub-sub</td></tr>
-        <tr><td>Throughput</td><td><span class="green">Millions/sec</span></td><td>Thousands/sec</td><td>Thousands/sec</td></tr>
-        <tr><td>Retention</td><td><span class="green">Days/weeks/forever</span></td><td>Until consumed</td><td>14 days max</td></tr>
-        <tr><td>Replay</td><td><span class="green">Yes (seek to offset)</span></td><td>No</td><td>No</td></tr>
-        <tr><td>Ordering</td><td>Per partition</td><td>Per queue</td><td>FIFO queues only</td></tr>
-        <tr><td>Operations</td><td>Complex (ZK/KRaft)</td><td>Moderate</td><td><span class="green">Fully managed</span></td></tr>
-      </table>
+    <h2 class="animate">When NOT to Use a Graph DB</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="green">Use a Graph DB When</h3>
+        <ul>
+          <li>Relationships are as important as the data</li>
+          <li>You need deep traversals (3+ hops)</li>
+          <li>Schema is highly connected and evolving</li>
+          <li>Pattern matching and pathfinding are key</li>
+          <li>Real-time recommendations or fraud detection</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--accent)">Use Something Else When</h3>
+        <ul>
+          <li>Data is tabular with simple relationships &rarr; <span class="highlight">SQL</span></li>
+          <li>High-volume time series or logs &rarr; <span class="highlight">TimescaleDB</span></li>
+          <li>Simple key-value lookups &rarr; <span class="highlight">Redis</span></li>
+          <li>Document storage with flexible schema &rarr; <span class="highlight">MongoDB</span></li>
+          <li>Full-text search &rarr; <span class="highlight">Elasticsearch</span></li>
+        </ul>
+      </div>
     </div>
   </div>
 
   <div class="slide">
     <h2 class="animate">Best Practices</h2>
     <div class="bp-grid animate">
-      <div class="bp-item"><span>1.</span> Use descriptive topic names: domain.entity.event</div>
-      <div class="bp-item"><span>2.</span> Choose partition count carefully (hard to reduce later)</div>
-      <div class="bp-item"><span>3.</span> Always use message keys for ordering guarantees</div>
-      <div class="bp-item"><span>4.</span> Set replication factor to 3, min.insync.replicas to 2</div>
-      <div class="bp-item"><span>5.</span> Use Schema Registry for all topics</div>
-      <div class="bp-item"><span>6.</span> Monitor consumer lag closely</div>
-      <div class="bp-item"><span>7.</span> Use Avro or Protobuf over JSON for efficiency</div>
-      <div class="bp-item"><span>8.</span> Enable compression (lz4 or zstd)</div>
-      <div class="bp-item"><span>9.</span> Design for idempotent consumers</div>
-      <div class="bp-item"><span>10.</span> Use KRaft mode (no ZooKeeper) for new clusters</div>
+      <div class="bp-item"><span>1.</span> Model as a whiteboard &mdash; nodes and arrows should map directly to your domain</div>
+      <div class="bp-item"><span>2.</span> Use specific relationship types: <code>:PURCHASED</code> not <code>:RELATED_TO</code></div>
+      <div class="bp-item"><span>3.</span> Store properties on relationships, not just nodes</div>
+      <div class="bp-item"><span>4.</span> Create indexes on properties you filter by frequently</div>
+      <div class="bp-item"><span>5.</span> Limit variable-length paths with max depth: <code>*1..5</code> not <code>*</code></div>
+      <div class="bp-item"><span>6.</span> Use MERGE instead of CREATE to avoid duplicate nodes</div>
+      <div class="bp-item"><span>7.</span> Profile queries with <code>EXPLAIN</code> and <code>PROFILE</code> in Neo4j</div>
+      <div class="bp-item"><span>8.</span> Batch large imports with <code>UNWIND</code> or <code>neo4j-admin import</code></div>
+      <div class="bp-item"><span>9.</span> Use the GDS library for graph algorithms, not custom Cypher</div>
+      <div class="bp-item"><span>10.</span> Start with Neo4j Aura free tier for learning and prototyping</div>
     </div>
   </div>
 
   <div class="slide">
-    <span class="logo-icon animate">&#x1F4E8;</span>
+    <span class="logo-icon animate">&#x1F578;</span>
     <h2 class="animate">Course Complete!</h2>
     <div class="content animate" style="text-align:center">
-      <p>You have mastered Apache Kafka:</p>
+      <p>You now understand graph databases:</p>
       <div style="margin:20px 0">
-        <span class="tag">Topics</span><span class="tag">Partitions</span><span class="tag">Producers</span>
-        <span class="tag">Consumers</span><span class="tag">Connect</span><span class="tag">Streams</span>
-        <span class="tag">Schema Registry</span><span class="tag">Exactly-Once</span><span class="tag">Monitoring</span>
+        <span class="tag">Nodes</span><span class="tag">Relationships</span><span class="tag">Cypher</span>
+        <span class="tag">Gremlin</span><span class="tag">Algorithms</span><span class="tag">Neo4j</span>
+        <span class="tag">Knowledge Graphs</span><span class="tag">GraphRAG</span><span class="tag">Modeling</span>
       </div>
-      <p style="color:var(--text-muted)">Kafka is the backbone of event-driven architectures. Design topics well and scale with confidence.</p>
+      <p style="color:var(--text-muted)">Start with Neo4j Sandbox, model a real-world domain, and run your first traversal.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
     </div>
   </div>
-
 
 </div>
 

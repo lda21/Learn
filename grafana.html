@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grafana &amp; Tempo</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h1 class="animate">Grafana &amp; Tempo</h1>
+    <p class="subtitle animate">Observability dashboards, alerting, and distributed tracing</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Observability</span><span class="tag">Dashboards</span><span class="tag">Tracing</span><span class="tag">LGTM Stack</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The LGTM Stack</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Loki<br><small>Logs</small></div>
+        <div class="arrow">+</div>
+        <div class="box" style="border-color:var(--success)">Grafana<br><small>Dashboards</small></div>
+        <div class="arrow">+</div>
+        <div class="box" style="border-color:var(--success)">Tempo<br><small>Traces</small></div>
+        <div class="arrow">+</div>
+        <div class="box" style="border-color:var(--success)">Mimir<br><small>Metrics</small></div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>What is Grafana?</h3>
+          <ul>
+            <li>Open-source visualization &amp; dashboarding</li>
+            <li>Query any data source (Prometheus, Loki, etc.)</li>
+            <li>Alerting, annotations, and sharing</li>
+            <li>Used by thousands of organizations</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Observability Pillars</h3>
+          <ul>
+            <li><span class="highlight">Metrics</span> &mdash; Prometheus / Mimir</li>
+            <li><span class="highlight">Logs</span> &mdash; Loki</li>
+            <li><span class="highlight">Traces</span> &mdash; Tempo</li>
+            <li><span class="highlight">Dashboards</span> &mdash; Grafana ties it all together</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana Setup &amp; Data Sources</h2>
+    <div class="content animate">
+<pre>
+# Docker Compose setup
+services:
+  grafana:
+    image: grafana/grafana:latest
+    ports: ["3000:3000"]
+    volumes:
+      - grafana-data:/var/lib/grafana
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports: ["9090:9090"]
+    volumes:
+      - ./prometheus.yml:/etc/prometheus/prometheus.yml
+
+  loki:
+    image: grafana/loki:latest
+    ports: ["3100:3100"]
+
+  tempo:
+    image: grafana/tempo:latest
+    ports: ["3200:3200", "4317:4317"]  # OTLP gRPC
+    volumes:
+      - ./tempo.yaml:/etc/tempo.yaml
+    command: ["-config.file=/etc/tempo.yaml"]
+</pre>
+      <p style="margin-top:8px">Add data sources in Grafana: <span class="highlight">Configuration &gt; Data Sources &gt; Add</span></p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building Dashboards</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Panel Types</h3>
+        <ul>
+          <li><span class="highlight">Time series</span> &mdash; line/area charts over time</li>
+          <li><span class="highlight">Stat</span> &mdash; single value with sparkline</li>
+          <li><span class="highlight">Gauge</span> &mdash; progress toward a threshold</li>
+          <li><span class="highlight">Bar chart</span> &mdash; categorical comparisons</li>
+          <li><span class="highlight">Table</span> &mdash; tabular data display</li>
+          <li><span class="highlight">Heatmap</span> &mdash; density visualization</li>
+          <li><span class="highlight">Logs</span> &mdash; log stream panel (Loki)</li>
+          <li><span class="highlight">Traces</span> &mdash; trace waterfall (Tempo)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Dashboard Features</h3>
+        <ul>
+          <li><span class="highlight">Variables</span> &mdash; dropdown filters ($env, $service)</li>
+          <li><span class="highlight">Annotations</span> &mdash; mark deployments, incidents</li>
+          <li><span class="highlight">Links</span> &mdash; drill down between dashboards</li>
+          <li><span class="highlight">Repeat</span> &mdash; auto-generate panels per variable value</li>
+          <li><span class="highlight">Time range</span> &mdash; relative (last 1h) or absolute</li>
+          <li><span class="highlight">Sharing</span> &mdash; snapshot, embed, PDF export</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">PromQL in Grafana</h2>
+    <div class="content animate">
+<pre>
+# Request rate (requests per second)
+rate(http_requests_total{service="$service"}[5m])
+
+# Error rate percentage
+sum(rate(http_requests_total{status=~"5.."}[5m]))
+  / sum(rate(http_requests_total[5m])) * 100
+
+# 95th percentile latency
+histogram_quantile(0.95,
+  sum(rate(http_request_duration_seconds_bucket{service="$service"}[5m]))
+  by (le)
+)
+
+# CPU usage per pod
+sum(rate(container_cpu_usage_seconds_total{namespace="$namespace"}[5m]))
+  by (pod)
+
+# Memory usage percentage
+(node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+  / node_memory_MemTotal_bytes * 100
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Tip:</span> Use <code>$__rate_interval</code> instead of hardcoded <code>[5m]</code> for auto-adjusted range.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Template Variables</h2>
+    <div class="content animate">
+<pre>
+# Variable: $service
+# Type: Query
+# Data source: Prometheus
+# Query: label_values(http_requests_total, service)
+# Multi-value: enabled
+# Include All option: enabled
+
+# Variable: $namespace
+# Query: label_values(kube_pod_info, namespace)
+
+# Use in panels:
+rate(http_requests_total{service=~"$service", namespace="$namespace"}[5m])
+
+# Chained variables: $pod depends on $namespace
+# Query: label_values(kube_pod_info{namespace="$namespace"}, pod)
+</pre>
+      <div class="card" style="margin-top:12px">
+        <h3>Variable Types</h3>
+        <ul>
+          <li><span class="highlight">Query</span> &mdash; values from data source</li>
+          <li><span class="highlight">Custom</span> &mdash; comma-separated static values</li>
+          <li><span class="highlight">Interval</span> &mdash; time intervals (1m, 5m, 1h)</li>
+          <li><span class="highlight">Text box</span> &mdash; free-form user input</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana Alerting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Alert Rules</h3>
+<pre style="font-size:0.85rem">
+# Alert: High Error Rate
+# Condition:
+# WHEN avg() OF query(A) IS ABOVE 5
+# FOR 5 minutes
+# Query A:
+sum(rate(http_requests_total{status=~"5.."}[5m]))
+  / sum(rate(http_requests_total[5m])) * 100
+
+# Alert: High Latency
+# WHEN last() OF query(B) IS ABOVE 2
+# Query B:
+histogram_quantile(0.95,
+  sum(rate(http_duration_bucket[5m]))
+  by (le))
+</pre>
+      </div>
+      <div class="card">
+        <h3>Notification Channels</h3>
+        <ul>
+          <li><span class="highlight">Slack</span> &mdash; channel notifications</li>
+          <li><span class="highlight">PagerDuty</span> &mdash; on-call routing</li>
+          <li><span class="highlight">Email</span> &mdash; SMTP alerts</li>
+          <li><span class="highlight">Webhook</span> &mdash; custom integrations</li>
+          <li><span class="highlight">Opsgenie</span> &mdash; incident management</li>
+          <li><span class="highlight">Microsoft Teams</span> &mdash; team channels</li>
+        </ul>
+        <p style="margin-top:8px;font-size:1rem">Use <span class="highlight">contact points</span> + <span class="highlight">notification policies</span> for routing by severity/team.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana Loki (Logs)</h2>
+    <div class="content animate">
+      <p>Loki is a log aggregation system &mdash; like Prometheus, but for logs. Index-free design for cost efficiency.</p>
+<pre>
+# LogQL: Loki's query language
+
+# Stream selector (required)
+{job="myapp", level="error"}
+
+# Filter expressions
+{job="myapp"} |= "connection refused"      # contains
+{job="myapp"} != "healthcheck"             # does not contain
+{job="myapp"} |~ "error|warn|fatal"        # regex match
+
+# Parse and extract fields
+{job="myapp"} | json | status &gt;= 500
+{job="nginx"} | pattern "&lt;ip&gt; - - [&lt;_&gt;] "&lt;method&gt; &lt;path&gt; &lt;_&gt;" &lt;status&gt;"
+                | status = "404"
+
+# Metric queries from logs
+sum(rate({job="myapp"} |= "error" [5m])) by (service)
+# Count errors per second, grouped by service
+
+# Top 10 paths with most errors
+topk(10,
+  sum(count_over_time({job="nginx"} | json | status &gt;= 500 [1h]))
+  by (path))
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana Tempo (Traces)</h2>
+    <div class="content animate">
+      <p>Tempo is a distributed tracing backend. Stores traces from OpenTelemetry, Jaeger, or Zipkin.</p>
+      <div class="diagram">
+        <div class="box">Client</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">API Gateway</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Auth Service</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Order Service</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Database</div>
+      </div>
+<pre style="margin-top:12px">
+# Tempo configuration (tempo.yaml)
+server:
+  http_listen_port: 3200
+
+distributor:
+  receivers:
+    otlp:
+      protocols:
+        grpc:
+          endpoint: "0.0.0.0:4317"
+        http:
+          endpoint: "0.0.0.0:4318"
+
+storage:
+  trace:
+    backend: s3
+    s3:
+      bucket: tempo-traces
+      endpoint: s3.amazonaws.com
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">OpenTelemetry Integration</h2>
+    <div class="content animate">
+<pre>
+// Node.js: Instrument with OpenTelemetry SDK
+import { NodeSDK } from '@opentelemetry/sdk-node';
+import { OTLPTraceExporter } from '@opentelemetry/exporter-trace-otlp-grpc';
+import { getNodeAutoInstrumentations } from '@opentelemetry/auto-instrumentations-node';
+
+const sdk = new NodeSDK({
+  traceExporter: new OTLPTraceExporter({
+    url: 'http://tempo:4317',  // Tempo OTLP endpoint
+  }),
+  instrumentations: [getNodeAutoInstrumentations()],
+  serviceName: 'order-service',
+});
+
+sdk.start();
+
+// Auto-instruments: HTTP, Express, pg, Redis, gRPC, etc.
+// Traces flow: App &rarr; OTLP &rarr; Tempo &rarr; Grafana
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Key concept:</span> A <strong>trace</strong> = end-to-end request journey. A <strong>span</strong> = one operation within that trace. Spans form a tree.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">TraceQL</h2>
+    <div class="content animate">
+      <p>Tempo's query language for searching traces (like PromQL for traces).</p>
+<pre>
+# Find traces by service name
+{ resource.service.name = "order-service" }
+
+# Find slow spans (&gt; 500ms)
+{ span.http.status_code = 500 &amp;&amp; duration &gt; 500ms }
+
+# Find traces with errors
+{ status = error }
+
+# Search by attribute
+{ span.http.method = "POST" &amp;&amp; span.http.url =~ "/api/orders.*" }
+
+# Structural queries: parent-child relationships
+{ resource.service.name = "api-gateway" } &gt;&gt; { resource.service.name = "payment-service" &amp;&amp; duration &gt; 2s }
+
+# Aggregate: p95 latency by service
+{ } | avg(duration) by (resource.service.name)
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Tip:</span> Link traces to logs with <code>traceID</code> correlation in Grafana.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Correlating Metrics, Logs &amp; Traces</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Exemplars (Metrics &rarr; Traces)</h3>
+        <ul>
+          <li>Prometheus stores trace IDs on metrics</li>
+          <li>Click a data point to jump to the trace</li>
+          <li>"Why was this p99 latency spike?"</li>
+          <li>Enabled via <code>--enable-feature=exemplar-storage</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Derived Fields (Logs &rarr; Traces)</h3>
+        <ul>
+          <li>Extract traceID from log lines</li>
+          <li>Click to open trace in Tempo</li>
+          <li>Configure in Loki data source settings</li>
+          <li>"Show me the trace for this error log"</li>
+        </ul>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>The Observability Loop</h3>
+      <div class="diagram">
+        <div class="box">Dashboard alerts</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Check metrics</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Drill into logs</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Follow trace</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Find root cause</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana as Code</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Dashboard JSON</h3>
+<pre style="font-size:0.85rem">
+// Export: Dashboard &gt; Share &gt; Export
+// Import: + &gt; Import dashboard
+// Provisioning: auto-load from files
+
+# grafana/provisioning/dashboards/
+apiVersion: 1
+providers:
+  - name: default
+    folder: ''
+    type: file
+    options:
+      path: /var/lib/grafana/dashboards
+</pre>
+      </div>
+      <div class="card">
+        <h3>Provisioning Data Sources</h3>
+<pre style="font-size:0.85rem">
+# grafana/provisioning/datasources/
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    url: http://prometheus:9090
+    isDefault: true
+  - name: Loki
+    type: loki
+    url: http://loki:3100
+  - name: Tempo
+    type: tempo
+    url: http://tempo:3200
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Use <span class="highlight">Grafonnet</span> (Jsonnet library) or <span class="highlight">Terraform</span> for dashboard-as-code at scale.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Grafana Cloud &amp; Mimir</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Grafana Cloud</h3>
+        <ul>
+          <li>Fully managed LGTM stack</li>
+          <li>Free tier: 10K metrics, 50GB logs, 50GB traces</li>
+          <li>Synthetic monitoring (uptime checks)</li>
+          <li>Incident management &amp; on-call</li>
+          <li>k6 for load testing</li>
+          <li>Grafana Agent for telemetry collection</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Mimir (Metrics)</h3>
+        <ul>
+          <li>Long-term, scalable Prometheus storage</li>
+          <li>Drop-in replacement for Prometheus remote write</li>
+          <li>Global query view across clusters</li>
+          <li>Multi-tenant architecture</li>
+          <li>Up to 1 billion active time series</li>
+          <li>Used by Grafana Cloud internally</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use the RED method: Rate, Errors, Duration for every service</div>
+      <div class="bp-item"><span>2.</span> Create template variables for environment, service, and namespace</div>
+      <div class="bp-item"><span>3.</span> Use <code>$__rate_interval</code> instead of hardcoded ranges</div>
+      <div class="bp-item"><span>4.</span> Provision dashboards as code &mdash; version control in Git</div>
+      <div class="bp-item"><span>5.</span> Set up exemplars to link metrics &rarr; traces</div>
+      <div class="bp-item"><span>6.</span> Use derived fields in Loki to link logs &rarr; traces</div>
+      <div class="bp-item"><span>7.</span> Add annotations for deployments and incidents</div>
+      <div class="bp-item"><span>8.</span> Use recording rules in Prometheus for expensive queries</div>
+      <div class="bp-item"><span>9.</span> Organize dashboards in folders by team/domain</div>
+      <div class="bp-item"><span>10.</span> Instrument with OpenTelemetry for vendor-neutral telemetry</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a solid foundation in the Grafana ecosystem:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Dashboards</span><span class="tag">PromQL</span><span class="tag">Alerting</span>
+        <span class="tag">Loki</span><span class="tag">Tempo</span><span class="tag">TraceQL</span>
+        <span class="tag">OpenTelemetry</span><span class="tag">Mimir</span><span class="tag">LGTM</span>
+      </div>
+      <p style="color:var(--text-muted)">Start with Grafana Cloud free tier and build your first dashboard with Prometheus metrics.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+<script src="glossary-terms.js"></script>
+</body>
+</html>

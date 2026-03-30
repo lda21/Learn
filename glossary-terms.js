@@ -76,6 +76,7 @@ const GLOSSARY_TERMS = [
   {t:"Organizations", d:"AWS Organizations — centrally manage multiple AWS accounts. Apply SCP guardrails, consolidated billing, and account governance.", tags:["AWS"]},
   {t:"Spot Instance", d:"AWS EC2 instances available at up to 90% discount. Can be interrupted with 2-minute notice. Ideal for fault-tolerant batch and data processing.", tags:["AWS"]},
   {t:"Reserved Instance", d:"AWS EC2 pricing model offering up to 72% discount for 1-3 year commitment. Available as Standard (fixed) or Convertible (flexible).", tags:["AWS"]},
+  {t:"DAX", d:"DynamoDB Accelerator — a fully managed in-memory cache for DynamoDB. Delivers microsecond read latency. Drop-in compatible with DynamoDB API.", tags:["AWS"]},
   {t:"HCL", d:"HashiCorp Configuration Language — the declarative language used to write Terraform configurations. Also used in Vault policies.", tags:["Terraform","IaC","Vault"]},
   {t:"Provider", d:"A Terraform plugin that interfaces with an API (AWS, Azure, GCP, Kubernetes) to manage Resource objects.", tags:["Terraform","IaC"]},
   {t:"State", d:"Terraform's record of real-world resources it manages. Stored in <code>terraform.tfstate</code>. Use remote backends (S3, Consul) for teams.", tags:["Terraform","IaC"]},
@@ -236,6 +237,29 @@ const GLOSSARY_TERMS = [
   {t:"Trace Viewer", d:"Playwright's time-travel debugger. Records DOM snapshots, network requests, console logs, and actions at each step. View with npx playwright show-trace.", tags:["Playwright"]},
   {t:"Codegen", d:"Playwright's test recorder. Run npx playwright codegen to open a browser, interact with the app, and auto-generate test code from your actions.", tags:["Playwright"]},
   {t:"Network Interception", d:"Playwright's page.route() API for mocking, modifying, or aborting network requests. Used to mock APIs, block analytics, or simulate errors in tests.", tags:["Playwright"]},
+  {t:"MongoDB", d:"A document-oriented NoSQL database storing data as JSON-like BSON documents. Flexible schema, horizontal scaling via sharding, and rich aggregation pipeline.", tags:["MongoDB"]},
+  {t:"Document (MongoDB)", d:"A JSON-like BSON record in MongoDB. Can contain nested objects, arrays, and typed data. Maximum size 16 MB. Identified by a unique _id field.", tags:["MongoDB"]},
+  {t:"Collection", d:"A group of MongoDB documents, analogous to a SQL table. Collections have no enforced schema — documents can have different fields.", tags:["MongoDB"]},
+  {t:"Aggregation Pipeline", d:"MongoDB's data processing framework. Chain stages ($match, $group, $sort, $lookup, $project, $unwind) to transform and analyze documents.", tags:["MongoDB"]},
+  {t:"Mongoose", d:"The most popular Node.js ODM (Object Document Mapper) for MongoDB. Provides schemas, validation, middleware, and populate for document references.", tags:["MongoDB","Node.js"]},
+  {t:"Replica Set (MongoDB)", d:"A group of MongoDB instances maintaining the same data set. One primary handles writes; secondaries replicate for high availability and read scaling.", tags:["MongoDB"]},
+  {t:"Sharding (MongoDB)", d:"MongoDB's horizontal scaling strategy. Data is distributed across shards using a shard key. Each shard is a replica set. Managed by mongos routers.", tags:["MongoDB"]},
+  {t:"ObjectId", d:"MongoDB's default 12-byte unique identifier for documents. Contains timestamp, machine ID, process ID, and counter. Auto-generated for _id field.", tags:["MongoDB"]},
+  {t:"Neo4j", d:"The most popular native graph database. Uses Cypher query language, index-free adjacency for O(1) traversals, and ACID transactions.", tags:["Graph DB"]},
+  {t:"Cypher", d:"Neo4j's declarative graph query language. Uses ASCII-art patterns: (node)-[RELATIONSHIP]->(node). Supports MATCH, CREATE, MERGE, and aggregation.", tags:["Graph DB"]},
+  {t:"Gremlin", d:"Apache TinkerPop's graph traversal language. Used by Amazon Neptune, Azure Cosmos DB, and JanusGraph. Imperative, step-based traversal API.", tags:["Graph DB"]},
+  {t:"Graph Node", d:"An entity in a graph database (person, product, place). Has labels (types) and properties (key-value data). Connected by relationships.", tags:["Graph DB"]},
+  {t:"Graph Relationship", d:"A typed, directed connection between two nodes in a graph database. Has a type (KNOWS, WORKS_AT), direction, and optional properties.", tags:["Graph DB"]},
+  {t:"PageRank", d:"A graph algorithm that measures node importance by counting and weighting incoming connections. Used in Neo4j GDS for influence analysis.", tags:["Graph DB"]},
+  {t:"Knowledge Graph", d:"A structured representation of real-world entities and their relationships. Powers search engines, recommendations, and GraphRAG for LLM applications.", tags:["Graph DB","AI"]},
+  {t:"Grafana", d:"Open-source observability platform for dashboards, visualization, and alerting. Connects to Prometheus, Loki, Tempo, and 100+ data sources.", tags:["Grafana","Observability"]},
+  {t:"Loki", d:"Grafana's log aggregation system. Like Prometheus but for logs. Uses labels for indexing (not full-text), making it cost-efficient. Queried with LogQL.", tags:["Grafana","Observability"]},
+  {t:"Tempo", d:"Grafana's distributed tracing backend. Stores traces from OpenTelemetry, Jaeger, and Zipkin. Object-storage based, no indexing required.", tags:["Grafana","Observability"]},
+  {t:"Mimir", d:"Grafana's long-term, horizontally scalable Prometheus metrics storage. Drop-in replacement for Prometheus remote write. Supports 1B+ active series.", tags:["Grafana","Observability"]},
+  {t:"LogQL", d:"Loki's query language for searching and aggregating logs. Combines stream selectors {job='app'} with filter expressions |= 'error' and metric queries.", tags:["Grafana","Observability"]},
+  {t:"TraceQL", d:"Tempo's query language for searching distributed traces. Filter by service, duration, status, and span attributes. Supports structural parent-child queries.", tags:["Grafana","Observability"]},
+  {t:"OpenTelemetry", d:"A vendor-neutral observability framework (CNCF). Provides APIs, SDKs, and the OTLP protocol for collecting metrics, logs, and traces from applications.", tags:["Grafana","Observability"]},
+  {t:"Exemplar", d:"A trace ID attached to a Prometheus metric data point. Enables clicking from a metric spike directly to the distributed trace that caused it.", tags:["Grafana","Prometheus"]},
   {t:"Kafka Topic", d:"A named, append-only log in Apache Kafka. Producers write messages to topics and consumers read from them. Topics are split into partitions for parallelism.", tags:["Kafka"]},
   {t:"Kafka Partition", d:"A unit of parallelism within a Kafka Topic. Each partition is an ordered, immutable sequence of messages. Partitions enable horizontal scaling of consumers.", tags:["Kafka"]},
   {t:"Consumer Group", d:"A set of Kafka consumers that cooperatively read from a topic. Each partition is assigned to exactly one consumer in the group, enabling parallel processing.", tags:["Kafka"]},
@@ -441,6 +465,7 @@ const GLOSSARY_TERMS = [
     linkifySlides();
   }
 })();
+
 
 
 
