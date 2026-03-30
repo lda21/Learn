@@ -9,6 +9,7 @@ const GLOSSARY_TERMS = [
   {t:"Merge", d:"Combine changes from one Branch into another, creating a merge Commit if histories diverged.", tags:["Git"]},
   {t:"Pull Request (PR)", d:"A request to Merge changes from one Branch into another, enabling code review and CI/CD checks before merging.", tags:["Git","GitHub"]},
   {t:"Rebase", d:"Re-apply commits on top of another base Commit, creating a linear history. Avoid rebasing shared branches.", tags:["Git"]},
+  {t:"Squash", d:"Combine multiple Git commits into a single commit. Used during interactive Rebase or Pull Request (PR) merge to keep history clean and readable.", tags:["Git"]},
   {t:"Reflog", d:"Git's safety net — a log of all HEAD movements that lets you recover lost commits.", tags:["Git"]},
   {t:"Remote", d:"A reference to a repository hosted on a server (e.g., origin on GitHub). Managed with <code>git remote</code>.", tags:["Git"]},
   {t:"Stash", d:"Temporarily save uncommitted changes so you can switch branches, then re-apply them later with <code>git stash pop</code>.", tags:["Git"]},
@@ -209,6 +210,8 @@ const GLOSSARY_TERMS = [
   {t:"Express", d:"The most popular Node.js web framework. Provides routing, middleware pipeline, request/response handling, and static file serving.", tags:["Node.js"]},
   {t:"Middleware", d:"Functions in Express/Node.js that process requests in a pipeline. Each calls next() to pass control. Used for auth, logging, CORS, error handling.", tags:["Node.js"]},
   {t:"npm", d:"Node Package Manager — the default package manager for Node.js. Manages dependencies via package.json. Registry hosts 2M+ packages.", tags:["Node.js"]},
+  {t:"Maven", d:"A build automation and dependency management tool for Java projects. Uses pom.xml for configuration. Central repository hosts thousands of libraries.", tags:["Java","Build"]},
+  {t:"NuGet", d:"The package manager for .NET. Manages dependencies via .csproj or packages.config. Hosts libraries on nuget.org for C#, F#, and VB.NET projects.", tags:[".NET","Build"]},
   {t:"REST API", d:"Representational State Transfer API — an architectural style using HTTP methods (GET, POST, PUT, DELETE) with resource-based URLs and JSON responses.", tags:["Node.js","AWS"]},
   {t:"Stream", d:"A Node.js abstraction for processing data piece by piece. Types: Readable, Writable, Transform, Duplex. Efficient for large files and network I/O.", tags:["Node.js"]},
   {t:"IntelliSense", d:"VS Code's code completion engine. Provides auto-complete, parameter hints, type info, and quick documentation. Powered by language servers (LSP).", tags:["VS Code"]},
@@ -472,6 +475,7 @@ const GLOSSARY_TERMS = [
     linkifySlides();
   }
 })();
+
 
 
 
