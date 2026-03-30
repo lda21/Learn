@@ -205,8 +205,6 @@
 <div class="progress" id="progress"></div>
 <a href="index.html" class="close-btn" title="Back to courses">&times;</a>
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
-<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
-<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
 
 <div class="deck" id="deck">
 
@@ -744,7 +742,6 @@ datasources:
   }
 
   function navigate(dir) { showSlide(current + dir); }
-  showSlide(0);
   showSlide(0); // initial state: hide Prev on first slide
 
   document.addEventListener('keydown', (e) => {
@@ -762,7 +759,6 @@ datasources:
   });
 </script>
 
-<script src="glossary-terms.js"></script>
 <script src="glossary-terms.js"></script>
 </body>
 </html>
