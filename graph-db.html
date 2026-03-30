@@ -665,18 +665,6 @@ g.V().has('name', 'Alice')
     }
   }
 
-  const navBtns = document.querySelectorAll('.nav button');
-  function showSlide(index) {
-    slides[current].classList.remove('active');
-    current = Math.max(0, Math.min(index, slides.length - 1));
-    slides[current].classList.add('active');
-    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
-    counter.textContent = (current + 1) + ' / ' + slides.length;
-    if (navBtns.length >= 2) {
-      navBtns[0].style.display = current === 0 ? 'none' : '';
-      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
-    }
-  }
 
   function navigate(dir) { showSlide(current + dir); }
   showSlide(0); // initial state: hide Prev on first slide
