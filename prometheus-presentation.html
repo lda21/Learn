@@ -62,7 +62,7 @@
       flex-direction: column;
       justify-content: flex-start;
       align-items: center;
-      padding: 80px 80px 100px;
+      padding: 80px 80px 60px;
       opacity: 0;
       pointer-events: none;
       transition: opacity 0.5s ease;
@@ -359,7 +359,7 @@
         padding: 30px 24px;
         justify-content: flex-start;
         padding-top: 50px;
-        padding-bottom: 120px;
+        padding-bottom: 30px;
         overflow-y: auto;
       }
 
@@ -425,22 +425,14 @@
       table { font-size: 1.15rem; display: block; overflow-x: auto; }
       th, td { padding: 12px 14px; font-size: 1.15rem; }
 
-      .nav {
-        bottom: 14px;
-        right: 14px;
-        gap: 8px;
-      }
-
-      .nav button {
-        padding: 12px 20px;
-        font-size: 1.1rem;
-      }
-
-      .slide-counter {
-        bottom: 18px;
-        left: 14px;
-        font-size: 1rem;
-      }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
 
       .content { max-width: 100%; }
     }
@@ -449,7 +441,7 @@
       .slide {
         padding: 24px 18px;
         padding-top: 40px;
-        padding-bottom: 100px;
+        padding-bottom: 24px;
       }
 
       h1 { font-size: 2.4rem; }
@@ -471,6 +463,27 @@
       .diagram .box { font-size: 1.1rem; }
       table, th, td { font-size: 1.05rem; }
     }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
   </style>
 </head>
 <body>
@@ -953,6 +966,7 @@ groups:
 
 <!-- Theme Toggle -->
 <button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
 
 <!-- Navigation -->
 <div class="slide-counter" id="counter">1 / 20</div>
@@ -981,6 +995,23 @@ groups:
     const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
     document.documentElement.setAttribute('data-theme', saved);
     updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
   })();
 </script>
 
