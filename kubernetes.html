@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Kubernetes</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; overflow-y: auto; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav { bottom: 14px; right: 14px; gap: 8px; }
+      .nav button { padding: 12px 20px; font-size: 1.1rem; }
+      .slide-counter { bottom: 18px; left: 14px; font-size: 1rem; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate">Kubernetes</h1>
+    <p class="subtitle animate">Container orchestration at scale</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">K8s</span><span class="tag">Containers</span><span class="tag">Orchestration</span><span class="tag">CNCF</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Kubernetes?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>You have 10s&ndash;1000s of containers to manage</li>
+          <li>Need to deploy, scale, and heal automatically</li>
+          <li>Docker runs containers &mdash; K8s <span class="highlight">orchestrates</span> them</li>
+          <li>Handles networking, storage, secrets, config</li>
+          <li>Declarative: describe <em>desired state</em>, K8s makes it happen</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What K8s Gives You</h3>
+        <ul>
+          <li><span class="highlight">Self-healing</span> &mdash; restarts crashed containers</li>
+          <li><span class="highlight">Auto-scaling</span> &mdash; HPA scales on CPU/memory</li>
+          <li><span class="highlight">Rolling updates</span> &mdash; zero-downtime deploys</li>
+          <li><span class="highlight">Service discovery</span> &mdash; built-in DNS</li>
+          <li><span class="highlight">Secret management</span> &mdash; secure config injection</li>
+          <li><span class="highlight">Storage orchestration</span> &mdash; attach volumes dynamically</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Control Plane</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Node 1</div>
+        <div class="arrow">&nbsp;</div>
+        <div class="box">Node 2</div>
+        <div class="arrow">&nbsp;</div>
+        <div class="box">Node 3</div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>Control Plane</h3>
+          <ul>
+            <li><span class="highlight">API Server</span> &mdash; front door for all operations</li>
+            <li><span class="highlight">etcd</span> &mdash; distributed key-value store for cluster state</li>
+            <li><span class="highlight">Scheduler</span> &mdash; assigns pods to nodes</li>
+            <li><span class="highlight">Controller Manager</span> &mdash; runs reconciliation loops</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Worker Nodes</h3>
+          <ul>
+            <li><span class="highlight">kubelet</span> &mdash; agent that runs pods on each node</li>
+            <li><span class="highlight">kube-proxy</span> &mdash; handles networking and load balancing</li>
+            <li><span class="highlight">Container Runtime</span> &mdash; containerd or CRI-O</li>
+            <li>Nodes can be VMs, bare metal, or cloud instances</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pods</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is a Pod?</h3>
+        <ul>
+          <li>Smallest deployable unit in K8s</li>
+          <li>One or more containers sharing network and storage</li>
+          <li>Each pod gets its own IP address</li>
+          <li>Containers in a pod communicate via <code>localhost</code></li>
+          <li>Pods are <span class="highlight">ephemeral</span> &mdash; they can be killed and recreated</li>
+          <li>Never create pods directly &mdash; use Deployments</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pod YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: v1
+kind: Pod
+metadata:
+  name: myapp
+  labels:
+    app: myapp
+spec:
+  containers:
+    - name: app
+      image: myapp:1.0
+      ports:
+        - containerPort: 3000
+      resources:
+        requests:
+          cpu: "100m"
+          memory: "128Mi"
+        limits:
+          cpu: "500m"
+          memory: "256Mi"
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deployments</h2>
+    <div class="content animate">
+      <p>A Deployment manages a set of identical pods. It handles scaling, rolling updates, and rollbacks.</p>
+<pre>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: 3                    # run 3 identical pods
+  selector:
+    matchLabels:
+      app: myapp                 # manage pods with this label
+  strategy:
+    type: RollingUpdate          # zero-downtime deploys
+    rollingUpdate:
+      maxSurge: 1                # 1 extra pod during update
+      maxUnavailable: 0          # never drop below desired count
+  template:                      # pod template
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: app
+          image: myapp:1.0
+          ports:
+            - containerPort: 3000
+          readinessProbe:        # only route traffic when ready
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+          livenessProbe:         # restart if unhealthy
+            httpGet:
+              path: /health
+              port: 3000
+            periodSeconds: 10
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Services &amp; Networking</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is a Service?</h3>
+        <ul>
+          <li>Stable network endpoint for a set of pods</li>
+          <li>Pods come and go &mdash; Services provide a <span class="highlight">fixed IP and DNS name</span></li>
+          <li>Load balances traffic across matching pods</li>
+          <li>Selects pods by <code>labels</code></li>
+        </ul>
+        <table style="font-size:0.9rem;margin-top:10px">
+          <tr><th>Type</th><th>Scope</th></tr>
+          <tr><td><code>ClusterIP</code></td><td>Internal only (default)</td></tr>
+          <tr><td><code>NodePort</code></td><td>Exposes on each node&rsquo;s IP</td></tr>
+          <tr><td><code>LoadBalancer</code></td><td>Cloud LB (AWS ALB/NLB)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Service YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: myapp       # route to these pods
+  ports:
+    - port: 80       # service port
+      targetPort: 3000  # container port
+
+---
+# Access from other pods:
+# http://myapp-svc.default.svc.cluster.local
+# or just: http://myapp-svc
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Ingress</h2>
+    <div class="content animate">
+      <p>Ingress exposes HTTP/HTTPS routes from outside the cluster to Services. Like a reverse proxy managed by K8s.</p>
+<pre>
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myapp-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [myapp.example.com]
+      secretName: myapp-tls        # TLS certificate
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-svc
+                port: { number: 80 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port: { number: 80 }
+</pre>
+      <p style="margin-top:8px"><span class="highlight">Requires:</span> An Ingress Controller (NGINX, Traefik, AWS ALB Controller) installed in the cluster.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">ConfigMaps &amp; Secrets</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>ConfigMap</h3>
+        <p>Store non-sensitive configuration. Inject as env vars or mounted files.</p>
+<pre style="font-size:0.8rem">
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-config
+data:
+  LOG_LEVEL: "info"
+  API_URL: "https://api.example.com"
+  config.json: |
+    {"feature_flags": {"v2": true}}
+
+---
+# Use in pod:
+envFrom:
+  - configMapRef:
+      name: app-config
+</pre>
+      </div>
+      <div class="card">
+        <h3>Secret</h3>
+        <p>Store sensitive data (passwords, tokens, keys). Base64-encoded, optionally encrypted at rest.</p>
+<pre style="font-size:0.8rem">
+apiVersion: v1
+kind: Secret
+metadata:
+  name: db-credentials
+type: Opaque
+data:
+  username: cG9zdGdyZXM=    # base64
+  password: czNjcjN0         # base64
+
+---
+# Use in pod:
+env:
+  - name: DB_USER
+    valueFrom:
+      secretKeyRef:
+        name: db-credentials
+        key: username
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Storage: PV &amp; PVC</h2>
+    <div class="content animate">
+      <p>Pods are ephemeral &mdash; data is lost when they restart. Use PersistentVolumes for durable storage.</p>
+      <div class="diagram">
+        <div class="box">Pod</div>
+        <div class="arrow">&rarr; mounts</div>
+        <div class="box" style="border-color:var(--success)">PVC<br><small>(claim)</small></div>
+        <div class="arrow">&rarr; binds to</div>
+        <div class="box">PV<br><small>(actual disk)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">EBS / EFS / NFS</div>
+      </div>
+<pre style="margin-top:16px">
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes: [ReadWriteOnce]   # single node read/write
+  storageClassName: gp3          # AWS EBS gp3
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Mount in pod spec:
+volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: postgres-data
+containers:
+  - volumeMounts:
+      - name: data
+        mountPath: /var/lib/postgresql/data
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Namespaces &amp; RBAC</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Namespaces</h3>
+        <ul>
+          <li>Virtual clusters within a physical cluster</li>
+          <li>Isolate teams, environments, or applications</li>
+          <li>Resource quotas per namespace</li>
+          <li>Default namespaces: <code>default</code>, <code>kube-system</code>, <code>kube-public</code></li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+kubectl create namespace staging
+kubectl get pods -n staging
+kubectl config set-context --current   --namespace=staging
+</pre>
+      </div>
+      <div class="card">
+        <h3>RBAC</h3>
+        <ul>
+          <li>Role-Based Access Control</li>
+          <li><span class="highlight">Role</span> &mdash; permissions within a namespace</li>
+          <li><span class="highlight">ClusterRole</span> &mdash; cluster-wide permissions</li>
+          <li><span class="highlight">RoleBinding</span> &mdash; assigns role to user/group</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+kind: Role
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scaling: HPA &amp; VPA</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Horizontal Pod Autoscaler</h3>
+        <p>Adds or removes pod replicas based on metrics.</p>
+<pre style="font-size:0.8rem">
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: myapp-hpa
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: myapp
+  minReplicas: 2
+  maxReplicas: 20
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+</pre>
+      </div>
+      <div class="card">
+        <h3>Vertical Pod Autoscaler</h3>
+        <p>Adjusts CPU/memory requests and limits based on actual usage.</p>
+        <ul>
+          <li><span class="highlight">Recommend</span> &mdash; suggests values (safe)</li>
+          <li><span class="highlight">Auto</span> &mdash; applies changes (restarts pods)</li>
+          <li>Use VPA for right-sizing, HPA for scaling out</li>
+          <li>Don&rsquo;t use both on the same metric</li>
+        </ul>
+        <div class="card" style="margin-top:12px;padding:14px;background:var(--accent2)">
+          <h3 style="font-size:1.1rem">Scaling Strategy</h3>
+          <p style="font-size:0.95rem"><span class="highlight">HPA</span> for stateless services (API, web)<br>
+          <span class="highlight">VPA</span> for stateful workloads (databases)<br>
+          <span class="highlight">Cluster Autoscaler</span> for adding/removing nodes</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Helm: The Package Manager</h2>
+    <div class="content animate">
+      <p>Helm packages K8s manifests into reusable, versioned <span class="highlight">charts</span> with templating and values.</p>
+<pre>
+# Install a chart from a repository
+helm repo add bitnami https://charts.bitnami.com/bitnami
+helm install my-postgres bitnami/postgresql   --set auth.postgresPassword=secret   --set primary.persistence.size=20Gi   --namespace databases --create-namespace
+
+# Your own chart structure:
+mychart/
+  Chart.yaml          # name, version, description
+  values.yaml         # default configuration
+  templates/
+    deployment.yaml   # {{ .Values.replicas }}
+    service.yaml      # {{ .Values.service.port }}
+    ingress.yaml
+
+# Deploy with custom values
+helm install myapp ./mychart -f production-values.yaml
+helm upgrade myapp ./mychart -f production-values.yaml
+helm rollback myapp 1         # rollback to revision 1
+helm list                      # see installed releases
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">kubectl Essential Commands</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Purpose</th></tr>
+        <tr><td><code>kubectl get pods</code></td><td>List running pods</td></tr>
+        <tr><td><code>kubectl get all -n staging</code></td><td>All resources in a namespace</td></tr>
+        <tr><td><code>kubectl describe pod myapp-xyz</code></td><td>Detailed info &amp; events</td></tr>
+        <tr><td><code>kubectl logs myapp-xyz -f</code></td><td>Stream pod logs</td></tr>
+        <tr><td><code>kubectl exec -it myapp-xyz -- sh</code></td><td>Shell into a container</td></tr>
+        <tr><td><code>kubectl apply -f deployment.yaml</code></td><td>Create or update resources</td></tr>
+        <tr><td><code>kubectl delete -f deployment.yaml</code></td><td>Remove resources</td></tr>
+        <tr><td><code>kubectl scale deploy myapp --replicas=5</code></td><td>Manual scaling</td></tr>
+        <tr><td><code>kubectl rollout status deploy/myapp</code></td><td>Watch rolling update</td></tr>
+        <tr><td><code>kubectl rollout undo deploy/myapp</code></td><td>Rollback to previous version</td></tr>
+        <tr><td><code>kubectl port-forward svc/myapp 8080:80</code></td><td>Local access to a service</td></tr>
+        <tr><td><code>kubectl top pods</code></td><td>CPU/memory usage (requires metrics-server)</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Deployment Flow</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Code</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">docker build</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">docker push</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">kubectl apply</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">K8s pulls &amp; runs</div>
+      </div>
+<pre style="margin-top:16px">
+# 1. Build and push image
+docker build -t registry.example.com/myapp:v2.1 .
+docker push registry.example.com/myapp:v2.1
+
+# 2. Update the image in your deployment
+kubectl set image deploy/myapp app=registry.example.com/myapp:v2.1
+
+# Or update the YAML and apply:
+kubectl apply -f k8s/deployment.yaml
+
+# 3. Watch the rollout
+kubectl rollout status deploy/myapp
+
+# 4. If something goes wrong, rollback
+kubectl rollout undo deploy/myapp
+
+# In CI/CD (GitHub Actions, ArgoCD):
+# Build &rarr; Push &rarr; Update manifest &rarr; ArgoCD syncs automatically
+</pre>
+      <p style="margin-top:8px"><span class="highlight">No docker compose</span> needed &mdash; K8s handles running, networking, and scaling.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Managed Kubernetes</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>AWS EKS</h3>
+        <p>Managed control plane on AWS. Integrates with ALB, EBS, IAM, Fargate for serverless pods.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Google GKE</h3>
+        <p>The most mature managed K8s. Autopilot mode fully manages nodes. Deep integration with GCP services.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Azure AKS</h3>
+        <p>Free control plane on Azure. Integrates with Azure AD, Container Registry, and Azure Monitor.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Local Development</h3>
+        <p><span class="highlight">minikube</span>, <span class="highlight">kind</span>, or <span class="highlight">k3s</span> for running K8s locally. Docker Desktop also includes K8s.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Always set resource <code>requests</code> and <code>limits</code> on containers</div>
+      <div class="bp-item"><span>2.</span> Use <code>readinessProbe</code> and <code>livenessProbe</code> for self-healing</div>
+      <div class="bp-item"><span>3.</span> Never run as root &mdash; set <code>securityContext.runAsNonRoot: true</code></div>
+      <div class="bp-item"><span>4.</span> Use Namespaces to separate environments (dev, staging, prod)</div>
+      <div class="bp-item"><span>5.</span> Store manifests in Git &mdash; use GitOps (ArgoCD, Flux) for deploys</div>
+      <div class="bp-item"><span>6.</span> Use Helm charts for reusable, parameterized deployments</div>
+      <div class="bp-item"><span>7.</span> Pin image tags to specific versions &mdash; never use <code>:latest</code> in prod</div>
+      <div class="bp-item"><span>8.</span> Set <code>PodDisruptionBudgets</code> for high-availability services</div>
+      <div class="bp-item"><span>9.</span> Use HPA for stateless services, VPA for right-sizing stateful workloads</div>
+      <div class="bp-item"><span>10.</span> Enable RBAC and use least-privilege ServiceAccounts per workload</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a solid foundation in Kubernetes:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Pods</span><span class="tag">Deployments</span><span class="tag">Services</span>
+        <span class="tag">Ingress</span><span class="tag">ConfigMaps</span><span class="tag">Secrets</span>
+        <span class="tag">HPA</span><span class="tag">Helm</span><span class="tag">RBAC</span>
+      </div>
+      <p style="color:var(--text-muted)">Start with minikube locally, deploy your first app, then explore Helm and GitOps.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
