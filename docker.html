@@ -509,21 +509,32 @@ docker volume inspect pgdata
   <!-- SLIDE 9: Docker Compose -->
   <div class="slide">
     <h2 class="animate">Docker Compose</h2>
-    <div class="content animate">
-<pre>
-# docker-compose.yml
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is Compose?</h3>
+        <ul>
+          <li>Define <span class="highlight">multi-container apps</span> in a single YAML file</li>
+          <li>One command to start everything: <code>docker compose up</code></li>
+          <li>Manages services, networks, and volumes together</li>
+          <li><code>depends_on</code> controls startup order</li>
+          <li><code>healthcheck</code> ensures services are ready before dependents start</li>
+          <li>Environment variables for configuration</li>
+          <li>Named volumes persist data across restarts</li>
+          <li>Custom networks isolate service communication</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>docker-compose.yml</h3>
+<pre style="font-size:0.8rem">
 services:
   api:
-    build: ./api
-    ports:
-      - "3000:3000"
+    build: ./api           # build from Dockerfile
+    ports: ["3000:3000"]   # host:container
     environment:
-      - DATABASE_URL=postgres://db:5432/myapp
+      - DATABASE_URL=postgres://db:5432/app
     depends_on:
       db:
         condition: service_healthy
-    networks:
-      - backend
 
   db:
     image: postgres:16-alpine
@@ -531,19 +542,15 @@ services:
       - pgdata:/var/lib/postgresql/data
     environment:
       POSTGRES_DB: myapp
-      POSTGRES_PASSWORD_FILE: /run/secrets/db_pass
+      POSTGRES_PASSWORD: secret
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      test: ["CMD", "pg_isready"]
       interval: 5s
-    networks:
-      - backend
 
 volumes:
-  pgdata:
-
-networks:
-  backend:
+  pgdata:        # named volume for persistence
 </pre>
+      </div>
     </div>
   </div>
 
