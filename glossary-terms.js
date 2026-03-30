@@ -29,6 +29,7 @@ const GLOSSARY_TERMS = [
   {t:"Pipe", d:"Connect the stdout of one command to the stdin of another using <code>|</code>. Fundamental to Unix philosophy.", tags:["Linux"]},
   {t:"SSH", d:"Secure Shell — encrypted protocol for remote login and command execution. Supports key-based auth and MFA.", tags:["Linux","Security"]},
   {t:"systemd", d:"The init system and service manager for most modern Linux distributions. Manages Daemon processes, logging, and boot.", tags:["Linux"]},
+  {t:"Daemon", d:"A background process that runs continuously without user interaction. Examples: sshd (SSH), dockerd (Docker), cron. Managed by systemd on modern Linux.", tags:["Linux","Docker"]},
   {t:"SELinux", d:"Security-Enhanced Linux — a Kernel module providing mandatory access control (MAC) policies beyond standard chmod permissions.", tags:["Linux","Security"]},
   {t:"iptables", d:"Linux Kernel-level packet filtering firewall. Defines rules for network traffic. Replaced by nftables in newer systems.", tags:["Linux","Security"]},
   {t:"Availability Zone (AZ)", d:"An isolated data center within an AWS Region. Deploy across multiple AZs for high availability.", tags:["AWS"]},
@@ -139,6 +140,8 @@ const GLOSSARY_TERMS = [
   {t:"EDR", d:"Endpoint Detection and Response — monitors devices for threats in real-time (CrowdStrike, SentinelOne, Defender). Part of device trust in Zero Trust.", tags:["Security","Zero Trust"]},
   {t:"SOAR", d:"Security Orchestration, Automation and Response — automates incident response playbooks triggered by SIEM alerts.", tags:["Security"]},
   {t:"DLP", d:"Data Loss Prevention — tools and policies that detect and block sensitive data exfiltration (credit cards, PII, secrets).", tags:["Security","Zero Trust"]},
+  {t:"CVE", d:"Common Vulnerabilities and Exposures — a standardized ID system for publicly known security vulnerabilities (e.g., CVE-2024-1234). Tracked in NVD and used for patch management.", tags:["Security"]},
+  {t:"Fluentd", d:"An open-source log collector and aggregator (CNCF). Unifies log collection from multiple sources and routes them to destinations like Elasticsearch, Loki, S3, or Kafka.", tags:["Observability","Docker"]},
   {t:"OIDC", d:"OpenID Connect — an identity layer on top of OAuth 2.0 for authenticating users. Returns ID tokens (JWT). Used by Vault Auth Method, ZTNA, and SSO.", tags:["Security","Vault","Zero Trust"]},
   {t:"LDAP", d:"Lightweight Directory Access Protocol — a protocol for accessing directory services (Active Directory, OpenLDAP). Used as a Vault Auth Method.", tags:["Security","Vault"]},
   {t:"SAML", d:"Security Assertion Markup Language — an XML-based SSO protocol for enterprise identity federation. Older than OIDC, still widely used.", tags:["Security","Zero Trust"]},
@@ -184,6 +187,10 @@ const GLOSSARY_TERMS = [
   {t:"Container Registry", d:"A storage system for Docker images. Examples: Docker Hub, AWS ECR, GitHub Container Registry. Push and pull images for deployment.", tags:["Docker","AWS"]},
   {t:"Swarm", d:"Docker's native clustering and orchestration tool. Simpler than Kubernetes but less feature-rich. Manages multi-node Container deployments.", tags:["Docker"]},
   {t:"cgroup", d:"Control Group — a Linux Kernel feature that limits and isolates CPU, memory, disk I/O, and network for processes. Core to how Docker containers work.", tags:["Docker","Linux"]},
+  {t:"Ephemeral", d:"Short-lived and disposable. In Docker, containers are ephemeral — they can be stopped, destroyed, and replaced at any time. State should live in volumes or external storage.", tags:["Docker","Kubernetes"]},
+  {t:"HPA", d:"Horizontal Pod Autoscaler — a Kubernetes resource that automatically scales the number of pod replicas based on CPU, memory, or custom metrics.", tags:["Kubernetes","Docker"]},
+  {t:"VPA", d:"Vertical Pod Autoscaler — a Kubernetes component that automatically adjusts CPU and memory requests/limits for pods based on actual usage patterns.", tags:["Kubernetes","Docker"]},
+  {t:"CNI", d:"Container Network Interface — a specification and plugin framework for configuring networking in Kubernetes. Implementations: Calico, Cilium, Flannel, Weave.", tags:["Kubernetes","Docker","Networking"]},
   {t:"Decorator", d:"A Python function that wraps another function to extend its behavior using @syntax. Common uses: logging, timing, authentication, caching.", tags:["Python"]},
   {t:"Generator", d:"A Python function using yield to produce values lazily one at a time. Memory-efficient for large datasets. Created with generator expressions or yield.", tags:["Python"]},
   {t:"List Comprehension", d:"Python syntax for creating lists inline: [x**2 for x in range(10)]. Also works for dicts, sets, and generators. Concise and Pythonic.", tags:["Python"]},
@@ -465,6 +472,7 @@ const GLOSSARY_TERMS = [
     linkifySlides();
   }
 })();
+
 
 
 

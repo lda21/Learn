@@ -3,6 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <title>Docker</title>
   <style>
     :root {
@@ -244,7 +245,53 @@
     </div>
   </div>
 
-  <!-- SLIDE 3: Images & Containers -->
+  <!-- SLIDE 3: Docker Workflow -->
+  <div class="slide">
+    <h2 class="animate">The Docker Workflow</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Develop</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Build</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Push</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Deploy</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Run</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Monitor</div>
+      </div>
+<pre style="margin-top:16px">
+# 1. DEVELOP &mdash; Write code, create Dockerfile
+vim app.py
+vim Dockerfile
+
+# 2. BUILD &mdash; Create image from Dockerfile
+docker build -t myapp:1.0 .
+
+# 3. PUSH &mdash; Upload image to a registry
+docker tag myapp:1.0 registry.example.com/myapp:1.0
+docker push registry.example.com/myapp:1.0
+
+# 4. DEPLOY &mdash; Pull and deploy to production
+docker pull registry.example.com/myapp:1.0
+docker compose up -d              # or kubectl apply -f deployment.yaml
+
+# 5. RUN &mdash; Manage running containers
+docker ps                          # list running containers
+docker logs -f myapp               # stream logs
+docker exec -it myapp sh           # shell into container
+
+# 6. MONITOR &mdash; Health checks and metrics
+docker stats                       # CPU, memory, network I/O
+docker inspect myapp               # detailed container info
+docker compose logs --tail=100     # recent logs from all services
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 4: Images & Containers -->
   <div class="slide">
     <h2 class="animate">Images &amp; Containers</h2>
     <div class="two-col animate">
