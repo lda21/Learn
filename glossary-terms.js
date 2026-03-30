@@ -23,7 +23,6 @@ const GLOSSARY_TERMS = [
   {t:"chmod", d:"Change file permissions in Linux. Uses numeric (755) or symbolic (u+x) notation to control read, write, and execute access.", tags:["Linux"]},
   {t:"chown", d:"Change file or directory ownership (user and group) in Linux.", tags:["Linux"]},
   {t:"Cron", d:"A time-based job scheduler in Linux. Define recurring tasks in crontab with minute/hour/day/month/weekday format.", tags:["Linux"]},
-  {t:"Daemon", d:"A background process in Linux that runs continuously, typically managed by systemd (e.g., sshd, nginx).", tags:["Linux"]},
   {t:"File Descriptor", d:"An integer handle for I/O resources in Linux. 0=stdin, 1=stdout, 2=stderr. Used with Pipe and redirection.", tags:["Linux"]},
   {t:"inode", d:"A data structure in Linux filesystems that stores metadata about a file (permissions, owner, timestamps, block locations).", tags:["Linux"]},
   {t:"Kernel", d:"The core of the operating system that manages hardware, memory, processes, and system calls. Linux is a Kernel.", tags:["Linux"]},
@@ -97,7 +96,6 @@ const GLOSSARY_TERMS = [
   {t:"Exporter", d:"A component that exposes metrics from third-party systems (Node Exporter, MySQL Exporter) in Prometheus Scrape format.", tags:["Prometheus"]},
   {t:"Recording Rule", d:"A pre-computed PromQL query saved as a new time series. Reduces dashboard query-time computation.", tags:["Prometheus"]},
   {t:"Thanos", d:"A CNCF project that adds global query view, long-term S3 storage, deduplication, and downsampling to Prometheus.", tags:["Prometheus"]},
-  {t:"Grafana", d:"The most popular visualization and dashboard tool for Prometheus. Query with PromQL, build alerts, template variables.", tags:["Prometheus"]},
   {t:"Federation", d:"A pattern where hierarchical Prometheus servers Scrape from each other for scaling across clusters.", tags:["Prometheus"]},
   {t:"Secret Engine", d:"A Vault component that stores, generates, or encrypts data. Types include KV, PKI, Transit Engine, database, and AWS.", tags:["Vault","Security"]},
   {t:"Dynamic Secret", d:"A credential generated on-demand by Vault with a TTL. Automatically revoked after expiry. Eliminates long-lived passwords.", tags:["Vault","Security"]},
@@ -150,7 +148,6 @@ const GLOSSARY_TERMS = [
   {t:"JWT", d:"JSON Web Token — a compact, signed token format for transmitting claims between parties. Used by OIDC, API Gateway, and Auth Method.", tags:["Security"]},
   {t:"SSO", d:"Single Sign-On — authenticate once and access multiple applications. Implemented via OIDC or SAML with providers like Okta, Azure AD.", tags:["Security","Zero Trust"]},
   {t:"FIDO2", d:"A passwordless authentication standard using hardware security keys or biometrics. Strongest form of MFA.", tags:["Security","Zero Trust"]},
-  {t:"API Gateway", d:"A reverse proxy that routes, authenticates, rate-limits, and transforms API requests. Examples: AWS API Gateway, Kong, Envoy.", tags:["AWS","Security"]},
   {t:"CI/CD", d:"Continuous Integration / Continuous Deployment — automating build, test, and deployment pipelines via GitHub Actions or similar.", tags:["GitHub","CI/CD"]},
   {t:"Container", d:"A lightweight, isolated runtime for applications. Docker containers package code + dependencies. Run on ECS, EKS, or Fargate.", tags:["Linux","AWS"]},
   {t:"DNS", d:"Domain Name System — translates domain names to IP addresses. AWS Route 53 is a managed DNS service with health checks.", tags:["Linux","AWS"]},
@@ -162,7 +159,7 @@ const GLOSSARY_TERMS = [
   {t:"Observability", d:"Understanding system behavior from metrics (Prometheus), logs (CloudWatch), and traces (X-Ray). Visualized with Grafana.", tags:["Prometheus","AWS"]},
   {t:"RBAC", d:"Role-Based Access Control — assigning permissions to roles rather than individual users. Used in IAM, Kubernetes, and Vault.", tags:["Security","AWS","Vault"]},
   {t:"TLS", d:"Transport Layer Security — cryptographic protocol for Encryption in Transit. Successor to SSL. Certificates issued by ACM or PKI.", tags:["Security"]},
-  {t:"TTL", d:"Time To Live — how long data (Dynamic Secret, DNS record, token, cache entry) remains valid before expiring.", tags:["Vault","Prometheus","AWS"]},
+  {t:"TTL", d:"Time To Live — how long data remains valid before expiring. Used in DNS, caching (Redis), Vault secrets, and CDN configuration.", tags:["Vault","Redis","AWS"]},
   {t:"Kubernetes", d:"An open-source Container orchestration platform. Manages deployment, scaling, and networking. Runs on AWS EKS or self-managed.", tags:["AWS","Linux"]},
   {t:"Docker", d:"A platform for building and running Container images. Packages applications with dependencies into portable, isolated units.", tags:["Linux"]},
   {t:"Terraform Cloud", d:"HashiCorp's managed service for Terraform. Provides remote State storage, team collaboration, Policy as Code, and CI/CD for IaC.", tags:["Terraform","IaC"]},
@@ -297,7 +294,6 @@ const GLOSSARY_TERMS = [
   {t:"Redis Sentinel", d:"A system for high availability in Redis. Monitors master/replica instances, performs automatic failover, and provides service discovery for clients.", tags:["Redis"]},
   {t:"Redis Cluster", d:"Redis's built-in sharding solution. Automatically partitions data across multiple nodes using hash slots (16384 total). Provides HA and horizontal scaling.", tags:["Redis"]},
   {t:"Cache-Aside", d:"A caching pattern where the application checks Redis first, fetches from the database on miss, then stores the result in Redis for future requests.", tags:["Redis"]},
-  {t:"TTL", d:"Time-To-Live — an expiration time set on Redis keys. After TTL expires, Redis automatically deletes the key. Essential for cache eviction strategies.", tags:["Redis"]},
   {t:"RDB Snapshot", d:"Redis's point-in-time persistence mechanism. Creates a binary dump of the entire dataset. Fast to load but may lose recent data between snapshots.", tags:["Redis"]},
   {t:"AOF", d:"Append-Only File — Redis persistence that logs every write operation. More durable than RDB snapshots. Can be configured for fsync every second or every write.", tags:["Redis"]},
 ];
@@ -378,12 +374,17 @@ const GLOSSARY_TERMS = [
           return '\x00' + (prot.length - 1) + '\x00';
         });
 
+        const matched = new Set();
         termNames.forEach(name => {
+          if (matched.has(name.toLowerCase())) return;
           const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const re = new RegExp('\\b' + escaped + '\\b', 'g');
-          const before = safe;
-          safe = safe.replace(re, '<span class="term-link" data-term="' + name + '">' + name + '</span>');
-          if (safe !== before) changed = true;
+          const re = new RegExp('\\b' + escaped + '\\b');
+          if (re.test(safe)) {
+            safe = safe.replace(re, '\x00' + prot.length + '\x00');
+            prot.push('<span class="term-link" data-term="' + name + '">' + name + '</span>');
+            matched.add(name.toLowerCase());
+            changed = true;
+          }
         });
 
         if (changed) {
@@ -475,6 +476,7 @@ const GLOSSARY_TERMS = [
     linkifySlides();
   }
 })();
+
 
 
 
