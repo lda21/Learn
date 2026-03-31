@@ -235,15 +235,17 @@
 
 <div class="deck" id="deck">
 
+  <!-- 1. TITLE -->
   <div class="slide active">
     <span class="logo-icon animate">&#x2699;</span>
     <h1 class="animate">Kubernetes</h1>
-    <p class="subtitle animate">Container orchestration at scale</p>
+    <p class="subtitle animate">Container orchestration at scale &mdash; the complete guide</p>
     <div class="animate" style="margin-top:20px">
       <span class="tag">K8s</span><span class="tag">Containers</span><span class="tag">Orchestration</span><span class="tag">CNCF</span>
     </div>
   </div>
 
+  <!-- 2. WHY KUBERNETES? -->
   <div class="slide">
     <h2 class="animate">Why Kubernetes?</h2>
     <div class="two-col animate">
@@ -271,8 +273,9 @@
     </div>
   </div>
 
+  <!-- 3. CLUSTER ARCHITECTURE -->
   <div class="slide">
-    <h2 class="animate">Architecture</h2>
+    <h2 class="animate">Cluster Architecture</h2>
     <div class="content animate">
       <div class="diagram">
         <div class="box" style="border-color:var(--success)">Control Plane</div>
@@ -287,30 +290,180 @@
         <div class="card">
           <h3>Control Plane</h3>
           <ul>
-            <li><span class="highlight">API Server</span> &mdash; front door for all operations</li>
-            <li><span class="highlight">etcd</span> &mdash; distributed key-value store for cluster state</li>
-            <li><span class="highlight">Scheduler</span> &mdash; assigns pods to nodes</li>
-            <li><span class="highlight">Controller Manager</span> &mdash; runs reconciliation loops</li>
+            <li><span class="highlight">API Server</span> &mdash; front door for all operations (REST)</li>
+            <li><span class="highlight">etcd</span> &mdash; distributed KV store for all cluster state</li>
+            <li><span class="highlight">Scheduler</span> &mdash; assigns pods to nodes based on constraints</li>
+            <li><span class="highlight">Controller Manager</span> &mdash; runs reconciliation loops (Deployment, ReplicaSet, Job controllers)</li>
+            <li><span class="highlight">Cloud Controller</span> &mdash; manages cloud-specific resources (load balancers, volumes)</li>
           </ul>
         </div>
         <div class="card">
           <h3>Worker Nodes</h3>
           <ul>
             <li><span class="highlight">kubelet</span> &mdash; agent that runs pods on each node</li>
-            <li><span class="highlight">kube-proxy</span> &mdash; handles networking and load balancing</li>
-            <li><span class="highlight">Container Runtime</span> &mdash; containerd or CRI-O</li>
+            <li><span class="highlight">kube-proxy</span> &mdash; maintains network rules, load balances traffic</li>
+            <li><span class="highlight">Container Runtime</span> &mdash; containerd or CRI-O (not Docker since K8s 1.24)</li>
             <li>Nodes can be VMs, bare metal, or cloud instances</li>
+            <li>Each node reports status, capacity, and conditions to control plane</li>
           </ul>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- 4. NODES -->
+  <div class="slide">
+    <h2 class="animate">Nodes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is a Node?</h3>
+        <ul>
+          <li>A physical or virtual machine that runs pods</li>
+          <li>Has allocatable CPU, memory, and storage</li>
+          <li><span class="highlight">Conditions</span> &mdash; Ready, MemoryPressure, DiskPressure, PIDPressure</li>
+          <li>If NotReady for 5 min &rarr; pods get evicted</li>
+          <li>Dashboard shows 3 nodes with Ready/NotReady status</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+kubectl get nodes -o wide
+kubectl describe node &lt;name&gt;
+kubectl top node          # CPU/memory usage
+kubectl cordon &lt;node&gt;    # mark unschedulable
+kubectl drain &lt;node&gt;     # evict pods safely
+kubectl uncordon &lt;node&gt;  # allow scheduling again
+</pre>
+      </div>
+      <div class="card">
+        <h3>Labels, Taints &amp; Tolerations</h3>
+        <p><strong>Labels</strong> &mdash; key/value metadata for selection:</p>
+<pre style="font-size:0.8rem">
+kubectl label node node-1 \
+  disktype=ssd tier=production
+
+# Schedule to specific nodes:
+nodeSelector:
+  disktype: ssd
+</pre>
+        <p style="margin-top:12px"><strong>Taints &amp; Tolerations</strong> &mdash; repel pods unless they tolerate the taint:</p>
+<pre style="font-size:0.8rem">
+# Taint a node (only GPU pods)
+kubectl taint node gpu-1 \
+  gpu=true:NoSchedule
+
+# Pod toleration:
+tolerations:
+  - key: "gpu"
+    operator: "Equal"
+    value: "true"
+    effect: "NoSchedule"
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. NAMESPACES -->
+  <div class="slide">
+    <h2 class="animate">Namespaces</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Virtual Clusters</h3>
+        <ul>
+          <li>Logically partition a physical cluster</li>
+          <li>Isolate teams, environments, or applications</li>
+          <li>Resources within a namespace have unique names</li>
+          <li>Cross-namespace access via FQDN: <code>svc.namespace.svc.cluster.local</code></li>
+          <li>Apply resource quotas and network policies per namespace</li>
+        </ul>
+        <table style="font-size:0.95rem;margin-top:10px">
+          <tr><th>Namespace</th><th>Purpose</th></tr>
+          <tr><td><code>default</code></td><td>Resources with no namespace specified</td></tr>
+          <tr><td><code>kube-system</code></td><td>K8s internal components (CoreDNS, kube-proxy)</td></tr>
+          <tr><td><code>kube-public</code></td><td>Publicly readable (cluster info)</td></tr>
+          <tr><td><code>kube-node-lease</code></td><td>Node heartbeat Lease objects</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Working with Namespaces</h3>
+<pre style="font-size:0.8rem">
+# Create a namespace
+kubectl create namespace staging
+
+# List all namespaces
+kubectl get namespaces
+
+# Get pods in a specific namespace
+kubectl get pods -n staging
+
+# Get pods across ALL namespaces
+kubectl get pods -A
+
+# Set default namespace for context
+kubectl config set-context --current \
+  --namespace=staging
+
+# Delete a namespace (deletes everything in it!)
+kubectl delete namespace staging
+</pre>
+        <p style="margin-top:12px;font-size:0.95rem"><span class="highlight">Tip:</span> Use <code>kubens</code> from kubectx to quickly switch namespaces.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. EVENTS -->
+  <div class="slide">
+    <h2 class="animate">Events</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Are Events?</h3>
+        <ul>
+          <li>Records of things that happened in the cluster</li>
+          <li>Created by controllers, scheduler, kubelet</li>
+          <li>Types: <span class="highlight">Normal</span> (informational) and <span class="highlight">Warning</span> (problems)</li>
+          <li>Retained for 1 hour by default (configurable)</li>
+          <li>First place to look when debugging</li>
+        </ul>
+        <table style="font-size:0.9rem;margin-top:10px">
+          <tr><th>Event Reason</th><th>Meaning</th></tr>
+          <tr><td><code>Scheduled</code></td><td>Pod assigned to a node</td></tr>
+          <tr><td><code>Pulling</code></td><td>Pulling container image</td></tr>
+          <tr><td><code>Created</code></td><td>Container created</td></tr>
+          <tr><td><code>Started</code></td><td>Container started</td></tr>
+          <tr><td><code>Unhealthy</code></td><td>Probe failed</td></tr>
+          <tr><td><code>BackOff</code></td><td>Container crashing repeatedly</td></tr>
+          <tr><td><code>FailedScheduling</code></td><td>No node has enough resources</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Viewing Events</h3>
+<pre style="font-size:0.8rem">
+# All events in current namespace
+kubectl get events --sort-by=.metadata.creationTimestamp
+
+# Events for a specific pod
+kubectl describe pod myapp-xyz
+# (Events section at the bottom)
+
+# Watch events in real-time
+kubectl get events -w
+
+# Warning events only
+kubectl get events \
+  --field-selector type=Warning
+
+# Events in all namespaces
+kubectl get events -A
+</pre>
+        <p style="margin-top:12px;font-size:0.95rem"><span class="highlight">Debugging flow:</span> Events &rarr; Pod logs &rarr; Describe &rarr; Node conditions. Always start with events.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. PODS -->
   <div class="slide">
     <h2 class="animate">Pods</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>What is a Pod?</h3>
+        <h3>The Smallest Unit</h3>
         <ul>
           <li>Smallest deployable unit in K8s</li>
           <li>One or more containers sharing network and storage</li>
@@ -318,6 +471,12 @@
           <li>Containers in a pod communicate via <code>localhost</code></li>
           <li>Pods are <span class="highlight">ephemeral</span> &mdash; they can be killed and recreated</li>
           <li>Never create pods directly &mdash; use Deployments</li>
+        </ul>
+        <h3 style="margin-top:16px">Multi-Container Patterns</h3>
+        <ul>
+          <li><span class="highlight">Sidecar</span> &mdash; log collector, service mesh proxy (Envoy)</li>
+          <li><span class="highlight">Init container</span> &mdash; runs before main, sets up config/DB migrations</li>
+          <li><span class="highlight">Ambassador</span> &mdash; proxy for outgoing connections</li>
         </ul>
       </div>
       <div class="card">
@@ -329,28 +488,153 @@ metadata:
   name: myapp
   labels:
     app: myapp
+    version: v1
 spec:
+  initContainers:
+    - name: db-migrate
+      image: myapp:1.0
+      command: ["./migrate", "up"]
   containers:
     - name: app
       image: myapp:1.0
       ports:
         - containerPort: 3000
       resources:
-        requests:
+        requests:        # scheduler guarantee
           cpu: "100m"
           memory: "128Mi"
-        limits:
+        limits:          # hard ceiling
           cpu: "500m"
           memory: "256Mi"
+    - name: log-shipper  # sidecar
+      image: fluent-bit:latest
+      volumeMounts:
+        - name: logs
+          mountPath: /var/log/app
+  volumes:
+    - name: logs
+      emptyDir: {}
 </pre>
       </div>
     </div>
   </div>
 
+  <!-- 8. POD LIFECYCLE & PROBES -->
+  <div class="slide">
+    <h2 class="animate">Pod Lifecycle &amp; Probes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pod Phases</h3>
+        <div class="diagram" style="flex-direction:column; gap:4px; margin:8px 0">
+          <div class="box" style="min-width:250px;padding:10px;border-color:var(--text-muted)">Pending &mdash; waiting for scheduling or image pull</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:250px;padding:10px;border-color:var(--success)">Running &mdash; at least one container is running</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:250px;padding:10px">Succeeded / Failed &mdash; all containers terminated</div>
+        </div>
+        <h3 style="margin-top:12px">Container States</h3>
+        <ul>
+          <li><span class="highlight">Waiting</span> &mdash; pulling image, creating container</li>
+          <li><span class="highlight">Running</span> &mdash; executing with no issues</li>
+          <li><span class="highlight">Terminated</span> &mdash; finished or crashed (check exit code)</li>
+          <li><code>CrashLoopBackOff</code> &mdash; keeps crashing, K8s backs off restart interval</li>
+          <li><code>ImagePullBackOff</code> &mdash; can&rsquo;t pull the image (wrong tag, no auth)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Health Probes</h3>
+<pre style="font-size:0.8rem">
+containers:
+  - name: app
+    image: myapp:1.0
+
+    # Wait for slow startups (checked first)
+    startupProbe:
+      httpGet:
+        path: /healthz
+        port: 3000
+      failureThreshold: 30
+      periodSeconds: 10
+
+    # Is the container alive? (restart if not)
+    livenessProbe:
+      httpGet:
+        path: /healthz
+        port: 3000
+      periodSeconds: 10
+      failureThreshold: 3
+
+    # Can it accept traffic? (remove from Service)
+    readinessProbe:
+      httpGet:
+        path: /ready
+        port: 3000
+      periodSeconds: 5
+      failureThreshold: 3
+</pre>
+        <p style="margin-top:8px;font-size:0.95rem">Probe types: <code>httpGet</code>, <code>tcpSocket</code>, <code>exec</code>, <code>grpc</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. REPLICASETS -->
+  <div class="slide">
+    <h2 class="animate">ReplicaSets</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Ensuring Desired Replicas</h3>
+        <ul>
+          <li>Guarantees a specified number of identical pods are running</li>
+          <li>If a pod dies, ReplicaSet creates a replacement</li>
+          <li>If too many pods exist, it terminates the excess</li>
+          <li>Uses <span class="highlight">label selectors</span> to identify its pods</li>
+          <li><strong>You almost never create ReplicaSets directly</strong> &mdash; Deployments manage them</li>
+        </ul>
+        <div class="diagram" style="margin-top:16px">
+          <div class="box" style="border-color:var(--success)">ReplicaSet<br><small>replicas: 3</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">Pod 1</div>
+          <div class="arrow">&nbsp;</div>
+          <div class="box">Pod 2</div>
+          <div class="arrow">&nbsp;</div>
+          <div class="box">Pod 3</div>
+        </div>
+        <p style="margin-top:12px;font-size:0.95rem">Dashboard shows 122 running ReplicaSets &mdash; one per Deployment revision.</p>
+      </div>
+      <div class="card">
+        <h3>ReplicaSet YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: myapp-rs
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: myapp        # must match template
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: app
+          image: myapp:1.0
+          ports:
+            - containerPort: 3000
+</pre>
+        <h3 style="margin-top:12px">How Deployments Use Them</h3>
+        <p style="font-size:0.95rem">During a rolling update, the Deployment creates a <strong>new</strong> ReplicaSet (v2) and scales it up while scaling the <strong>old</strong> ReplicaSet (v1) down. Old ReplicaSets are kept for rollback history.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. DEPLOYMENTS -->
   <div class="slide">
     <h2 class="animate">Deployments</h2>
     <div class="content animate">
-      <p>A Deployment manages a set of identical pods. It handles scaling, rolling updates, and rollbacks.</p>
+      <p>The most common workload. Manages a set of identical pods via ReplicaSets. Handles rolling updates and rollbacks declaratively.</p>
 <pre>
 apiVersion: apps/v1
 kind: Deployment
@@ -390,91 +674,334 @@ spec:
     </div>
   </div>
 
+  <!-- 11. DEPLOYMENT STRATEGIES & ROLLBACKS -->
   <div class="slide">
-    <h2 class="animate">Services &amp; Networking</h2>
+    <h2 class="animate">Deployment Strategies &amp; Rollbacks</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>What is a Service?</h3>
+        <h3>Strategy Types</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Strategy</th><th>Behavior</th></tr>
+          <tr><td><code>RollingUpdate</code></td><td>Gradually replace old pods with new. Zero downtime. <strong>Default.</strong></td></tr>
+          <tr><td><code>Recreate</code></td><td>Kill all old pods first, then create new. Brief downtime.</td></tr>
+        </table>
+        <h3 style="margin-top:16px">Advanced Patterns</h3>
         <ul>
-          <li>Stable network endpoint for a set of pods</li>
-          <li>Pods come and go &mdash; Services provide a <span class="highlight">fixed IP and DNS name</span></li>
-          <li>Load balances traffic across matching pods</li>
-          <li>Selects pods by <code>labels</code></li>
+          <li><span class="highlight">Blue-Green</span> &mdash; run 2 Deployments, switch Service selector</li>
+          <li><span class="highlight">Canary</span> &mdash; route % of traffic to new version via Ingress weights or service mesh</li>
+          <li><span class="highlight">A/B Testing</span> &mdash; route by header/cookie via Istio or Nginx annotations</li>
         </ul>
-        <table style="font-size:0.9rem;margin-top:10px">
-          <tr><th>Type</th><th>Scope</th></tr>
-          <tr><td><code>ClusterIP</code></td><td>Internal only (default)</td></tr>
-          <tr><td><code>NodePort</code></td><td>Exposes on each node&rsquo;s IP</td></tr>
-          <tr><td><code>LoadBalancer</code></td><td>Cloud LB (AWS ALB/NLB)</td></tr>
+      </div>
+      <div class="card">
+        <h3>Rollback Commands</h3>
+<pre style="font-size:0.8rem">
+# Watch a rollout
+kubectl rollout status deploy/myapp
+
+# View rollout history
+kubectl rollout history deploy/myapp
+
+# See a specific revision
+kubectl rollout history deploy/myapp \
+  --revision=3
+
+# Rollback to previous version
+kubectl rollout undo deploy/myapp
+
+# Rollback to specific revision
+kubectl rollout undo deploy/myapp \
+  --to-revision=2
+
+# Pause rollout (for canary testing)
+kubectl rollout pause deploy/myapp
+
+# Resume rollout
+kubectl rollout resume deploy/myapp
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. STATEFULSETS -->
+  <div class="slide">
+    <h2 class="animate">StatefulSets</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>When Order &amp; Identity Matter</h3>
+        <ul>
+          <li>Pods get <span class="highlight">stable, unique names</span>: <code>postgres-0</code>, <code>postgres-1</code>, <code>postgres-2</code></li>
+          <li>Created and deleted in <strong>order</strong> (0 &rarr; 1 &rarr; 2)</li>
+          <li>Each pod gets its own <span class="highlight">PersistentVolume</span> that survives restarts</li>
+          <li>Stable DNS: <code>postgres-0.postgres-headless.ns.svc.cluster.local</code></li>
+          <li>Use for: <strong>databases</strong>, Kafka, ZooKeeper, Redis Cluster, Elasticsearch</li>
+          <li>Dashboard shows 7 running StatefulSets</li>
+        </ul>
+        <h3 style="margin-top:12px">vs Deployment</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Feature</th><th>Deployment</th><th>StatefulSet</th></tr>
+          <tr><td>Pod names</td><td>Random hash</td><td>Ordered index</td></tr>
+          <tr><td>Storage</td><td>Shared/none</td><td>Per-pod PVC</td></tr>
+          <tr><td>Scaling</td><td>Parallel</td><td>Sequential</td></tr>
+          <tr><td>Network</td><td>Interchangeable</td><td>Stable DNS</td></tr>
         </table>
       </div>
       <div class="card">
-        <h3>Service YAML</h3>
-<pre style="font-size:0.8rem">
-apiVersion: v1
-kind: Service
+        <h3>StatefulSet YAML</h3>
+<pre style="font-size:0.75rem">
+apiVersion: apps/v1
+kind: StatefulSet
 metadata:
-  name: myapp-svc
+  name: postgres
 spec:
-  type: ClusterIP
+  serviceName: postgres-headless  # required
+  replicas: 3
   selector:
-    app: myapp       # route to these pods
-  ports:
-    - port: 80       # service port
-      targetPort: 3000  # container port
-
----
-# Access from other pods:
-# http://myapp-svc.default.svc.cluster.local
-# or just: http://myapp-svc
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+        - name: postgres
+          image: postgres:16
+          ports:
+            - containerPort: 5432
+          volumeMounts:
+            - name: data
+              mountPath: /var/lib/postgresql/data
+  volumeClaimTemplates:    # per-pod PVC
+    - metadata:
+        name: data
+      spec:
+        accessModes: [ReadWriteOnce]
+        storageClassName: gp3
+        resources:
+          requests:
+            storage: 20Gi
 </pre>
       </div>
     </div>
   </div>
 
+  <!-- 13. DAEMONSETS -->
   <div class="slide">
-    <h2 class="animate">Ingress</h2>
-    <div class="content animate">
-      <p>Ingress exposes HTTP/HTTPS routes from outside the cluster to Services. Like a reverse proxy managed by K8s.</p>
-<pre>
-apiVersion: networking.k8s.io/v1
-kind: Ingress
+    <h2 class="animate">DaemonSets</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>One Pod Per Node</h3>
+        <ul>
+          <li>Ensures a copy of a pod runs on <span class="highlight">every node</span> (or a subset)</li>
+          <li>When a new node joins &rarr; DaemonSet pod is automatically added</li>
+          <li>When a node is removed &rarr; pod is garbage collected</li>
+          <li>Dashboard shows 7 DaemonSets running (matches 3 nodes &times; typical agents)</li>
+        </ul>
+        <h3 style="margin-top:12px">Common Use Cases</h3>
+        <ul>
+          <li><span class="highlight">Log collectors</span> &mdash; Fluent Bit, Fluentd, Filebeat</li>
+          <li><span class="highlight">Monitoring agents</span> &mdash; Prometheus Node Exporter, Datadog</li>
+          <li><span class="highlight">Network plugins</span> &mdash; Calico, Cilium, AWS VPC CNI</li>
+          <li><span class="highlight">Storage daemons</span> &mdash; CSI node drivers, Longhorn</li>
+          <li><span class="highlight">Security agents</span> &mdash; Falco, Sysdig</li>
+          <li><span class="highlight">kube-proxy</span> itself runs as a DaemonSet</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>DaemonSet YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: apps/v1
+kind: DaemonSet
 metadata:
-  name: myapp-ingress
-  annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
+  name: fluent-bit
+  namespace: kube-system
 spec:
-  ingressClassName: nginx
-  tls:
-    - hosts: [myapp.example.com]
-      secretName: myapp-tls        # TLS certificate
-  rules:
-    - host: myapp.example.com
-      http:
-        paths:
-          - path: /api
-            pathType: Prefix
-            backend:
-              service:
-                name: api-svc
-                port: { number: 80 }
-          - path: /
-            pathType: Prefix
-            backend:
-              service:
-                name: frontend-svc
-                port: { number: 80 }
+  selector:
+    matchLabels:
+      app: fluent-bit
+  template:
+    metadata:
+      labels:
+        app: fluent-bit
+    spec:
+      # Tolerate control plane taints
+      tolerations:
+        - effect: NoSchedule
+          operator: Exists
+      containers:
+        - name: fluent-bit
+          image: fluent/fluent-bit:latest
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          volumeMounts:
+            - name: varlog
+              mountPath: /var/log
+              readOnly: true
+      volumes:
+        - name: varlog
+          hostPath:
+            path: /var/log
 </pre>
-      <p style="margin-top:8px"><span class="highlight">Requires:</span> An Ingress Controller (NGINX, Traefik, AWS ALB Controller) installed in the cluster.</p>
+      </div>
     </div>
   </div>
 
+  <!-- 14. JOBS -->
   <div class="slide">
-    <h2 class="animate">ConfigMaps &amp; Secrets</h2>
+    <h2 class="animate">Jobs</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>ConfigMap</h3>
-        <p>Store non-sensitive configuration. Inject as env vars or mounted files.</p>
+        <h3>Run to Completion</h3>
+        <ul>
+          <li>Creates one or more pods and ensures they <span class="highlight">succeed</span></li>
+          <li>Unlike Deployments, Jobs <strong>terminate</strong> when done</li>
+          <li>Retries on failure up to <code>backoffLimit</code></li>
+          <li>Dashboard shows Complete, Pending, Failed status</li>
+        </ul>
+        <h3 style="margin-top:12px">Use Cases</h3>
+        <ul>
+          <li>Database migrations</li>
+          <li>Batch data processing</li>
+          <li>Sending bulk emails/notifications</li>
+          <li>ETL pipelines</li>
+          <li>One-time setup tasks</li>
+        </ul>
+        <h3 style="margin-top:12px">Parallelism</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Mode</th><th>Setting</th></tr>
+          <tr><td>Sequential</td><td><code>completions: 5, parallelism: 1</code></td></tr>
+          <tr><td>Parallel</td><td><code>completions: 10, parallelism: 3</code></td></tr>
+          <tr><td>Work queue</td><td><code>parallelism: 3</code> (no completions)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Job YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: db-migrate
+spec:
+  completions: 1         # how many must succeed
+  parallelism: 1         # how many run at once
+  backoffLimit: 3        # retries before failure
+  activeDeadlineSeconds: 600  # timeout (10 min)
+  ttlSecondsAfterFinished: 86400  # cleanup after 24h
+  template:
+    spec:
+      restartPolicy: Never   # or OnFailure
+      containers:
+        - name: migrate
+          image: myapp:1.0
+          command: ["./migrate", "up"]
+          env:
+            - name: DATABASE_URL
+              valueFrom:
+                secretKeyRef:
+                  name: db-credentials
+                  key: url
+</pre>
+<pre style="font-size:0.8rem;margin-top:12px">
+# Check job status
+kubectl get jobs
+kubectl describe job db-migrate
+kubectl logs job/db-migrate
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. CRONJOBS -->
+  <div class="slide">
+    <h2 class="animate">CronJobs</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Scheduled Jobs</h3>
+        <ul>
+          <li>Creates Jobs on a <span class="highlight">cron schedule</span></li>
+          <li>Like Unix cron but for Kubernetes pods</li>
+          <li>Each trigger creates a new Job &rarr; which creates Pods</li>
+          <li>Dashboard shows 4 scheduled CronJobs</li>
+        </ul>
+        <h3 style="margin-top:12px">Cron Syntax</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Schedule</th><th>Meaning</th></tr>
+          <tr><td><code>*/5 * * * *</code></td><td>Every 5 minutes</td></tr>
+          <tr><td><code>0 * * * *</code></td><td>Every hour</td></tr>
+          <tr><td><code>0 2 * * *</code></td><td>Daily at 2:00 AM</td></tr>
+          <tr><td><code>0 0 * * 0</code></td><td>Weekly on Sunday</td></tr>
+          <tr><td><code>0 0 1 * *</code></td><td>First of each month</td></tr>
+        </table>
+        <h3 style="margin-top:12px">Concurrency Policies</h3>
+        <ul>
+          <li><code>Allow</code> &mdash; multiple Jobs can run simultaneously (default)</li>
+          <li><code>Forbid</code> &mdash; skip if previous Job still running</li>
+          <li><code>Replace</code> &mdash; kill running Job, start new one</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>CronJob YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cleanup-old-data
+spec:
+  schedule: "0 3 * * *"       # 3 AM daily
+  concurrencyPolicy: Forbid   # skip if still running
+  startingDeadlineSeconds: 200 # miss window? skip
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          restartPolicy: OnFailure
+          containers:
+            - name: cleanup
+              image: myapp:1.0
+              command:
+                - /bin/sh
+                - -c
+                - |
+                  echo "Cleaning data older than 90d"
+                  ./cleanup --days=90
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+</pre>
+<pre style="font-size:0.8rem;margin-top:12px">
+kubectl get cronjobs
+kubectl get jobs --watch  # see triggered Jobs
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. CONFIGMAPS -->
+  <div class="slide">
+    <h2 class="animate">ConfigMaps</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Non-Sensitive Configuration</h3>
+        <ul>
+          <li>Decouple config from container images</li>
+          <li>Store key-value pairs or entire config files</li>
+          <li>Inject as <span class="highlight">environment variables</span> or <span class="highlight">mounted files</span></li>
+          <li>Changes to mounted ConfigMaps auto-update (within ~30s)</li>
+          <li>Changes to env vars require pod restart</li>
+          <li>Max size: 1 MiB</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>ConfigMap YAML</h3>
 <pre style="font-size:0.8rem">
 apiVersion: v1
 kind: ConfigMap
@@ -484,18 +1011,57 @@ data:
   LOG_LEVEL: "info"
   API_URL: "https://api.example.com"
   config.json: |
-    {"feature_flags": {"v2": true}}
-
+    {
+      "feature_flags": {"v2": true},
+      "cache_ttl": 300
+    }
 ---
-# Use in pod:
+# Use as env vars:
 envFrom:
   - configMapRef:
       name: app-config
+
+# Or mount as files:
+volumes:
+  - name: config
+    configMap:
+      name: app-config
+containers:
+  - volumeMounts:
+      - name: config
+        mountPath: /etc/app
+        # creates /etc/app/LOG_LEVEL
+        # creates /etc/app/config.json
 </pre>
       </div>
+    </div>
+  </div>
+
+  <!-- 17. SECRETS -->
+  <div class="slide">
+    <h2 class="animate">Secrets</h2>
+    <div class="two-col animate">
       <div class="card">
-        <h3>Secret</h3>
-        <p>Store sensitive data (passwords, tokens, keys). Base64-encoded, optionally encrypted at rest.</p>
+        <h3>Sensitive Data</h3>
+        <ul>
+          <li>Store passwords, tokens, TLS certs, SSH keys</li>
+          <li>Base64-encoded (not encrypted by default!)</li>
+          <li>Enable <span class="highlight">encryption at rest</span> in etcd for real security</li>
+          <li>Mounted as tmpfs (in-memory) &mdash; never written to node disk</li>
+          <li>RBAC controls who can read Secrets</li>
+        </ul>
+        <h3 style="margin-top:12px">Secret Types</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Type</th><th>Use</th></tr>
+          <tr><td><code>Opaque</code></td><td>Generic key-value (default)</td></tr>
+          <tr><td><code>kubernetes.io/tls</code></td><td>TLS cert + private key</td></tr>
+          <tr><td><code>kubernetes.io/dockerconfigjson</code></td><td>Image pull credentials</td></tr>
+          <tr><td><code>kubernetes.io/basic-auth</code></td><td>Username + password</td></tr>
+          <tr><td><code>kubernetes.io/ssh-auth</code></td><td>SSH private key</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Secret YAML</h3>
 <pre style="font-size:0.8rem">
 apiVersion: v1
 kind: Secret
@@ -503,9 +1069,17 @@ metadata:
   name: db-credentials
 type: Opaque
 data:
-  username: cG9zdGdyZXM=    # base64
-  password: czNjcjN0         # base64
+  username: cG9zdGdyZXM=    # echo -n "postgres" | base64
+  password: czNjcjN0         # echo -n "s3cr3t" | base64
 
+# Or use stringData (plain text, auto-encoded):
+apiVersion: v1
+kind: Secret
+metadata:
+  name: api-keys
+type: Opaque
+stringData:
+  API_KEY: "sk-live-abc123"
 ---
 # Use in pod:
 env:
@@ -515,92 +1089,150 @@ env:
         name: db-credentials
         key: username
 </pre>
+<pre style="font-size:0.8rem;margin-top:8px">
+# Create from CLI
+kubectl create secret generic db-creds \
+  --from-literal=user=admin \
+  --from-literal=pass=s3cr3t
+</pre>
       </div>
     </div>
   </div>
 
+  <!-- 18. RESOURCE QUOTAS -->
   <div class="slide">
-    <h2 class="animate">Storage: PV &amp; PVC</h2>
-    <div class="content animate">
-      <p>Pods are ephemeral &mdash; data is lost when they restart. Use PersistentVolumes for durable storage.</p>
-      <div class="diagram">
-        <div class="box">Pod</div>
-        <div class="arrow">&rarr; mounts</div>
-        <div class="box" style="border-color:var(--success)">PVC<br><small>(claim)</small></div>
-        <div class="arrow">&rarr; binds to</div>
-        <div class="box">PV<br><small>(actual disk)</small></div>
-        <div class="arrow">&rarr;</div>
-        <div class="box">EBS / EFS / NFS</div>
-      </div>
-<pre style="margin-top:16px">
+    <h2 class="animate">Resource Quotas</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Namespace-Level Limits</h3>
+        <ul>
+          <li>Cap total CPU, memory, and object count per namespace</li>
+          <li>Prevents one team from consuming all cluster resources</li>
+          <li>Pod creation is <span class="highlight">rejected</span> if it would exceed quota</li>
+          <li>Works with LimitRange for per-pod defaults</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:12px">
 apiVersion: v1
-kind: PersistentVolumeClaim
+kind: ResourceQuota
 metadata:
-  name: postgres-data
+  name: team-quota
+  namespace: team-alpha
 spec:
-  accessModes: [ReadWriteOnce]   # single node read/write
-  storageClassName: gp3          # AWS EBS gp3
-  resources:
-    requests:
-      storage: 20Gi
+  hard:
+    requests.cpu: "10"       # 10 cores total
+    requests.memory: 20Gi
+    limits.cpu: "20"
+    limits.memory: 40Gi
+    pods: "50"               # max 50 pods
+    services: "10"
+    persistentvolumeclaims: "20"
+    configmaps: "30"
+    secrets: "30"
+</pre>
+      </div>
+      <div class="card">
+        <h3>Scoped Quotas</h3>
+<pre style="font-size:0.8rem">
+# Quota only for BestEffort pods
+# (pods without resource requests/limits)
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: besteffort-quota
+spec:
+  hard:
+    pods: "5"
+  scopes:
+    - BestEffort
 
 ---
-# Mount in pod spec:
-volumes:
-  - name: data
-    persistentVolumeClaim:
-      claimName: postgres-data
-containers:
-  - volumeMounts:
-      - name: data
-        mountPath: /var/lib/postgresql/data
+# Quota for non-terminating workloads
+apiVersion: v1
+kind: ResourceQuota
+metadata:
+  name: compute-quota
+spec:
+  hard:
+    pods: "20"
+  scopes:
+    - NotTerminating
 </pre>
-    </div>
-  </div>
-
-  <div class="slide">
-    <h2 class="animate">Namespaces &amp; RBAC</h2>
-    <div class="two-col animate">
-      <div class="card">
-        <h3>Namespaces</h3>
-        <ul>
-          <li>Virtual clusters within a physical cluster</li>
-          <li>Isolate teams, environments, or applications</li>
-          <li>Resource quotas per namespace</li>
-          <li>Default namespaces: <code>default</code>, <code>kube-system</code>, <code>kube-public</code></li>
-        </ul>
-<pre style="font-size:0.8rem;margin-top:8px">
-kubectl create namespace staging
-kubectl get pods -n staging
-kubectl config set-context --current   --namespace=staging
-</pre>
-      </div>
-      <div class="card">
-        <h3>RBAC</h3>
-        <ul>
-          <li>Role-Based Access Control</li>
-          <li><span class="highlight">Role</span> &mdash; permissions within a namespace</li>
-          <li><span class="highlight">ClusterRole</span> &mdash; cluster-wide permissions</li>
-          <li><span class="highlight">RoleBinding</span> &mdash; assigns role to user/group</li>
-        </ul>
-<pre style="font-size:0.8rem;margin-top:8px">
-kind: Role
-rules:
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch"]
+<pre style="font-size:0.8rem;margin-top:12px">
+# Check quota usage
+kubectl get resourcequota -n team-alpha
+kubectl describe resourcequota team-quota \
+  -n team-alpha
 </pre>
       </div>
     </div>
   </div>
 
+  <!-- 19. LIMIT RANGES -->
   <div class="slide">
-    <h2 class="animate">Scaling: HPA &amp; VPA</h2>
+    <h2 class="animate">Limit Ranges</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Horizontal Pod Autoscaler</h3>
-        <p>Adds or removes pod replicas based on metrics.</p>
+        <h3>Per-Pod Defaults &amp; Bounds</h3>
+        <ul>
+          <li>Set <span class="highlight">default</span> resource requests/limits for containers</li>
+          <li>Enforce <span class="highlight">min/max</span> per container or pod</li>
+          <li>Applied per namespace</li>
+          <li>If a pod has no resources set &rarr; LimitRange injects defaults</li>
+          <li>If resources exceed max &rarr; pod creation is rejected</li>
+        </ul>
+        <p style="margin-top:12px;font-size:0.95rem"><span class="highlight">ResourceQuota</span> = total for the namespace.<br><span class="highlight">LimitRange</span> = per individual pod/container.</p>
+      </div>
+      <div class="card">
+        <h3>LimitRange YAML</h3>
 <pre style="font-size:0.8rem">
+apiVersion: v1
+kind: LimitRange
+metadata:
+  name: pod-limits
+  namespace: staging
+spec:
+  limits:
+    - type: Container
+      default:           # applied if not specified
+        cpu: "200m"
+        memory: "256Mi"
+      defaultRequest:    # request defaults
+        cpu: "100m"
+        memory: "128Mi"
+      min:               # minimum allowed
+        cpu: "50m"
+        memory: "64Mi"
+      max:               # maximum allowed
+        cpu: "2"
+        memory: "2Gi"
+    - type: Pod
+      max:
+        cpu: "4"
+        memory: "4Gi"
+    - type: PersistentVolumeClaim
+      min:
+        storage: 1Gi
+      max:
+        storage: 50Gi
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. HORIZONTAL POD AUTOSCALER -->
+  <div class="slide">
+    <h2 class="animate">Horizontal Pod Autoscaler (HPA)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Auto-Scale Pod Count</h3>
+        <ul>
+          <li>Watches CPU, memory, or custom metrics</li>
+          <li>Scales Deployment/StatefulSet replicas up or down</li>
+          <li>Checks metrics every <strong>15 seconds</strong> by default</li>
+          <li>Requires <span class="highlight">metrics-server</span> installed in cluster</li>
+          <li>Pods <strong>must</strong> have resource requests set</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:12px">
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
 metadata:
@@ -622,24 +1254,685 @@ spec:
 </pre>
       </div>
       <div class="card">
-        <h3>Vertical Pod Autoscaler</h3>
-        <p>Adjusts CPU/memory requests and limits based on actual usage.</p>
+        <h3>Advanced HPA</h3>
+<pre style="font-size:0.8rem">
+# Multiple metrics + scaling behavior
+spec:
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 70
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: 80
+    - type: Pods      # custom metric
+      pods:
+        metric:
+          name: requests_per_second
+        target:
+          type: AverageValue
+          averageValue: 1000
+  behavior:
+    scaleDown:
+      stabilizationWindowSeconds: 300
+      policies:
+        - type: Percent
+          value: 10
+          periodSeconds: 60
+    scaleUp:
+      stabilizationWindowSeconds: 0
+      policies:
+        - type: Percent
+          value: 50
+          periodSeconds: 60
+</pre>
+<pre style="font-size:0.8rem;margin-top:8px">
+kubectl get hpa
+kubectl describe hpa myapp-hpa
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 21. POD DISRUPTION BUDGETS -->
+  <div class="slide">
+    <h2 class="animate">Pod Disruption Budgets (PDB)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Protecting Availability</h3>
         <ul>
-          <li><span class="highlight">Recommend</span> &mdash; suggests values (safe)</li>
-          <li><span class="highlight">Auto</span> &mdash; applies changes (restarts pods)</li>
-          <li>Use VPA for right-sizing, HPA for scaling out</li>
-          <li>Don&rsquo;t use both on the same metric</li>
+          <li>Limits how many pods can be <span class="highlight">voluntarily disrupted</span> at once</li>
+          <li>Voluntary: node drain, cluster upgrade, scaling down</li>
+          <li>Involuntary (node crash) bypasses PDBs</li>
+          <li>Ensures enough replicas stay running during maintenance</li>
+          <li>Blocks <code>kubectl drain</code> if PDB would be violated</li>
         </ul>
-        <div class="card" style="margin-top:12px;padding:14px;background:var(--accent2)">
-          <h3 style="font-size:1.1rem">Scaling Strategy</h3>
-          <p style="font-size:0.95rem"><span class="highlight">HPA</span> for stateless services (API, web)<br>
-          <span class="highlight">VPA</span> for stateful workloads (databases)<br>
-          <span class="highlight">Cluster Autoscaler</span> for adding/removing nodes</p>
+        <h3 style="margin-top:12px">When to Use</h3>
+        <ul>
+          <li>Production services that need high availability</li>
+          <li>Databases and stateful workloads</li>
+          <li>During cluster upgrades (node-by-node drain)</li>
+          <li>Any service where downtime = SLO violation</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>PDB YAML</h3>
+<pre style="font-size:0.8rem">
+# Option 1: Minimum available
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: myapp-pdb
+spec:
+  minAvailable: 2          # at least 2 must stay up
+  selector:
+    matchLabels:
+      app: myapp
+
+---
+# Option 2: Maximum unavailable
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api-pdb
+spec:
+  maxUnavailable: 1        # at most 1 can be down
+  selector:
+    matchLabels:
+      app: api
+
+---
+# Percentage-based
+spec:
+  minAvailable: "50%"      # at least half stay up
+</pre>
+<pre style="font-size:0.8rem;margin-top:8px">
+kubectl get pdb
+kubectl describe pdb myapp-pdb
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 22. PRIORITY CLASSES -->
+  <div class="slide">
+    <h2 class="animate">Priority Classes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pod Scheduling Priority</h3>
+        <ul>
+          <li>Assigns a <span class="highlight">priority value</span> to pods (higher = more important)</li>
+          <li>Scheduler prefers scheduling higher-priority pods first</li>
+          <li><span class="highlight">Preemption</span> &mdash; lower-priority pods can be evicted to make room</li>
+          <li>Critical for mixed workloads (production vs batch jobs)</li>
+        </ul>
+        <table style="font-size:0.95rem;margin-top:12px">
+          <tr><th>Priority</th><th>Value</th><th>Use</th></tr>
+          <tr><td><code>system-cluster-critical</code></td><td>2B</td><td>CoreDNS, kube-proxy</td></tr>
+          <tr><td><code>system-node-critical</code></td><td>2B+</td><td>kubelet, CNI</td></tr>
+          <tr><td>Production</td><td>1M</td><td>User-facing APIs</td></tr>
+          <tr><td>Batch</td><td>100K</td><td>Background jobs</td></tr>
+          <tr><td>Best-effort</td><td>0</td><td>Dev/test workloads</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>PriorityClass YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: production-critical
+value: 1000000
+globalDefault: false
+preemptionPolicy: PreemptLowerPriority
+description: "Production workloads"
+
+---
+apiVersion: scheduling.k8s.io/v1
+kind: PriorityClass
+metadata:
+  name: batch-low
+value: 100000
+preemptionPolicy: Never  # don't evict others
+description: "Batch jobs, can wait"
+</pre>
+<pre style="font-size:0.8rem;margin-top:12px">
+# Use in pod spec:
+spec:
+  priorityClassName: production-critical
+  containers:
+    - name: app
+      image: myapp:1.0
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 23. RUNTIME CLASSES -->
+  <div class="slide">
+    <h2 class="animate">Runtime Classes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Container Runtime Selection</h3>
+        <ul>
+          <li>Choose <span class="highlight">which container runtime</span> runs your pods</li>
+          <li>Different runtimes offer different security/performance tradeoffs</li>
+          <li>Configured per node via CRI (Container Runtime Interface)</li>
+        </ul>
+        <table style="font-size:0.95rem;margin-top:12px">
+          <tr><th>Runtime</th><th>Handler</th><th>Use Case</th></tr>
+          <tr><td>containerd</td><td><code>runc</code></td><td>Default, standard containers</td></tr>
+          <tr><td>gVisor</td><td><code>runsc</code></td><td>Kernel isolation (security sandbox)</td></tr>
+          <tr><td>Kata Containers</td><td><code>kata</code></td><td>Lightweight VMs per pod</td></tr>
+          <tr><td>Spin (Wasm)</td><td><code>spin</code></td><td>WebAssembly workloads</td></tr>
+        </table>
+        <p style="margin-top:12px;font-size:0.95rem"><span class="highlight">When to use:</span> Multi-tenant clusters, untrusted code, compliance requirements that need stronger isolation than standard containers.</p>
+      </div>
+      <div class="card">
+        <h3>RuntimeClass YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: node.k8s.io/v1
+kind: RuntimeClass
+metadata:
+  name: gvisor
+handler: runsc              # CRI handler name
+overhead:                   # extra resources needed
+  podFixed:
+    cpu: "50m"
+    memory: "64Mi"
+scheduling:                 # only on nodes with gVisor
+  nodeSelector:
+    runtime: gvisor
+</pre>
+<pre style="font-size:0.8rem;margin-top:12px">
+# Use in pod spec:
+apiVersion: v1
+kind: Pod
+metadata:
+  name: sandboxed-app
+spec:
+  runtimeClassName: gvisor
+  containers:
+    - name: app
+      image: untrusted-app:1.0
+</pre>
+        <p style="margin-top:8px;font-size:0.95rem">Most clusters only use the default runtime. RuntimeClasses are advanced.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 24. LEASES -->
+  <div class="slide">
+    <h2 class="animate">Leases</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Distributed Coordination</h3>
+        <ul>
+          <li>Lightweight objects for <span class="highlight">leader election</span> and heartbeats</li>
+          <li>K8s uses them internally for node heartbeats (replaces Node status updates)</li>
+          <li>Each node has a Lease in <code>kube-node-lease</code> namespace</li>
+          <li>kubelet renews its Lease every 10 seconds</li>
+          <li>If Lease isn&rsquo;t renewed &rarr; node considered unhealthy</li>
+        </ul>
+        <h3 style="margin-top:12px">Use Cases</h3>
+        <ul>
+          <li><span class="highlight">Node heartbeats</span> &mdash; more efficient than updating Node status</li>
+          <li><span class="highlight">Leader election</span> &mdash; only one controller replica is active</li>
+          <li><span class="highlight">API server identity</span> &mdash; tracks which API servers are alive</li>
+          <li>Custom controllers can use Leases for coordination</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Lease YAML</h3>
+<pre style="font-size:0.8rem">
+# Node heartbeat lease (auto-managed)
+apiVersion: coordination.k8s.io/v1
+kind: Lease
+metadata:
+  name: node-1
+  namespace: kube-node-lease
+spec:
+  holderIdentity: node-1
+  leaseDurationSeconds: 40
+  renewTime: "2026-03-31T10:05:00Z"
+</pre>
+<pre style="font-size:0.8rem;margin-top:12px">
+# View node leases
+kubectl get leases -n kube-node-lease
+
+# Leader election lease (controllers)
+kubectl get leases -n kube-system
+# Shows: kube-scheduler, kube-controller-manager
+</pre>
+        <p style="margin-top:12px;font-size:0.95rem"><span class="highlight">You rarely create Leases manually.</span> They&rsquo;re used by the system and by custom controllers via the <code>client-go/tools/leaderelection</code> package.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 25. SERVICES -->
+  <div class="slide">
+    <h2 class="animate">Services</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Stable Network Endpoint</h3>
+        <ul>
+          <li>Pods are ephemeral with changing IPs</li>
+          <li>Services provide a <span class="highlight">fixed IP and DNS name</span></li>
+          <li>Load balances traffic across matching pods</li>
+          <li>Selects pods by <code>labels</code></li>
+        </ul>
+        <table style="font-size:0.9rem;margin-top:10px">
+          <tr><th>Type</th><th>Scope</th><th>Use</th></tr>
+          <tr><td><code>ClusterIP</code></td><td>Internal only</td><td>Default. Inter-service comms</td></tr>
+          <tr><td><code>NodePort</code></td><td>Node IP:30000-32767</td><td>Dev/testing external access</td></tr>
+          <tr><td><code>LoadBalancer</code></td><td>Cloud LB</td><td>Production external access</td></tr>
+          <tr><td><code>ExternalName</code></td><td>DNS CNAME</td><td>Map to external service</td></tr>
+        </table>
+        <p style="margin-top:10px;font-size:0.95rem">DNS: <code>my-svc.my-ns.svc.cluster.local</code><br>Short: <code>my-svc</code> (same ns) or <code>my-svc.other-ns</code></p>
+      </div>
+      <div class="card">
+        <h3>Service YAML</h3>
+<pre style="font-size:0.8rem">
+apiVersion: v1
+kind: Service
+metadata:
+  name: myapp-svc
+spec:
+  type: ClusterIP
+  selector:
+    app: myapp       # route to these pods
+  ports:
+    - port: 80       # service port
+      targetPort: 3000  # container port
+      protocol: TCP
+
+---
+# Headless Service (for StatefulSets)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres-headless
+spec:
+  clusterIP: None    # no virtual IP
+  selector:
+    app: postgres
+  ports:
+    - port: 5432
+# DNS returns individual pod IPs:
+# postgres-0.postgres-headless.ns.svc
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 26. ENDPOINTS & ENDPOINT SLICES -->
+  <div class="slide">
+    <h2 class="animate">Endpoints &amp; Endpoint Slices</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How Services Find Pods</h3>
+        <ul>
+          <li><span class="highlight">Endpoints</span> = list of pod IPs backing a Service</li>
+          <li>Auto-created when you create a Service with a selector</li>
+          <li>Updated when pods are added/removed or fail readiness probes</li>
+          <li><span class="highlight">Endpoint Slices</span> replaced Endpoints for scalability (K8s 1.21+)</li>
+        </ul>
+        <div class="diagram" style="flex-direction:column;gap:4px;margin:12px 0">
+          <div class="box" style="min-width:250px;padding:10px;border-color:var(--success)">Service: myapp-svc (10.100.0.50:80)</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:250px;padding:10px">EndpointSlice: myapp-svc-abc</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:250px;padding:10px">10.244.1.5:3000, 10.244.2.8:3000, 10.244.3.2:3000</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Why Endpoint Slices?</h3>
+        <ul>
+          <li>Old Endpoints = one object with ALL IPs (huge for big Services)</li>
+          <li>Endpoint Slices split into chunks of <strong>100 endpoints each</strong></li>
+          <li>Less data transferred on each pod change</li>
+          <li>Better performance for kube-proxy and Ingress controllers</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:12px">
+# View endpoints
+kubectl get endpoints myapp-svc
+
+# View endpoint slices
+kubectl get endpointslices -l \
+  kubernetes.io/service-name=myapp-svc
+
+# Manual endpoint (no selector service)
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: external-db
+subsets:
+  - addresses:
+      - ip: 10.0.1.50
+    ports:
+      - port: 5432
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 27. INGRESS & INGRESS CLASSES -->
+  <div class="slide">
+    <h2 class="animate">Ingress &amp; Ingress Classes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>HTTP/HTTPS Routing</h3>
+        <p>Exposes routes from outside the cluster to Services. Like a managed reverse proxy.</p>
+<pre style="font-size:0.75rem">
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: myapp-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+spec:
+  ingressClassName: nginx
+  tls:
+    - hosts: [myapp.example.com]
+      secretName: myapp-tls
+  rules:
+    - host: myapp.example.com
+      http:
+        paths:
+          - path: /api
+            pathType: Prefix
+            backend:
+              service:
+                name: api-svc
+                port: { number: 80 }
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend-svc
+                port: { number: 80 }
+</pre>
+      </div>
+      <div class="card">
+        <h3>Ingress Classes</h3>
+        <ul>
+          <li>Specify <span class="highlight">which Ingress Controller</span> handles the Ingress</li>
+          <li>A cluster can have multiple controllers (nginx + ALB)</li>
+          <li>One class can be marked as default</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:12px">
+apiVersion: networking.k8s.io/v1
+kind: IngressClass
+metadata:
+  name: nginx
+  annotations:
+    ingressclass.kubernetes.io/is-default-class: "true"
+spec:
+  controller: k8s.io/ingress-nginx
+</pre>
+        <h3 style="margin-top:12px">Common Controllers</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Controller</th><th>Provider</th></tr>
+          <tr><td>ingress-nginx</td><td>Community NGINX</td></tr>
+          <tr><td>AWS ALB Controller</td><td>AWS (creates ALBs)</td></tr>
+          <tr><td>Traefik</td><td>Traefik Labs</td></tr>
+          <tr><td>Istio Gateway</td><td>Istio service mesh</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- 28. NETWORK POLICIES -->
+  <div class="slide">
+    <h2 class="animate">Network Policies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pod-Level Firewall</h3>
+        <ul>
+          <li>Control <span class="highlight">which pods can talk to which</span></li>
+          <li>By default, all pods can communicate with all other pods</li>
+          <li>NetworkPolicy restricts ingress and/or egress traffic</li>
+          <li>Requires a CNI that supports policies (Calico, Cilium, Weave)</li>
+          <li><strong>AWS VPC CNI</strong> alone does NOT enforce &mdash; use Calico on EKS</li>
+        </ul>
+        <h3 style="margin-top:12px">Selection</h3>
+        <ul>
+          <li><span class="highlight">podSelector</span> &mdash; target pods by label</li>
+          <li><span class="highlight">namespaceSelector</span> &mdash; allow from specific namespaces</li>
+          <li><span class="highlight">ipBlock</span> &mdash; allow from IP CIDR ranges</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>NetworkPolicy YAML</h3>
+<pre style="font-size:0.75rem">
+# Only allow traffic from pods with app=frontend
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: api-allow-frontend
+  namespace: production
+spec:
+  podSelector:
+    matchLabels:
+      app: api                # apply to api pods
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: frontend   # only frontend can reach api
+        - namespaceSelector:
+            matchLabels:
+              env: production # only from production ns
+      ports:
+        - port: 3000
+          protocol: TCP
+  egress:
+    - to:
+        - podSelector:
+            matchLabels:
+              app: postgres   # api can reach postgres
+      ports:
+        - port: 5432
+    - to:                     # allow DNS
+        - namespaceSelector: {}
+      ports:
+        - port: 53
+          protocol: UDP
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 29. PORT FORWARDING -->
+  <div class="slide">
+    <h2 class="animate">Port Forwarding</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Local Access to Cluster</h3>
+        <ul>
+          <li>Forward a local port to a pod or service inside the cluster</li>
+          <li>No Ingress or LoadBalancer needed</li>
+          <li>Great for <span class="highlight">debugging</span>, <span class="highlight">development</span>, and <span class="highlight">database access</span></li>
+          <li>Traffic goes through the API server (encrypted)</li>
+          <li>Only works while the <code>kubectl</code> process is running</li>
+        </ul>
+        <h3 style="margin-top:12px">Common Uses</h3>
+        <ul>
+          <li>Access a database that has no external endpoint</li>
+          <li>Reach a dashboard (Grafana, Prometheus, ArgoCD)</li>
+          <li>Debug a service without exposing it</li>
+          <li>Test an API before setting up Ingress</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Commands</h3>
+<pre style="font-size:0.8rem">
+# Forward to a pod
+kubectl port-forward pod/myapp-xyz \
+  8080:3000
+# localhost:8080 &rarr; pod:3000
+
+# Forward to a service
+kubectl port-forward svc/grafana \
+  3000:80 -n monitoring
+# localhost:3000 &rarr; grafana service
+
+# Forward to a deployment
+kubectl port-forward deploy/myapp \
+  8080:3000
+
+# Listen on all interfaces (not just localhost)
+kubectl port-forward --address 0.0.0.0 \
+  svc/myapp 8080:80
+
+# Multiple ports at once
+kubectl port-forward pod/myapp-xyz \
+  8080:3000 9090:9090
+
+# Background it
+kubectl port-forward svc/postgres \
+  5432:5432 -n databases &amp;
+</pre>
+        <p style="margin-top:8px;font-size:0.95rem"><span class="highlight">Nautik</span> has a Port Forwardings screen that lets you manage these with a GUI.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 30. STORAGE: PV, PVC & STORAGE CLASSES -->
+  <div class="slide">
+    <h2 class="animate">Storage: PV, PVC &amp; Storage Classes</h2>
+    <div class="content animate">
+      <p>Pods are ephemeral &mdash; data is lost when they restart. Use PersistentVolumes for durable storage.</p>
+      <div class="diagram">
+        <div class="box">Pod</div>
+        <div class="arrow">&rarr; mounts</div>
+        <div class="box" style="border-color:var(--success)">PVC<br><small>(claim)</small></div>
+        <div class="arrow">&rarr; binds to</div>
+        <div class="box">PV<br><small>(actual disk)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">EBS / EFS / NFS</div>
+      </div>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>PVC + StorageClass</h3>
+<pre style="font-size:0.75rem">
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: gp3   # provision EBS gp3
+  resources:
+    requests:
+      storage: 20Gi
+
+---
+# Mount in pod:
+volumes:
+  - name: data
+    persistentVolumeClaim:
+      claimName: postgres-data
+containers:
+  - volumeMounts:
+      - name: data
+        mountPath: /var/lib/postgresql/data
+</pre>
+        </div>
+        <div class="card">
+          <h3>Access Modes &amp; Volume Types</h3>
+          <table style="font-size:0.9rem">
+            <tr><th>Mode</th><th>Use</th></tr>
+            <tr><td><code>ReadWriteOnce (RWO)</code></td><td>One node read/write (EBS)</td></tr>
+            <tr><td><code>ReadOnlyMany (ROX)</code></td><td>Many nodes read-only</td></tr>
+            <tr><td><code>ReadWriteMany (RWX)</code></td><td>Many nodes read/write (EFS, NFS)</td></tr>
+          </table>
+          <h3 style="margin-top:12px">Common Volume Types</h3>
+          <ul>
+            <li><code>emptyDir</code> &mdash; temp, deleted with pod</li>
+            <li><code>hostPath</code> &mdash; node filesystem (DaemonSets)</li>
+            <li><code>configMap</code> / <code>secret</code> &mdash; inject config as files</li>
+            <li><code>csi</code> &mdash; EBS, EFS, any CSI driver</li>
+          </ul>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- 31. RBAC & SECURITY -->
+  <div class="slide">
+    <h2 class="animate">RBAC &amp; Security</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Role-Based Access Control</h3>
+        <ul>
+          <li><span class="highlight">Role</span> &mdash; permissions within a namespace</li>
+          <li><span class="highlight">ClusterRole</span> &mdash; cluster-wide permissions</li>
+          <li><span class="highlight">RoleBinding</span> &mdash; assigns Role to user/group/SA</li>
+          <li><span class="highlight">ServiceAccount</span> &mdash; identity for pods (not humans)</li>
+        </ul>
+<pre style="font-size:0.75rem;margin-top:8px">
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  namespace: staging
+  name: pod-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/log"]
+    verbs: ["get", "list", "watch"]
+---
+kind: RoleBinding
+metadata:
+  name: read-pods
+  namespace: staging
+subjects:
+  - kind: ServiceAccount
+    name: ci-deployer
+roleRef:
+  kind: Role
+  name: pod-reader
+  apiGroup: rbac.authorization.k8s.io
+</pre>
+      </div>
+      <div class="card">
+        <h3>Security Context</h3>
+<pre style="font-size:0.75rem">
+spec:
+  securityContext:         # pod level
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+  containers:
+    - name: app
+      securityContext:     # container level
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+</pre>
+        <h3 style="margin-top:12px">Security Checklist</h3>
+        <ul>
+          <li>Run as non-root (<code>runAsNonRoot: true</code>)</li>
+          <li>Read-only root filesystem</li>
+          <li>Drop all capabilities</li>
+          <li>Use NetworkPolicies (deny by default)</li>
+          <li>Encrypt Secrets at rest in etcd</li>
+          <li>Use IRSA (IAM Roles for Service Accounts) on EKS</li>
+          <li>Scan images for CVEs (Trivy, Snyk)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 32. HELM -->
   <div class="slide">
     <h2 class="animate">Helm: The Package Manager</h2>
     <div class="content animate">
@@ -647,7 +1940,10 @@ spec:
 <pre>
 # Install a chart from a repository
 helm repo add bitnami https://charts.bitnami.com/bitnami
-helm install my-postgres bitnami/postgresql   --set auth.postgresPassword=secret   --set primary.persistence.size=20Gi   --namespace databases --create-namespace
+helm install my-postgres bitnami/postgresql \
+  --set auth.postgresPassword=secret \
+  --set primary.persistence.size=20Gi \
+  --namespace databases --create-namespace
 
 # Your own chart structure:
 mychart/
@@ -657,37 +1953,43 @@ mychart/
     deployment.yaml   # {{ .Values.replicas }}
     service.yaml      # {{ .Values.service.port }}
     ingress.yaml
+    _helpers.tpl      # reusable template snippets
 
 # Deploy with custom values
 helm install myapp ./mychart -f production-values.yaml
 helm upgrade myapp ./mychart -f production-values.yaml
 helm rollback myapp 1         # rollback to revision 1
 helm list                      # see installed releases
+helm uninstall myapp           # remove everything
 </pre>
     </div>
   </div>
 
+  <!-- 33. KUBECTL ESSENTIAL COMMANDS -->
   <div class="slide">
     <h2 class="animate">kubectl Essential Commands</h2>
     <div class="content animate">
       <table>
         <tr><th>Command</th><th>Purpose</th></tr>
-        <tr><td><code>kubectl get pods</code></td><td>List running pods</td></tr>
+        <tr><td><code>kubectl get pods -o wide</code></td><td>List pods with node and IP info</td></tr>
         <tr><td><code>kubectl get all -n staging</code></td><td>All resources in a namespace</td></tr>
-        <tr><td><code>kubectl describe pod myapp-xyz</code></td><td>Detailed info &amp; events</td></tr>
-        <tr><td><code>kubectl logs myapp-xyz -f</code></td><td>Stream pod logs</td></tr>
+        <tr><td><code>kubectl describe pod myapp-xyz</code></td><td>Detailed info, events, conditions</td></tr>
+        <tr><td><code>kubectl logs myapp-xyz -f --tail=100</code></td><td>Stream last 100 log lines</td></tr>
+        <tr><td><code>kubectl logs myapp-xyz -c sidecar</code></td><td>Logs from specific container</td></tr>
         <tr><td><code>kubectl exec -it myapp-xyz -- sh</code></td><td>Shell into a container</td></tr>
         <tr><td><code>kubectl apply -f deployment.yaml</code></td><td>Create or update resources</td></tr>
         <tr><td><code>kubectl delete -f deployment.yaml</code></td><td>Remove resources</td></tr>
         <tr><td><code>kubectl scale deploy myapp --replicas=5</code></td><td>Manual scaling</td></tr>
-        <tr><td><code>kubectl rollout status deploy/myapp</code></td><td>Watch rolling update</td></tr>
+        <tr><td><code>kubectl rollout status deploy/myapp</code></td><td>Watch rolling update progress</td></tr>
         <tr><td><code>kubectl rollout undo deploy/myapp</code></td><td>Rollback to previous version</td></tr>
         <tr><td><code>kubectl port-forward svc/myapp 8080:80</code></td><td>Local access to a service</td></tr>
-        <tr><td><code>kubectl top pods</code></td><td>CPU/memory usage (requires metrics-server)</td></tr>
+        <tr><td><code>kubectl top pods --sort-by=cpu</code></td><td>CPU/memory usage (needs metrics-server)</td></tr>
+        <tr><td><code>kubectl get events --sort-by=.lastTimestamp</code></td><td>Recent cluster events</td></tr>
       </table>
     </div>
   </div>
 
+  <!-- 34. THE DEPLOYMENT FLOW -->
   <div class="slide">
     <h2 class="animate">The Deployment Flow</h2>
     <div class="content animate">
@@ -722,66 +2024,131 @@ kubectl rollout undo deploy/myapp
 # In CI/CD (GitHub Actions, ArgoCD):
 # Build &rarr; Push &rarr; Update manifest &rarr; ArgoCD syncs automatically
 </pre>
-      <p style="margin-top:8px"><span class="highlight">No docker compose</span> needed &mdash; K8s handles running, networking, and scaling.</p>
+      <p style="margin-top:8px"><span class="highlight">GitOps:</span> Store manifests in Git. ArgoCD or Flux watches the repo and syncs changes to the cluster automatically.</p>
     </div>
   </div>
 
+  <!-- 35. MANAGED KUBERNETES -->
   <div class="slide">
     <h2 class="animate">Managed Kubernetes</h2>
     <div class="metric-grid animate">
       <div class="metric-card">
         <h3>AWS EKS</h3>
-        <p>Managed control plane on AWS. Integrates with ALB, EBS, IAM, Fargate for serverless pods.</p>
+        <p>Managed control plane on AWS. Integrates with ALB, EBS, IAM, Fargate for serverless pods. Most popular for enterprise.</p>
+        <code>eksctl create cluster --name my-cluster</code>
       </div>
       <div class="metric-card">
         <h3>Google GKE</h3>
         <p>The most mature managed K8s. Autopilot mode fully manages nodes. Deep integration with GCP services.</p>
+        <code>gcloud container clusters create my-cluster</code>
       </div>
       <div class="metric-card">
         <h3>Azure AKS</h3>
         <p>Free control plane on Azure. Integrates with Azure AD, Container Registry, and Azure Monitor.</p>
+        <code>az aks create --name my-cluster</code>
       </div>
       <div class="metric-card">
         <h3>Local Development</h3>
         <p><span class="highlight">minikube</span>, <span class="highlight">kind</span>, or <span class="highlight">k3s</span> for running K8s locally. Docker Desktop also includes K8s.</p>
+        <code>minikube start --driver=docker</code>
       </div>
     </div>
   </div>
 
+  <!-- 36. OBSERVABILITY -->
   <div class="slide">
-    <h2 class="animate">Best Practices</h2>
-    <div class="bp-grid animate">
-      <div class="bp-item"><span>1.</span> Always set resource <code>requests</code> and <code>limits</code> on containers</div>
-      <div class="bp-item"><span>2.</span> Use <code>readinessProbe</code> and <code>livenessProbe</code> for self-healing</div>
-      <div class="bp-item"><span>3.</span> Never run as root &mdash; set <code>securityContext.runAsNonRoot: true</code></div>
-      <div class="bp-item"><span>4.</span> Use Namespaces to separate environments (dev, staging, prod)</div>
-      <div class="bp-item"><span>5.</span> Store manifests in Git &mdash; use GitOps (ArgoCD, Flux) for deploys</div>
-      <div class="bp-item"><span>6.</span> Use Helm charts for reusable, parameterized deployments</div>
-      <div class="bp-item"><span>7.</span> Pin image tags to specific versions &mdash; never use <code>:latest</code> in prod</div>
-      <div class="bp-item"><span>8.</span> Set <code>PodDisruptionBudgets</code> for high-availability services</div>
-      <div class="bp-item"><span>9.</span> Use HPA for stateless services, VPA for right-sizing stateful workloads</div>
-      <div class="bp-item"><span>10.</span> Enable RBAC and use least-privilege ServiceAccounts per workload</div>
+    <h2 class="animate">Observability</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Three Pillars</h3>
+        <ul>
+          <li><span class="highlight">Metrics</span> &mdash; Prometheus + Grafana. Scrapes <code>/metrics</code> endpoints. Alerts via Alertmanager.</li>
+          <li><span class="highlight">Logs</span> &mdash; Fluent Bit (DaemonSet) &rarr; Loki or Elasticsearch. Centralized, searchable.</li>
+          <li><span class="highlight">Traces</span> &mdash; OpenTelemetry SDK &rarr; Tempo or Jaeger. Track requests across microservices.</li>
+        </ul>
+        <h3 style="margin-top:12px">Dashboard Metrics</h3>
+        <ul>
+          <li>Cluster CPU, Memory, Disk usage</li>
+          <li>Pod CPU/Memory per namespace</li>
+          <li>Node conditions and pressure</li>
+          <li>Deployment replica counts</li>
+          <li>Request rates, error rates, latency (RED)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Commands</h3>
+<pre style="font-size:0.8rem">
+# Resource usage (requires metrics-server)
+kubectl top nodes
+kubectl top pods -A --sort-by=cpu
+
+# Pod logs
+kubectl logs deploy/myapp --tail=100 -f
+kubectl logs -l app=myapp --all-containers
+
+# Debug pod (ephemeral container)
+kubectl debug myapp-xyz -it \
+  --image=busybox -- sh
+
+# Events (first debugging step)
+kubectl get events -A --sort-by=.lastTimestamp
+
+# Describe everything
+kubectl describe node node-1
+kubectl describe pod myapp-xyz
+</pre>
+        <h3 style="margin-top:12px">Dashboards</h3>
+        <ul>
+          <li><span class="highlight">Nautik</span> &mdash; native Mac K8s dashboard</li>
+          <li><span class="highlight">Lens</span> &mdash; cross-platform K8s IDE</li>
+          <li><span class="highlight">K9s</span> &mdash; terminal-based dashboard</li>
+          <li><span class="highlight">Grafana</span> &mdash; metrics dashboards</li>
+        </ul>
+      </div>
     </div>
   </div>
 
+  <!-- 37. BEST PRACTICES -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Always set resource <code>requests</code> and <code>limits</code> on every container</div>
+      <div class="bp-item"><span>2</span> Use <code>readinessProbe</code> and <code>livenessProbe</code> for self-healing</div>
+      <div class="bp-item"><span>3</span> Never run as root &mdash; set <code>runAsNonRoot: true</code></div>
+      <div class="bp-item"><span>4</span> Use Namespaces + ResourceQuotas to isolate environments</div>
+      <div class="bp-item"><span>5</span> Store manifests in Git &mdash; use GitOps (ArgoCD, Flux)</div>
+      <div class="bp-item"><span>6</span> Pin image tags to specific versions &mdash; never use <code>:latest</code></div>
+      <div class="bp-item"><span>7</span> Set <code>PodDisruptionBudgets</code> for high-availability services</div>
+      <div class="bp-item"><span>8</span> Use HPA for stateless, VPA for right-sizing stateful</div>
+      <div class="bp-item"><span>9</span> Enable NetworkPolicies &mdash; deny by default</div>
+      <div class="bp-item"><span>10</span> Use RBAC with least-privilege ServiceAccounts per workload</div>
+      <div class="bp-item"><span>11</span> Encrypt Secrets at rest and use external secret managers</div>
+      <div class="bp-item"><span>12</span> Use Helm charts for reusable, parameterized deployments</div>
+    </div>
+  </div>
+
+  <!-- 38. COURSE COMPLETE -->
   <div class="slide">
     <span class="logo-icon animate">&#x2699;</span>
     <h2 class="animate">Course Complete!</h2>
     <div class="content animate" style="text-align:center">
-      <p>You now have a solid foundation in Kubernetes:</p>
+      <p>You now have a comprehensive understanding of Kubernetes:</p>
       <div style="margin:20px 0">
-        <span class="tag">Pods</span><span class="tag">Deployments</span><span class="tag">Services</span>
-        <span class="tag">Ingress</span><span class="tag">ConfigMaps</span><span class="tag">Secrets</span>
-        <span class="tag">HPA</span><span class="tag">Helm</span><span class="tag">RBAC</span>
+        <span class="tag">Pods</span><span class="tag">Deployments</span><span class="tag">StatefulSets</span>
+        <span class="tag">DaemonSets</span><span class="tag">ReplicaSets</span><span class="tag">Jobs</span>
+        <span class="tag">CronJobs</span><span class="tag">Services</span><span class="tag">Ingress</span>
+        <span class="tag">ConfigMaps</span><span class="tag">Secrets</span><span class="tag">HPA</span>
+        <span class="tag">PDB</span><span class="tag">RBAC</span><span class="tag">Network Policies</span>
+        <span class="tag">Storage</span><span class="tag">Helm</span><span class="tag">GitOps</span>
       </div>
-      <p style="color:var(--text-muted)">Start with minikube locally, deploy your first app, then explore Helm and GitOps.</p>
+      <p style="color:var(--text-muted)">Every item from the Nautik sidebar &mdash; Cluster, Workloads, Config, and Network &mdash; covered.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
     </div>
   </div>
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 38</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
@@ -845,7 +2212,6 @@ kubectl rollout undo deploy/myapp
       navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
     }
   }
-
 
   function navigate(dir) { showSlide(current + dir); }
   showSlide(0); // initial state: hide Prev on first slide
