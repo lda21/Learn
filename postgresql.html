@@ -540,8 +540,56 @@ EXPLAIN ANALYZE SELECT * FROM users WHERE email = 'alice@example.com';
         <h3>pg_cron</h3>
         <p>Run scheduled SQL jobs inside PostgreSQL. Cron syntax: VACUUM, aggregation, cleanup.</p>
       </div>
+      <div class="metric-card">
+        <h3>Marten</h3>
+        <p>.NET document DB &amp; event store built on PostgreSQL. JSONB-backed, ACID-compliant event sourcing and projections.</p>
+      </div>
     </div>
     <p class="animate" style="margin-top:12px;text-align:center"><code>CREATE EXTENSION pgvector;</code> &mdash; Extensions are one of PostgreSQL s greatest strengths.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">TimescaleDB &amp; Marten</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">TimescaleDB &mdash; Time-Series</h3>
+        <ul>
+          <li>PostgreSQL extension &mdash; standard SQL</li>
+          <li><strong>Hypertables</strong> &mdash; auto-partition by time</li>
+          <li><strong>Compression</strong> &mdash; 90%+ storage reduction</li>
+          <li><strong>Continuous aggregates</strong> &mdash; materialized rollups</li>
+          <li>Use cases: IoT, metrics, logs, financial data</li>
+        </ul>
+<pre style="font-size:0.8rem; margin-top:12px">
+SELECT time_bucket('1 hour', ts) AS hour,
+       avg(cpu), max(memory)
+FROM metrics
+WHERE ts > now() - interval '24 hours'
+GROUP BY hour ORDER BY hour;
+</pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Marten &mdash; Event Store (.NET)</h3>
+        <ul>
+          <li>Document DB + Event Store on PostgreSQL</li>
+          <li><strong>Event sourcing</strong> &mdash; append-only event streams</li>
+          <li><strong>Projections</strong> &mdash; build read models from events</li>
+          <li><strong>JSONB storage</strong> &mdash; ACID with NoSQL flexibility</li>
+          <li>No separate event store needed (Postgres is enough)</li>
+        </ul>
+<pre style="font-size:0.8rem; margin-top:12px">
+// Append events to a stream
+session.Events.Append(orderId,
+  new OrderPlaced(items),
+  new PaymentReceived(amount));
+await session.SaveChangesAsync();
+
+// Build projection from events
+var order = await session.Events
+  .AggregateStreamAsync&lt;Order&gt;(orderId);
+</pre>
+      </div>
+    </div>
   </div>
 
   <div class="slide">
@@ -608,7 +656,7 @@ archive_command = 'cp %p /wal/%f'
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 16</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>

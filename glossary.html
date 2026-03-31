@@ -617,6 +617,23 @@ const TERMS = [
   {t:"CronJob", d:"A Kubernetes resource that creates Jobs on a time-based schedule (cron syntax). Used for periodic tasks like backups, reports, and cleanup.", tags:["Kubernetes"]},
   {t:"Liveness Probe", d:"A Kubernetes health check that determines if a container is running. If it fails, the kubelet restarts the container. Types: HTTP, TCP, exec.", tags:["Kubernetes"]},
   {t:"Readiness Probe", d:"A Kubernetes health check that determines if a container is ready to accept traffic. Failing Pods are removed from Service endpoints.", tags:["Kubernetes"]},
+  // --- gRPC ---
+  {t:"gRPC", d:"A high-performance RPC framework by Google. Uses HTTP/2, Protocol Buffers for serialization, supports 4 communication patterns: unary, server streaming, client streaming, and bidirectional streaming.", tags:["gRPC","Networking","Microservices"]},
+  {t:"Protocol Buffers", d:"Google's language-neutral binary serialization format (Protobuf). Define messages and services in .proto files, generate type-safe client/server code. Smaller and faster than JSON.", tags:["gRPC","Serialization"]},
+  {t:"Protobuf", d:"Short for Protocol Buffers — a binary serialization format used by gRPC. Defines strongly-typed schemas in .proto files compiled by protoc into language-specific code.", tags:["gRPC","Serialization"]},
+  // --- Data / PostgreSQL Extensions ---
+  {t:"Marten", d:"A .NET library that turns PostgreSQL into a document database and event store. Uses JSONB for document storage and append-only tables for event sourcing with projections.", tags:["PostgreSQL",".NET","Event Sourcing"]},
+  {t:"TimescaleDB", d:"A PostgreSQL extension for time-series data. Provides hypertables (auto-partitioned by time), compression (90%+), continuous aggregates, and standard SQL interface.", tags:["PostgreSQL","Time-Series"]},
+  {t:"Feast", d:"An open-source feature store for machine learning. Manages feature pipelines from batch/streaming sources to online serving. Ensures consistent features between training and inference.", tags:["ML","Data"]},
+  {t:"OTLP", d:"OpenTelemetry Protocol — the native protocol for transmitting telemetry data (traces, metrics, logs) between OpenTelemetry SDKs and backends. Supports gRPC and HTTP transports.", tags:["Observability","OpenTelemetry"]},
+  // --- Architecture ---
+  {t:"ADR", d:"Architecture Decision Record — a document capturing a significant architectural decision, its context, the decision made, and consequences. Provides an immutable history of why decisions were made.", tags:["Architecture","Documentation"]},
+  {t:"C4 Model", d:"A hierarchical approach to software architecture diagrams. Four levels: Context (system boundaries), Container (applications/services), Component (internal structure), Code (class-level detail).", tags:["Architecture","Diagrams"]},
+  {t:"SRS", d:"Software Requirements Specification — a document defining functional and non-functional requirements, acceptance criteria, and system constraints. Maps user stories to technical requirements.", tags:["Architecture","Documentation"]},
+  {t:"SLO", d:"Service Level Objective — a target value for a service level indicator (e.g., 99.9% availability). Defines the reliability goal. SLAs are contracts built on SLOs.", tags:["Operations","Architecture"]},
+  {t:"SLI", d:"Service Level Indicator — a quantitative measure of a service aspect (latency, error rate, throughput). SLIs feed into SLOs to track whether reliability targets are met.", tags:["Operations","Architecture"]},
+  {t:"Circuit Breaker", d:"A resilience pattern that stops calling a failing service after a threshold of errors. States: Closed (normal) → Open (failing, reject calls) → Half-Open (test recovery).", tags:["Architecture","Microservices"]},
+  {t:"CAP Theorem", d:"States that a distributed system can guarantee only 2 of 3 properties: Consistency (all nodes see same data), Availability (every request gets a response), Partition tolerance (survives network splits).", tags:["Architecture","Distributed"]},
   // --- Python ---
   {t:"Decorator", d:"A Python function that wraps another function to extend its behavior using @syntax. Common uses: logging, timing, authentication, caching.", tags:["Python"]},
   {t:"Generator", d:"A Python function using yield to produce values lazily one at a time. Memory-efficient for large datasets. Created with generator expressions or yield.", tags:["Python"]},
