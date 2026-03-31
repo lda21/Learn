@@ -1,0 +1,760 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Claude Code Agents</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h1 class="animate">Claude Code Agents</h1>
+    <p class="subtitle animate">Specialized AI subagents for software engineering</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Agents</span><span class="tag">Orchestration</span><span class="tag">Hooks</span><span class="tag">Automation</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Are Agents?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Definition</h3>
+        <ul>
+          <li><strong>Markdown files</strong> with YAML frontmatter</li>
+          <li>No code required &mdash; just text</li>
+          <li>Placed in <code>~/.claude/agents/</code></li>
+          <li>Main session <strong>delegates</strong> tasks to them</li>
+          <li>Each gets own <strong>context window</strong></li>
+          <li>Restricted tools &amp; focused instructions</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How It Works</h3>
+        <div class="diagram" style="flex-direction:column; gap:8px; margin:12px 0">
+          <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">Main Session<br><small>Your conversation</small></div>
+          <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+          <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <div class="box" style="padding:10px 14px; min-width:90px; border-color:var(--success);">Planner</div>
+            <div class="box" style="padding:10px 14px; min-width:90px; border-color:var(--warning);">Reviewer</div>
+            <div class="box" style="padding:10px 14px; min-width:90px;">Builder</div>
+          </div>
+        </div>
+        <p style="font-size:0.95rem; color:var(--text-muted);">Each agent: isolated context, scoped tools, specialized prompt.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Agent Anatomy</h2>
+    <div class="content animate">
+<pre>
+# ~/.claude/agents/code-reviewer.md
+---
+name: code-reviewer
+description: Reviews code for quality, security, and best practices
+tools: ["Read", "Grep", "Glob"]        # read-only!
+model: sonnet                           # fast execution
+color: orange
+---
+
+You are an expert code reviewer.
+
+## Your Role
+- Review code changes for bugs, security issues, and style
+- Provide severity ratings: CRITICAL / HIGH / MEDIUM / LOW
+- Focus on what matters, skip nitpicks
+
+## Workflow
+1. Read the changed files
+2. Check for security vulnerabilities (OWASP Top 10)
+3. Check for logic errors and edge cases
+4. Review error handling and logging
+
+## Output Format
+### [SEVERITY] filename:line — Issue title
+Description of the issue and suggested fix.
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Core Agents &mdash; Planning &amp; Quality</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>&#x1F9E0; Planner <span class="tag" style="font-size:0.75rem">opus</span></h3>
+        <p>Creates detailed implementation plans with phases, risks, dependencies, and testing strategies.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F3D7; Architect <span class="tag" style="font-size:0.75rem">opus</span></h3>
+        <p>System design, ADRs, trade-off analysis, scalability planning, technology selection.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F50D; Code Reviewer <span class="tag" style="font-size:0.75rem">sonnet</span></h3>
+        <p>Quality review with severity checklist: CRITICAL / HIGH / MEDIUM / LOW findings.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F6E1; Security Reviewer <span class="tag" style="font-size:0.75rem">sonnet</span></h3>
+        <p>OWASP Top 10, secrets detection, dependency vulnerabilities, auth flow review.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F9EA; TDD Guide <span class="tag" style="font-size:0.75rem">sonnet</span></h3>
+        <p>Enforces Red-Green-Refactor cycle. Targets 80%+ coverage. Writes tests first.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F527; Build Error Resolver <span class="tag" style="font-size:0.75rem">sonnet</span></h3>
+        <p>Minimal-diff fixes to get builds green. No refactoring &mdash; just fix the error.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Core Agents &mdash; Operations</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>&#x1F3AD; E2E Runner</h3>
+        <p>Playwright test creation, flaky test management, visual regression testing.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F9F9; Refactor Cleaner</h3>
+        <p>Dead code detection with knip, depcheck, ts-prune. Safe removal only.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F4DD; Doc Updater</h3>
+        <p>Keeps documentation in sync with code changes. README, API docs, changelogs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F4DA; Docs Lookup</h3>
+        <p>Fetches live API documentation via MCP servers. Always up-to-date references.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F504; Loop Operator</h3>
+        <p>Runs autonomous loops with stall detection, checkpoints, and escalation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x2699; Harness Optimizer</h3>
+        <p>Audits and tunes agent harness config for reliability, cost, and throughput.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Language-Specific Agents</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Language</th><th>Reviewer</th><th>Build Resolver</th></tr>
+        <tr><td><strong>TypeScript</strong></td><td>&#x2705; TS best practices, types</td><td>&mdash;</td></tr>
+        <tr><td><strong>Python</strong></td><td>&#x2705; PEP 8, type hints</td><td>&mdash;</td></tr>
+        <tr><td><strong>Go</strong></td><td>&#x2705; Go idioms, error handling</td><td>&#x2705;</td></tr>
+        <tr><td><strong>Rust</strong></td><td>&#x2705; Ownership, lifetimes</td><td>&#x2705;</td></tr>
+        <tr><td><strong>C++</strong></td><td>&#x2705; Memory safety</td><td>&#x2705;</td></tr>
+        <tr><td><strong>Java/Spring</strong></td><td>&#x2705; Spring patterns</td><td>&#x2705;</td></tr>
+        <tr><td><strong>Kotlin/Android</strong></td><td>&#x2705; KMP, coroutines</td><td>&#x2705;</td></tr>
+        <tr><td><strong>Flutter</strong></td><td>&#x2705; Widget patterns</td><td>&mdash;</td></tr>
+        <tr><td><strong>PyTorch</strong></td><td>&mdash;</td><td>&#x2705; CUDA builds</td></tr>
+        <tr><td><strong>Database</strong></td><td>&#x2705; PostgreSQL/Supabase</td><td>&mdash;</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tool Restrictions &amp; Model Routing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Tools = Safety Boundaries</h3>
+<pre style="font-size:0.8rem">
+# Read-only agent (reviewer)
+tools: ["Read", "Grep", "Glob"]
+
+# Implementation agent (builder)
+tools: ["Read", "Grep", "Glob",
+        "Bash", "Edit", "Write"]
+
+# Research agent (no file changes)
+tools: ["Read", "Grep", "Glob",
+        "WebFetch", "WebSearch"]
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">Restrict tools to the <strong>minimum needed</strong>. A reviewer should never edit files.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Model Routing</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Task</th><th>Model</th><th>Why</th></tr>
+          <tr><td>Planning</td><td><strong>opus</strong></td><td>Deep reasoning</td></tr>
+          <tr><td>Architecture</td><td><strong>opus</strong></td><td>Complex trade-offs</td></tr>
+          <tr><td>Code review</td><td><strong>sonnet</strong></td><td>Fast, pattern matching</td></tr>
+          <tr><td>Build fixes</td><td><strong>sonnet</strong></td><td>Speed, minimal diff</td></tr>
+          <tr><td>TDD</td><td><strong>sonnet</strong></td><td>Iterative cycles</td></tr>
+          <tr><td>Refactoring</td><td><strong>sonnet</strong></td><td>Mechanical changes</td></tr>
+        </table>
+        <p style="margin-top:8px; font-size:0.95rem;"><strong>opus</strong> = think hard. <strong>sonnet</strong> = move fast.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Sequential Orchestration</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:12px; color:var(--text-muted);">Chain agents with handoff documents passing context between them.</p>
+      <div class="diagram animate">
+        <div class="box" style="border-color:var(--success);">Planner</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">TDD Guide</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">Reviewer</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:#e74c3c;">Security</div>
+      </div>
+<pre class="animate" style="margin-top:20px">
+# Orchestrate a feature implementation
+/orchestrate feature "Add user authentication"
+
+# Each agent produces a handoff document:
+## Handoff: planner → tdd-guide
+- Context: JWT auth with refresh tokens
+- Files to create: auth.service.ts, auth.guard.ts
+- Risks: Token storage, CSRF
+- Recommendations: Use httpOnly cookies
+
+# Final verdict:
+## Orchestration Report
+Verdict: SHIP ✅ / NEEDS WORK ⚠️ / BLOCKED 🛑
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Parallel &amp; Multi-Model</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Parallel Execution</h3>
+        <p style="margin-bottom:12px;">Independent agents run simultaneously:</p>
+<pre style="font-size:0.8rem">
+# Launch 3 agents in parallel:
+1. Security analysis of auth module
+2. Performance review of cache layer
+3. Type checking of API contracts
+
+# Each runs in its own context
+# Results merged when all complete
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">Use for independent tasks that don't depend on each other.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Multi-Model Collaboration</h3>
+<pre style="font-size:0.8rem">
+# Phase 1: Distribute analysis
+/multi-plan "Add caching layer"
+  → Codex: backend implementation
+  → Gemini: frontend integration
+  → Claude: synthesize plan
+
+# Phase 2: Execute with oversight
+/multi-execute
+  → External: "dirty prototypes"
+  → Claude: refactor to production
+  → Multi-model: audit result
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">Leverage different models' strengths.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Autonomous Loops</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Pattern</th><th>How It Works</th><th>Use Case</th></tr>
+        <tr><td><strong>Sequential Pipeline</strong></td><td><code>claude -p</code> &mdash; fresh context per step</td><td>Simple multi-step tasks</td></tr>
+        <tr><td><strong>NanoClaw REPL</strong></td><td>Session-aware loop with conversation history</td><td>Interactive development</td></tr>
+        <tr><td><strong>Infinite Agentic Loop</strong></td><td>Orchestrator + N parallel sub-agents</td><td>Spec-driven generation</td></tr>
+        <tr><td><strong>Continuous PR Loop</strong></td><td>Branch &rarr; Claude &rarr; PR &rarr; CI &rarr; fix &rarr; merge &rarr; repeat</td><td>Automated development</td></tr>
+      </table>
+<pre style="margin-top:16px; font-size:0.85rem">
+# Continuous PR Loop controls
+claude-loop --max-runs 10 \     # stop after 10 PRs
+             --max-cost 5.00 \   # budget cap
+             --max-duration 2h \ # time limit
+             --auto-merge        # merge when CI passes
+</pre>
+      <p style="margin-top:12px; text-align:center; color:var(--text-muted);"><strong>De-sloppify pattern:</strong> run a cleanup pass after implementation to remove over-defensive code.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Hooks System</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Lifecycle Events</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Hook</th><th>When</th></tr>
+          <tr><td><strong>PreToolUse</strong></td><td>Before any tool runs</td></tr>
+          <tr><td><strong>PostToolUse</strong></td><td>After tool completes</td></tr>
+          <tr><td><strong>PreCompact</strong></td><td>Before context compaction</td></tr>
+          <tr><td><strong>SessionStart</strong></td><td>Session begins</td></tr>
+          <tr><td><strong>Stop</strong></td><td>Session ends</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Key Hooks</h3>
+        <ul>
+          <li><span class="highlight">block-no-verify</span> &mdash; prevents <code>--no-verify</code></li>
+          <li><span class="highlight">config-protection</span> &mdash; blocks linter config edits</li>
+          <li><span class="highlight">suggest-compact</span> &mdash; timely compaction</li>
+          <li><span class="highlight">mcp-health-check</span> &mdash; MCP server status</li>
+          <li><span class="highlight">session-start/end</span> &mdash; load/save context</li>
+        </ul>
+        <p style="margin-top:8px; font-size:0.9rem; color:var(--text-muted);">Hooks provide <strong>enforcement</strong> agents cannot ignore &mdash; unlike prompts (~20% miss rate).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Rules &amp; CLAUDE.md</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Rules (Always Active)</h3>
+<pre style="font-size:0.8rem">
+# ~/.claude/rules/
+├── common/
+│   ├── coding-style.md
+│   ├── git-workflow.md
+│   ├── testing.md
+│   ├── performance.md
+│   └── security.md
+├── typescript/
+│   └── ts-patterns.md
+├── python/
+│   └── py-patterns.md
+└── golang/
+    └── go-patterns.md
+</pre>
+        <p style="margin-top:8px; font-size:0.9rem;">Injected into <strong>every session</strong> automatically.</p>
+      </div>
+      <div class="card">
+        <h3>CLAUDE.md (Project Config)</h3>
+<pre style="font-size:0.8rem">
+# CLAUDE.md in project root
+
+## Project Overview
+E-commerce API built with TypeScript,
+Express, PostgreSQL.
+
+## Conventions
+- Use camelCase for variables
+- All endpoints need auth middleware
+- Tests in __tests__/ directory
+
+## Commands
+- npm test: run all tests
+- npm run lint: ESLint + Prettier
+- npm run build: compile TypeScript
+
+## Patterns
+- Repository pattern for data access
+- DTOs for API request/response
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Skills &amp; Continuous Learning</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">136 Domain Skills</h3>
+        <ul>
+          <li><span class="highlight">Workflows</span> &mdash; tdd, security-review, eval-harness</li>
+          <li><span class="highlight">Frameworks</span> &mdash; django, laravel, spring-boot, flutter</li>
+          <li><span class="highlight">Languages</span> &mdash; golang, rust, pytorch, swift, perl</li>
+          <li><span class="highlight">Business</span> &mdash; article-writing, market-research</li>
+        </ul>
+        <p style="margin-top:12px; font-size:0.95rem;">Skills = deep domain knowledge packs loaded on demand.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Learning Commands</h3>
+<pre style="font-size:0.8rem">
+# Extract patterns from sessions
+/learn
+
+# Improve skills based on outcomes
+/evolve
+
+# Remove stale patterns
+/prune
+
+# Evaluate skill effectiveness
+/learn-eval
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">The system gets better the more you use it &mdash; patterns become <strong>instincts</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Build Your Own Agent</h2>
+    <div class="content animate">
+<pre>
+# Step 1: Create the file
+touch ~/.claude/agents/my-agent.md
+
+# Step 2: Define frontmatter
+---
+name: api-designer
+description: Designs REST/gRPC APIs from requirements
+tools: ["Read", "Grep", "Glob", "Write"]
+model: sonnet
+---
+
+# Step 3: Write the system prompt
+You are an API design expert.
+
+## Workflow
+1. Read the requirements document
+2. Identify resources and relationships
+3. Design endpoints with proper HTTP methods
+4. Define request/response schemas
+5. Write OpenAPI spec or .proto file
+
+## Rules
+- Use plural nouns for resources (/users not /user)
+- Version APIs in URL (/v1/users)
+- Use proper HTTP status codes
+- Include pagination for list endpoints
+</pre>
+      <p style="margin-top:12px; text-align:center; color:var(--text-muted);"><strong>Tips:</strong> Keep focused (one job), restrict tools to minimum, use opus only for deep reasoning.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You can now build and orchestrate Claude Code Agents:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Agent Files</span><span class="tag">Tool Restrictions</span><span class="tag">Model Routing</span>
+        <span class="tag">Orchestration</span><span class="tag">Hooks</span><span class="tag">Rules</span>
+        <span class="tag">Skills</span><span class="tag">CLAUDE.md</span>
+      </div>
+      <p style="color:var(--text-muted)">Start with one agent, test it, iterate on instructions. Build your team of specialized AI agents.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+<div class="slide-counter" id="counter">1 / 15</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

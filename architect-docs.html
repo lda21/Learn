@@ -1,0 +1,787 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Architect Documentation</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4D0;</span>
+    <h1 class="animate">Architect Documentation</h1>
+    <p class="subtitle animate">Design, Document, Deliver</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">C4</span><span class="tag">ADR</span><span class="tag">SRS</span><span class="tag">System Design</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Architects Deliver</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>&#x1F4DD; Documents (Thinking)</h3>
+          <p>AOD, SRS, ADR, Security Architecture, Data Architecture, Operations Runbook</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F4CA; Diagrams (Communication)</h3>
+          <p>C4 (Context &rarr; Container &rarr; Component), Sequence diagrams, Infrastructure &amp; Data flow</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F9E0; Deep Reasoning (Expertise)</h3>
+          <p>Failure handling, Consistency models, Scaling strategy, Trade-off analysis</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x2696; Decision Making</h3>
+          <p>Technology selection, Buy vs build, Risk assessment, Capacity planning</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px; text-align:center; color:var(--text-muted);">Architecture is not just about drawing boxes &mdash; it's about making <strong>defensible decisions</strong>.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Architecture Overview Document (AOD)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Contains</h3>
+        <ul>
+          <li><strong>System Purpose</strong> &mdash; why does this exist?</li>
+          <li><strong>Context</strong> &mdash; users, integrations, boundaries</li>
+          <li><strong>Key Decisions</strong> &mdash; with rationale (link to ADRs)</li>
+          <li><strong>Constraints</strong> &mdash; budget, timeline, compliance</li>
+          <li><strong>Quality Attributes</strong> &mdash; availability, latency, security</li>
+          <li><strong>Risks</strong> &mdash; known risks and mitigations</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Template Outline</h3>
+<pre style="font-size:0.8rem">
+# Architecture Overview: OrderSystem
+
+## 1. Introduction &amp; Goals
+## 2. System Context &amp; Scope
+## 3. Architecture Constraints
+## 4. Solution Strategy
+## 5. Building Block View (C4)
+## 6. Runtime Behavior (Sequences)
+## 7. Infrastructure View
+## 8. Cross-Cutting Concerns
+   - Security, Logging, Monitoring
+## 9. Architecture Decisions (ADRs)
+## 10. Quality Requirements
+## 11. Risks &amp; Technical Debt
+## 12. Glossary
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Software Requirements (SRS)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Functional Requirements</h3>
+        <ul>
+          <li><strong>FR-001</strong>: Users can register with email + password</li>
+          <li><strong>FR-002</strong>: System sends verification email within 30s</li>
+          <li><strong>FR-003</strong>: Users can search orders by date range</li>
+          <li><strong>FR-004</strong>: Admin can export user data as CSV</li>
+        </ul>
+        <p style="margin-top:8px; font-size:1rem; color:var(--text-muted);">Each FR maps to acceptance criteria and test cases.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Non-Functional Requirements</h3>
+        <ul>
+          <li><strong>NFR-001</strong>: API response &lt; 200ms (p95)</li>
+          <li><strong>NFR-002</strong>: 99.9% uptime (8.7h downtime/year)</li>
+          <li><strong>NFR-003</strong>: Support 10K concurrent users</li>
+          <li><strong>NFR-004</strong>: Data encrypted at rest (AES-256)</li>
+          <li><strong>NFR-005</strong>: GDPR compliant &mdash; right to deletion</li>
+        </ul>
+        <p style="margin-top:8px; font-size:1rem; color:var(--text-muted);">NFRs drive architecture decisions.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Architecture Decision Records (ADR)</h2>
+    <div class="content animate">
+<pre>
+# ADR-003: Use PostgreSQL for User Data
+
+## Status: Accepted (2024-03-15)
+
+## Context
+We need a database for user profiles, authentication, and order history.
+Data is relational with complex queries. Team has SQL expertise.
+
+## Decision
+Use PostgreSQL 16 on AWS RDS with read replicas.
+
+## Alternatives Considered
+- MongoDB: Flexible schema but our data is relational. Joins are needed.
+- DynamoDB: Good scale but complex access patterns don't fit key-value.
+
+## Consequences
++ Strong ACID guarantees for financial data
++ Rich ecosystem (pgvector, PostGIS, TimescaleDB)
++ Team expertise reduces onboarding time
+- Vertical scaling has limits (mitigated by read replicas)
+- Schema migrations require careful planning
+</pre>
+      <p style="margin-top:12px; text-align:center; color:var(--text-muted);">ADRs are <strong>immutable history</strong> &mdash; supersede, never edit.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Security Architecture</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Authentication &amp; Authorization</h3>
+          <p>OAuth 2.0 / OIDC flows, JWT tokens, RBAC/ABAC, session management, MFA</p>
+        </div>
+        <div class="metric-card">
+          <h3>Data Classification</h3>
+          <p><strong>Public</strong> &rarr; Internal &rarr; Confidential &rarr; <strong>Restricted</strong></p>
+          <p>Each level has encryption, access, and retention rules</p>
+        </div>
+        <div class="metric-card">
+          <h3>Encryption</h3>
+          <p><strong>At rest</strong>: AES-256, KMS-managed keys<br><strong>In transit</strong>: TLS 1.3 everywhere<br><strong>In use</strong>: field-level encryption for PII</p>
+        </div>
+        <div class="metric-card">
+          <h3>Network Security</h3>
+          <p>VPC segmentation, WAF, security groups, private subnets, bastion hosts, zero-trust</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:12px; text-align:center;">Compliance: <span class="tag">SOC 2</span><span class="tag">GDPR</span><span class="tag">HIPAA</span><span class="tag">PCI-DSS</span></p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data Architecture</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Storage Decisions</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Data Type</th><th>Storage</th></tr>
+          <tr><td>Users, Orders</td><td>PostgreSQL (relational)</td></tr>
+          <tr><td>Sessions, Cache</td><td>Redis (in-memory)</td></tr>
+          <tr><td>Logs, Events</td><td>Kafka &rarr; S3/TimescaleDB</td></tr>
+          <tr><td>Documents</td><td>MongoDB / S3</td></tr>
+          <tr><td>Search</td><td>Elasticsearch</td></tr>
+          <tr><td>ML Features</td><td>Feast (feature store)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Data Lifecycle</h3>
+        <div class="diagram" style="flex-direction:column; gap:4px; margin:8px 0">
+          <div class="box" style="min-width:200px; padding:10px">Create &amp; Validate</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:200px; padding:10px">Active Storage</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:200px; padding:10px; border-color:var(--warning)">Archive (cold storage)</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:200px; padding:10px; border-color:var(--success)">Delete (GDPR / retention)</div>
+        </div>
+        <p style="font-size:0.95rem; margin-top:8px;">Define retention policies per data classification level.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Operations Runbook</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What to Document</h3>
+        <ul>
+          <li><strong>Deployment</strong> &mdash; step-by-step, rollback plan</li>
+          <li><strong>Monitoring</strong> &mdash; dashboards, key metrics</li>
+          <li><strong>Alerting</strong> &mdash; thresholds, escalation path</li>
+          <li><strong>Incident Response</strong> &mdash; runbooks per scenario</li>
+          <li><strong>On-call</strong> &mdash; rotation, escalation contacts</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>SLIs / SLOs / SLAs</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Layer</th><th>Definition</th><th>Example</th></tr>
+          <tr><td><strong>SLI</strong></td><td>What you measure</td><td>p99 latency: 180ms</td></tr>
+          <tr><td><strong>SLO</strong></td><td>Internal target</td><td>99.9% requests &lt; 200ms</td></tr>
+          <tr><td><strong>SLA</strong></td><td>Customer contract</td><td>99.5% uptime or credit</td></tr>
+        </table>
+        <p style="margin-top:8px; font-size:0.95rem; color:var(--text-muted);">SLO &gt; SLA always. The gap is your <strong>error budget</strong>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">C4: Level 1 &mdash; System Context</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">Who uses the system? What external systems does it talk to?</p>
+      <div class="diagram animate" style="flex-direction:column; gap:12px;">
+        <div style="display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="border-color:var(--success);">&#x1F464; Customer<br><small>Places orders</small></div>
+          <div class="box" style="border-color:var(--success);">&#x1F464; Admin<br><small>Manages catalog</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent); min-width:250px;">&#x1F3E2; Order System<br><small>Handles orders, payments, fulfillment</small></div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="border-color:var(--warning);">&#x1F4B3; Payment<br><small>Stripe API</small></div>
+          <div class="box" style="border-color:var(--warning);">&#x1F4E7; Email<br><small>SendGrid</small></div>
+          <div class="box" style="border-color:var(--warning);">&#x1F69A; Shipping<br><small>FedEx API</small></div>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:12px; text-align:center; font-size:1rem;"><span class="green">Green</span> = people &nbsp; <span class="highlight">Orange</span> = external systems &nbsp; <strong>Filled</strong> = your system</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">C4: Level 2 &mdash; Container Diagram</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">What applications and data stores make up the system?</p>
+      <div class="diagram animate" style="flex-direction:column; gap:10px;">
+        <div style="display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="border-color:var(--success);">&#x1F310; Web App<br><small>React SPA</small></div>
+          <div class="box" style="border-color:var(--success);">&#x1F4F1; Mobile App<br><small>React Native</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:16px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="border-color:var(--warning);">API Gateway<br><small>Kong / Envoy</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="padding:10px 16px; min-width:100px">Order<br>Service</div>
+          <div class="box" style="padding:10px 16px; min-width:100px">User<br>Service</div>
+          <div class="box" style="padding:10px 16px; min-width:100px">Payment<br>Service</div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="padding:10px 16px; min-width:100px; border-color:var(--success);">PostgreSQL</div>
+          <div class="box" style="padding:10px 16px; min-width:100px; border-color:var(--success);">Redis</div>
+          <div class="box" style="padding:10px 16px; min-width:100px; border-color:var(--success);">Kafka</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">C4: Level 3 &mdash; Component Diagram</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">Inside a single container &mdash; what components (modules) exist?</p>
+      <div class="card animate" style="max-width:800px; width:100%;">
+        <h3 style="text-align:center;">Order Service &mdash; Internal Components</h3>
+        <div class="metric-grid" style="margin-top:16px;">
+          <div class="metric-card">
+            <h3>Order Controller</h3>
+            <p>REST/gRPC API endpoints. Input validation, auth check.</p>
+          </div>
+          <div class="metric-card">
+            <h3>Order Domain</h3>
+            <p>Business logic. Order state machine, pricing rules, inventory check.</p>
+          </div>
+          <div class="metric-card">
+            <h3>Payment Client</h3>
+            <p>Stripe SDK wrapper. Charge, refund, webhook handling.</p>
+          </div>
+          <div class="metric-card">
+            <h3>Event Publisher</h3>
+            <p>Publishes OrderCreated, OrderShipped events to Kafka.</p>
+          </div>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:12px; text-align:center; color:var(--text-muted);">Level 4 (Code) is usually auto-generated from source &mdash; rarely drawn manually.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Sequence Diagrams</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:12px; color:var(--text-muted);">Document critical flows: API calls, auth, error paths, async workflows.</p>
+<pre class="animate" style="font-size:0.85rem">
+Place Order Flow:
+
+  Customer    API Gateway    Order Svc    Payment Svc    Kafka
+     |            |             |             |            |
+     |--POST /orders--->|       |             |            |
+     |            |--validate-->|             |            |
+     |            |             |--charge---->|            |
+     |            |             |    &lt;--ok----|            |
+     |            |             |--publish OrderCreated--->|
+     |            |&lt;--201 Created|             |            |
+     |&lt;--order confirmation-----|             |            |
+
+Error Flow (Payment Failed):
+
+  Customer    API Gateway    Order Svc    Payment Svc
+     |            |             |             |
+     |--POST /orders--->|       |             |
+     |            |--validate-->|             |
+     |            |             |--charge---->|
+     |            |             |  &lt;--DECLINED|
+     |            |             |--rollback---|
+     |            |&lt;--402 Payment Failed      |
+     |&lt;--error message---------|             |
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Infrastructure &amp; Data Flow</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:12px; color:var(--text-muted);">Cloud architecture with network boundaries and data flow.</p>
+      <div class="diagram animate" style="flex-direction:column; gap:8px;">
+        <div class="box" style="min-width:300px; border-color:var(--success);">CDN (CloudFront)<br><small>Static assets, edge caching</small></div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="min-width:300px; border-color:var(--warning);">ALB (public subnet)<br><small>TLS termination, WAF</small></div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="padding:10px 16px;">ECS/EKS<br>App (x3)</div>
+          <div class="box" style="padding:10px 16px; border-color:var(--success);">Redis<br>Cache</div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div style="display:flex; gap:12px; align-items:center; justify-content:center; flex-wrap:wrap;">
+          <div class="box" style="padding:10px 16px; border-color:var(--success);">RDS Primary<br><small>private subnet</small></div>
+          <div class="box" style="padding:10px 16px;">RDS Replica<br><small>reads</small></div>
+          <div class="box" style="padding:10px 16px; border-color:var(--warning);">S3<br><small>backups, files</small></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Failure Handling &amp; Resilience</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Resilience Patterns</h3>
+        <ul>
+          <li><span class="highlight">Circuit Breaker</span> &mdash; stop calling failing services</li>
+          <li><span class="highlight">Retry + Backoff</span> &mdash; exponential with jitter</li>
+          <li><span class="highlight">Bulkhead</span> &mdash; isolate failures to one component</li>
+          <li><span class="highlight">Timeout</span> &mdash; deadline on every external call</li>
+          <li><span class="highlight">Graceful Degradation</span> &mdash; serve stale data, feature flags</li>
+          <li><span class="highlight">Chaos Engineering</span> &mdash; test failures proactively</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Circuit Breaker States</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px; margin:8px 0">
+          <div class="box" style="border-color:var(--success); min-width:180px">&#x2705; Closed<br><small>Normal &mdash; requests pass</small></div>
+          <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+          <div class="box" style="border-color:#e74c3c; min-width:180px; color:#e74c3c;">&#x274C; Open<br><small>Failing &mdash; reject all</small></div>
+          <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+          <div class="box" style="border-color:var(--warning); min-width:180px">&#x23F3; Half-Open<br><small>Test &mdash; allow one request</small></div>
+        </div>
+        <p style="font-size:0.9rem; color:var(--text-muted);">Libraries: Polly (.NET), Resilience4j (Java), Hystrix</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Consistency Models</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>CAP Theorem</h3>
+        <p style="margin-bottom:12px;">Pick 2 of 3 during network partition:</p>
+        <ul>
+          <li><strong>CP</strong> &mdash; Consistency + Partition tolerance (PostgreSQL, MongoDB)</li>
+          <li><strong>AP</strong> &mdash; Availability + Partition tolerance (Cassandra, DynamoDB)</li>
+        </ul>
+        <table style="font-size:0.9rem; margin-top:12px">
+          <tr><th>Pattern</th><th>Consistency</th></tr>
+          <tr><td>ACID transactions</td><td>Strong</td></tr>
+          <tr><td>2PC (two-phase commit)</td><td>Strong (slow)</td></tr>
+          <tr><td>Saga pattern</td><td>Eventual</td></tr>
+          <tr><td>Event sourcing</td><td>Eventual</td></tr>
+          <tr><td>CQRS</td><td>Eventual (reads)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Decision Guide</h3>
+        <ul>
+          <li>&#x1F4B0; <strong>Financial data?</strong><br>&rarr; Strong consistency (ACID, 2PC)</li>
+          <li>&#x1F4E6; <strong>Order workflow?</strong><br>&rarr; Saga pattern (compensating txns)</li>
+          <li>&#x1F4CA; <strong>Analytics / feeds?</strong><br>&rarr; Eventual consistency is fine</li>
+          <li>&#x1F4DD; <strong>Audit trail?</strong><br>&rarr; Event sourcing (append-only)</li>
+          <li>&#x1F50D; <strong>Heavy reads, few writes?</strong><br>&rarr; CQRS (separate read models)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scaling Strategy</h2>
+    <div class="content">
+      <div class="diagram animate" style="flex-direction:column; gap:8px; margin-bottom:16px;">
+        <div class="box" style="min-width:300px; border-color:var(--success);">CDN &mdash; cache static content at edge</div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="min-width:300px;">Load Balancer &mdash; distribute traffic</div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="min-width:300px; border-color:var(--warning);">App Tier (N instances) &mdash; horizontal scale</div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="min-width:300px; border-color:var(--success);">Cache (Redis) &mdash; reduce DB load</div>
+        <div class="arrow" style="transform:rotate(90deg)">&darr;</div>
+        <div class="box" style="min-width:300px;">DB: Primary + Read Replicas &mdash; scale reads</div>
+      </div>
+      <div class="two-col animate">
+        <div class="card" style="padding:16px">
+          <h3 style="font-size:1.2rem">Vertical Scaling</h3>
+          <p style="font-size:1rem">Bigger machine. Simple but has limits. Good for databases initially.</p>
+        </div>
+        <div class="card" style="padding:16px">
+          <h3 style="font-size:1.2rem">Horizontal Scaling</h3>
+          <p style="font-size:1rem">More machines. Requires stateless apps. Use for app tier + workers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Document <strong>decisions</strong> not just outcomes &mdash; write ADRs</div>
+      <div class="bp-item"><span>2</span> Diagrams at <strong>multiple zoom levels</strong> &mdash; C4 model</div>
+      <div class="bp-item"><span>3</span> <strong>Security is architecture</strong> &mdash; not an afterthought</div>
+      <div class="bp-item"><span>4</span> Define <strong>SLOs before building</strong> &mdash; they drive design</div>
+      <div class="bp-item"><span>5</span> Plan for <strong>failure from day one</strong> &mdash; circuit breakers, retries</div>
+      <div class="bp-item"><span>6</span> Keep docs <strong>close to code</strong> &mdash; docs-as-code in repo</div>
+      <div class="bp-item"><span>7</span> <strong>Review architecture quarterly</strong> &mdash; fitness functions</div>
+      <div class="bp-item"><span>8</span> <strong>Version</strong> your architecture docs with the codebase</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4D0;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You can now deliver production-grade architecture:</p>
+      <div style="margin:20px 0">
+        <span class="tag">AOD</span><span class="tag">ADR</span><span class="tag">SRS</span>
+        <span class="tag">C4 Model</span><span class="tag">Sequence Diagrams</span><span class="tag">Security</span>
+        <span class="tag">Resilience</span><span class="tag">Consistency</span><span class="tag">Scaling</span>
+      </div>
+      <p style="color:var(--text-muted)">Good architecture is documented architecture. Start with ADRs and C4 diagrams.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+<div class="slide-counter" id="counter">1 / 18</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

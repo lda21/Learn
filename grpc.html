@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>gRPC</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4E1;</span>
+    <h1 class="animate">gRPC</h1>
+    <p class="subtitle animate">High-performance Remote Procedure Calls</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">RPC</span><span class="tag">Protobuf</span><span class="tag">HTTP/2</span><span class="tag">Streaming</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why gRPC?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Created by Google, open-source (CNCF)</li>
+          <li><span class="highlight">HTTP/2</span> &mdash; multiplexed, binary</li>
+          <li><span class="highlight">Protobuf</span> &mdash; binary serialization</li>
+          <li>Polyglot &mdash; 10+ language support</li>
+          <li>Contract-first API design</li>
+          <li>Bi-directional streaming built-in</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>gRPC vs REST</h3>
+        <table style="font-size:1rem; margin-top:8px">
+          <tr><th></th><th>gRPC</th><th>REST</th></tr>
+          <tr><td>Format</td><td>Binary (Protobuf)</td><td>JSON / XML</td></tr>
+          <tr><td>Protocol</td><td>HTTP/2</td><td>HTTP/1.1</td></tr>
+          <tr><td>Streaming</td><td>Built-in (4 types)</td><td>Not native</td></tr>
+          <tr><td>Code Gen</td><td>Automatic</td><td>Manual / OpenAPI</td></tr>
+          <tr><td>Contract</td><td>Strict (.proto)</td><td>Loose</td></tr>
+          <tr><td>Browser</td><td>Needs proxy</td><td>Native</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Protocol Buffers (Protobuf)</h2>
+    <div class="content animate">
+<pre>
+syntax = "proto3";
+package user.v1;
+
+// Messages define data structures
+message User {
+  string id = 1;
+  string name = 2;
+  string email = 3;
+  repeated string roles = 4;    // list of strings
+  google.protobuf.Timestamp created_at = 5;
+}
+
+message GetUserRequest {
+  string id = 1;
+}
+
+message ListUsersResponse {
+  repeated User users = 1;
+  int32 total_count = 2;
+}
+
+// Services define RPC methods
+service UserService {
+  rpc GetUser (GetUserRequest) returns (User);
+  rpc CreateUser (User) returns (User);
+  rpc ListUsers (ListUsersRequest) returns (ListUsersResponse);
+  rpc WatchUsers (WatchRequest) returns (stream User);  // server streaming
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Code Generation</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">.proto<br><small>file</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning);">protoc<br><small>compiler</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success);">Generated<br><small>stubs</small></div>
+      </div>
+<pre class="animate" style="margin-top:16px">
+# Generate Go code
+protoc --go_out=. --go-grpc_out=. proto/user.proto
+
+# Generate Python code
+python -m grpc_tools.protoc -I proto \
+  --python_out=. --grpc_python_out=. proto/user.proto
+
+# Generate TypeScript (using ts-proto)
+protoc --plugin=protoc-gen-ts_proto \
+  --ts_proto_out=./src proto/user.proto
+</pre>
+      <div class="animate" style="margin-top:16px; text-align:center">
+        <span class="tag">Go</span><span class="tag">Python</span><span class="tag">Java</span>
+        <span class="tag">C#</span><span class="tag">Node.js</span><span class="tag">Rust</span>
+        <span class="tag">Kotlin</span><span class="tag">Swift</span><span class="tag">Dart</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">4 Communication Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>1. Unary</h3>
+        <p>Single request &rarr; single response. Like a normal function call.</p>
+        <code style="font-size:0.85rem">rpc GetUser (Req) returns (User)</code>
+      </div>
+      <div class="metric-card">
+        <h3>2. Server Streaming</h3>
+        <p>Single request &rarr; stream of responses. Real-time feeds.</p>
+        <code style="font-size:0.85rem">rpc Watch (Req) returns (stream Event)</code>
+      </div>
+      <div class="metric-card">
+        <h3>3. Client Streaming</h3>
+        <p>Stream of requests &rarr; single response. File uploads, batching.</p>
+        <code style="font-size:0.85rem">rpc Upload (stream Chunk) returns (Status)</code>
+      </div>
+      <div class="metric-card">
+        <h3>4. Bidirectional Streaming</h3>
+        <p>Stream &harr; stream. Chat, gaming, collaborative editing.</p>
+        <code style="font-size:0.85rem">rpc Chat (stream Msg) returns (stream Msg)</code>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">HTTP/2 Under the Hood</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">HTTP/2 (gRPC)</h3>
+        <ul>
+          <li><strong>Multiplexing</strong> &mdash; many requests on one TCP connection</li>
+          <li><strong>Binary framing</strong> &mdash; efficient parsing</li>
+          <li><strong>Header compression</strong> &mdash; HPACK algorithm</li>
+          <li><strong>Server push</strong> &mdash; proactive responses</li>
+          <li><strong>Stream prioritization</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>HTTP/1.1 (REST)</h3>
+        <ul>
+          <li>One request per connection (or pipelining)</li>
+          <li>Text-based &mdash; larger payloads</li>
+          <li>No header compression</li>
+          <li>Head-of-line blocking</li>
+          <li>Need many TCP connections</li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:20px">
+      <div class="box" style="border-color:var(--success);">Single TCP<br>Connection</div>
+      <div class="arrow">&harr;</div>
+      <div class="box">Stream 1<br><small>GetUser</small></div>
+      <div class="box">Stream 2<br><small>ListOrders</small></div>
+      <div class="box">Stream 3<br><small>WatchEvents</small></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Unary RPC Example</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Server (Go)</h3>
+<pre style="font-size:0.8rem">
+func (s *server) GetUser(
+  ctx context.Context,
+  req *pb.GetUserRequest,
+) (*pb.User, error) {
+
+  user, err := s.db.FindByID(
+    ctx, req.GetId(),
+  )
+  if err != nil {
+    return nil, status.Error(
+      codes.NotFound,
+      "user not found",
+    )
+  }
+  return user, nil
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Client (Python)</h3>
+<pre style="font-size:0.8rem">
+import grpc
+import user_pb2 as pb
+import user_pb2_grpc as rpc
+
+channel = grpc.insecure_channel(
+  'localhost:50051'
+)
+stub = rpc.UserServiceStub(channel)
+
+try:
+  user = stub.GetUser(
+    pb.GetUserRequest(id="123")
+  )
+  print(f"Name: {user.name}")
+except grpc.RpcError as e:
+  print(f"Error: {e.code()}")
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Server Streaming Example</h2>
+    <div class="content animate">
+<pre>
+// Proto definition
+service StockService {
+  rpc WatchPrice (StockRequest) returns (stream PriceUpdate);
+}
+
+// Server (Go) — sends stream of prices
+func (s *server) WatchPrice(
+  req *pb.StockRequest,
+  stream pb.StockService_WatchPriceServer,
+) error {
+  ticker := time.NewTicker(time.Second)
+  defer ticker.Stop()
+
+  for {
+    select {
+    case &lt;-stream.Context().Done():
+      return nil  // client disconnected
+    case &lt;-ticker.C:
+      price := getLatestPrice(req.Symbol)
+      if err := stream.Send(&amp;pb.PriceUpdate{
+        Symbol: req.Symbol,
+        Price:  price,
+        Time:   timestamppb.Now(),
+      }); err != nil {
+        return err
+      }
+    }
+  }
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Bidirectional Streaming</h2>
+    <div class="content animate">
+<pre>
+// Proto definition
+service ChatService {
+  rpc Chat (stream ChatMessage) returns (stream ChatMessage);
+}
+
+// Server — receives and broadcasts messages
+func (s *server) Chat(
+  stream pb.ChatService_ChatServer,
+) error {
+  for {
+    msg, err := stream.Recv()
+    if err == io.EOF {
+      return nil
+    }
+    if err != nil {
+      return err
+    }
+    // Broadcast to all connected clients
+    for _, client := range s.clients {
+      client.Send(&amp;pb.ChatMessage{
+        User:    msg.User,
+        Text:    msg.Text,
+        SentAt:  timestamppb.Now(),
+      })
+    }
+  }
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Status Codes &amp; Errors</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Code</th><th>Name</th><th>When to Use</th></tr>
+        <tr><td>0</td><td><span class="green">OK</span></td><td>Success</td></tr>
+        <tr><td>1</td><td>CANCELLED</td><td>Client cancelled the request</td></tr>
+        <tr><td>3</td><td>INVALID_ARGUMENT</td><td>Bad input (400)</td></tr>
+        <tr><td>5</td><td>NOT_FOUND</td><td>Resource doesn't exist (404)</td></tr>
+        <tr><td>6</td><td>ALREADY_EXISTS</td><td>Duplicate creation (409)</td></tr>
+        <tr><td>7</td><td>PERMISSION_DENIED</td><td>Forbidden (403)</td></tr>
+        <tr><td>4</td><td>DEADLINE_EXCEEDED</td><td>Timeout</td></tr>
+        <tr><td>13</td><td>INTERNAL</td><td>Server error (500)</td></tr>
+        <tr><td>14</td><td>UNAVAILABLE</td><td>Service down, retry</td></tr>
+        <tr><td>16</td><td>UNAUTHENTICATED</td><td>No valid credentials (401)</td></tr>
+      </table>
+<pre style="margin-top:16px; font-size:0.85rem">
+// Return error with status
+return nil, status.Errorf(codes.NotFound, "user %s not found", id)
+
+// Handle error on client
+if e, ok := status.FromError(err); ok {
+  log.Printf("Code: %s, Message: %s", e.Code(), e.Message())
+}
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Metadata &amp; Interceptors</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Metadata (like HTTP headers)</h3>
+<pre style="font-size:0.8rem">
+// Client — send metadata
+md := metadata.Pairs(
+  "authorization", "Bearer "+token,
+  "request-id", uuid.New().String(),
+)
+ctx := metadata.NewOutgoingContext(
+  ctx, md,
+)
+resp, err := client.GetUser(ctx, req)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Interceptors (middleware)</h3>
+<pre style="font-size:0.8rem">
+// Server interceptor — auth + logging
+func authInterceptor(
+  ctx context.Context,
+  req interface{},
+  info *grpc.UnaryServerInfo,
+  handler grpc.UnaryHandler,
+) (interface{}, error) {
+  md, _ := metadata.FromIncomingContext(ctx)
+  token := md["authorization"][0]
+  if !validateToken(token) {
+    return nil, status.Error(
+      codes.Unauthenticated, "bad token")
+  }
+  log.Printf("RPC: %s", info.FullMethod)
+  return handler(ctx, req)  // proceed
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deadlines &amp; Timeouts</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">Deadlines propagate across service calls &mdash; critical for microservice chains to prevent cascading hangs.</p>
+      <div class="two-col animate">
+        <div class="card">
+          <h3>Setting Deadlines</h3>
+<pre style="font-size:0.8rem">
+// Client sets a 5-second deadline
+ctx, cancel := context.WithTimeout(
+  context.Background(),
+  5*time.Second,
+)
+defer cancel()
+
+resp, err := client.GetUser(ctx, req)
+if status.Code(err) ==
+   codes.DeadlineExceeded {
+  log.Println("Timed out!")
+}
+</pre>
+        </div>
+        <div class="card">
+          <h3>Deadline Propagation</h3>
+          <div class="diagram" style="flex-direction:column; gap:6px; margin:8px 0;">
+            <div class="box" style="min-width:200px">API Gateway<br><small>deadline: 5s</small></div>
+            <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+            <div class="box" style="min-width:200px; border-color:var(--warning)">User Service<br><small>remaining: 4.2s</small></div>
+            <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+            <div class="box" style="min-width:200px; border-color:var(--success)">Auth Service<br><small>remaining: 3.8s</small></div>
+          </div>
+          <p style="font-size:0.95rem; color:var(--text-muted);">Each hop gets less time. Always check remaining deadline.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Load Balancing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Client-Side LB</h3>
+        <ul>
+          <li>Client knows all server addresses</li>
+          <li>Round-robin, pick-first, weighted</li>
+          <li>Built into gRPC core</li>
+          <li>No extra infrastructure</li>
+          <li>Best for internal services</li>
+        </ul>
+<pre style="font-size:0.8rem; margin-top:8px">
+conn, _ := grpc.Dial(
+  "dns:///my-service:50051",
+  grpc.WithDefaultServiceConfig(
+    `{"loadBalancingPolicy":"round_robin"}`),
+)
+</pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Proxy-Based LB</h3>
+        <ul>
+          <li><strong>Envoy</strong> &mdash; L7 gRPC-aware proxy</li>
+          <li><strong>Istio</strong> &mdash; service mesh with gRPC support</li>
+          <li><strong>Linkerd</strong> &mdash; lightweight service mesh</li>
+          <li>Health checking protocol built-in</li>
+          <li>Best for cross-team / external</li>
+        </ul>
+        <div class="diagram" style="margin-top:8px; gap:8px">
+          <div class="box" style="padding:8px 16px; min-width:80px">Client</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="padding:8px 16px; min-width:80px; border-color:var(--warning)">Envoy</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="padding:8px 16px; min-width:80px; border-color:var(--success)">Servers</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">gRPC-Web &amp; gRPC Gateway</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom:16px; color:var(--text-muted);">Browsers can't use gRPC directly (no HTTP/2 framing control). Two solutions:</p>
+      <div class="two-col animate">
+        <div class="card">
+          <h3 style="color:var(--success);">gRPC-Web</h3>
+          <ul>
+            <li>Browser-compatible gRPC variant</li>
+            <li>Proxy translates HTTP/1.1 &harr; HTTP/2</li>
+            <li>Envoy or grpc-web proxy</li>
+            <li>Typed client from .proto</li>
+          </ul>
+          <div class="diagram" style="margin-top:8px; gap:6px">
+            <div class="box" style="padding:8px 12px; min-width:70px">Browser</div>
+            <div class="arrow">&rarr;</div>
+            <div class="box" style="padding:8px 12px; min-width:70px; border-color:var(--warning)">Proxy</div>
+            <div class="arrow">&rarr;</div>
+            <div class="box" style="padding:8px 12px; min-width:70px; border-color:var(--success)">gRPC</div>
+          </div>
+        </div>
+        <div class="card">
+          <h3 style="color:var(--warning);">gRPC Gateway</h3>
+          <ul>
+            <li>Generates REST API from .proto</li>
+            <li>Annotate RPCs with HTTP mappings</li>
+            <li>Auto-generates OpenAPI/Swagger</li>
+            <li>REST clients + gRPC clients coexist</li>
+          </ul>
+<pre style="font-size:0.75rem; margin-top:8px">
+rpc GetUser (GetUserRequest) returns (User) {
+  option (google.api.http) = {
+    get: "/v1/users/{id}"
+  };
+}
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Design APIs <strong>proto-first</strong> &mdash; schema is your contract</div>
+      <div class="bp-item"><span>2</span> Set <strong>deadlines</strong> on every call &mdash; prevent cascading hangs</div>
+      <div class="bp-item"><span>3</span> Handle all <strong>status codes</strong> &mdash; don't swallow errors</div>
+      <div class="bp-item"><span>4</span> Use <strong>interceptors</strong> for auth, logging, tracing</div>
+      <div class="bp-item"><span>5</span> Version with <strong>package names</strong> &mdash; <code>user.v1</code>, <code>user.v2</code></div>
+      <div class="bp-item"><span>6</span> Keep messages <strong>small</strong> &mdash; stream large data</div>
+      <div class="bp-item"><span>7</span> Use <strong>grpcurl</strong> + reflection for debugging</div>
+      <div class="bp-item"><span>8</span> Implement <strong>health checking</strong> protocol</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4E1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now understand gRPC end-to-end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Protobuf</span><span class="tag">HTTP/2</span><span class="tag">Unary</span>
+        <span class="tag">Streaming</span><span class="tag">Interceptors</span><span class="tag">Deadlines</span>
+        <span class="tag">Load Balancing</span><span class="tag">gRPC-Web</span>
+      </div>
+      <p style="color:var(--text-muted)">Start with a .proto file, generate code, and build type-safe APIs across any language.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+<div class="slide-counter" id="counter">1 / 16</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
