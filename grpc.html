@@ -484,6 +484,59 @@ func (s *server) WatchPrice(
   </div>
 
   <div class="slide">
+    <h2 class="animate">Client Streaming Example</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Server (Go)</h3>
+<pre style="font-size:0.8rem">
+func (s *server) UploadMetrics(
+  stream pb.MetricsService_UploadMetricsServer,
+) error {
+
+  var count int
+  for {
+    metric, err := stream.Recv()
+    if err == io.EOF {
+      // client done &mdash; send summary
+      return stream.SendAndClose(
+        &amp;pb.UploadSummary{
+          Received: int32(count),
+        },
+      )
+    }
+    if err != nil {
+      return err
+    }
+    s.store.Save(metric)
+    count++
+  }
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Client (Python)</h3>
+<pre style="font-size:0.8rem">
+def generate_metrics():
+    """Stream batch of metrics."""
+    for cpu, mem in collect_samples():
+        yield pb.Metric(
+            cpu_percent=cpu,
+            memory_mb=mem,
+            timestamp=now(),
+        )
+
+# Open stream, send all, get summary
+summary = stub.UploadMetrics(
+    generate_metrics()
+)
+print(f"Sent: {summary.received}")
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">Client sends many &rarr; server replies once. Ideal for batch uploads, telemetry, file transfer.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
     <h2 class="animate">Bidirectional Streaming</h2>
     <div class="content animate">
 <pre>

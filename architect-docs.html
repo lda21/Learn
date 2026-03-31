@@ -669,6 +669,35 @@ Error Flow (Payment Failed):
   </div>
 
   <div class="slide">
+    <h2 class="animate">API &amp; Contract Documentation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">What to Document</h3>
+        <ul>
+          <li><span class="highlight">OpenAPI / Swagger</span> &mdash; REST endpoints, schemas, auth</li>
+          <li><span class="highlight">Proto files</span> &mdash; gRPC service contracts</li>
+          <li><span class="highlight">AsyncAPI</span> &mdash; event-driven message schemas</li>
+          <li><span class="highlight">GraphQL SDL</span> &mdash; queries, mutations, subscriptions</li>
+        </ul>
+        <p style="margin-top:12px; font-size:0.95rem;">Contracts are the <strong>source of truth</strong> between teams. Generate docs from code, not the other way around.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Contract-First Workflow</h3>
+        <div class="diagram" style="flex-direction:column; gap:4px; margin:8px 0">
+          <div class="box" style="min-width:220px; padding:10px">Define contract (proto / OpenAPI)</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:220px; padding:10px">Generate client &amp; server stubs</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:220px; padding:10px; border-color:var(--success)">Implement &amp; test against contract</div>
+          <div class="arrow" style="transform:rotate(90deg)">&rarr;</div>
+          <div class="box" style="min-width:220px; padding:10px; border-color:var(--warning)">Publish versioned docs (CI/CD)</div>
+        </div>
+        <p style="font-size:0.95rem; margin-top:8px;">Breaking changes require a <strong>major version bump</strong> and migration guide.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
     <h2 class="animate">Best Practices</h2>
     <div class="bp-grid animate">
       <div class="bp-item"><span>1</span> Document <strong>decisions</strong> not just outcomes &mdash; write ADRs</div>

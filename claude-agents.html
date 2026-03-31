@@ -621,6 +621,46 @@ Express, PostgreSQL.
   </div>
 
   <div class="slide">
+    <h2 class="animate">MCP Servers &amp; Integration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">What Are MCP Servers?</h3>
+        <ul>
+          <li><span class="highlight">Model Context Protocol</span> &mdash; standard for tool integration</li>
+          <li><span class="highlight">External tools</span> &mdash; databases, APIs, browsers, file systems</li>
+          <li><span class="highlight">Dynamic loading</span> &mdash; add capabilities without code changes</li>
+          <li><span class="highlight">Context7</span> &mdash; fetch live docs for any library</li>
+          <li><span class="highlight">Exa / Firecrawl</span> &mdash; web search and scraping</li>
+        </ul>
+        <p style="margin-top:12px; font-size:0.95rem;">MCPs turn agents into <strong>extensible platforms</strong> &mdash; plug in any external service.</p>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Configuration</h3>
+<pre style="font-size:0.8rem">
+// .claude/settings.json
+{
+  "mcpServers": {
+    "context7": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp"
+      ]
+    },
+    "postgres": {
+      "command": "mcp-server-postgres",
+      "args": ["postgresql://..."],
+      "env": { "DB_SSL": "true" }
+    }
+  }
+}
+</pre>
+        <p style="margin-top:8px; font-size:0.95rem;">Each MCP server exposes tools that agents can call.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
     <h2 class="animate">Build Your Own Agent</h2>
     <div class="content animate">
 <pre>
