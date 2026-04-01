@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Ralph for Claude Code</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F501;</span>
+    <h1 class="animate">Ralph for Claude Code</h1>
+    <p class="subtitle animate">Autonomous AI development loops with intelligent safeguards</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Ralph</span><span class="tag">Autonomous AI</span><span class="tag">Claude Code</span><span class="tag">Loops</span>
+    </div>
+  </div>
+
+
+  <!-- Slide 2: What Is Ralph? -->
+  <div class="slide">
+    <h2 class="animate">What Is Ralph?</h2>
+    <div class="content animate">
+      <p>Geoffrey Huntley coined the <span class="highlight">"Ralph" technique</span>: run an AI code assistant in a loop until the project is done. Instead of one-shot prompts, you let the AI iterate continuously.</p>
+      <p style="margin-top:16px"><span class="highlight">Ralph for Claude Code</span> implements this with production-grade safety:</p>
+      <ul style="margin-top:12px">
+        <li><span class="highlight">Exit Detection</span> &mdash; dual-condition gate prevents premature termination</li>
+        <li><span class="highlight">Rate Limiting</span> &mdash; hourly API call caps and token budgets</li>
+        <li><span class="highlight">Circuit Breakers</span> &mdash; halts when no progress is being made</li>
+        <li><span class="highlight">Session Management</span> &mdash; preserves Claude context across iterations</li>
+        <li><span class="highlight">Monitoring</span> &mdash; live tmux dashboard for real-time visibility</li>
+      </ul>
+      <p style="margin-top:16px;color:var(--text-muted)">Source: <code>github.com/frankbria/ralph-claude-code</code></p>
+    </div>
+  </div>
+
+
+  <!-- Slide 3: Why Autonomous Loops? -->
+  <div class="slide">
+    <h2 class="animate">Why Autonomous Loops?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Manual AI Coding</h3>
+        <ul>
+          <li>One prompt, one response</li>
+          <li>Human must review and re-prompt</li>
+          <li>Context lost between sessions</li>
+          <li>Limited to what fits in one turn</li>
+          <li>Human bottleneck on iteration speed</li>
+          <li>Good for small, isolated tasks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="green">Ralph Workflow</h3>
+        <ul>
+          <li>Continuous loop until done</li>
+          <li>Each iteration picks up where the last left off</li>
+          <li>Session continuity preserves context</li>
+          <li>Builds entire features autonomously</li>
+          <li>Runs overnight, unattended</li>
+          <li>Circuit breakers prevent waste</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center"><span class="highlight">Result:</span> Build features, fix bugs, and implement specs while you sleep.</p>
+  </div>
+
+
+  <!-- Slide 4: Architecture Overview -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">ralph_loop.sh<br><small>Core Engine</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Claude Code CLI<br><small>AI Execution</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Project Files<br><small>Your Codebase</small></div>
+    </div>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--success)">circuit_breaker.sh<br><small>Safety Guard</small></div>
+      <div class="box" style="border-color:var(--success)">response_analyzer.sh<br><small>Output Parser</small></div>
+      <div class="box" style="border-color:var(--success)">ralph_monitor.sh<br><small>tmux Dashboard</small></div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+      <p style="text-align:center"><span class="highlight">Config:</span> <code>.ralphrc</code> (project settings) + <code>.ralph/</code> (instructions, specs, logs)</p>
+      <p style="text-align:center;margin-top:8px;color:var(--text-muted)">The core loop calls Claude Code, analyzes the response, checks circuit breaker state, and decides whether to continue, wait, or stop.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 5: Installation & Setup -->
+  <div class="slide">
+    <h2 class="animate">Installation &amp; Setup</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Phase 1: Global Install</h3>
+<pre style="font-size:0.85rem">
+git clone https://github.com/frankbria/ralph-claude-code
+cd ralph-claude-code
+./install.sh
+
+# Adds to PATH:
+#   ralph          - main loop runner
+#   ralph-monitor  - tmux dashboard
+#   ralph-setup    - legacy setup
+#   ralph-enable   - project wizard
+#   ralph-import   - doc converter
+</pre>
+      </div>
+      <div class="card">
+        <h3>Phase 2: Per-Project</h3>
+<pre style="font-size:0.85rem">
+cd your-project/
+ralph-enable
+
+# Interactive 5-phase wizard:
+# 1. Environment detection
+# 2. Task source selection
+# 3. Configuration
+# 4. File generation
+# 5. Verification
+
+# Then run:
+ralph
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Requirements:</span> Bash 4.0+, Claude Code CLI, tmux, jq, Git</p>
+  </div>
+
+
+  <!-- Slide 6: The .ralph/ Project Structure -->
+  <div class="slide">
+    <h2 class="animate">The .ralph/ Project Structure</h2>
+    <div class="content animate">
+<pre>
+your-project/
+  .ralphrc                  # Project configuration (rate limits, timeouts, tools)
+  .ralph/
+    PROMPT.md               # High-level instructions for Claude
+    fix_plan.md             # Prioritized task checklist (Claude works through this)
+    AGENT.md                # Build/test/lint commands for Claude to use
+    specs/                  # Detailed requirement documents
+      feature-auth.md
+      feature-api.md
+    logs/                   # Execution logs per session
+      ralph-2026-04-01.log
+</pre>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>PROMPT.md</h3>
+        <p>The "what to build" &mdash; high-level goals, constraints, and context Claude needs each iteration.</p>
+      </div>
+      <div class="metric-card">
+        <h3>fix_plan.md</h3>
+        <p>Ordered task list. Claude checks items off as it completes them. Drives iteration focus.</p>
+      </div>
+      <div class="metric-card">
+        <h3>AGENT.md</h3>
+        <p>Build, test, and lint commands. Tells Claude how to verify its own work.</p>
+      </div>
+      <div class="metric-card">
+        <h3>specs/</h3>
+        <p>Detailed requirements for complex features. Referenced from PROMPT.md as needed.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 7: The RALPH_STATUS Communication Protocol -->
+  <div class="slide">
+    <h2 class="animate">RALPH_STATUS Protocol</h2>
+    <div class="content animate">
+      <p>Claude communicates progress back to Ralph via a structured status block appended to each response:</p>
+<pre style="margin-top:16px">
+---RALPH_STATUS---
+STATUS: IN_PROGRESS | COMPLETE | BLOCKED
+TASKS_COMPLETED_THIS_LOOP: 3
+FILES_MODIFIED: 5
+EXIT_SIGNAL: true | false
+---END_RALPH_STATUS---
+</pre>
+      <ul style="margin-top:16px">
+        <li><code>STATUS</code> &mdash; current state: working, done, or stuck</li>
+        <li><code>TASKS_COMPLETED_THIS_LOOP</code> &mdash; how many checklist items finished this iteration</li>
+        <li><code>FILES_MODIFIED</code> &mdash; number of files changed (used by circuit breaker)</li>
+        <li><code>EXIT_SIGNAL</code> &mdash; explicit flag: should the loop stop?</li>
+      </ul>
+      <p style="margin-top:14px;color:var(--text-muted)"><code>response_analyzer.sh</code> parses this block from Claude's output using pattern matching with fallback heuristics.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 8: Exit Detection: Dual-Condition Gate -->
+  <div class="slide">
+    <h2 class="animate">Exit Detection: Dual-Condition Gate</h2>
+    <div class="content animate">
+      <p>The <span class="highlight">most critical safety mechanism</span>. Ralph exits ONLY when <strong>both</strong> conditions are met:</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Condition 1: Heuristic</h3>
+          <p><code>completion_indicators >= 2</code> &mdash; pattern-matches phrases like "all tasks complete", "nothing left to do", "fix_plan fully checked".</p>
+        </div>
+        <div class="metric-card">
+          <h3>Condition 2: Explicit</h3>
+          <p><code>EXIT_SIGNAL: true</code> &mdash; Claude must explicitly set this flag in the RALPH_STATUS block.</p>
+        </div>
+      </div>
+      <div class="card" style="margin-top:20px">
+        <h3>Why Both?</h3>
+        <ul>
+          <li>Prevents premature exit when docs merely <em>mention</em> "done" or "complete"</li>
+          <li><span class="highlight">Conflict resolution:</span> <code>STATUS: COMPLETE</code> + <code>EXIT_SIGNAL: false</code> = keep going (more phases remain)</li>
+          <li>Only stops when Claude is genuinely finished with all work</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 9: Circuit Breaker Pattern -->
+  <div class="slide">
+    <h2 class="animate">Circuit Breaker Pattern</h2>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--success)">CLOSED<br><small>Normal Operation</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:var(--warning)">HALF_OPEN<br><small>Monitoring</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:#c0392b">OPEN<br><small>Halted</small></div>
+    </div>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Prevents infinite loops when Claude is stuck or making no progress.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>Opens When</h3>
+          <ul>
+            <li><span class="highlight">3 loops</span> with no file changes</li>
+            <li><span class="highlight">5 loops</span> with the same errors repeating</li>
+            <li>Question loops (Claude asking for input) don't count as no-progress</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Recovery</h3>
+          <ul>
+            <li>Cooldown timer (default <code>30 minutes</code>)</li>
+            <li>Transitions to HALF_OPEN after cooldown</li>
+            <li>Auto-recovers to CLOSED when progress resumes</li>
+            <li>Manual reset available via CLI</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 10: Rate Limiting & Token Budgets -->
+  <div class="slide">
+    <h2 class="animate">Rate Limiting &amp; Token Budgets</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Hourly API Limits</h3>
+        <p>Default: <code>100 calls/hour</code> (configurable). Automatic reset on the hour. Prevents runaway costs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Token Budget</h3>
+        <p>Optional: track <code>input_tokens + output_tokens</code> per hour. Set <code>TOKEN_BUDGET_PER_HOUR</code> in .ralphrc.</p>
+      </div>
+      <div class="metric-card">
+        <h3>5-Hour API Limit</h3>
+        <p>Three-layer detection for Claude's rate limits. Auto-wait in unattended mode. Resumes when limit resets.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cost Control</h3>
+        <p>Start conservative (<code>50/hour</code>), increase as you gain confidence. Monitor via <code>ralph --monitor</code>.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+# .ralphrc rate limiting config
+RATE_LIMIT_PER_HOUR=100
+TOKEN_BUDGET_PER_HOUR=500000
+UNATTENDED_MODE=true          # auto-wait on API limits instead of stopping
+</pre>
+  </div>
+
+
+  <!-- Slide 11: Session Management -->
+  <div class="slide">
+    <h2 class="animate">Session Management</h2>
+    <div class="content animate">
+      <p>Ralph preserves Claude's conversation context across loop iterations, so Claude <span class="highlight">remembers what it was doing</span>.</p>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>Session Continuity</h3>
+          <p>Same session ID across iterations. Claude retains memory of completed tasks, file changes, and current goals.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Session Expiry</h3>
+          <p>Default: <code>24 hours</code>. After expiry, a new session starts fresh with the PROMPT.md context.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Reset Triggers</h3>
+          <p>Circuit breaker opens, Ctrl+C interrupt, task completion, or expiration timer.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Transition Log</h3>
+          <p>Last <code>50 session transitions</code> logged. Useful for debugging why a session ended or restarted.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 12: The ralph-enable Wizard -->
+  <div class="slide">
+    <h2 class="animate">The ralph-enable Wizard</h2>
+    <div class="content animate">
+      <p>Interactive 5-phase setup for existing projects. Run <code>ralph-enable</code> in your project root:</p>
+      <table style="margin-top:16px">
+        <tr><th>Phase</th><th>Action</th></tr>
+        <tr><td><span class="highlight">1. Detection</span></td><td>Scans for environment: TypeScript, Python, Rust, Go, Next.js, FastAPI, and more</td></tr>
+        <tr><td><span class="highlight">2. Task Source</span></td><td>Choose input: beads, GitHub Issues, PRD markdown documents</td></tr>
+        <tr><td><span class="highlight">3. Configuration</span></td><td>Set tool permissions, timeouts, rate limits, circuit breaker thresholds</td></tr>
+        <tr><td><span class="highlight">4. Generation</span></td><td>Creates .ralph/ folder structure: PROMPT.md, fix_plan.md, AGENT.md, specs/</td></tr>
+        <tr><td><span class="highlight">5. Verification</span></td><td>Validates all required files exist and configuration is valid</td></tr>
+      </table>
+<pre style="margin-top:16px">
+# Run the wizard
+ralph-enable
+
+# Force restore if files are corrupted
+ralph-enable --force
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 13: File Protection -->
+  <div class="slide">
+    <h2 class="animate">File Protection</h2>
+    <div class="content animate">
+      <p>Multi-layer strategy to prevent Claude from modifying Ralph's own configuration files:</p>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Layer 1: ALLOWED_TOOLS</h3>
+          <p>Restrictive tool permissions. No <code>git clean</code>, <code>git rm</code>, or other destructive operations on .ralph/ files.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Layer 2: PROMPT.md Warning</h3>
+          <p>Explicit instruction: <em>"DO NOT MODIFY files in .ralph/ directory"</em>. Claude respects this directive.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Layer 3: Integrity Check</h3>
+          <p>Pre-loop validation confirms all required files exist and haven't been corrupted before each iteration.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Recovery</h3>
+          <p><code>ralph-enable --force</code> restores missing or corrupted files to their original state.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 14: Ralph Monitor Dashboard -->
+  <div class="slide">
+    <h2 class="animate">Ralph Monitor Dashboard</h2>
+    <div class="content animate">
+      <p>Live tmux-based monitoring. Start with: <code>ralph --monitor</code></p>
+<pre style="margin-top:16px">
++--------------------------------------------------+
+|  RALPH MONITOR                     Elapsed: 2h14m |
++--------------------------------------------------+
+|  Loop:    12 / 50 (max)                           |
+|  API:     47 / 100 (per hour)                     |
+|  Circuit: CLOSED (healthy)                        |
+|  Status:  IN_PROGRESS                             |
+|  Session: a3f7c2e (expires in 21h46m)             |
++--------------------------------------------------+
+|  RECENT LOG                                       |
+|  [12:34] Loop 12: 2 tasks completed, 4 files mod  |
+|  [12:31] Loop 11: 1 task completed, 2 files mod   |
+|  [12:28] Loop 10: 3 tasks completed, 7 files mod  |
+|  [12:24] Loop 9: circuit breaker check - OK       |
++--------------------------------------------------+
+</pre>
+      <p style="margin-top:14px;color:var(--text-muted)">The dashboard runs in a separate tmux pane alongside the main loop. Updates in real-time.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 15: Importing Requirements -->
+  <div class="slide">
+    <h2 class="animate">Importing Requirements</h2>
+    <div class="content animate">
+      <p><code>ralph-import</code> converts existing documents into Ralph's .ralph/ format:</p>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Supported Formats</h3>
+          <ul>
+            <li><span class="highlight">Markdown</span> &mdash; .md files (PRDs, specs)</li>
+            <li><span class="highlight">PDF</span> &mdash; extracts text content</li>
+            <li><span class="highlight">JSON</span> &mdash; structured task lists</li>
+            <li><span class="highlight">DOCX</span> &mdash; Word documents</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>What It Generates</h3>
+          <ul>
+            <li><span class="highlight">PROMPT.md</span> &mdash; high-level goals extracted</li>
+            <li><span class="highlight">fix_plan.md</span> &mdash; task checklist from requirements</li>
+            <li><span class="highlight">specs/</span> &mdash; detailed feature specifications</li>
+            <li>Technology stack detection</li>
+          </ul>
+        </div>
+      </div>
+<pre class="animate" style="margin-top:16px">
+# Import a product requirements document
+ralph-import product-requirements.md my-app
+
+# Import from a PDF specification
+ralph-import api-specification.pdf my-api
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 16: Configuration (.ralphrc) -->
+  <div class="slide">
+    <h2 class="animate">Configuration (.ralphrc)</h2>
+    <div class="content animate">
+<pre>
+# .ralphrc - Project-level Ralph configuration
+
+# Tool Permissions (what Claude Code can do)
+ALLOWED_TOOLS="Bash,Read,Write,Edit,Glob,Grep"
+
+# Loop Control
+MAX_LOOPS=50                     # Maximum iterations before forced stop
+TIMEOUT_SECONDS=300              # Per-iteration timeout
+
+# Rate Limiting
+RATE_LIMIT_PER_HOUR=100          # Max API calls per hour
+TOKEN_BUDGET_PER_HOUR=500000     # Max tokens per hour (optional)
+
+# Circuit Breaker
+CIRCUIT_BREAKER_THRESHOLD=3      # Loops without progress before opening
+COOLDOWN_MINUTES=30              # Wait time when circuit breaker opens
+
+# Session
+SESSION_EXPIRY_HOURS=24          # Session lifetime before fresh restart
+
+# Unattended Mode
+UNATTENDED_MODE=true             # Auto-wait on API limits (for overnight runs)
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 17: Error Handling & Recovery -->
+  <div class="slide">
+    <h2 class="animate">Error Handling &amp; Recovery</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Three-Layer Detection</h3>
+          <p>1. Timeout guard (per-iteration limit). 2. JSON parsing of RALPH_STATUS. 3. Filtered text fallback for malformed output.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Productive vs Idle Timeouts</h3>
+          <p>Checks <code>git diff</code> for actual file changes. Long-running but productive iterations are not killed prematurely.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Permission Denial</h3>
+          <p>Detects when Claude is blocked by tool permissions. Guides user to update <code>ALLOWED_TOOLS</code> in .ralphrc.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Graceful Shutdown</h3>
+          <p>Ctrl+C triggers SIGINT handler: saves session state, logs final status, and exits cleanly. No data loss.</p>
+        </div>
+      </div>
+<pre style="margin-top:16px">
+# Error handling flow
+1. Timeout guard (TIMEOUT_SECONDS exceeded?)
+   └─ Check git diff: files changed? → productive timeout, extend
+   └─ No changes? → idle timeout, count toward circuit breaker
+2. Parse RALPH_STATUS JSON block
+   └─ Parse failure? → fallback to text pattern matching
+3. Evaluate circuit breaker state
+   └─ OPEN? → cooldown and retry later
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 18: Testing with BATS -->
+  <div class="slide">
+    <h2 class="animate">Testing with BATS</h2>
+    <div class="content animate">
+      <p><span class="highlight">566 tests</span> across <span class="highlight">18 test files</span> with a 100% pass rate as the quality gate.</p>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Test Stack</h3>
+          <ul>
+            <li><span class="highlight">BATS</span> &mdash; Bash Automated Testing System</li>
+            <li><span class="highlight">bats-support</span> &mdash; helper library</li>
+            <li><span class="highlight">bats-assert</span> &mdash; assertion functions</li>
+            <li>Unit tests for each library module</li>
+            <li>Integration tests for full loop scenarios</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Example Test</h3>
+<pre style="font-size:0.85rem">
+#!/usr/bin/env bats
+load 'test_helper/bats-support/load'
+load 'test_helper/bats-assert/load'
+
+@test "circuit breaker opens after 3 idle loops" {
+  source lib/circuit_breaker.sh
+  record_no_progress
+  record_no_progress
+  record_no_progress
+  run get_circuit_state
+  assert_output "OPEN"
+}
+
+@test "exit requires both conditions" {
+  source lib/response_analyzer.sh
+  run should_exit 1 false  # 1 indicator, no signal
+  assert_output "false"
+}
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Start with <code>ralph-enable</code> wizard &mdash; don't manually create .ralph/</div>
+      <div class="bp-item"><span>2.</span> Write a clear PROMPT.md with specific, measurable goals</div>
+      <div class="bp-item"><span>3.</span> Break work into small tasks in fix_plan.md (one per line)</div>
+      <div class="bp-item"><span>4.</span> Set conservative rate limits initially (50/hour)</div>
+      <div class="bp-item"><span>5.</span> Use <code>--monitor</code> to watch progress in real-time</div>
+      <div class="bp-item"><span>6.</span> Review <code>git diff</code> after each loop for quality assurance</div>
+      <div class="bp-item"><span>7.</span> Set ALLOWED_TOOLS to minimum needed permissions</div>
+      <div class="bp-item"><span>8.</span> Use unattended mode for overnight runs</div>
+      <div class="bp-item"><span>9.</span> Keep specs/ detailed for complex features</div>
+      <div class="bp-item"><span>10.</span> Run <code>ralph-enable --force</code> if files get corrupted</div>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F501;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Ralph for Claude Code:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Ralph</span><span class="tag">Autonomous AI</span><span class="tag">Circuit Breaker</span>
+        <span class="tag">Claude Code</span><span class="tag">Exit Detection</span><span class="tag">Rate Limiting</span>
+      </div>
+      <p style="color:var(--text-muted)">Let Ralph handle the iteration loop while you focus on what matters: defining the right goals.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

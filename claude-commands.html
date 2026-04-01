@@ -1,0 +1,913 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Claude Code Commands</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2318;</span>
+    <h1 class="animate">Claude Code Commands</h1>
+    <p class="subtitle animate">The complete reference to every slash command</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Claude Code</span><span class="tag">CLI</span><span class="tag">Commands</span><span class="tag">Reference</span>
+    </div>
+  </div>
+
+
+  <!-- Slide 2: Command Overview -->
+  <div class="slide">
+    <h2 class="animate">Command Overview</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Are Slash Commands?</h3>
+        <ul>
+          <li>Built-in commands prefixed with <code>/</code></li>
+          <li>Type <code>/help</code> to see all available commands</li>
+          <li>Tab-completion supported &mdash; type <code>/</code> then Tab</li>
+          <li>Some accept arguments: <code>/model sonnet</code></li>
+          <li>Many have aliases: <code>/quit</code> = <code>/exit</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Command Categories</h3>
+        <ul>
+          <li><span class="highlight">Session</span> &mdash; clear, compact, resume, branch</li>
+          <li><span class="highlight">Model &amp; Performance</span> &mdash; model, fast, effort, cost</li>
+          <li><span class="highlight">Configuration</span> &mdash; config, permissions, theme</li>
+          <li><span class="highlight">Project &amp; Memory</span> &mdash; init, memory, hooks</li>
+          <li><span class="highlight">Git &amp; Code</span> &mdash; diff, pr-comments, plan</li>
+          <li><span class="highlight">Account &amp; Auth</span> &mdash; login, status, doctor</li>
+          <li><span class="highlight">Integrations</span> &mdash; ide, mcp, chrome</li>
+          <li><span class="highlight">Skills</span> &mdash; extensible slash commands</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 3: Session Management Commands -->
+  <div class="slide">
+    <h2 class="animate">Session Management</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/clear</code></td><td>Clear conversation history <br><em>Aliases: /reset, /new</em></td><td><code>/clear</code></td></tr>
+        <tr><td><code>/compact</code></td><td>Compact conversation to free context window</td><td><code>/compact focus on auth</code></td></tr>
+        <tr><td><code>/resume</code></td><td>Resume a previous session <br><em>Alias: /continue</em></td><td><code>/resume abc123</code></td></tr>
+        <tr><td><code>/rename</code></td><td>Rename the current session</td><td><code>/rename auth-refactor</code></td></tr>
+        <tr><td><code>/branch</code></td><td>Branch conversation at this point <br><em>Alias: /fork</em></td><td><code>/branch experiment-v2</code></td></tr>
+        <tr><td><code>/rewind</code></td><td>Rewind conversation and code to a previous point <br><em>Alias: /checkpoint</em></td><td><code>/rewind</code></td></tr>
+        <tr><td><code>/export</code></td><td>Export conversation as plain text</td><td><code>/export session.txt</code></td></tr>
+        <tr><td><code>/exit</code></td><td>Exit the CLI <br><em>Alias: /quit</em></td><td><code>/exit</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- Slide 4: Model & Performance Commands -->
+  <div class="slide">
+    <h2 class="animate">Model &amp; Performance</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/model</code></td><td>Select or change the AI model</td><td><code>/model opus</code></td></tr>
+        <tr><td><code>/fast</code></td><td>Toggle fast mode (uses Haiku for speed)</td><td><code>/fast on</code></td></tr>
+        <tr><td><code>/effort</code></td><td>Set model effort level</td><td><code>/effort max</code></td></tr>
+        <tr><td><code>/cost</code></td><td>Show token usage and cost for session</td><td><code>/cost</code></td></tr>
+        <tr><td><code>/usage</code></td><td>Show plan usage limits and rate limits</td><td><code>/usage</code></td></tr>
+        <tr><td><code>/context</code></td><td>Visualize context usage as colored grid</td><td><code>/context</code></td></tr>
+        <tr><td><code>/extra-usage</code></td><td>Configure extra usage when rate-limited</td><td><code>/extra-usage</code></td></tr>
+      </table>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>Effort Levels</h3>
+          <p><code>low</code> &mdash; quick answers<br><code>medium</code> &mdash; balanced<br><code>high</code> &mdash; thorough<br><code>max</code> &mdash; deepest reasoning<br><code>auto</code> &mdash; let Claude decide</p>
+        </div>
+        <div class="metric-card">
+          <h3>Model Selection</h3>
+          <p><code>haiku</code> &mdash; fast, cost-effective<br><code>sonnet</code> &mdash; best for coding<br><code>opus</code> &mdash; deepest reasoning<br>Use <code>/fast</code> to toggle Haiku quickly</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 5: Configuration & Settings -->
+  <div class="slide">
+    <h2 class="animate">Configuration &amp; Settings</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/config</code></td><td>Open settings interface <br><em>Alias: /settings</em></td><td><code>/config</code></td></tr>
+        <tr><td><code>/permissions</code></td><td>View/update tool permissions <br><em>Alias: /allowed-tools</em></td><td><code>/permissions</code></td></tr>
+        <tr><td><code>/theme</code></td><td>Change color theme</td><td><code>/theme dark</code></td></tr>
+        <tr><td><code>/color</code></td><td>Set prompt bar color for session</td><td><code>/color blue</code></td></tr>
+        <tr><td><code>/vim</code></td><td>Toggle Vim editing mode</td><td><code>/vim</code></td></tr>
+        <tr><td><code>/statusline</code></td><td>Configure status line display</td><td><code>/statusline</code></td></tr>
+        <tr><td><code>/keybindings</code></td><td>Open keybindings config</td><td><code>/keybindings</code></td></tr>
+        <tr><td><code>/terminal-setup</code></td><td>Configure terminal keybindings</td><td><code>/terminal-setup</code></td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Theme options:</span> light, dark, daltonized, ANSI</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 6: Project & Memory Commands -->
+  <div class="slide">
+    <h2 class="animate">Project &amp; Memory</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/init</code></td><td>Initialize project with CLAUDE.md</td><td><code>/init</code></td></tr>
+        <tr><td><code>/memory</code></td><td>Edit CLAUDE.md memory files, enable/disable auto-memory</td><td><code>/memory</code></td></tr>
+        <tr><td><code>/add-dir</code></td><td>Add working directory for file access</td><td><code>/add-dir ../shared</code></td></tr>
+        <tr><td><code>/hooks</code></td><td>View and manage hook configurations</td><td><code>/hooks</code></td></tr>
+        <tr><td><code>/skills</code></td><td>List available skills</td><td><code>/skills</code></td></tr>
+        <tr><td><code>/agents</code></td><td>Manage agent/subagent configurations</td><td><code>/agents</code></td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>CLAUDE.md Files</h3>
+          <ul>
+            <li><code>~/.claude/CLAUDE.md</code> &mdash; global instructions</li>
+            <li><code>./CLAUDE.md</code> &mdash; project-level instructions</li>
+            <li>Auto-memory saves learnings across sessions</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Hooks</h3>
+          <ul>
+            <li><span class="highlight">PreToolUse</span> &mdash; before tool execution</li>
+            <li><span class="highlight">PostToolUse</span> &mdash; after tool execution</li>
+            <li><span class="highlight">Stop</span> &mdash; when session ends</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 7: Git & Code Commands -->
+  <div class="slide">
+    <h2 class="animate">Git &amp; Code Commands</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/diff</code></td><td>Open interactive diff viewer for uncommitted changes</td><td><code>/diff</code></td></tr>
+        <tr><td><code>/pr-comments</code></td><td>Fetch GitHub PR comments</td><td><code>/pr-comments 42</code></td></tr>
+        <tr><td><code>/security-review</code></td><td>Analyze branch changes for security vulnerabilities</td><td><code>/security-review</code></td></tr>
+        <tr><td><code>/plan</code></td><td>Enter plan mode for structured approach</td><td><code>/plan add auth</code></td></tr>
+        <tr><td><code>/simplify</code></td><td>Review changed code for quality and efficiency</td><td><code>/simplify</code></td></tr>
+      </table>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>/diff</h3>
+          <p>Visual side-by-side diff of all uncommitted changes. Navigate with arrow keys. Accept or reject hunks interactively.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/plan</h3>
+          <p>Structured planning mode. Claude restates requirements, identifies risks, and creates a step-by-step implementation plan before writing code.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/pr-comments</h3>
+          <p>Pulls review comments from any GitHub PR. Address feedback without leaving the terminal.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/security-review</h3>
+          <p>Scans your branch diff for hardcoded secrets, injection risks, auth issues, and other security concerns.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 8: Account & Auth Commands -->
+  <div class="slide">
+    <h2 class="animate">Account &amp; Auth</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/login</code></td><td>Sign in to Anthropic account</td><td><code>/login --sso</code></td></tr>
+        <tr><td><code>/logout</code></td><td>Sign out of current account</td><td><code>/logout</code></td></tr>
+        <tr><td><code>/status</code></td><td>Show version, model, account, connectivity</td><td><code>/status</code></td></tr>
+        <tr><td><code>/doctor</code></td><td>Diagnose installation and settings</td><td><code>/doctor</code></td></tr>
+        <tr><td><code>/upgrade</code></td><td>Open upgrade page</td><td><code>/upgrade</code></td></tr>
+        <tr><td><code>/privacy-settings</code></td><td>View/update privacy settings</td><td><code>/privacy-settings</code></td></tr>
+        <tr><td><code>/feedback</code></td><td>Submit feedback or bug report <br><em>Alias: /bug</em></td><td><code>/feedback</code></td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>/status Output</h3>
+          <ul>
+            <li>Claude Code version</li>
+            <li>Active model name</li>
+            <li>Account and plan info</li>
+            <li>API connectivity check</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>/doctor Checks</h3>
+          <ul>
+            <li>Node.js version compatibility</li>
+            <li>Authentication status</li>
+            <li>Config file validity</li>
+            <li>MCP server connectivity</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 9: Integration Commands -->
+  <div class="slide">
+    <h2 class="animate">Integration Commands</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/ide</code></td><td>Manage IDE integrations (VS Code, JetBrains)</td><td><code>/ide</code></td></tr>
+        <tr><td><code>/mcp</code></td><td>Manage MCP server connections</td><td><code>/mcp</code></td></tr>
+        <tr><td><code>/chrome</code></td><td>Configure Chrome integration</td><td><code>/chrome</code></td></tr>
+        <tr><td><code>/install-github-app</code></td><td>Set up Claude GitHub Actions app</td><td><code>/install-github-app</code></td></tr>
+        <tr><td><code>/install-slack-app</code></td><td>Install Claude Slack app</td><td><code>/install-slack-app</code></td></tr>
+        <tr><td><code>/plugin</code></td><td>Manage Claude Code plugins</td><td><code>/plugin</code></td></tr>
+        <tr><td><code>/reload-plugins</code></td><td>Reload all active plugins</td><td><code>/reload-plugins</code></td></tr>
+      </table>
+      <div class="diagram" style="margin-top:20px">
+        <div class="box">Claude Code</div>
+        <div class="arrow">&#x2194;</div>
+        <div class="box">MCP Servers</div>
+        <div class="arrow">&#x2194;</div>
+        <div class="box">IDE / Browser</div>
+        <div class="arrow">&#x2194;</div>
+        <div class="box">GitHub / Slack</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 10: Remote & Collaboration -->
+  <div class="slide">
+    <h2 class="animate">Remote &amp; Collaboration</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/remote-control</code></td><td>Make session available for remote control from claude.ai <br><em>Alias: /rc</em></td><td><code>/remote-control</code></td></tr>
+        <tr><td><code>/remote-env</code></td><td>Configure default remote environment for web sessions</td><td><code>/remote-env</code></td></tr>
+        <tr><td><code>/desktop</code></td><td>Continue session in Claude Code Desktop app <br><em>Alias: /app</em></td><td><code>/desktop</code></td></tr>
+        <tr><td><code>/schedule</code></td><td>Create/manage Cloud scheduled tasks</td><td><code>/schedule daily backup</code></td></tr>
+        <tr><td><code>/tasks</code></td><td>List and manage background tasks</td><td><code>/tasks</code></td></tr>
+        <tr><td><code>/voice</code></td><td>Toggle push-to-talk voice dictation</td><td><code>/voice</code></td></tr>
+      </table>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>/remote-control</h3>
+          <p>Share your terminal session with claude.ai for remote pair programming. Others can observe and control your session.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/schedule</h3>
+          <p>Create cron-style scheduled agents that run automatically in the cloud. Perfect for recurring tasks like daily reports or code audits.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 11: Utility Commands -->
+  <div class="slide">
+    <h2 class="animate">Utility Commands</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th><th>Example</th></tr>
+        <tr><td><code>/copy</code></td><td>Copy last assistant response to clipboard</td><td><code>/copy 3</code></td></tr>
+        <tr><td><code>/btw</code></td><td>Quick side question without affecting conversation</td><td><code>/btw what is CORS?</code></td></tr>
+        <tr><td><code>/release-notes</code></td><td>View full changelog</td><td><code>/release-notes</code></td></tr>
+        <tr><td><code>/stats</code></td><td>Visualize daily usage, session history, streaks</td><td><code>/stats</code></td></tr>
+        <tr><td><code>/insights</code></td><td>Generate report analyzing your sessions</td><td><code>/insights</code></td></tr>
+        <tr><td><code>/stickers</code></td><td>Order Claude Code stickers</td><td><code>/stickers</code></td></tr>
+        <tr><td><code>/passes</code></td><td>Share free week of Claude Code</td><td><code>/passes</code></td></tr>
+        <tr><td><code>/mobile</code></td><td>QR code for mobile app <br><em>Aliases: /ios, /android</em></td><td><code>/mobile</code></td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Pro tip:</span> <code>/btw</code> is perfect for quick lookups without derailing your current task flow.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 12: Development Workflow Skills -->
+  <div class="slide">
+    <h2 class="animate">Development Workflow Skills</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>/plan</h3>
+          <p>Create a step-by-step implementation plan. Restates requirements, assesses risks, and waits for approval before coding.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/tdd</h3>
+          <p>Test-driven development enforcement. Scaffold interfaces, generate tests FIRST, then implement to pass them.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/code-review</h3>
+          <p>Comprehensive code review. Checks for bugs, security, performance, style, and maintainability issues.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/build-fix</h3>
+          <p>Build the project and iteratively fix compilation errors until the build succeeds.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/verify</h3>
+          <p>Comprehensive verification: lint, type-check, test, and build. Ensures everything passes before committing.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/refactor-clean</h3>
+          <p>Refactor and clean unused code. Removes dead imports, unused functions, and simplifies logic.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/simplify</h3>
+          <p>Review changed code for quality and efficiency. Suggests cleaner, more reusable alternatives.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/e2e</h3>
+          <p>Generate and run Playwright E2E tests. Creates test journeys, runs them, captures screenshots on failure.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 13: Language-Specific Review Commands -->
+  <div class="slide">
+    <h2 class="animate">Language-Specific Reviews</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Language</th><th>Command</th><th>Focus Areas</th></tr>
+        <tr><td>Python</td><td><code>/python-review</code></td><td>PEP 8, type hints, security, Pythonic idioms</td></tr>
+        <tr><td>Go</td><td><code>/go-review</code></td><td>Idiomatic Go, concurrency safety, error handling</td></tr>
+        <tr><td>Rust</td><td><code>/rust-review</code></td><td>Ownership, lifetimes, unsafe usage, patterns</td></tr>
+        <tr><td>Kotlin</td><td><code>/kotlin-review</code></td><td>Null safety, coroutine safety, Compose patterns</td></tr>
+        <tr><td>C++</td><td><code>/cpp-review</code></td><td>Memory safety, modern C++ idioms, concurrency</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>How Reviews Work</h3>
+          <ul>
+            <li>Analyzes changed files in your branch</li>
+            <li>Checks against language best practices</li>
+            <li>Flags CRITICAL, HIGH, MEDIUM issues</li>
+            <li>Suggests specific fixes with code examples</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Example Usage</h3>
+<pre style="font-size:0.85rem">
+# Review all changed Python files
+/python-review
+
+# Review after making changes
+# Claude analyzes the diff and reports:
+# - CRITICAL: SQL injection in query()
+# - HIGH: Missing type hints on public API
+# - MEDIUM: Consider using dataclass
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 14: Language-Specific Build Fix Commands -->
+  <div class="slide">
+    <h2 class="animate">Language-Specific Build Fix</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Language</th><th>Command</th><th>What It Fixes</th></tr>
+        <tr><td>Go</td><td><code>/go-build</code></td><td>Go build errors, go vet warnings, linter issues</td></tr>
+        <tr><td>Rust</td><td><code>/rust-build</code></td><td>Cargo build errors, borrow checker issues, dependency problems</td></tr>
+        <tr><td>Kotlin</td><td><code>/kotlin-build</code></td><td>Kotlin/Gradle compiler errors, dependency issues</td></tr>
+        <tr><td>C++</td><td><code>/cpp-build</code></td><td>C++ build, CMake, linker errors</td></tr>
+        <tr><td>Gradle</td><td><code>/gradle-build</code></td><td>Gradle for Android/KMP projects</td></tr>
+      </table>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>How Build Fix Works</h3>
+          <p>1. Runs the build command<br>2. Parses error output<br>3. Fixes errors incrementally<br>4. Re-runs until clean build</p>
+        </div>
+        <div class="metric-card">
+          <h3>Example: /rust-build</h3>
+          <p>Runs <code>cargo build</code>, interprets borrow checker errors, applies ownership fixes, resolves lifetime annotations, and retries until compilation succeeds.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 15: Language-Specific TDD Commands -->
+  <div class="slide">
+    <h2 class="animate">Language-Specific TDD</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Language</th><th>Command</th><th>Framework &amp; Coverage</th></tr>
+        <tr><td>Go</td><td><code>/go-test</code></td><td>Table-driven tests, <code>go test</code>, 80%+ coverage</td></tr>
+        <tr><td>Rust</td><td><code>/rust-test</code></td><td><code>cargo test</code>, cargo-llvm-cov for coverage</td></tr>
+        <tr><td>Kotlin</td><td><code>/kotlin-test</code></td><td>Kotest, MockK, Kover for coverage</td></tr>
+        <tr><td>C++</td><td><code>/cpp-test</code></td><td>GoogleTest, gcov/lcov for coverage</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>TDD Workflow</h3>
+          <ul>
+            <li><span class="highlight">RED</span> &mdash; Write failing test first</li>
+            <li><span class="green">GREEN</span> &mdash; Write minimal code to pass</li>
+            <li><span class="highlight">REFACTOR</span> &mdash; Clean up, verify coverage</li>
+            <li>Target: 80%+ line coverage</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Example: /go-test</h3>
+<pre style="font-size:0.85rem">
+# Claude generates table-driven tests:
+func TestAdd(t *testing.T) {
+  tests := []struct{
+    a, b, want int
+  }{
+    {1, 2, 3},
+    {0, 0, 0},
+    {-1, 1, 0},
+  }
+  for _, tt := range tests {
+    got := Add(tt.a, tt.b)
+    assert.Equal(t, tt.want, got)
+  }
+}
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 16: Documentation & Research Skills -->
+  <div class="slide">
+    <h2 class="animate">Documentation &amp; Research</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>/docs</h3>
+          <p>Look up current library documentation via Context7. Gets up-to-date API references instead of relying on training data.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/search-first</h3>
+          <p>Research-before-coding workflow. Searches GitHub, npm, PyPI for existing solutions before writing new code.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/deep-research</h3>
+          <p>Multi-source deep research using firecrawl + exa MCPs. Synthesizes findings from multiple web sources.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/article-writing</h3>
+          <p>Write long-form content: blog posts, tutorials, guides, newsletter issues with proper structure and formatting.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/update-docs</h3>
+          <p>Update project documentation to reflect code changes. Keeps README, API docs, and guides in sync.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/update-codemaps</h3>
+          <p>Update code maps that document module relationships, dependencies, and architecture diagrams.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px;text-align:center"><code>/codebase-onboarding</code> &mdash; Generate a structured onboarding guide for an unfamiliar codebase</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 17: Multi-Agent & Orchestration Skills -->
+  <div class="slide">
+    <h2 class="animate">Multi-Agent &amp; Orchestration</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Command</th><th>Description</th></tr>
+        <tr><td><code>/devfleet</code></td><td>Orchestrate parallel agents via Claude DevFleet</td></tr>
+        <tr><td><code>/orchestrate</code></td><td>Sequential and tmux/worktree orchestration guidance</td></tr>
+        <tr><td><code>/multi-plan</code></td><td>Multi-model collaborative planning</td></tr>
+        <tr><td><code>/multi-execute</code></td><td>Multi-model collaborative execution</td></tr>
+        <tr><td><code>/team-builder</code></td><td>Interactive agent picker for parallel teams</td></tr>
+        <tr><td><code>/loop</code></td><td>Run command on recurring interval</td></tr>
+        <tr><td><code>/autonomous-loops</code></td><td>Patterns for continuous agent loops</td></tr>
+        <tr><td><code>/blueprint</code></td><td>One-line objective to multi-session plan</td></tr>
+      </table>
+      <div class="diagram" style="margin-top:20px">
+        <div class="box">Blueprint</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Plan</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">DevFleet</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Parallel Agents</div>
+      </div>
+      <p style="margin-top:12px;text-align:center"><span class="highlight">Example:</span> <code>/loop 5m /verify</code> &mdash; run verification every 5 minutes</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 18: Learning & Continuous Improvement Skills -->
+  <div class="slide">
+    <h2 class="animate">Learning &amp; Improvement</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>/learn</h3>
+          <p>Extract reusable patterns from the current session and save them as learned skills for future use.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/learn-eval</h3>
+          <p>Extract patterns with self-evaluation. Assesses quality before saving and determines project vs global scope.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/continuous-learning</h3>
+          <p>Auto-extract patterns as learned skills throughout the session via hooks. Always-on improvement.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/instinct-status</h3>
+          <p>Show all learned instincts with confidence levels. Displays both project-scoped and global instincts.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/instinct-import</h3>
+          <p>Import instincts from a file or URL into project or global scope. Share knowledge across teams.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/instinct-export</h3>
+          <p>Export instincts to a file for sharing, backup, or migration to other projects.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/evolve</h3>
+          <p>Analyze current instincts and generate evolved, more refined structures based on accumulated patterns.</p>
+        </div>
+        <div class="metric-card">
+          <h3>/promote</h3>
+          <p>Promote project-scoped instincts to global scope so they apply to all future projects.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 19: Framework & Platform Skills -->
+  <div class="slide">
+    <h2 class="animate">Framework &amp; Platform Skills</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Framework</th><th>Commands</th><th>What It Covers</th></tr>
+        <tr><td>Spring Boot</td><td><code>/springboot-patterns</code><br><code>/springboot-tdd</code><br><code>/springboot-verification</code></td><td>Architecture, testing, build verification</td></tr>
+        <tr><td>Django</td><td><code>/django-patterns</code><br><code>/django-tdd</code><br><code>/django-verification</code></td><td>ORM, DRF, pytest-django, migrations</td></tr>
+        <tr><td>Laravel</td><td><code>/laravel-patterns</code><br><code>/laravel-tdd</code><br><code>/laravel-verification</code></td><td>Eloquent, queues, Pest testing</td></tr>
+        <tr><td>React</td><td><code>/frontend-patterns</code><br><code>/frontend-slides</code></td><td>Components, state, Next.js, presentations</td></tr>
+        <tr><td>Swift</td><td><code>/swiftui-patterns</code><br><code>/swift-concurrency-6-2</code></td><td>SwiftUI, @Observable, async/await</td></tr>
+        <tr><td>.NET</td><td><code>/csharp-coding-standards</code><br><code>/efcore-patterns</code></td><td>C# standards, EF Core, Aspire</td></tr>
+        <tr><td>Claude API</td><td><code>/claude-api</code></td><td>Messages API, streaming, tool use, Agent SDK</td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Each framework</span> includes patterns, TDD, and verification skills for a complete workflow.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2318;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a complete reference to every Claude Code slash command:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Claude Code</span><span class="tag">Commands</span><span class="tag">Skills</span>
+        <span class="tag">CLI</span><span class="tag">Reference</span><span class="tag">Session</span>
+        <span class="tag">Model</span><span class="tag">Git</span><span class="tag">TDD</span>
+        <span class="tag">Multi-Agent</span><span class="tag">Learning</span><span class="tag">Integrations</span>
+      </div>
+      <p style="color:var(--text-muted)">Type <code>/help</code> in Claude Code to see all available commands. Use <code>/skills</code> to discover extensible skill commands.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
