@@ -1,0 +1,1173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Assembly - x86-64 &amp; Low-Level Programming</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate title-fire">Assembly</h1>
+    <p class="subtitle animate">Understand the Machine Beneath Your Code</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">x86-64</span>
+      <span class="tag">Low-Level</span>
+      <span class="tag">CPU</span>
+      <span class="tag">Systems Programming</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: Why Learn Assembly -->
+  <div class="slide">
+    <h2 class="animate">Why Learn Assembly?</h2>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Compiler Output</h3>
+        <p>Understand what <code>gcc -O2</code> actually produces. Read disassembly like prose, not hieroglyphics.</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Debugging</h3>
+        <p>When the debugger drops you into disassembly, you need to know what you're looking at. Segfaults make sense.</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Performance</h3>
+        <p>Know why one loop is 10x faster. Understand cache lines, branch prediction, and SIMD at the instruction level.</p>
+      </div>
+      <div class="metric-card animate">
+        <h3>Security Research</h3>
+        <p>Buffer overflows, ROP chains, reverse engineering malware &mdash; all require reading assembly fluently.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 24px; color: var(--text-muted); font-size: 1.15rem; text-align: center; max-width: 800px;">
+      You don't write it daily, but <span class="highlight">reading it makes you 10x better at everything else.</span>
+    </p>
+  </div>
+
+
+  <!-- SLIDE 3: The Mental Model -->
+  <div class="slide">
+    <h2 class="animate">The Mental Model</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Fetch</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Decode</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Execute</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Write Back</div>
+      </div>
+      <p class="animate" style="text-align:center; margin: 16px 0;">The CPU runs this cycle billions of times per second. Every instruction you write goes through it.</p>
+      <div class="two-col animate">
+        <div class="card">
+          <h3>High-Level (C)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+int x = a + b;
+</pre>
+        </div>
+        <div class="card">
+          <h3>Assembly (x86-64)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+mov  eax, [a]      ; load a into eax
+add  eax, [b]      ; eax = eax + b
+mov  [x], eax      ; store result into x
+</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top: 16px; text-align: center; color: var(--text-muted);">
+        CPU has <span class="highlight">registers</span> (fast storage on the chip), <span class="highlight">memory</span> (RAM, slow), and a <span class="highlight">stack</span> (structured memory for function calls).
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Registers (x86-64) -->
+  <div class="slide">
+    <h2 class="animate">Registers (x86-64)</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>64-bit</th><th>32-bit</th><th>16-bit</th><th>8-bit</th><th>Typical Role</th></tr>
+        <tr><td><code>rax</code></td><td><code>eax</code></td><td><code>ax</code></td><td><code>al</code></td><td>Return value, accumulator</td></tr>
+        <tr><td><code>rbx</code></td><td><code>ebx</code></td><td><code>bx</code></td><td><code>bl</code></td><td>Callee-saved, general purpose</td></tr>
+        <tr><td><code>rcx</code></td><td><code>ecx</code></td><td><code>cx</code></td><td><code>cl</code></td><td>4th argument, loop counter</td></tr>
+        <tr><td><code>rdx</code></td><td><code>edx</code></td><td><code>dx</code></td><td><code>dl</code></td><td>3rd argument, 2nd return</td></tr>
+        <tr><td><code>rsi</code></td><td><code>esi</code></td><td><code>si</code></td><td><code>sil</code></td><td>2nd argument, source index</td></tr>
+        <tr><td><code>rdi</code></td><td><code>edi</code></td><td><code>di</code></td><td><code>dil</code></td><td>1st argument, dest index</td></tr>
+        <tr><td><code>rbp</code></td><td><code>ebp</code></td><td><code>bp</code></td><td><code>bpl</code></td><td>Base pointer (stack frame)</td></tr>
+        <tr><td><code>rsp</code></td><td><code>esp</code></td><td><code>sp</code></td><td><code>spl</code></td><td>Stack pointer</td></tr>
+        <tr><td><code>r8-r15</code></td><td><code>r8d-r15d</code></td><td><code>r8w-r15w</code></td><td><code>r8b-r15b</code></td><td>r8/r9 = 5th/6th args, rest general</td></tr>
+      </table>
+      <p class="animate" style="margin-top: 12px; color: var(--text-muted);">
+        Also: <code>rip</code> (instruction pointer) and <code>rflags</code> (status flags: ZF, CF, SF, OF).
+        Writing to <code>eax</code> zero-extends into <code>rax</code>. Writing to <code>ax</code>/<code>al</code> does not.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Memory Model -->
+  <div class="slide">
+    <h2 class="animate">Memory Model</h2>
+    <div class="content">
+<pre class="animate">
+High addresses (0x7FFF...)
++-------------------------+
+|        Stack            |  &darr; Grows downward
+|  (local vars, frames)   |
++-------------------------+
+|          |              |
+|          v              |
+|     (free space)        |
+|          ^              |
+|          |              |
++-------------------------+
+|        Heap             |  &uarr; Grows upward
+|  (malloc, new)          |
++-------------------------+
+|        BSS              |  Uninitialized globals (zeroed)
++-------------------------+
+|        Data             |  Initialized globals &amp; statics
++-------------------------+
+|        Text             |  Executable code (read-only)
++-------------------------+
+Low addresses (0x0040...)
+</pre>
+      <p class="animate" style="margin-top: 12px; color: var(--text-muted); text-align: center;">
+        Virtual memory: each process sees its own 48-bit address space (~256 TB). The OS maps virtual pages to physical RAM via page tables. Stack typically starts near <code>0x7FFFFFFFFFFF</code> and grows down.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Your First Program -->
+  <div class="slide">
+    <h2 class="animate">Your First Program</h2>
+    <div class="content">
+<pre class="animate">
+; hello.asm - Hello World in x86-64 Linux (NASM syntax)
+
+section .data
+    msg db "Hello, World!", 10   ; string + newline (10 = '\n')
+    len equ $ - msg              ; length = current pos - start
+
+section .text
+    global _start
+
+_start:
+    ; write(1, msg, len)  -- syscall number 1
+    mov rax, 1           ; syscall: sys_write
+    mov rdi, 1           ; fd: stdout
+    mov rsi, msg         ; buffer address
+    mov rdx, len         ; number of bytes
+    syscall              ; invoke kernel
+
+    ; exit(0)  -- syscall number 60
+    mov rax, 60          ; syscall: sys_exit
+    xor rdi, rdi         ; exit code 0
+    syscall
+</pre>
+<pre class="animate">
+# Build and run:
+$ nasm -f elf64 hello.asm -o hello.o
+$ ld hello.o -o hello
+$ ./hello
+Hello, World!
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Instructions That Matter -->
+  <div class="slide">
+    <h2 class="animate">Instructions That Matter</h2>
+    <div class="content">
+      <p class="animate" style="text-align:center; margin-bottom:12px;">These ~20 instructions cover <span class="highlight">90% of compiled code</span> you'll ever read.</p>
+      <table class="animate">
+        <tr><th>Instruction</th><th>Example</th><th>What It Does</th></tr>
+        <tr><td><code>mov</code></td><td><code>mov rax, rbx</code></td><td>Copy value: rax = rbx</td></tr>
+        <tr><td><code>add</code> / <code>sub</code></td><td><code>add rax, 8</code></td><td>Arithmetic: rax += 8</td></tr>
+        <tr><td><code>imul</code> / <code>idiv</code></td><td><code>imul rax, rcx</code></td><td>Signed multiply/divide</td></tr>
+        <tr><td><code>cmp</code></td><td><code>cmp rax, 10</code></td><td>Compare (sets flags, no store)</td></tr>
+        <tr><td><code>test</code></td><td><code>test rax, rax</code></td><td>Bitwise AND (sets flags, common zero-check)</td></tr>
+        <tr><td><code>jmp</code></td><td><code>jmp .loop</code></td><td>Unconditional jump</td></tr>
+        <tr><td><code>je/jne/jg/jl</code></td><td><code>je .equal</code></td><td>Conditional jump (based on flags)</td></tr>
+        <tr><td><code>call</code> / <code>ret</code></td><td><code>call printf</code></td><td>Call function / return</td></tr>
+        <tr><td><code>push</code> / <code>pop</code></td><td><code>push rbp</code></td><td>Push/pop stack</td></tr>
+        <tr><td><code>lea</code></td><td><code>lea rax, [rbx+rcx*4]</code></td><td>Load effective address (math, no memory access)</td></tr>
+        <tr><td><code>xor</code></td><td><code>xor eax, eax</code></td><td>Bitwise XOR (common idiom: zero a register)</td></tr>
+        <tr><td><code>and</code> / <code>or</code></td><td><code>and rax, 0xFF</code></td><td>Bitwise AND/OR (masking)</td></tr>
+        <tr><td><code>shl</code> / <code>shr</code></td><td><code>shl rax, 2</code></td><td>Shift left/right (multiply/divide by powers of 2)</td></tr>
+        <tr><td><code>nop</code></td><td><code>nop</code></td><td>No operation (alignment padding)</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Addressing Modes -->
+  <div class="slide">
+    <h2 class="animate">Addressing Modes</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Mode</th><th>Syntax</th><th>Use Case</th></tr>
+        <tr><td>Immediate</td><td><code>mov rax, 42</code></td><td>Constant value</td></tr>
+        <tr><td>Register</td><td><code>mov rax, rbx</code></td><td>Register to register</td></tr>
+        <tr><td>Direct</td><td><code>mov rax, [0x601000]</code></td><td>Global variable at fixed address</td></tr>
+        <tr><td>Indirect</td><td><code>mov rax, [rbx]</code></td><td>Pointer dereference: <code>*ptr</code></td></tr>
+        <tr><td>Base + Offset</td><td><code>mov rax, [rbp-8]</code></td><td>Local variable / struct field</td></tr>
+        <tr><td>Base + Index*Scale + Disp</td><td><code>mov rax, [rbx+rcx*8+16]</code></td><td>Array access with offset</td></tr>
+      </table>
+<pre class="animate">
+; Real-world examples
+
+; Struct field access: point->y where y is at offset 8
+mov eax, [rdi+8]           ; rdi = struct pointer, offset 8
+
+; Array indexing: arr[i] where each element is 4 bytes
+mov eax, [rbx+rcx*4]      ; rbx = base, rcx = index
+
+; 2D array: matrix[row][col] with 16-byte rows
+lea rax, [rdi+rsi*4]      ; compute address
+mov edx, [rax+rcx*4]      ; load element
+
+; Stack local variable
+mov eax, [rbp-12]          ; 3rd local int variable
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: The Stack -->
+  <div class="slide">
+    <h2 class="animate">The Stack</h2>
+    <div class="content">
+<pre class="animate">
+; How push/pop work:
+;   push rax  ==  sub rsp, 8 ; mov [rsp], rax
+;   pop  rax  ==  mov rax, [rsp] ; add rsp, 8
+
+; Stack grows DOWN (high addr -> low addr)
+
+; Function prologue (standard stack frame):
+my_function:
+    push rbp            ; save caller's base pointer
+    mov  rbp, rsp       ; set up our frame pointer
+    sub  rsp, 32        ; allocate 32 bytes for locals
+
+    ; ... function body ...
+    ; local vars at [rbp-8], [rbp-16], etc.
+
+    ; Function epilogue:
+    leave               ; equivalent to: mov rsp, rbp; pop rbp
+    ret                 ; pop return address, jump to it
+</pre>
+<pre class="animate">
+Stack during function call:
+
+  High addresses
+  +--------------------+
+  | caller's locals    |
+  +--------------------+
+  | return address     |  &larr; pushed by CALL
+  +--------------------+
+  | saved rbp          |  &larr; pushed by PUSH RBP
+  +--------------------+  &larr; rbp points here
+  | local var 1        |  [rbp - 8]
+  +--------------------+
+  | local var 2        |  [rbp - 16]
+  +--------------------+
+  | local var 3        |  [rbp - 24]
+  +--------------------+  &larr; rsp points here
+  Low addresses
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Calling Conventions -->
+  <div class="slide">
+    <h2 class="animate">Calling Conventions (System V AMD64)</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Argument</th><th>Register</th></tr>
+        <tr><td>1st integer/pointer</td><td><code>rdi</code></td></tr>
+        <tr><td>2nd</td><td><code>rsi</code></td></tr>
+        <tr><td>3rd</td><td><code>rdx</code></td></tr>
+        <tr><td>4th</td><td><code>rcx</code></td></tr>
+        <tr><td>5th</td><td><code>r8</code></td></tr>
+        <tr><td>6th</td><td><code>r9</code></td></tr>
+        <tr><td>7th+</td><td>Pushed on stack (right to left)</td></tr>
+        <tr><td>Return value</td><td><code>rax</code> (2nd in <code>rdx</code>)</td></tr>
+        <tr><td>Float args</td><td><code>xmm0-xmm7</code></td></tr>
+      </table>
+      <div class="two-col animate" style="margin-top: 16px;">
+        <div class="card">
+          <h3>Caller-saved (volatile)</h3>
+          <p><code>rax rcx rdx rsi rdi r8-r11</code></p>
+          <p style="color:var(--text-muted); font-size:1rem;">Caller must save these before calling if it needs them after.</p>
+        </div>
+        <div class="card">
+          <h3>Callee-saved (non-volatile)</h3>
+          <p><code>rbx rbp r12-r15</code></p>
+          <p style="color:var(--text-muted); font-size:1rem;">Called function must restore these before returning.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Control Flow -->
+  <div class="slide">
+    <h2 class="animate">Control Flow</h2>
+    <div class="content">
+      <div class="two-col animate">
+        <div class="card">
+          <h3>C: if / else</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+if (x > 10) {
+    result = 1;
+} else {
+    result = 0;
+}
+</pre>
+        </div>
+        <div class="card">
+          <h3>x86-64 Assembly</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+    cmp  eax, 10       ; compare x with 10
+    jle  .else         ; jump if x <= 10
+    mov  ecx, 1        ; result = 1
+    jmp  .end
+.else:
+    mov  ecx, 0        ; result = 0
+.end:
+</pre>
+        </div>
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>C: for loop</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+int sum = 0;
+for (int i = 0; i < n; i++) {
+    sum += arr[i];
+}
+</pre>
+        </div>
+        <div class="card">
+          <h3>x86-64 Assembly</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+    xor  eax, eax      ; sum = 0
+    xor  ecx, ecx      ; i = 0
+.loop:
+    cmp  ecx, edx      ; i < n?
+    jge  .done         ; if not, exit
+    add  eax, [rdi+rcx*4] ; sum += arr[i]
+    inc  ecx           ; i++
+    jmp  .loop
+.done:
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Functions & the Call Stack -->
+  <div class="slide">
+    <h2 class="animate">Functions &amp; the Call Stack</h2>
+    <div class="content">
+      <div class="two-col animate">
+        <div class="card">
+          <h3>C: Recursive Factorial</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+int factorial(int n) {
+    if (n <= 1) return 1;
+    return n * factorial(n - 1);
+}
+</pre>
+        </div>
+        <div class="card">
+          <h3>x86-64 Assembly</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+factorial:
+    push rbp
+    mov  rbp, rsp
+    push rbx             ; save callee-saved
+    mov  ebx, edi        ; save n in rbx
+
+    cmp  edi, 1
+    jle  .base           ; if n <= 1, return 1
+
+    lea  edi, [rbx-1]    ; arg = n - 1
+    call factorial        ; rax = factorial(n-1)
+    imul eax, ebx        ; rax = n * factorial(n-1)
+    jmp  .done
+
+.base:
+    mov  eax, 1          ; return 1
+
+.done:
+    pop  rbx             ; restore callee-saved
+    pop  rbp
+    ret
+</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted); text-align:center;">
+        <code>call</code> pushes the return address (next instruction's <code>rip</code>) onto the stack, then jumps to the target.
+        <code>ret</code> pops the return address and jumps back. Each recursive call adds a new stack frame.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Working with C -->
+  <div class="slide">
+    <h2 class="animate">Working with C</h2>
+    <div class="content">
+      <div class="two-col animate">
+        <div class="card">
+          <h3>Calling C from Assembly</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+; printf_demo.asm
+section .data
+    fmt db "Value: %d", 10, 0
+
+section .text
+    global main
+    extern printf
+
+main:
+    push rbp
+    mov  rbp, rsp
+
+    ; printf("Value: %d\n", 42)
+    lea  rdi, [rel fmt]   ; 1st arg: format
+    mov  esi, 42          ; 2nd arg: value
+    xor  eax, eax         ; 0 vector args
+    call printf
+
+    xor  eax, eax         ; return 0
+    pop  rbp
+    ret
+</pre>
+        </div>
+        <div class="card">
+          <h3>Calling Assembly from C</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+; add.asm -- a function callable from C
+section .text
+    global add_numbers
+
+add_numbers:            ; int add_numbers(int a, int b)
+    lea  eax, [rdi+rsi] ; return a + b
+    ret
+</pre>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// main.c
+extern int add_numbers(int a, int b);
+
+int main() {
+    int result = add_numbers(3, 7);
+    // result == 10
+}
+</pre>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+# Build:
+$ nasm -f elf64 add.asm -o add.o
+$ gcc main.c add.o -o demo
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: SIMD / Vectorization -->
+  <div class="slide">
+    <h2 class="animate">SIMD / Vectorization</h2>
+    <div class="content">
+      <p class="animate" style="text-align:center; margin-bottom:16px;">
+        <strong>S</strong>ingle <strong>I</strong>nstruction, <strong>M</strong>ultiple <strong>D</strong>ata &mdash; process 4/8/16 values with one instruction.
+      </p>
+      <div class="two-col animate">
+        <div class="card">
+          <h3>Scalar (1 at a time)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+; Add 4 floats, one by one:
+movss  xmm0, [rdi]     ; load float 0
+addss  xmm0, [rsi]     ; add
+movss  [rdx], xmm0     ; store
+; ...repeat 3 more times
+; Total: 12 instructions
+</pre>
+        </div>
+        <div class="card">
+          <h3>SIMD (4 at once)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+; Add 4 floats simultaneously:
+movaps xmm0, [rdi]     ; load 4 floats
+addps  xmm0, [rsi]     ; add all 4
+movaps [rdx], xmm0     ; store all 4
+; Total: 3 instructions
+</pre>
+        </div>
+      </div>
+      <table class="animate" style="margin-top:16px;">
+        <tr><th>Extension</th><th>Register Width</th><th>Floats per Op</th><th>Doubles per Op</th></tr>
+        <tr><td>SSE (1999)</td><td>128-bit: <code>xmm0-xmm15</code></td><td>4</td><td>2</td></tr>
+        <tr><td>AVX (2011)</td><td>256-bit: <code>ymm0-ymm15</code></td><td>8</td><td>4</td></tr>
+        <tr><td>AVX-512 (2016)</td><td>512-bit: <code>zmm0-zmm31</code></td><td>16</td><td>8</td></tr>
+      </table>
+      <p class="animate" style="margin-top:12px; color:var(--text-muted); text-align:center;">
+        Key instructions: <code>addps</code>, <code>mulps</code>, <code>divps</code>, <code>sqrtps</code> (packed single-precision).
+        Compilers auto-vectorize loops with <code>-O2</code> / <code>-O3</code> when they can prove it's safe.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Reading Compiler Output -->
+  <div class="slide">
+    <h2 class="animate">Reading Compiler Output</h2>
+    <div class="content">
+<pre class="animate">
+# Three ways to see the assembly your compiler generates:
+
+$ gcc -S -masm=intel main.c -o main.s       # Produces .s file
+$ gcc -O2 -S -masm=intel main.c -o main.s   # With optimizations
+$ objdump -d -M intel ./a.out | less         # Disassemble binary
+</pre>
+      <div class="two-col animate" style="margin-top:16px;">
+        <div class="card">
+          <h3>C Source</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+int sum(int* arr, int n) {
+    int total = 0;
+    for (int i = 0; i < n; i++)
+        total += arr[i];
+    return total;
+}
+</pre>
+        </div>
+        <div class="card">
+          <h3>gcc -O2 Output</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+sum:
+    test esi, esi       ; if n == 0
+    jle  .zero          ; return 0
+    xor  eax, eax       ; total = 0
+    xor  ecx, ecx       ; i = 0
+.loop:
+    add  eax, [rdi+rcx*4]
+    inc  ecx
+    cmp  ecx, esi
+    jl   .loop
+    ret
+.zero:
+    xor  eax, eax
+    ret
+</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:12px; color:var(--text-muted); text-align:center;">
+        <strong>Compiler Explorer</strong> (godbolt.org): paste C/Rust/Go/C++ code, see assembly side-by-side with color-matched source lines. Best tool for learning.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Common Patterns -->
+  <div class="slide">
+    <h2 class="animate">Common Patterns in Disassembly</h2>
+    <div class="content">
+<pre class="animate">
+; Array access: arr[i]  (int arr[], index in ecx)
+mov eax, [rdi + rcx*4]          ; base + index * sizeof(int)
+
+; Struct field: point->y  (struct at rdi, y at offset 8)
+mov eax, [rdi + 8]
+
+; String length (like strlen):
+.loop:
+    cmp  byte [rdi], 0           ; check for null terminator
+    je   .done
+    inc  rdi                     ; next char
+    inc  rax                     ; count++
+    jmp  .loop
+
+; memcpy-like pattern (rep movsb):
+    mov  rdi, dest               ; destination
+    mov  rsi, src                ; source
+    mov  rcx, count              ; byte count
+    rep  movsb                   ; copy rcx bytes from [rsi] to [rdi]
+
+; Virtual function call (C++ vtable):
+    mov  rax, [rdi]              ; load vtable pointer from object
+    call [rax + 16]              ; call 3rd virtual method (index 2 * 8)
+
+; Switch/jump table:
+    cmp  eax, 5                  ; bounds check
+    ja   .default
+    lea  rcx, [rip + .jtable]    ; load jump table address
+    movsxd rax, dword [rcx + rax*4]  ; load offset
+    add  rax, rcx                ; compute target
+    jmp  rax                     ; dispatch
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Debugging with GDB -->
+  <div class="slide">
+    <h2 class="animate">Debugging with GDB</h2>
+    <div class="content">
+<pre class="animate">
+$ gcc -g -O0 main.c -o main          # Compile with debug symbols
+$ gdb ./main                          # Start GDB
+
+# Essential GDB commands for assembly:
+(gdb) break main                      # Set breakpoint
+(gdb) run                             # Start execution
+(gdb) disassemble                     # Show current function's assembly
+(gdb) disas main                      # Disassemble specific function
+
+(gdb) stepi                           # Execute ONE instruction (si)
+(gdb) nexti                           # Step over call (ni)
+(gdb) info registers                  # Show all register values
+(gdb) info reg rax rsp                # Show specific registers
+(gdb) p/x $rax                        # Print rax in hex
+
+# Examine memory: x/[count][format][size] [address]
+(gdb) x/10xg $rsp                     # 10 giant (8-byte) hex from stack
+(gdb) x/s $rdi                        # Print string at rdi
+(gdb) x/20i $rip                      # Next 20 instructions
+(gdb) x/4xw $rbp-16                   # 4 words (4-byte) from local vars
+
+# Display on every stop:
+(gdb) display/i $rip                  # Show next instruction
+(gdb) display/x $rax                  # Show rax value
+
+# Useful: layout asm                  # TUI assembly view
+# Useful: layout regs                 # TUI with registers
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: ARM64 Comparison -->
+  <div class="slide">
+    <h2 class="animate">ARM64 / AArch64 Comparison</h2>
+    <div class="content">
+      <p class="animate" style="text-align:center; margin-bottom:12px;">Apple Silicon (M1-M4), AWS Graviton, and most phones use ARM64.</p>
+      <table class="animate">
+        <tr><th>Feature</th><th>x86-64</th><th>ARM64</th></tr>
+        <tr><td>Design</td><td>CISC (complex instructions)</td><td>RISC (simple, fixed-width)</td></tr>
+        <tr><td>Instruction size</td><td>Variable (1-15 bytes)</td><td>Fixed (4 bytes always)</td></tr>
+        <tr><td>GP registers</td><td>16 (<code>rax-r15</code>)</td><td>31 (<code>x0-x30</code>)</td></tr>
+        <tr><td>Args in regs</td><td>6 (<code>rdi,rsi,rdx,rcx,r8,r9</code>)</td><td>8 (<code>x0-x7</code>)</td></tr>
+        <tr><td>Return value</td><td><code>rax</code></td><td><code>x0</code></td></tr>
+        <tr><td>Stack pointer</td><td><code>rsp</code></td><td><code>sp</code></td></tr>
+        <tr><td>Link register</td><td>None (return addr on stack)</td><td><code>x30</code> (lr)</td></tr>
+        <tr><td>Condition codes</td><td>Set by most instructions</td><td>Only by explicit flag-setting variants</td></tr>
+      </table>
+      <div class="two-col animate" style="margin-top:16px;">
+        <div class="card">
+          <h3>x86-64</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+add_nums:
+    lea eax, [rdi+rsi]
+    ret
+</pre>
+        </div>
+        <div class="card">
+          <h3>ARM64</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+add_nums:
+    add w0, w0, w1
+    ret
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Security: Buffer Overflows -->
+  <div class="slide">
+    <h2 class="animate">Security: Buffer Overflows</h2>
+    <div class="content">
+<pre class="animate">
+; Vulnerable C code:
+; void vuln(char *input) {
+;     char buf[64];
+;     strcpy(buf, input);    // No bounds check!
+; }
+
+; Stack layout during vuln():
+; +--------------------+  High addresses
+; | return address     |  &larr; attacker overwrites this
+; +--------------------+
+; | saved rbp          |  &larr; overwritten too
+; +--------------------+
+; | buf[56..63]        |
+; | ...                |  &larr; overflow goes UP the stack
+; | buf[0..7]          |
+; +--------------------+  Low addresses (rsp)
+
+; If input is longer than 64 bytes, it overwrites:
+;   1. saved rbp (frame pointer)
+;   2. return address (controls execution!)
+;   3. Attacker redirects execution to their shellcode
+</pre>
+      <div class="metric-grid animate" style="margin-top:16px;">
+        <div class="metric-card">
+          <h3>Stack Canaries</h3>
+          <p>Random value placed before return address. If modified, program aborts. <code>gcc -fstack-protector</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>ASLR</h3>
+          <p>Randomize stack/heap/library addresses each run. Attacker can't predict where to jump.</p>
+        </div>
+        <div class="metric-card">
+          <h3>NX Bit (W^X)</h3>
+          <p>Memory is writable OR executable, never both. Prevents executing injected shellcode on the stack.</p>
+        </div>
+        <div class="metric-card">
+          <h3>ROP Chains</h3>
+          <p>Modern exploit technique: chain existing code "gadgets" ending in <code>ret</code> to bypass NX. Defeated by CFI.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Performance -->
+  <div class="slide">
+    <h2 class="animate">Performance: What Assembly Teaches You</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Cache Lines (64 bytes)</h3>
+          <p>CPU loads memory in 64-byte chunks. Sequential access = fast. Random access = cache miss = <span class="highlight">~100 cycles</span> penalty.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+; Fast: sequential (cache-friendly)
+mov eax, [rdi]        ; ~4 cycles (L1 hit)
+mov eax, [rdi+4]      ; same cache line!
+
+; Slow: random stride
+mov eax, [rdi]        ; ~4 cycles
+mov eax, [rdi+4096]   ; ~100+ cycles (cache miss)
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Branch Prediction</h3>
+          <p>CPU predicts which way a branch goes. Misprediction = <span class="highlight">~15 cycle</span> pipeline flush.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+; Predictable: mostly taken or not taken
+cmp eax, 0            ; 99% of time eax > 0
+je  .rare_case        ; branch predictor learns
+
+; Unpredictable: random 50/50
+cmp eax, ebx          ; random comparison
+jl  .path_a           ; pipeline stalls often
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Instruction Pipelining</h3>
+          <p>CPU executes multiple instructions simultaneously. Data dependencies stall the pipeline.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+; Bad: each depends on previous
+add rax, rbx    ; rax ready
+add rax, rcx    ; STALL: waiting for rax
+add rax, rdx    ; STALL: waiting for rax
+
+; Good: independent instructions
+add rax, rbx    ; these can run
+add rcx, rdx    ; in parallel!
+add r8,  r9     ; (out-of-order execution)
+</pre>
+        </div>
+        <div class="metric-card">
+          <h3>Memory Alignment</h3>
+          <p>Unaligned access may cross cache line boundaries. Keep structs aligned to avoid split loads.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+; Aligned (fast): address divisible by size
+mov rax, [rdi]     ; rdi = 0x1000 (aligned)
+
+; Unaligned (slower or fault):
+mov rax, [rdi]     ; rdi = 0x1003 (misaligned)
+; SIMD requires 16-byte alignment for movaps
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Tools & Resources -->
+  <div class="slide">
+    <h2 class="animate">Tools &amp; Resources</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Tool</th><th>Purpose</th></tr>
+        <tr><td><strong>NASM</strong></td><td>Netwide Assembler &mdash; clean Intel syntax, great for learning</td></tr>
+        <tr><td><strong>GAS (as)</strong></td><td>GNU Assembler &mdash; AT&T syntax, used by gcc internally</td></tr>
+        <tr><td><strong>Compiler Explorer</strong></td><td>godbolt.org &mdash; paste C/Rust/Go, see assembly side-by-side</td></tr>
+        <tr><td><strong>GDB</strong></td><td>GNU Debugger &mdash; <code>stepi</code>, <code>info registers</code>, <code>x/</code> memory</td></tr>
+        <tr><td><strong>objdump</strong></td><td>Disassemble ELF binaries: <code>objdump -d -M intel</code></td></tr>
+        <tr><td><strong>Ghidra</strong></td><td>NSA's free reverse engineering tool &mdash; decompiler + disassembler</td></tr>
+        <tr><td><strong>radare2 / Cutter</strong></td><td>Open-source RE framework with GUI (Cutter)</td></tr>
+        <tr><td><strong>Intel SDM</strong></td><td>Intel 64 and IA-32 Software Developer Manual (the definitive reference)</td></tr>
+        <tr><td><strong>ARM ARM</strong></td><td>ARM Architecture Reference Manual (for AArch64)</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted); text-align:center;">
+        Start with Compiler Explorer. Write C, read the assembly. That's the fastest path to fluency.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Assembly is the <span class="highlight">language your CPU actually speaks</span></li>
+        <li class="animate">Master the core: <span class="tag">mov</span> <span class="tag">add</span> <span class="tag">cmp</span> <span class="tag">jmp</span> <span class="tag">call</span> <span class="tag">ret</span></li>
+        <li class="animate">Understand the <strong>stack</strong>, <strong>calling conventions</strong>, and <strong>addressing modes</strong></li>
+        <li class="animate">Use <strong>Compiler Explorer</strong> to connect high-level code to assembly</li>
+        <li class="animate">Assembly knowledge improves your <strong>debugging</strong>, <strong>performance tuning</strong>, and <strong>security skills</strong></li>
+        <li class="animate">You don't need to write it &mdash; you need to <span class="highlight">read it</span></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Now go disassemble something.
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 22</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
