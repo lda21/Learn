@@ -526,9 +526,28 @@
   </div>
 
 
-  <!-- Slide 12: Development Workflow Skills -->
+  <!-- Slide 12: Built-in vs Marketplace -->
+  <div class="slide">
+    <h2 class="animate">Built-in vs Marketplace Skills</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Not all <code>/commands</code> ship with Claude Code. Here's how to tell the difference:</p>
+      <table>
+        <tr><th>Type</th><th>Source</th><th>How to Get</th><th>Examples</th></tr>
+        <tr><td><span class="tag" style="background:#d4edda;color:#155724">Built-in</span></td><td>Ships with Claude Code</td><td>Nothing &mdash; available immediately</td><td><code>/help</code>, <code>/clear</code>, <code>/model</code>, <code>/compact</code>, <code>/diff</code>, <code>/plan</code>, <code>/config</code>, <code>/init</code></td></tr>
+        <tr><td><span class="tag" style="background:#fff3cd;color:#856404">Bundled Skill</span></td><td>Pre-installed with Claude Code</td><td>Available out of the box</td><td><code>/simplify</code>, <code>/batch</code>, <code>/debug</code>, <code>/loop</code></td></tr>
+        <tr><td><span class="tag" style="background:#cce5ff;color:#004085">Marketplace Skill</span></td><td>Everything Claude Code (ECC) marketplace or custom install</td><td><code>/configure-ecc</code> or manual install in <code>~/.claude/skills/</code></td><td><code>/tdd</code>, <code>/code-review</code>, <code>/python-review</code>, <code>/devfleet</code></td></tr>
+        <tr><td><span class="tag" style="background:#e2d5f1;color:#4a1a7a">Plugin</span></td><td>Claude Code plugin registry</td><td><code>/plugin install &lt;name&gt;</code></td><td><code>code-review@claude-plugins-official</code></td></tr>
+        <tr><td><span class="tag" style="background:#f8d7da;color:#721c24">MCP Prompt</span></td><td>Connected MCP servers</td><td>Configure via <code>/mcp</code></td><td>Dynamic &mdash; depends on connected servers</td></tr>
+      </table>
+      <p style="margin-top:14px;text-align:center"><span class="highlight">Slides 1&ndash;11 = all built-in.</span> Slides 13&ndash;19 are mostly <span class="highlight">marketplace skills</span> that require installation via ECC or manual setup.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 13: Development Workflow Skills -->
   <div class="slide">
     <h2 class="animate">Development Workflow Skills</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span> &mdash; install via <code>/configure-ecc</code> or add to <code>~/.claude/skills/</code></p>
     <div class="content animate">
       <div class="metric-grid">
         <div class="metric-card">
@@ -556,7 +575,7 @@
           <p>Refactor and clean unused code. Removes dead imports, unused functions, and simplifies logic.</p>
         </div>
         <div class="metric-card">
-          <h3>/simplify</h3>
+          <h3>/simplify <span class="tag" style="background:#fff3cd;color:#856404;font-size:0.7rem">bundled</span></h3>
           <p>Review changed code for quality and efficiency. Suggests cleaner, more reusable alternatives.</p>
         </div>
         <div class="metric-card">
@@ -568,9 +587,10 @@
   </div>
 
 
-  <!-- Slide 13: Language-Specific Review Commands -->
+  <!-- Slide 14: Language-Specific Review Commands -->
   <div class="slide">
     <h2 class="animate">Language-Specific Reviews</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <table>
         <tr><th>Language</th><th>Command</th><th>Focus Areas</th></tr>
@@ -608,9 +628,10 @@
   </div>
 
 
-  <!-- Slide 14: Language-Specific Build Fix Commands -->
+  <!-- Slide 15: Language-Specific Build Fix Commands -->
   <div class="slide">
     <h2 class="animate">Language-Specific Build Fix</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <table>
         <tr><th>Language</th><th>Command</th><th>What It Fixes</th></tr>
@@ -634,9 +655,10 @@
   </div>
 
 
-  <!-- Slide 15: Language-Specific TDD Commands -->
+  <!-- Slide 16: Language-Specific TDD Commands -->
   <div class="slide">
     <h2 class="animate">Language-Specific TDD</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <table>
         <tr><th>Language</th><th>Command</th><th>Framework &amp; Coverage</th></tr>
@@ -679,9 +701,10 @@ func TestAdd(t *testing.T) {
   </div>
 
 
-  <!-- Slide 16: Documentation & Research Skills -->
+  <!-- Slide 17: Documentation & Research Skills -->
   <div class="slide">
     <h2 class="animate">Documentation &amp; Research</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <div class="metric-grid">
         <div class="metric-card">
@@ -714,9 +737,10 @@ func TestAdd(t *testing.T) {
   </div>
 
 
-  <!-- Slide 17: Multi-Agent & Orchestration Skills -->
+  <!-- Slide 18: Multi-Agent & Orchestration Skills -->
   <div class="slide">
     <h2 class="animate">Multi-Agent &amp; Orchestration</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <table>
         <tr><th>Command</th><th>Description</th></tr>
@@ -743,9 +767,10 @@ func TestAdd(t *testing.T) {
   </div>
 
 
-  <!-- Slide 18: Learning & Continuous Improvement Skills -->
+  <!-- Slide 19: Learning & Continuous Improvement Skills -->
   <div class="slide">
     <h2 class="animate">Learning &amp; Improvement</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <div class="metric-grid">
         <div class="metric-card">
@@ -785,9 +810,10 @@ func TestAdd(t *testing.T) {
   </div>
 
 
-  <!-- Slide 19: Framework & Platform Skills -->
+  <!-- Slide 20: Framework & Platform Skills -->
   <div class="slide">
     <h2 class="animate">Framework &amp; Platform Skills</h2>
+    <p class="subtitle animate" style="margin-bottom:12px"><span class="tag" style="background:#cce5ff;color:#004085;font-size:0.85rem">Marketplace / ECC</span></p>
     <div class="content animate">
       <table>
         <tr><th>Framework</th><th>Commands</th><th>What It Covers</th></tr>
@@ -804,7 +830,7 @@ func TestAdd(t *testing.T) {
   </div>
 
 
-  <!-- Slide 20: Course Complete -->
+  <!-- Slide 21: Course Complete -->
   <div class="slide">
     <span class="logo-icon animate">&#x2318;</span>
     <h2 class="animate">Course Complete!</h2>
@@ -824,7 +850,7 @@ func TestAdd(t *testing.T) {
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 21</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
