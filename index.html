@@ -248,38 +248,38 @@
 
 <script>
 const COURSES = [
-  {name:"Architect Documentation", href:"architect-docs.html", icon:"&#x1F4D0;", desc:"Design, document, deliver. AOD, SRS, ADR, C4 diagrams, security architecture, failure handling, consistency, and scaling.", tags:["C4","ADR","System Design"]},
-  {name:"AWS Architect", href:"aws-architect.html", icon:"&#x2601;", desc:"Design scalable cloud solutions. VPC, EC2, S3, RDS, serverless, security, cost optimization, and Well-Architected Framework.", tags:["Cloud","AWS","Architecture"]},
-  {name:"Claude Code", href:"cloud-code.html", icon:"&#x1F4BB;", desc:"AI-powered software engineering from the terminal. Skills, Agent SDK, MCP servers, hooks, headless CI/CD, and advanced workflows.", tags:["AI","CLI","Anthropic"]},
-  {name:"Claude Code Agents", href:"claude-agents.html", icon:"&#x1F916;", desc:"Specialized AI subagents. Agent anatomy, orchestration, hooks, rules, autonomous loops, multi-model collaboration, and skills.", tags:["AI Agents","Orchestration","Hooks"]},
-  {name:"Crew AI", href:"crewai.html", icon:"&#x1F916;", desc:"Multi-agent AI framework. Build collaborative AI agents with roles, tasks, tools, and memory for complex automation.", tags:["AI Agents","Multi-Agent","Python"]},
-  {name:"Cursor AI", href:"cursor-ai.html", icon:"&#x1F5B1;", desc:"The AI-first code editor. Tab completion, inline edits, Composer, @ symbols, rules, model selection, and expert workflows.", tags:["AI","Editor","Productivity"]},
-  {name:"Docker", href:"docker.html", icon:"&#x1F433;", desc:"Containerization platform. Dockerfile, Compose, networking, volumes, multi-stage builds, security, and CI/CD.", tags:["Containers","DevOps","Compose"]},
-  {name:"Feature Store & Feast", href:"feature-store.html", icon:"&#x1F9E0;", desc:"Bridging ML training and production serving. Feature engineering, Feast, offline/online stores, point-in-time joins, streaming, and materialization.", tags:["ML","Feast","MLOps"]},
-  {name:"Figma", href:"figma.html", icon:"&#x1F3A8;", desc:"Collaborative design for the modern web. Auto layout, components, prototyping, design systems, and developer handoff.", tags:["Design","UI/UX","Prototyping"]},
-  {name:"Git", href:"git.html", icon:"&#x1F500;", desc:"Distributed version control from zero to advanced. Branching, merging, rebasing, stashing, and workflows.", tags:["Version Control","Branching","CLI"]},
-  {name:"Grafana & Tempo", href:"grafana.html", icon:"&#x1F4CA;", desc:"Observability dashboards, alerting, and distributed tracing. Grafana, Tempo, Loki, and the LGTM stack.", tags:["Observability","Dashboards","Tracing"]},
-  {name:"gRPC", href:"grpc.html", icon:"&#x1F4E1;", desc:"High-performance RPC framework. Protocol Buffers, HTTP/2, streaming patterns, interceptors, deadlines, and load balancing.", tags:["RPC","Protobuf","HTTP/2"]},
-  {name:"Graph Databases", href:"graph-db.html", icon:"&#x1F578;", desc:"Model and traverse connected data. Neo4j, Cypher, Gremlin, graph algorithms, knowledge graphs, and GraphRAG.", tags:["Neo4j","Cypher","NoSQL"]},
-  {name:"GitHub", href:"github.html", icon:"&#x1F419;", desc:"Collaboration, CI/CD, and project management. PRs, Actions, security features, Pages, and the GitHub CLI.", tags:["Collaboration","CI/CD","Actions"]},
-  {name:"HashiCorp Vault", href:"vault.html", icon:"&#x1F510;", desc:"Secrets management and data protection. Dynamic secrets, PKI, transit encryption, policies, and Kubernetes integration.", tags:["Secrets","Security","HashiCorp"]},
-  {name:"JavaScript", href:"javascript.html", icon:"&#x1F4DC;", desc:"The language of the web. ES6+, async/await, DOM manipulation, Fetch API, classes, modules, and Web APIs.", tags:["ES6+","Async","DOM"]},
-  {name:"Kafka", href:"kafka.html", icon:"&#x1F4E8;", desc:"Distributed event streaming platform. Topics, partitions, producers, consumers, Connect, Streams, and exactly-once semantics.", tags:["Streaming","Events","Distributed"]},
-  {name:"Kubernetes", href:"kubernetes.html", icon:"&#x2699;", desc:"The complete guide. Nodes, Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, ConfigMaps, Secrets, Services, Ingress, HPA, PDB, RBAC, NetworkPolicies, Storage, Helm, and GitOps.", tags:["K8s","Containers","Orchestration"]},
-  {name:"Linux", href:"linux.html", icon:"&#x1F427;", desc:"Essential command line and system administration. Files, permissions, processes, networking, and shell scripting.", tags:["CLI","Sysadmin","Bash"]},
-  {name:"MongoDB", href:"mongodb.html", icon:"&#x1F343;", desc:"The document database for modern apps. CRUD, aggregation pipeline, indexing, schema design, replica sets, and sharding.", tags:["NoSQL","Document","Mongoose"]},
-  {name:"Networking (CCNA)", href:"networking.html", icon:"&#x1F310;", desc:"From OSI layers to routing protocols. Subnetting, VLANs, OSPF, ACLs, NAT, TCP/UDP, wireless, and troubleshooting.", tags:["CCNA","Routing","Switching"]},
-  {name:"Node.js", href:"nodejs.html", icon:"&#x2699;", desc:"JavaScript on the server. Express, REST APIs, authentication, databases, streams, testing, and deployment.", tags:["Backend","Express","APIs"]},
-  {name:"Playwright", href:"playwright.html", icon:"&#x1F3AD;", desc:"End-to-end testing for modern web apps. Locators, auto-waiting, API testing, visual regression, network mocks, and CI/CD.", tags:["Testing","E2E","Automation"]},
-  {name:"PostgreSQL", href:"postgresql.html", icon:"&#x1F418;", desc:"The world's most advanced open-source relational database. SQL, indexes, JSONB, transactions, extensions, and replication.", tags:["Database","SQL","ACID"]},
-  {name:"Prometheus", href:"prometheus-presentation.html", icon:"&#x1F525;", desc:"Open-source monitoring and alerting toolkit. Learn PromQL, metric types, alerting rules, and Grafana integration.", tags:["Monitoring","CNCF","PromQL"]},
-  {name:"Python", href:"python.html", icon:"&#x1F40D;", desc:"Readable, powerful, everywhere. Data types, OOP, decorators, testing, web development, and automation.", tags:["Programming","Data","Web"]},
-  {name:"React & Redux", href:"react-redux.html", icon:"&#x269B;", desc:"Build modern UIs with React 19. Components, hooks, state management, Redux Toolkit, React Router, and performance patterns.", tags:["Frontend","Hooks","State"]},
-  {name:"Redis", href:"redis.html", icon:"&#x1F534;", desc:"In-memory data store for caching, sessions, queues, and real-time apps. Data structures, persistence, pub/sub, and clustering.", tags:["Cache","NoSQL","In-Memory"]},
-  {name:"Temporal", href:"temporal.html", icon:"&#x23F3;", desc:"Durable workflow orchestration platform. Master workflows, activities, signals, retries, and fault-tolerant distributed systems.", tags:["Workflows","Orchestration","Go / TS"]},
-  {name:"Terraform", href:"terraform.html", icon:"&#x1F3D7;", desc:"Infrastructure as Code by HashiCorp. Learn HCL, providers, modules, state management, and multi-cloud provisioning.", tags:["IaC","Cloud","HCL"]},
-  {name:"VS Code", href:"vscode.html", icon:"&#x26A1;", desc:"Master the world's most popular editor. Shortcuts, extensions, debugging, remote development, and AI integration.", tags:["Editor","Extensions","Debugging"]},
-  {name:"Zero Trust Security", href:"zero-trust.html", icon:"&#x1F6E1;", desc:"Never trust, always verify. Identity-based access, micro-segmentation, ZTNA, BeyondCorp, and implementation roadmap.", tags:["Security","ZTNA","Identity"]},
+  {name:"Feature Store & Feast", href:"feature-store.html", icon:"&#x1F9E0;", desc:"Bridging ML training and production serving. Feature engineering, Feast, offline/online stores, point-in-time joins, streaming, and materialization.", tags:["ML","Feast","MLOps"], published:"2026-04-01"},
+  {name:"Architect Documentation", href:"architect-docs.html", icon:"&#x1F4D0;", desc:"Design, document, deliver. AOD, SRS, ADR, C4 diagrams, security architecture, failure handling, consistency, and scaling.", tags:["C4","ADR","System Design"], published:"2026-03-31"},
+  {name:"Kubernetes", href:"kubernetes.html", icon:"&#x2699;", desc:"The complete guide. Nodes, Pods, Deployments, StatefulSets, DaemonSets, ReplicaSets, Jobs, CronJobs, ConfigMaps, Secrets, Services, Ingress, HPA, PDB, RBAC, NetworkPolicies, Storage, Helm, and GitOps.", tags:["K8s","Containers","Orchestration"], published:"2026-03-30"},
+  {name:"Claude Code", href:"cloud-code.html", icon:"&#x1F4BB;", desc:"AI-powered software engineering from the terminal. Skills, Agent SDK, MCP servers, hooks, headless CI/CD, and advanced workflows.", tags:["AI","CLI","Anthropic"], published:"2026-03-29"},
+  {name:"Claude Code Agents", href:"claude-agents.html", icon:"&#x1F916;", desc:"Specialized AI subagents. Agent anatomy, orchestration, hooks, rules, autonomous loops, multi-model collaboration, and skills.", tags:["AI Agents","Orchestration","Hooks"], published:"2026-03-29"},
+  {name:"Cursor AI", href:"cursor-ai.html", icon:"&#x1F5B1;", desc:"The AI-first code editor. Tab completion, inline edits, Composer, @ symbols, rules, model selection, and expert workflows.", tags:["AI","Editor","Productivity"], published:"2026-03-29"},
+  {name:"Docker", href:"docker.html", icon:"&#x1F433;", desc:"Containerization platform. Dockerfile, Compose, networking, volumes, multi-stage builds, security, and CI/CD.", tags:["Containers","DevOps","Compose"], published:"2026-03-29"},
+  {name:"Figma", href:"figma.html", icon:"&#x1F3A8;", desc:"Collaborative design for the modern web. Auto layout, components, prototyping, design systems, and developer handoff.", tags:["Design","UI/UX","Prototyping"], published:"2026-03-29"},
+  {name:"Grafana & Tempo", href:"grafana.html", icon:"&#x1F4CA;", desc:"Observability dashboards, alerting, and distributed tracing. Grafana, Tempo, Loki, and the LGTM stack.", tags:["Observability","Dashboards","Tracing"], published:"2026-03-29"},
+  {name:"gRPC", href:"grpc.html", icon:"&#x1F4E1;", desc:"High-performance RPC framework. Protocol Buffers, HTTP/2, streaming patterns, interceptors, deadlines, and load balancing.", tags:["RPC","Protobuf","HTTP/2"], published:"2026-03-29"},
+  {name:"Graph Databases", href:"graph-db.html", icon:"&#x1F578;", desc:"Model and traverse connected data. Neo4j, Cypher, Gremlin, graph algorithms, knowledge graphs, and GraphRAG.", tags:["Neo4j","Cypher","NoSQL"], published:"2026-03-29"},
+  {name:"JavaScript", href:"javascript.html", icon:"&#x1F4DC;", desc:"The language of the web. ES6+, async/await, DOM manipulation, Fetch API, classes, modules, and Web APIs.", tags:["ES6+","Async","DOM"], published:"2026-03-29"},
+  {name:"Kafka", href:"kafka.html", icon:"&#x1F4E8;", desc:"Distributed event streaming platform. Topics, partitions, producers, consumers, Connect, Streams, and exactly-once semantics.", tags:["Streaming","Events","Distributed"], published:"2026-03-29"},
+  {name:"MongoDB", href:"mongodb.html", icon:"&#x1F343;", desc:"The document database for modern apps. CRUD, aggregation pipeline, indexing, schema design, replica sets, and sharding.", tags:["NoSQL","Document","Mongoose"], published:"2026-03-29"},
+  {name:"Networking (CCNA)", href:"networking.html", icon:"&#x1F310;", desc:"From OSI layers to routing protocols. Subnetting, VLANs, OSPF, ACLs, NAT, TCP/UDP, wireless, and troubleshooting.", tags:["CCNA","Routing","Switching"], published:"2026-03-29"},
+  {name:"Node.js", href:"nodejs.html", icon:"&#x2699;", desc:"JavaScript on the server. Express, REST APIs, authentication, databases, streams, testing, and deployment.", tags:["Backend","Express","APIs"], published:"2026-03-29"},
+  {name:"Playwright", href:"playwright.html", icon:"&#x1F3AD;", desc:"End-to-end testing for modern web apps. Locators, auto-waiting, API testing, visual regression, network mocks, and CI/CD.", tags:["Testing","E2E","Automation"], published:"2026-03-29"},
+  {name:"PostgreSQL", href:"postgresql.html", icon:"&#x1F418;", desc:"The world's most advanced open-source relational database. SQL, indexes, JSONB, transactions, extensions, and replication.", tags:["Database","SQL","ACID"], published:"2026-03-29"},
+  {name:"Python", href:"python.html", icon:"&#x1F40D;", desc:"Readable, powerful, everywhere. Data types, OOP, decorators, testing, web development, and automation.", tags:["Programming","Data","Web"], published:"2026-03-29"},
+  {name:"React & Redux", href:"react-redux.html", icon:"&#x269B;", desc:"Build modern UIs with React 19. Components, hooks, state management, Redux Toolkit, React Router, and performance patterns.", tags:["Frontend","Hooks","State"], published:"2026-03-29"},
+  {name:"Redis", href:"redis.html", icon:"&#x1F534;", desc:"In-memory data store for caching, sessions, queues, and real-time apps. Data structures, persistence, pub/sub, and clustering.", tags:["Cache","NoSQL","In-Memory"], published:"2026-03-29"},
+  {name:"Zero Trust Security", href:"zero-trust.html", icon:"&#x1F6E1;", desc:"Never trust, always verify. Identity-based access, micro-segmentation, ZTNA, BeyondCorp, and implementation roadmap.", tags:["Security","ZTNA","Identity"], published:"2026-03-29"},
+  {name:"VS Code", href:"vscode.html", icon:"&#x26A1;", desc:"Master the world's most popular editor. Shortcuts, extensions, debugging, remote development, and AI integration.", tags:["Editor","Extensions","Debugging"], published:"2026-03-29"},
+  {name:"AWS Architect", href:"aws-architect.html", icon:"&#x2601;", desc:"Design scalable cloud solutions. VPC, EC2, S3, RDS, serverless, security, cost optimization, and Well-Architected Framework.", tags:["Cloud","AWS","Architecture"], published:"2026-03-28"},
+  {name:"Crew AI", href:"crewai.html", icon:"&#x1F916;", desc:"Multi-agent AI framework. Build collaborative AI agents with roles, tasks, tools, and memory for complex automation.", tags:["AI Agents","Multi-Agent","Python"], published:"2026-03-28"},
+  {name:"Git", href:"git.html", icon:"&#x1F500;", desc:"Distributed version control from zero to advanced. Branching, merging, rebasing, stashing, and workflows.", tags:["Version Control","Branching","CLI"], published:"2026-03-28"},
+  {name:"GitHub", href:"github.html", icon:"&#x1F419;", desc:"Collaboration, CI/CD, and project management. PRs, Actions, security features, Pages, and the GitHub CLI.", tags:["Collaboration","CI/CD","Actions"], published:"2026-03-28"},
+  {name:"HashiCorp Vault", href:"vault.html", icon:"&#x1F510;", desc:"Secrets management and data protection. Dynamic secrets, PKI, transit encryption, policies, and Kubernetes integration.", tags:["Secrets","Security","HashiCorp"], published:"2026-03-28"},
+  {name:"Linux", href:"linux.html", icon:"&#x1F427;", desc:"Essential command line and system administration. Files, permissions, processes, networking, and shell scripting.", tags:["CLI","Sysadmin","Bash"], published:"2026-03-28"},
+  {name:"Temporal", href:"temporal.html", icon:"&#x23F3;", desc:"Durable workflow orchestration platform. Master workflows, activities, signals, retries, and fault-tolerant distributed systems.", tags:["Workflows","Orchestration","Go / TS"], published:"2026-03-28"},
+  {name:"Terraform", href:"terraform.html", icon:"&#x1F3D7;", desc:"Infrastructure as Code by HashiCorp. Learn HCL, providers, modules, state management, and multi-cloud provisioning.", tags:["IaC","Cloud","HCL"], published:"2026-03-28"},
+  {name:"Prometheus", href:"prometheus-presentation.html", icon:"&#x1F525;", desc:"Open-source monitoring and alerting toolkit. Learn PromQL, metric types, alerting rules, and Grafana integration.", tags:["Monitoring","CNCF","PromQL"], published:"2026-03-27"},
 ];
 
 function filterCourses() {
@@ -299,7 +299,7 @@ function filterCourses() {
       <h2>${c.name}</h2>
       <p>${c.desc}</p>
       <div class="tag-row">${c.tags.map(t => '<span class="tag">' + t + '</span>').join('')}</div>
-      <div class="slide-count">20 slides</div>
+      <div class="slide-count">20 slides &middot; ${c.published}</div>
     </a>
   `).join('');
 }
