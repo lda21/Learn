@@ -1,0 +1,1228 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Railway - Modern Deployment Platform</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F682;</span>
+    <h1 class="animate title-fire">Railway</h1>
+    <p class="subtitle animate">Deploy Anything, Instantly</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">Deployment</span>
+      <span class="tag">PaaS</span>
+      <span class="tag">Infrastructure</span>
+      <span class="tag">DevOps</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is Railway -->
+  <div class="slide">
+    <h2 class="animate">What is Railway?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A <span class="highlight">modern Platform-as-a-Service (PaaS)</span> for deploying apps, databases, and services</li>
+        <li class="animate">Deploy from <strong>GitHub, CLI, or Docker</strong> with zero configuration needed</li>
+        <li class="animate">Automatic builds via <strong>Nixpacks</strong> &mdash; detects language, installs deps, builds, and runs</li>
+        <li class="animate">Instant deploys with <strong>zero-downtime rollouts</strong> and automatic HTTPS</li>
+        <li class="animate">Built-in databases: <strong>PostgreSQL, MySQL, Redis, MongoDB</strong> in one click</li>
+      </ul>
+      <pre class="animate">
+# Deploy your app in seconds
+npm install -g @railway/cli
+railway login
+railway init
+railway up
+
+# That's it. Railway detects your framework,
+# builds it, and gives you a public URL.
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why Railway -->
+  <div class="slide">
+    <h2 class="animate">Why Railway?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>Railway</th><th>Heroku</th><th>Render</th><th>Fly.io</th></tr>
+        <tr><td><strong>Pricing</strong></td><td class="green">Usage-based</td><td>Per-dyno</td><td>Per-instance</td><td>Per-machine</td></tr>
+        <tr><td><strong>Free Tier</strong></td><td>Trial $5 credit</td><td>Eco $5/mo</td><td>Free tier</td><td>Free allowance</td></tr>
+        <tr><td><strong>Deploy Speed</strong></td><td class="green">~30 seconds</td><td>~2 minutes</td><td>~2 minutes</td><td>~1 minute</td></tr>
+        <tr><td><strong>Docker Support</strong></td><td class="green">Native</td><td>Yes</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td><strong>Private Network</strong></td><td class="green">Built-in</td><td>Add-on</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td><strong>Databases</strong></td><td class="green">One-click</td><td>Add-on</td><td>Managed</td><td>Volumes</td></tr>
+      </table>
+      <pre class="animate">
+# When to choose Railway:
+# - You want the fastest path from code to production
+# - You need databases alongside your app (one platform)
+# - You prefer usage-based pricing (pay for what you use)
+# - You're building multi-service apps (monorepo friendly)
+# - You want a clean UI with great developer experience
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Railway Architecture</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Project</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Environments</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Services</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Deployments</div>
+      </div>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Projects</h3>
+          <p>Top-level container. Groups all services, databases, and config for one application.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Services</h3>
+          <p>Individual deployable units: web apps, APIs, workers, cron jobs, or databases.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Environments</h3>
+          <p>Isolated copies: production, staging, PR previews. Each has its own variables and domains.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Volumes</h3>
+          <p>Persistent storage attached to services. Survives redeploys. Mounted at any path.</p>
+        </div>
+      </div>
+      <pre class="animate">
+# Project structure example:
+my-saas-app/              # Project
+  ├── web (Next.js)       # Service (from GitHub)
+  ├── api (Express)       # Service (from GitHub)
+  ├── worker (Python)     # Service (from GitHub)
+  ├── PostgreSQL           # Service (database plugin)
+  └── Redis                # Service (database plugin)
+
+# Each has: production + staging environments
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Getting Started -->
+  <div class="slide">
+    <h2 class="animate">Getting Started</h2>
+    <div class="content">
+      <pre class="animate">
+# 1. Install the Railway CLI
+npm install -g @railway/cli
+# or
+brew install railway
+
+# 2. Authenticate
+railway login
+# Opens browser for OAuth login
+
+# 3. Initialize a new project
+cd my-app/
+railway init
+# Creates a new Railway project and links it
+
+# 4. Deploy
+railway up
+# Uploads code, builds, and deploys
+
+# 5. Open in browser
+railway open
+# Opens the Railway dashboard for your project
+      </pre>
+      <pre class="animate">
+# Link to existing project
+railway link
+# Select from your existing Railway projects
+
+# Check project status
+railway status
+# Shows current project, environment, and services
+
+# View your app
+railway domain
+# Shows the public URL of your deployment
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Project Structure -->
+  <div class="slide">
+    <h2 class="animate">Projects, Services &amp; Environments</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Project Hierarchy</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+Project: "my-startup"
+├── Environment: production
+│   ├── web-app (Next.js)
+│   ├── api-server (Node.js)
+│   ├── PostgreSQL
+│   └── Redis
+├── Environment: staging
+│   ├── web-app (Next.js)
+│   ├── api-server (Node.js)
+│   ├── PostgreSQL
+│   └── Redis
+└── Environment: pr-142
+    └── (auto-created preview)
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>Key Concepts</h3>
+          <ul>
+            <li><strong>Services</strong> are cloned across environments</li>
+            <li><strong>Variables</strong> can differ per environment</li>
+            <li><strong>Domains</strong> are environment-specific</li>
+            <li><strong>Databases</strong> are isolated per environment</li>
+            <li><strong>PR environments</strong> auto-create on push</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Switch environments via CLI
+railway environment        # List environments
+railway environment production   # Switch to production
+railway environment staging      # Switch to staging
+
+# Create a new environment
+# Done via Dashboard: Settings > Environments > New
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Deploying from GitHub -->
+  <div class="slide">
+    <h2 class="animate">Deploying from GitHub</h2>
+    <div class="content">
+      <pre class="animate">
+# Setup: Connect GitHub repo in Railway Dashboard
+# 1. New Project > Deploy from GitHub Repo
+# 2. Select repository and branch
+# 3. Railway auto-detects framework and deploys
+
+# Auto-deploy triggers:
+# - Push to connected branch      -> redeploy
+# - Open a Pull Request           -> preview environment
+# - Merge PR                      -> deploy to production
+
+# Configure in railway.json or Dashboard:
+{
+  "build": {
+    "builder": "NIXPACKS",
+    "watchPatterns": ["src/**", "package.json"]
+  },
+  "deploy": {
+    "startCommand": "npm run start",
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 5
+  }
+}
+      </pre>
+      <pre class="animate">
+# Rollback to previous deployment
+# Dashboard: Deployments tab > Click any previous deploy > Rollback
+
+# Disable auto-deploy for manual control
+# Dashboard: Service Settings > Disable "Auto Deploy"
+
+# Monorepo? Set the root directory:
+# Dashboard: Service Settings > Root Directory > /apps/web
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Deploying with CLI -->
+  <div class="slide">
+    <h2 class="animate">Deploying with CLI</h2>
+    <div class="content">
+      <pre class="animate">
+# Deploy current directory
+railway up
+# Uploads source, builds with Nixpacks, deploys
+
+# Deploy with specific service
+railway up --service web-app
+
+# Run a command in Railway's environment (with all env vars)
+railway run npm run migrate
+railway run python manage.py collectstatic
+
+# Stream live logs
+railway logs
+railway logs --service api-server
+railway logs --follow
+
+# Connect to your Railway service locally
+railway link          # Link local dir to a service
+railway run           # Run local commands with Railway env vars
+
+# Local development with Railway variables
+railway shell
+# Opens a shell with all Railway env vars loaded
+# Great for running your app locally with prod DB credentials
+      </pre>
+      <pre class="animate">
+# Useful CLI commands
+railway status        # Current project/environment info
+railway open          # Open dashboard in browser
+railway domain        # Show public URL
+railway variables     # List all environment variables
+railway connect       # Connect to a database service
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Deploying Docker -->
+  <div class="slide">
+    <h2 class="animate">Docker &amp; Nixpacks</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Nixpacks (Default)</h3>
+          <p>Railway auto-detects your language and builds without a Dockerfile. Supports Node.js, Python, Go, Rust, Java, Ruby, PHP, and more.</p>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+# No config needed! Railway detects:
+# - package.json -> Node.js
+# - requirements.txt -> Python
+# - go.mod -> Go
+# - Cargo.toml -> Rust
+# - pom.xml -> Java
+
+# Override Nixpacks settings:
+# railway.toml or nixpacks.toml
+[phases.setup]
+nixPkgs = ["...", "ffmpeg"]
+
+[phases.build]
+cmds = ["npm run build"]
+
+[start]
+cmd = "npm run start"
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>Custom Dockerfile</h3>
+          <p>If a Dockerfile exists in your root, Railway uses it automatically. Full control over the build process.</p>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+# Dockerfile
+FROM node:20-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build
+
+FROM node:20-alpine
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+EXPOSE 3000
+CMD ["node", "dist/index.js"]
+
+# Railway reads EXPOSE and sets PORT
+# Or set PORT in env variables
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+# Force builder type in railway.json
+{
+  "build": {
+    "builder": "DOCKERFILE",
+    "dockerfilePath": "./Dockerfile.production"
+  }
+}
+
+# Use a Docker image directly (no build)
+# Dashboard: New Service > Docker Image > ghcr.io/org/image:latest
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Environment Variables -->
+  <div class="slide">
+    <h2 class="animate">Environment Variables</h2>
+    <div class="content">
+      <pre class="animate">
+# Set variables via CLI
+railway variables set API_KEY=sk-abc123
+railway variables set NODE_ENV=production
+
+# Set multiple at once
+railway variables set \
+  DATABASE_URL=postgresql://... \
+  REDIS_URL=redis://... \
+  JWT_SECRET=my-secret
+
+# List all variables
+railway variables
+
+# Delete a variable
+railway variables delete API_KEY
+      </pre>
+      <pre class="animate">
+# Variable References - link variables between services
+# Use ${{service.VARIABLE}} syntax in the Dashboard
+
+# Example: API service referencing the database
+DATABASE_URL = ${{Postgres.DATABASE_URL}}
+REDIS_URL    = ${{Redis.REDIS_URL}}
+CACHE_HOST   = ${{Redis.REDIS_HOST}}
+
+# Shared variables (available to all services)
+# Dashboard: Project Settings > Shared Variables
+ENVIRONMENT  = production
+APP_NAME     = my-saas
+
+# Railway auto-provides these for databases:
+# DATABASE_URL, PGHOST, PGPORT, PGUSER, PGPASSWORD, PGDATABASE
+# REDIS_URL, REDIS_HOST, REDIS_PORT, REDIS_PASSWORD
+# MONGO_URL, MONGOHOST, MONGOPORT, etc.
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Databases & Services -->
+  <div class="slide">
+    <h2 class="animate">Databases &amp; Services</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>PostgreSQL</h3>
+          <p>One-click deploy. Managed backups. Connection pooling via PgBouncer.</p>
+          <code>${{Postgres.DATABASE_URL}}</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>MySQL</h3>
+          <p>Fully managed. Auto-provisioned credentials. Private networking.</p>
+          <code>${{MySQL.MYSQL_URL}}</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Redis</h3>
+          <p>In-memory cache and message broker. Persistent storage optional.</p>
+          <code>${{Redis.REDIS_URL}}</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>MongoDB</h3>
+          <p>Document database. Deployed as a service with volumes for persistence.</p>
+          <code>${{Mongo.MONGO_URL}}</code>
+        </div>
+      </div>
+      <pre class="animate">
+# Add a database: Dashboard > New Service > Database
+
+# Connect locally via CLI
+railway connect postgres
+# Opens psql shell connected to your Railway database
+
+railway connect redis
+# Opens redis-cli connected to your Railway Redis
+
+# Use private networking (faster, no egress costs)
+# Services communicate via internal DNS:
+# postgres.railway.internal:5432
+# redis.railway.internal:6379
+
+# Connection string with private networking:
+DATABASE_URL=postgresql://user:pass@postgres.railway.internal:5432/railway
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Networking -->
+  <div class="slide">
+    <h2 class="animate">Networking</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Public Networking</h3>
+          <ul>
+            <li>Auto-generated <code>.up.railway.app</code> domains</li>
+            <li>Custom domains with automatic SSL</li>
+            <li>TCP proxy for non-HTTP services</li>
+            <li>HTTP/2 and WebSocket support</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Private Networking</h3>
+          <ul>
+            <li>Internal DNS: <code>service.railway.internal</code></li>
+            <li>Zero-latency service-to-service</li>
+            <li>No egress charges for internal traffic</li>
+            <li>IPv6 only (handled transparently)</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Generate a public domain
+# Dashboard: Service > Settings > Networking > Generate Domain
+# Result: my-app-production.up.railway.app
+
+# Add custom domain
+# Dashboard: Service > Settings > Networking > Custom Domain
+# Add CNAME record: app.example.com -> my-app-production.up.railway.app
+# SSL certificate provisioned automatically
+
+# TCP Proxy (for databases, gRPC, custom protocols)
+# Dashboard: Service > Settings > Networking > TCP Proxy
+# Gives you: roundhouse.proxy.rlwy.net:12345
+
+# Port configuration
+# Railway reads PORT env var (auto-set) or EXPOSE in Dockerfile
+# Your app MUST listen on 0.0.0.0, not 127.0.0.1
+PORT=3000  # Railway sets this automatically
+
+# Private networking between services
+# API calling worker service internally:
+fetch("http://worker.railway.internal:8080/process")
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Volumes & Storage -->
+  <div class="slide">
+    <h2 class="animate">Volumes &amp; Storage</h2>
+    <div class="content">
+      <pre class="animate">
+# Volumes provide persistent storage that survives redeploys
+# Dashboard: Service > Settings > Volumes > Add Volume
+
+# Configuration:
+# Mount Path: /data          (where it appears in your container)
+# Size: 5 GB - 50 GB         (expandable, charged per GB)
+
+# Example: Persistent uploads directory
+# Mount Path: /app/uploads
+# Your app writes to /app/uploads and data persists across deploys
+      </pre>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Volume Use Cases</h3>
+          <ul>
+            <li>Database data directories</li>
+            <li>File upload storage</li>
+            <li>SQLite databases</li>
+            <li>Cache directories</li>
+            <li>ML model storage</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Volume Limits &amp; Tips</h3>
+          <ul>
+            <li>One volume per service</li>
+            <li>Cannot be shared between services</li>
+            <li>Attached to a single region</li>
+            <li>Backup with <code>railway run pg_dump</code></li>
+            <li>Use S3/R2 for large file storage</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Backup strategy for PostgreSQL
+railway run pg_dump -Fc $DATABASE_URL > backup.dump
+
+# Restore from backup
+railway run pg_restore -d $DATABASE_URL backup.dump
+
+# For file uploads, prefer object storage:
+# - Cloudflare R2 (S3-compatible, no egress fees)
+# - AWS S3
+# - Store URLs in your database, files in object storage
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Scaling -->
+  <div class="slide">
+    <h2 class="animate">Scaling</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Horizontal Scaling</h3>
+          <p>Run multiple replicas of a service. Traffic automatically load-balanced.</p>
+          <code>Replicas: 1 - 10+</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Vertical Scaling</h3>
+          <p>Adjust CPU and RAM limits per service. Resources scale automatically up to limits.</p>
+          <code>Up to 32 vCPU / 32 GB RAM</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Autoscaling</h3>
+          <p>Scale replicas based on CPU, memory, or request count thresholds.</p>
+          <code>Min: 1, Max: 10, Target: 70% CPU</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Sleep / Wake</h3>
+          <p>Services can sleep when idle and wake on incoming requests. Saves costs for low-traffic apps.</p>
+          <code>Idle timeout configurable</code>
+        </div>
+      </div>
+      <pre class="animate">
+# Configure scaling in railway.json
+{
+  "deploy": {
+    "numReplicas": 3,
+    "startCommand": "npm start",
+    "healthcheckPath": "/health"
+  }
+}
+
+# Or via Dashboard:
+# Service > Settings > Scaling
+# - Set replica count (horizontal)
+# - Set vCPU limit (e.g., 2 vCPU)
+# - Set memory limit (e.g., 2 GB)
+
+# Important for horizontal scaling:
+# - Your app must be STATELESS (use Redis for sessions)
+# - Health checks required for load balancing
+# - Volumes cannot be used with multiple replicas
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Monitoring & Logs -->
+  <div class="slide">
+    <h2 class="animate">Monitoring &amp; Logs</h2>
+    <div class="content">
+      <pre class="animate">
+# Real-time log streaming via CLI
+railway logs                    # All services
+railway logs --service api      # Specific service
+railway logs --follow           # Stream continuously
+railway logs --filter "error"   # Filter log output
+
+# Deploy logs (build output)
+# Dashboard: Service > Deployments > Click deploy > Build Logs
+      </pre>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Built-in Metrics</h3>
+          <ul>
+            <li><strong>CPU Usage</strong> &mdash; per service, per replica</li>
+            <li><strong>Memory Usage</strong> &mdash; current and historical</li>
+            <li><strong>Network I/O</strong> &mdash; inbound and outbound</li>
+            <li><strong>Disk Usage</strong> &mdash; for services with volumes</li>
+            <li><strong>Deploy History</strong> &mdash; duration, status, logs</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Crash Detection</h3>
+          <ul>
+            <li>Automatic restart on crash (configurable)</li>
+            <li>Deploy failure notifications</li>
+            <li>Health check monitoring</li>
+            <li>Integrations: Slack, Discord, webhooks</li>
+            <li>External: Sentry, Datadog, LogDNA</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Structured logging (recommended)
+# Your app should output JSON logs for better filtering:
+console.log(JSON.stringify({
+  level: "info",
+  message: "Order processed",
+  orderId: "abc-123",
+  duration: 145
+}));
+
+# Health check endpoint
+app.get("/health", (req, res) => {
+  res.status(200).json({ status: "ok", uptime: process.uptime() });
+});
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: CI/CD Integration -->
+  <div class="slide">
+    <h2 class="animate">CI/CD Integration</h2>
+    <div class="content">
+      <pre class="animate">
+# GitHub Actions + Railway
+# .github/workflows/deploy.yml
+name: Deploy to Railway
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run Tests
+        run: npm ci && npm test
+
+      - name: Install Railway CLI
+        run: npm install -g @railway/cli
+
+      - name: Deploy
+        run: railway up --service web-app
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+      </pre>
+      <pre class="animate">
+# Deploy Hooks (webhook-triggered deploys)
+# Dashboard: Service > Settings > Deploy Hooks
+# Generates a URL:
+curl -X POST https://backboard.railway.app/graphql/v2 \
+  -H "Authorization: Bearer $RAILWAY_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "mutation { deploymentCreate(input: { serviceId: \"...\" }) { id } }"}'
+
+# Generate API token for CI
+# Dashboard: Account Settings > Tokens > Create Token
+# Store as RAILWAY_TOKEN in your CI secrets
+
+# Railway API (GraphQL)
+# Full API for programmatic project management
+# https://docs.railway.com/reference/public-api
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Multi-Service Apps -->
+  <div class="slide">
+    <h2 class="animate">Multi-Service Apps</h2>
+    <div class="content">
+      <pre class="animate">
+# Monorepo support: deploy multiple services from one repo
+
+# Project structure:
+my-monorepo/
+├── apps/
+│   ├── web/          # Next.js frontend
+│   ├── api/          # Express backend
+│   └── worker/       # Background job processor
+├── packages/
+│   └── shared/       # Shared types and utilities
+└── package.json
+
+# Railway setup:
+# 1. Create service for each app
+# 2. Set Root Directory per service:
+#    - web service:    Root Directory = /apps/web
+#    - api service:    Root Directory = /apps/api
+#    - worker service: Root Directory = /apps/worker
+      </pre>
+      <pre class="animate">
+# Service communication via private networking
+# api/src/index.ts
+const WORKER_URL = process.env.WORKER_INTERNAL_URL
+  || "http://worker.railway.internal:8080";
+
+await fetch(`${WORKER_URL}/jobs`, {
+  method: "POST",
+  body: JSON.stringify({ task: "send-email", to: "user@example.com" })
+});
+
+# Health checks for each service (railway.json per service)
+{
+  "deploy": {
+    "healthcheckPath": "/health",
+    "healthcheckTimeout": 300,
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 3
+  }
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Templates -->
+  <div class="slide">
+    <h2 class="animate">Templates</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><span class="highlight">Railway Templates</span> are pre-configured stacks you can deploy in one click</li>
+        <li class="animate">Marketplace at <strong>railway.com/templates</strong> with 500+ community templates</li>
+        <li class="animate">Examples: <strong>Ghost Blog, Strapi, n8n, Plausible Analytics, Uptime Kuma, Metabase</strong></li>
+        <li class="animate">Each template defines services, databases, env vars, and volumes</li>
+      </ul>
+      <pre class="animate">
+# Template definition (railway.toml in your repo)
+[build]
+builder = "NIXPACKS"
+
+[deploy]
+startCommand = "npm start"
+healthcheckPath = "/health"
+
+# Create your own template:
+# 1. Build a working Railway project
+# 2. Dashboard: Settings > General > Create Template
+# 3. Configure which services, variables, and databases to include
+# 4. Publish to the template marketplace
+# 5. Get a one-click deploy button:
+
+# Deploy button for your README:
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/template/YOUR_TEMPLATE_ID)
+      </pre>
+      <pre class="animate">
+# Popular templates and what they deploy:
+#
+# Ghost Blog      -> Ghost + MySQL
+# Strapi CMS      -> Strapi + PostgreSQL
+# n8n             -> n8n + PostgreSQL + Redis
+# Uptime Kuma     -> Uptime Kuma + Volume
+# Plausible       -> Plausible + PostgreSQL + Clickhouse
+# Metabase        -> Metabase + PostgreSQL
+# Minio           -> Minio + Volume (S3-compatible storage)
+# Gitea           -> Gitea + PostgreSQL (self-hosted Git)
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Cost Management -->
+  <div class="slide">
+    <h2 class="animate">Cost Management</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Hobby Plan ($5/month)</h3>
+          <ul>
+            <li>$5 included usage</li>
+            <li>Up to 8 GB RAM / 8 vCPU per service</li>
+            <li>5 GB disk per project</li>
+            <li>Execution time limits</li>
+            <li>Good for side projects and learning</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Pro Plan ($20/month)</h3>
+          <ul>
+            <li>$20 included usage</li>
+            <li>Up to 32 GB RAM / 32 vCPU</li>
+            <li>50 GB disk per project</li>
+            <li>Multiple members and teams</li>
+            <li>Priority support, SLA</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Usage-based pricing (beyond included amount):
+# vCPU:    $0.000463 / minute  (~$20/mo per vCPU)
+# Memory:  $0.000231 / GB-min  (~$10/mo per GB)
+# Network: $0.10 / GB egress
+# Disk:    $0.25 / GB-month
+
+# Estimating costs for a typical web app:
+# 1 vCPU + 512MB RAM running 24/7
+# = ~$20 (CPU) + ~$5 (RAM) = ~$25/month
+# Minus $20 included on Pro = ~$5/month extra
+
+# Cost optimization tips:
+# - Use private networking (no egress charges)
+# - Set memory/CPU limits to avoid runaway costs
+# - Enable sleep for low-traffic services
+# - Monitor usage in Dashboard: Settings > Usage
+# - Use Hobby plan for staging environments
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">10 Production Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Use <strong>environment variables</strong> for all config &mdash; never hardcode secrets</div>
+      <div class="bp-item animate"><span>2</span> Add a <strong>/health endpoint</strong> and configure health checks in deploy settings</div>
+      <div class="bp-item animate"><span>3</span> Handle <strong>SIGTERM</strong> gracefully &mdash; finish in-flight requests before shutting down</div>
+      <div class="bp-item animate"><span>4</span> Use <strong>private networking</strong> for service-to-service and database connections</div>
+      <div class="bp-item animate"><span>5</span> Set <strong>CPU and memory limits</strong> to prevent runaway costs and OOM crashes</div>
+      <div class="bp-item animate"><span>6</span> Run <strong>database migrations</strong> as a deploy command, not on app startup</div>
+      <div class="bp-item animate"><span>7</span> Use <strong>structured JSON logging</strong> for easier filtering and alerting</div>
+      <div class="bp-item animate"><span>8</span> Keep services <strong>stateless</strong> &mdash; store sessions in Redis, files in S3/R2</div>
+      <div class="bp-item animate"><span>9</span> Set up <strong>staging environments</strong> that mirror production configuration</div>
+      <div class="bp-item animate"><span>10</span> Automate <strong>database backups</strong> with cron services or external backup tools</div>
+    </div>
+    <pre class="animate" style="margin-top: 20px;">
+# Graceful shutdown example (Node.js)
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down gracefully...");
+  server.close(() => {
+    db.disconnect();
+    process.exit(0);
+  });
+  setTimeout(() => process.exit(1), 10000); // Force after 10s
+});
+    </pre>
+  </div>
+
+
+  <!-- SLIDE 21: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F682;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Railway is a <span class="highlight">fast, modern PaaS</span> for deploying full-stack apps</li>
+        <li class="animate">Master the core: <span class="tag">projects</span> <span class="tag">services</span> <span class="tag">environments</span> <span class="tag">networking</span></li>
+        <li class="animate"><strong>Nixpacks</strong> auto-detects and builds &mdash; or bring your own <strong>Dockerfile</strong></li>
+        <li class="animate">One-click <strong>databases</strong> + <strong>private networking</strong> = simple infrastructure</li>
+        <li class="animate"><strong>Usage-based pricing</strong> means you only pay for what you actually use</li>
+        <li class="animate">Use <strong>templates</strong> to deploy complex stacks in seconds</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Ready to ship? &nbsp; railway up
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 21</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,1153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Vercel - Frontend Cloud &amp; Deployment Platform</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x25B2;</span>
+    <h1 class="animate title-fire">Vercel</h1>
+    <p class="subtitle animate">The Frontend Cloud &amp; Deployment Platform</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">Deployment</span>
+      <span class="tag">Frontend</span>
+      <span class="tag">Edge</span>
+      <span class="tag">Serverless</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is Vercel -->
+  <div class="slide">
+    <h2 class="animate">What is Vercel?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A <span class="highlight">frontend cloud platform</span> built by the creators of Next.js</li>
+        <li class="animate">Deploy any frontend framework: <strong>Next.js, React, Vue, Svelte, Astro</strong>, and more</li>
+        <li class="animate">Global <span class="highlight">Edge Network</span> with automatic SSL, CDN, and instant rollbacks</li>
+        <li class="animate">Built-in <strong>Serverless Functions</strong> and <strong>Edge Functions</strong> for backend logic</li>
+        <li class="animate">Automatic <strong>preview deployments</strong> for every Git push &mdash; no CI/CD config needed</li>
+      </ul>
+      <pre class="animate">
+# Deploy any project in seconds
+npm i -g vercel
+vercel
+
+# That's it. Your app is live on a global CDN.
+# Vercel auto-detects: Next.js, Vite, Astro, Nuxt, SvelteKit...
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why Vercel -->
+  <div class="slide">
+    <h2 class="animate">Why Vercel?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Feature</th><th>Vercel</th><th>Netlify</th><th>Cloudflare Pages</th></tr>
+        <tr><td>Next.js Support</td><td><span class="green">Native (creator)</span></td><td>Plugin-based</td><td>Limited SSR</td></tr>
+        <tr><td>Edge Functions</td><td><span class="green">V8 Isolates</span></td><td>Deno-based</td><td><span class="green">Workers</span></td></tr>
+        <tr><td>Preview Deploys</td><td><span class="green">Automatic</span></td><td><span class="green">Automatic</span></td><td><span class="green">Automatic</span></td></tr>
+        <tr><td>Serverless</td><td><span class="green">Node, Python, Go, Ruby</span></td><td>Node, Go</td><td>Workers only</td></tr>
+        <tr><td>Data Storage</td><td>KV, Postgres, Blob</td><td>Blobs</td><td>D1, R2, KV</td></tr>
+        <tr><td>Free Tier</td><td>Hobby (generous)</td><td>Free tier</td><td>Free tier</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;"><strong>Choose Vercel when:</strong> you use Next.js, need best-in-class DX, want zero-config deployments, or need ISR/SSR at the edge.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Vercel Architecture</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Git Push</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Build System</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Edge Network</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Users</div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px;">
+        <div class="metric-card animate">
+          <h3>Projects</h3>
+          <p>Linked to a Git repo. Each push triggers a build. Multiple environments: production, preview, development.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Deployments</h3>
+          <p>Immutable snapshots of your app. Every deploy gets a unique URL. Instant rollback to any previous deploy.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Edge Network</h3>
+          <p>Global CDN across 100+ points of presence. Static assets cached at the edge. Dynamic content via serverless.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Serverless Functions</h3>
+          <p>API routes run as isolated Lambda functions. Auto-scale to zero. No server management required.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Getting Started -->
+  <div class="slide">
+    <h2 class="animate">Getting Started</h2>
+    <div class="content">
+      <pre class="animate">
+# Install Vercel CLI
+npm i -g vercel
+
+# Login to your account
+vercel login
+
+# Initialize a new project (interactive)
+vercel init nextjs my-app
+cd my-app
+
+# Deploy to preview
+vercel
+
+# Deploy to production
+vercel --prod
+
+# Link an existing project to a GitHub repo
+vercel link
+
+# Pull environment variables locally
+vercel env pull .env.local
+      </pre>
+      <pre class="animate">
+# Framework auto-detection works out of the box:
+# Vercel detects your framework and sets:
+#   - Build command (next build, vite build, etc.)
+#   - Output directory (/.next, /dist, /build, etc.)
+#   - Install command (npm install, yarn, pnpm install)
+#   - Node.js version
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Project Settings -->
+  <div class="slide">
+    <h2 class="animate">Project Settings</h2>
+    <div class="content">
+      <pre class="animate">
+// vercel.json - Project configuration
+{
+  "buildCommand": "next build",
+  "outputDirectory": ".next",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1", "sfo1", "cdg1"],
+  "env": {
+    "DATABASE_URL": "@database-url"
+  },
+  "build": {
+    "env": {
+      "NEXT_PUBLIC_API_URL": "https://api.example.com"
+    }
+  },
+  "functions": {
+    "api/**/*.ts": {
+      "memory": 1024,
+      "maxDuration": 30
+    }
+  }
+}
+      </pre>
+      <pre class="animate">
+# Framework presets auto-configure:
+# Next.js    -> next build     -> .next
+# Vite       -> vite build     -> dist
+# Astro      -> astro build    -> dist
+# Nuxt       -> nuxt build     -> .output
+# SvelteKit  -> vite build     -> .svelte-kit
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Git Integration -->
+  <div class="slide">
+    <h2 class="animate">Git Integration</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Auto-Deploy on Push</h3>
+          <ul>
+            <li>Every push to <code>main</code> deploys to production</li>
+            <li>Every push to a branch creates a preview deployment</li>
+            <li>Every PR gets a unique preview URL</li>
+            <li>Deploy comments posted directly on PRs</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Branch Configuration</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+// vercel.json
+{
+  "git": {
+    "deploymentEnabled": {
+      "main": true,
+      "staging": true,
+      "feature/*": true,
+      "docs-*": false
+    }
+  }
+}
+
+# Ignored builds via vercel.json:
+# Skip deploys for docs-only changes
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+# Ignore builds for specific paths
+# vercel.json
+{
+  "ignoreCommand": "git diff --quiet HEAD^ HEAD -- ./src ./public"
+}
+
+# Or use the Vercel dashboard:
+# Settings -> Git -> Ignored Build Step
+# Only deploy when src/ or public/ files change
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Domains & DNS -->
+  <div class="slide">
+    <h2 class="animate">Domains &amp; DNS</h2>
+    <div class="content">
+      <pre class="animate">
+# Add a custom domain via CLI
+vercel domains add example.com
+vercel domains add www.example.com
+
+# Vercel DNS (if using Vercel as nameserver)
+vercel dns add example.com A 76.76.21.21
+vercel dns add example.com CNAME cname.vercel-dns.com
+
+# SSL certificates are automatic and free (Let's Encrypt)
+      </pre>
+      <pre class="animate">
+// vercel.json - Redirects, rewrites, and headers
+{
+  "redirects": [
+    { "source": "/old-page", "destination": "/new-page", "permanent": true }
+  ],
+  "rewrites": [
+    { "source": "/api/:path*", "destination": "https://api.backend.com/:path*" },
+    { "source": "/(.*)", "destination": "/index.html" }
+  ],
+  "headers": [
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=600" },
+        { "key": "Access-Control-Allow-Origin", "value": "*" }
+      ]
+    }
+  ]
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Serverless Functions -->
+  <div class="slide">
+    <h2 class="animate">Serverless Functions</h2>
+    <div class="content">
+      <pre class="animate">
+// api/hello.ts - Node.js serverless function
+import type { VercelRequest, VercelResponse } from '@vercel/node';
+
+export default function handler(req: VercelRequest, res: VercelResponse) {
+  const { name = 'World' } = req.query;
+  res.status(200).json({ message: `Hello ${name}!` });
+}
+// Accessible at: /api/hello?name=Vercel
+      </pre>
+      <pre class="animate">
+# api/hello.py - Python serverless function
+from http.server import BaseHTTPRequestHandler
+import json
+
+class handler(BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.end_headers()
+        self.wfile.write(json.dumps({"message": "Hello from Python!"}).encode())
+      </pre>
+      <pre class="animate">
+// vercel.json - Function configuration
+{
+  "functions": {
+    "api/heavy-task.ts": {
+      "memory": 3008,         // MB (128-3008)
+      "maxDuration": 60,      // seconds (Hobby: 10s, Pro: 60s, Enterprise: 900s)
+      "regions": ["iad1"]     // Pin to specific region
+    }
+  }
+}
+// Supported runtimes: Node.js, Python, Go, Ruby
+// Streaming responses supported with Web Streams API
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Edge Functions -->
+  <div class="slide">
+    <h2 class="animate">Edge Functions</h2>
+    <div class="content">
+      <pre class="animate">
+// middleware.ts - Edge Middleware (runs before every request)
+import { NextRequest, NextResponse } from 'next/server';
+
+export function middleware(request: NextRequest) {
+  // Geo-aware routing
+  const country = request.geo?.country || 'US';
+
+  // A/B testing at the edge
+  const bucket = request.cookies.get('ab-bucket')?.value
+    || (Math.random() > 0.5 ? 'a' : 'b');
+
+  const response = NextResponse.next();
+  response.cookies.set('ab-bucket', bucket);
+
+  // Redirect based on country
+  if (country === 'DE') {
+    return NextResponse.rewrite(new URL('/de' + request.nextUrl.pathname, request.url));
+  }
+  return response;
+}
+
+export const config = {
+  matcher: ['/((?!api|_next/static|favicon.ico).*)']
+};
+      </pre>
+      <pre class="animate">
+// app/api/edge-route/route.ts - Edge API Route
+export const runtime = 'edge';  // Use edge runtime instead of Node.js
+
+export async function GET(request: Request) {
+  return new Response(JSON.stringify({ edge: true, region: process.env.VERCEL_REGION }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+// Edge: ~0ms cold start, limited APIs (no fs, no native modules)
+// Node: ~250ms cold start, full Node.js APIs
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Environment Variables -->
+  <div class="slide">
+    <h2 class="animate">Environment Variables</h2>
+    <div class="content">
+      <pre class="animate">
+# CLI: Add environment variables with scope
+vercel env add DATABASE_URL production
+vercel env add DATABASE_URL preview
+vercel env add DATABASE_URL development
+
+# List all env vars
+vercel env ls
+
+# Pull env vars to local .env.local
+vercel env pull .env.local
+
+# Remove an env var
+vercel env rm DATABASE_URL production
+      </pre>
+      <div class="two-col" style="margin-top:20px;">
+        <div class="card animate">
+          <h3>Scopes</h3>
+          <ul>
+            <li><strong>Production</strong> &mdash; only on production deploys</li>
+            <li><strong>Preview</strong> &mdash; on all preview deploys</li>
+            <li><strong>Development</strong> &mdash; local dev with <code>vercel dev</code></li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Special Variables</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+# System env vars (auto-set)
+VERCEL=1
+VERCEL_ENV=production|preview|development
+VERCEL_URL=my-app-xyz.vercel.app
+VERCEL_GIT_COMMIT_SHA=abc123
+VERCEL_GIT_COMMIT_REF=main
+VERCEL_REGION=iad1
+
+# Encrypted secrets use @ prefix
+# in vercel.json: "@my-secret"
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Vercel & Next.js -->
+  <div class="slide">
+    <h2 class="animate">Vercel &amp; Next.js</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>SSR (Server-Side Rendering)</h3>
+          <p>Pages rendered on every request via serverless functions. Full dynamic content.</p>
+          <code>export const dynamic = 'force-dynamic';</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>SSG (Static Site Generation)</h3>
+          <p>Pages pre-rendered at build time. Served from CDN. Fastest possible response.</p>
+          <code>generateStaticParams()</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>ISR (Incremental Static Regeneration)</h3>
+          <p>Static pages that revalidate in the background. Best of both worlds.</p>
+          <code>export const revalidate = 60;</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Server Components</h3>
+          <p>React components that run on the server. Zero client-side JS. Stream HTML to the browser.</p>
+          <code>// default in App Router</code>
+        </div>
+      </div>
+      <pre class="animate">
+// app/products/[id]/page.tsx - ISR with App Router
+export const revalidate = 3600; // Revalidate every hour
+
+export async function generateStaticParams() {
+  const products = await fetch('https://api.example.com/products').then(r => r.json());
+  return products.map((p: any) => ({ id: p.id.toString() }));
+}
+
+export default async function ProductPage({ params }: { params: { id: string } }) {
+  const product = await fetch(`https://api.example.com/products/${params.id}`).then(r => r.json());
+  return &lt;div&gt;{product.name} - ${product.price}&lt;/div&gt;;
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Other Frameworks -->
+  <div class="slide">
+    <h2 class="animate">Other Frameworks</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>React (Vite)</h3>
+          <p>Zero-config SPA deployment. <code>vite build</code> auto-detected. Output to <code>dist/</code>.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Astro</h3>
+          <p>Content-focused sites. SSR + static hybrid. Vercel adapter built-in.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Nuxt</h3>
+          <p>Vue.js framework with SSR, SSG, and hybrid rendering. Full Vercel preset support.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>SvelteKit</h3>
+          <p>Svelte framework with adapter-vercel for serverless and edge deployment.</p>
+        </div>
+      </div>
+      <pre class="animate">
+# Deploy any framework - zero config
+npx create-vite my-react-app --template react-ts
+cd my-react-app && vercel
+
+# Astro with Vercel adapter
+npx astro add vercel
+# astro.config.mjs
+import vercel from '@astrojs/vercel/serverless';
+export default defineConfig({ output: 'server', adapter: vercel() });
+
+# SvelteKit with Vercel adapter
+npm i -D @sveltejs/adapter-vercel
+# svelte.config.js
+import adapter from '@sveltejs/adapter-vercel';
+export default { kit: { adapter: adapter({ runtime: 'edge' }) } };
+
+# Static sites (HTML/CSS/JS) - just deploy the directory
+vercel --prod
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Edge Config & KV -->
+  <div class="slide">
+    <h2 class="animate">Edge Config &amp; Data Storage</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Vercel KV (Redis)</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+import { kv } from '@vercel/kv';
+
+// Set and get values
+await kv.set('user:123', { name: 'Alice' });
+const user = await kv.get('user:123');
+
+// Lists, sets, hashes
+await kv.hset('config', { theme: 'dark' });
+await kv.lpush('queue', 'task1');
+await kv.sadd('tags', 'vercel', 'edge');
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>Vercel Postgres</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+import { sql } from '@vercel/postgres';
+
+// Query with tagged templates
+const { rows } = await sql`
+  SELECT * FROM users
+  WHERE email = ${email}
+`;
+
+// Works with ORMs
+// Drizzle, Prisma, Kysely
+// Connection pooling included
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+// Edge Config - ultra-low latency key-value reads (~15ms globally)
+import { get } from '@vercel/edge-config';
+
+// Perfect for feature flags, A/B tests, redirects
+const showBanner = await get('show_promo_banner');   // boolean
+const maintenance = await get('maintenance_mode');    // boolean
+const allowedCountries = await get('allowed_countries'); // string[]
+
+// Vercel Blob - file storage
+import { put, list } from '@vercel/blob';
+const blob = await put('images/avatar.png', file, { access: 'public' });
+console.log(blob.url); // https://xyz.public.blob.vercel-storage.com/avatar.png
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Analytics & Monitoring -->
+  <div class="slide">
+    <h2 class="animate">Analytics &amp; Monitoring</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Web Vitals &amp; Speed Insights</h3>
+          <ul>
+            <li><strong>LCP</strong> &mdash; Largest Contentful Paint</li>
+            <li><strong>FID</strong> &mdash; First Input Delay</li>
+            <li><strong>CLS</strong> &mdash; Cumulative Layout Shift</li>
+            <li><strong>TTFB</strong> &mdash; Time to First Byte</li>
+            <li><strong>INP</strong> &mdash; Interaction to Next Paint</li>
+            <li>Real user data, not synthetic</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Observability</h3>
+          <ul>
+            <li>Real-time function logs</li>
+            <li>Runtime logs with structured data</li>
+            <li>Log drains to Datadog, Sentry, etc.</li>
+            <li>Error tracking with source maps</li>
+            <li>OpenTelemetry integration</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+// Enable Speed Insights in Next.js
+// app/layout.tsx
+import { SpeedInsights } from '@vercel/speed-insights/next';
+import { Analytics } from '@vercel/analytics/react';
+
+export default function RootLayout({ children }) {
+  return (
+    &lt;html&gt;
+      &lt;body&gt;
+        {children}
+        &lt;SpeedInsights /&gt;
+        &lt;Analytics /&gt;
+      &lt;/body&gt;
+    &lt;/html&gt;
+  );
+}
+
+// Log drains - send logs to external services
+// vercel.json
+// Configure in Dashboard: Settings -> Log Drains -> Add
+// Supports: Datadog, Sentry, BetterStack, custom HTTP endpoints
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: CI/CD & Preview Deployments -->
+  <div class="slide">
+    <h2 class="animate">CI/CD &amp; Preview Deployments</h2>
+    <div class="content">
+      <pre class="animate">
+# Every PR gets an automatic preview deployment
+# https://my-app-git-feature-xyz-team.vercel.app
+
+# Deploy Hooks - trigger deploys from external services
+curl -X POST https://api.vercel.com/v1/integrations/deploy/prj_xxx/hook_yyy
+
+# Vercel CLI in GitHub Actions
+# .github/workflows/deploy.yml
+name: Deploy
+on: [push]
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: npm ci
+      - run: npm test
+      - run: npx vercel --prod --token=${{ secrets.VERCEL_TOKEN }}
+      </pre>
+      <pre class="animate">
+# Promote a preview deployment to production
+vercel promote [deployment-url]
+
+# Instant rollback to a previous deployment
+vercel rollback [deployment-url]
+
+# List recent deployments
+vercel ls
+
+# Inspect a deployment
+vercel inspect [deployment-url]
+
+# Alias a deployment to a custom domain
+vercel alias [deployment-url] my-app.com
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Performance -->
+  <div class="slide">
+    <h2 class="animate">Performance Optimization</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Image Optimization</h3>
+          <p>Automatic WebP/AVIF conversion, lazy loading, responsive sizes. Built into Next.js Image component.</p>
+          <code>&lt;Image src="/photo.jpg" width={800} height={600} /&gt;</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Edge Caching</h3>
+          <p>CDN caching with stale-while-revalidate. Cache static and dynamic content at 100+ edge locations.</p>
+          <code>Cache-Control: s-maxage=60, stale-while-revalidate=600</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>ISR Revalidation</h3>
+          <p>On-demand revalidation via API. Update static pages without a full rebuild.</p>
+          <code>await res.revalidate('/products/123');</code>
+        </div>
+        <div class="metric-card animate">
+          <h3>Preloading</h3>
+          <p>Automatic prefetching of links in viewport. Font optimization with next/font. Script loading strategies.</p>
+          <code>&lt;Link href="/about" prefetch={true} /&gt;</code>
+        </div>
+      </div>
+      <pre class="animate">
+// vercel.json - Cache headers for static assets
+{
+  "headers": [
+    {
+      "source": "/static/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }
+      ]
+    },
+    {
+      "source": "/api/(.*)",
+      "headers": [
+        { "key": "Cache-Control", "value": "s-maxage=60, stale-while-revalidate=600" }
+      ]
+    }
+  ]
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Security -->
+  <div class="slide">
+    <h2 class="animate">Security</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Built-in Protection</h3>
+          <ul>
+            <li><strong>DDoS Protection</strong> &mdash; automatic mitigation</li>
+            <li><strong>WAF</strong> &mdash; Web Application Firewall</li>
+            <li><strong>SSL/TLS</strong> &mdash; auto-provisioned certificates</li>
+            <li><strong>Deployment Protection</strong> &mdash; password-protect previews</li>
+            <li><strong>Attack Challenge Mode</strong> &mdash; bot protection</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Security Headers</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+// next.config.js
+const securityHeaders = [
+  { key: 'X-Frame-Options', value: 'DENY' },
+  { key: 'X-Content-Type-Options',
+    value: 'nosniff' },
+  { key: 'Referrer-Policy',
+    value: 'strict-origin-when-cross-origin' },
+  { key: 'Content-Security-Policy',
+    value: "default-src 'self'; script-src 'self'" }
+];
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+// Deployment protection - password-protect preview deployments
+// Dashboard: Settings -> Deployment Protection -> Enable
+
+// vercel.json - IP allowlisting and blocking
+{
+  "rewrites": [
+    {
+      "source": "/admin/:path*",
+      "has": [{ "type": "header", "key": "x-forwarded-for", "value": "(?&lt;ip&gt;203\\.0\\.113\\..*)" }],
+      "destination": "/admin/:path*"
+    }
+  ]
+}
+
+// Vercel Firewall (Pro/Enterprise)
+// Block by: IP, country, ASN, path, user-agent, rate limiting
+// Dashboard: Settings -> Firewall -> Add Rule
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Team & Enterprise -->
+  <div class="slide">
+    <h2 class="animate">Team &amp; Enterprise</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Organizations</h3>
+          <p>Team spaces with shared projects, billing, and settings. Manage members with Owner, Member, Viewer roles.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Access Control</h3>
+          <p>Project-level permissions, Git-based access, deployment protection, SAML SSO for enterprise identity.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Compliance</h3>
+          <p>SOC 2 Type II certified, GDPR compliant, audit logs, data processing agreements, SLAs for enterprise.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Spend Management</h3>
+          <p>Usage alerts, spending limits, per-project budgets, detailed usage analytics, billing alerts.</p>
+        </div>
+      </div>
+      <pre class="animate">
+# Team management via CLI
+vercel teams ls                    # List teams
+vercel teams switch my-team        # Switch to a team
+vercel teams invite user@email.com # Invite member
+
+# Vercel plans:
+# Hobby    - Free, 1 member, 100GB bandwidth
+# Pro      - $20/member/mo, team features, 1TB bandwidth
+# Enterprise - Custom pricing, SLA, SAML SSO, audit logs
+
+# Spend management
+# Dashboard: Settings -> Billing -> Spend Management
+# Set alerts at $50, $100, $500 thresholds
+# Hard limits prevent unexpected overages
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Use <strong>ISR</strong> over SSR where possible &mdash; static with revalidation is faster and cheaper</div>
+      <div class="bp-item animate"><span>2</span> Set <code>Cache-Control</code> headers &mdash; use <code>s-maxage</code> and <code>stale-while-revalidate</code></div>
+      <div class="bp-item animate"><span>3</span> Use <strong>Edge Functions</strong> for auth, redirects, and A/B tests &mdash; near-zero cold starts</div>
+      <div class="bp-item animate"><span>4</span> Pin serverless functions to <strong>one region</strong> near your database</div>
+      <div class="bp-item animate"><span>5</span> Use <code>vercel env pull</code> to keep local env in sync &mdash; never hardcode secrets</div>
+      <div class="bp-item animate"><span>6</span> Monitor <strong>Web Vitals</strong> in production &mdash; track LCP, CLS, INP regressions</div>
+      <div class="bp-item animate"><span>7</span> Use <strong>Edge Config</strong> for feature flags &mdash; 15ms reads globally, no cold starts</div>
+      <div class="bp-item animate"><span>8</span> Set <strong>spending limits</strong> &mdash; prevent unexpected bills from traffic spikes</div>
+      <div class="bp-item animate"><span>9</span> Use <code>ignoreCommand</code> in vercel.json &mdash; skip unnecessary builds on docs-only changes</div>
+      <div class="bp-item animate"><span>10</span> Enable <strong>Deployment Protection</strong> for preview URLs &mdash; prevent unauthorized access</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x25B2;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Vercel is the <span class="highlight">frontend cloud</span> built for modern web frameworks</li>
+        <li class="animate">Master the core: <span class="tag">deployments</span> <span class="tag">serverless</span> <span class="tag">edge</span> <span class="tag">caching</span></li>
+        <li class="animate"><strong>Git integration</strong> gives you preview deploys and instant rollbacks</li>
+        <li class="animate">Use <strong>ISR + Edge Functions</strong> for optimal performance</li>
+        <li class="animate"><strong>Vercel KV, Postgres, Blob</strong> &mdash; full-stack data layer</li>
+        <li class="animate">Monitor with <strong>Speed Insights</strong> and set <strong>spending limits</strong></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 21</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
