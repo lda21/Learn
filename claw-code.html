@@ -43,16 +43,16 @@
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh; margin: 0;
     }
 
-    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .deck { width: 100vw; height: 100vh; height: 100dvh; overflow-y: scroll; scroll-snap-type: y mandatory; -webkit-overflow-scrolling: touch; }
     .slide {
-      position: absolute; inset: 0; display: none; flex-direction: column;
+      min-height: 100vh; min-height: 100dvh; display: flex; flex-direction: column;
       justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
-      opacity: 0; pointer-events: none; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+      background: var(--bg); scroll-snap-align: start; overflow-x: hidden;
     }
-    .slide.active { display: flex; opacity: 1; pointer-events: auto; }
+    .slide.active { }
 
     h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
     h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
@@ -143,11 +143,12 @@
     .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
 
     @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
-    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
-    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
-    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
-    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
-    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+    .slide .animate { opacity: 0; transform: translateY(30px); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .slide.active .animate { opacity: 1; transform: translateY(0); }
+    .slide.active .animate:nth-child(2) { transition-delay: 0.1s; }
+    .slide.active .animate:nth-child(3) { transition-delay: 0.2s; }
+    .slide.active .animate:nth-child(4) { transition-delay: 0.3s; }
+    .slide.active .animate:nth-child(5) { transition-delay: 0.4s; }
 
     .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
     .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
@@ -161,7 +162,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 20px 16px; justify-content: flex-start; padding-top: 50px; padding-bottom: 80px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+      .slide { padding: 20px 16px; justify-content: flex-start; padding-top: 50px; padding-bottom: 80px; }
       h1 { font-size: 2rem; } h2 { font-size: 1.7rem; } h3 { font-size: 1.3rem; }
       p, li { font-size: 1.05rem; line-height: 1.6; }
       .title-fire { font-size: 3rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.2rem; }
@@ -2743,17 +2744,18 @@ cargo build --release
 
 <script>
   let cur = 0;
+  let programmaticScroll = false;
+  const deck = document.getElementById('deck');
   const slides = document.querySelectorAll('.slide');
   const total = slides.length;
 
-  function show(n) {
+  function updateUI(n) {
     slides[cur].classList.remove('active');
     cur = Math.max(0, Math.min(n, total - 1));
     slides[cur].classList.add('active');
-    slides[cur].scrollTop = 0;
     document.getElementById('progress').style.width = ((cur / (total - 1)) * 100) + '%';
     document.getElementById('slideCounter').textContent = (cur + 1) + ' / ' + total;
-    // Re-highlight code blocks that weren't visible during initial Prism run
+    // Lazy Prism highlighting
     if (typeof Prism !== 'undefined') {
       slides[cur].querySelectorAll('code[class*="language-"]:not(.prism-done)').forEach(function(el) {
         Prism.highlightElement(el);
@@ -2762,29 +2764,34 @@ cargo build --release
     }
   }
 
+  function show(n) {
+    n = Math.max(0, Math.min(n, total - 1));
+    programmaticScroll = true;
+    slides[n].scrollIntoView({ behavior: 'smooth' });
+    updateUI(n);
+    setTimeout(function() { programmaticScroll = false; }, 800);
+  }
+
   function go(d) { show(cur + d); }
 
+  // Track current slide via Intersection Observer
+  var observer = new IntersectionObserver(function(entries) {
+    if (programmaticScroll) return;
+    entries.forEach(function(entry) {
+      if (entry.isIntersecting && entry.intersectionRatio > 0.3) {
+        var idx = Array.prototype.indexOf.call(slides, entry.target);
+        if (idx !== -1 && idx !== cur) { updateUI(idx); }
+      }
+    });
+  }, { root: deck, threshold: [0.3, 0.6] });
+  slides.forEach(function(s) { observer.observe(s); });
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowRight') { e.preventDefault(); go(1); }
     if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
     if (e.key === 'Home') { e.preventDefault(); show(0); }
     if (e.key === 'End') { e.preventDefault(); show(total - 1); }
   });
-
-  let touchStartX = 0;
-  let touchStartY = 0;
-  let touchInsideScrollable = false;
-  document.addEventListener('touchstart', e => {
-    touchStartX = e.changedTouches[0].screenX;
-    touchStartY = e.changedTouches[0].screenY;
-    touchInsideScrollable = e.target.closest('pre, code, table, .card');
-  }, { passive: true });
-  document.addEventListener('touchend', e => {
-    if (touchInsideScrollable) return;
-    const dx = e.changedTouches[0].screenX - touchStartX;
-    const dy = e.changedTouches[0].screenY - touchStartY;
-    if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy) * 1.5) go(dx < 0 ? 1 : -1);
-  }, { passive: true });
 
   function toggleTheme() {
     const html = document.documentElement;
@@ -2808,7 +2815,7 @@ cargo build --release
   })();
 </script>
 
-<script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
+<script>window.Prism = window.Prism || {}; Prism.manual = true; </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
