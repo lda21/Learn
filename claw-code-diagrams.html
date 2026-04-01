@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Architecture Diagrams — Claw Code — Python Agent Harness</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'DM Sans',system-ui,sans-serif;transition:background .3s,color .3s}
+  body.light{background:#f8f9fb;color:#1a1d2e;--sf:#fff;--sf3:#e8eaef;--bd:#d1d5de;--tx:#1a1d2e;--dm:#5c6070;--mt:#9ca3b4;--green:#0d9668;--blue:#2563eb;--amber:#d97706;--red:#dc2626;--purple:#7c3aed;--cyan:#0891b2;--arrow:#9ca3b4;--boxFill:#fff;--boxStroke:#d1d5de;--actorFill:#e8f0fe;--actorStroke:#2563eb;--sysFill:#e8f5f2;--sysStroke:#0d9668;--opFill:#f3f0ff;--opStroke:#7c3aed;--exFill:#f0fdf4;--exStroke:#0d9668;--clFill:#e8f0fe;--clStroke:#2563eb;--riskFill:#fef2f2;--riskStroke:#dc2626;--rsFill:#fffbeb;--rsStroke:#d97706;--noteBg:#f0fdf4;--noteBd:#0d9668;--seqNoteBg:#fffbeb;--seqNoteTx:#92400e;--aiBg:rgba(13,150,104,.08);--aiC:#0d9668}
+  body.dark{background:#0c0d11;color:#e2e4ed;--sf:#141520;--sf3:#252738;--bd:#2e3045;--tx:#e2e4ed;--dm:#8a8ea3;--mt:#555872;--green:#34d399;--blue:#60a5fa;--amber:#fbbf24;--red:#f87171;--purple:#a78bfa;--cyan:#22d3ee;--arrow:#555872;--boxFill:#1c1d2b;--boxStroke:#2e3045;--actorFill:#1a2a3a;--actorStroke:#60a5fa;--sysFill:#1a3a4a;--sysStroke:#34d399;--opFill:#2a1a3a;--opStroke:#a78bfa;--exFill:#1a2a1a;--exStroke:#34d399;--clFill:#1a1a3a;--clStroke:#60a5fa;--riskFill:#3a1a1a;--riskStroke:#f87171;--rsFill:#3a1a1a;--rsStroke:#fbbf24;--noteBg:#252738;--noteBd:#34d399;--seqNoteBg:#252738;--seqNoteTx:#fbbf24;--aiBg:rgba(52,211,153,.1);--aiC:#34d399}
+  .L{display:flex;height:100vh;flex-direction:column}.H{padding:14px 24px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px}
+  .btn{background:none;border:1px solid var(--bd);border-radius:6px;color:var(--dm);cursor:pointer;padding:6px 10px;font-size:14px;line-height:1;font-family:inherit;flex-shrink:0}
+  .HC{flex:1;text-align:center}.HT{font-size:10px;letter-spacing:3px;color:var(--green);font-weight:600;margin-bottom:2px}.H h1{font-size:18px;font-weight:700}
+  .badge{font-size:11px;padding:4px 12px;border-radius:6px;font-weight:600;flex-shrink:0;display:none}
+  .B{display:flex;flex:1;overflow:hidden}
+  .S{width:240px;min-width:240px;background:var(--sf);border-right:1px solid var(--bd);overflow-y:auto;padding:16px 0;transition:all .25s;flex-shrink:0}
+  .S.c{width:0;min-width:0;padding:0;border:none;overflow:hidden}.SI{width:240px;transition:opacity .2s}.S.c .SI{opacity:0}
+  .GL{font-size:9px;letter-spacing:2px;color:var(--mt);font-weight:700;padding:0 20px;margin-bottom:6px}.G{margin-bottom:16px}
+  .NB{display:flex;align-items:center;gap:8px;width:calc(100% - 24px);margin:0 12px 2px;padding:8px 10px;border:none;border-radius:6px;cursor:pointer;font-size:12px;background:transparent;color:var(--dm);font-family:inherit;text-align:left;transition:all .15s}
+  .NB.a{background:var(--aiBg);color:var(--aiC);font-weight:600}.NB:hover:not(.a){background:var(--sf3)}
+  .NV{font-size:9px;padding:2px 6px;border-radius:3px;font-weight:600;font-family:'IBM Plex Mono',monospace}
+  .M{flex:1;overflow-y:auto;padding:24px 32px}.DT{font-size:20px;font-weight:700;margin-bottom:4px}.DD{font-size:13px;color:var(--dm);margin-bottom:20px;max-width:600px}
+  .DC{background:var(--sf);border:1px solid var(--bd);border-radius:12px;padding:24px;overflow-x:auto}
+  .note{background:var(--noteBg);border:1px solid var(--bd);border-left:3px solid var(--noteBd);border-radius:8px;padding:12px 16px;margin-top:16px;font-size:13px;color:var(--dm);line-height:1.7}.note strong{color:var(--tx)}
+</style>
+</head>
+<body class="light">
+<div class="L"><div class="H"><button class="btn" id="mt">☰</button><div class="HC"><div class="HT">ARCHITECTURE DIAGRAMS</div><h1>Claw Code — Python Agent Harness</h1></div><span class="badge" id="cb"></span><button class="btn" id="tt">☾</button></div>
+<div class="B"><div class="S" id="sb"><div class="SI" id="si"></div></div><div class="M" id="mn"></div></div></div>
+<script>
+let dk=false,act="arch-context",so=true;
+const D=[{id:"arch-context",b:"ARC",bc:"#2563eb",l:"System Context",g:"Architecture"},{id:"arch-modules",b:"ARC",bc:"#2563eb",l:"Module Map",g:"Architecture"},{id:"arch-permission",b:"ARC",bc:"#2563eb",l:"Permission Architecture",g:"Architecture"},{id:"seq-turn",b:"SEQ",bc:"#7c3aed",l:"Single Turn Execution",g:"Sequence"},{id:"seq-routing",b:"SEQ",bc:"#7c3aed",l:"Prompt Routing",g:"Sequence"},{id:"seq-session",b:"SEQ",bc:"#7c3aed",l:"Session Lifecycle",g:"Sequence"},{id:"seq-bootstrap",b:"SEQ",bc:"#7c3aed",l:"Bootstrap Pipeline",g:"Sequence"},{id:"data-request",b:"DAT",bc:"#0891b2",l:"Request Flow",g:"Data Flow"},{id:"data-config",b:"DAT",bc:"#0891b2",l:"Config Resolution",g:"Data Flow"}];
+const P={"arch-context":["System Context","Claw Code and its external actors — users, APIs, tools, and filesystem."],"arch-modules":["Module Map","Internal modules organized by architectural layer."],"arch-permission":["Permission Architecture","Three-tier permission model with deny lists and overrides."],"seq-turn":["Single Turn Execution","Full lifecycle of one user prompt through the agent harness."],"seq-routing":["Prompt Routing","How input is tokenized, scored, and routed to commands and tools."],"seq-session":["Session Lifecycle","Session creation, transcript accumulation, compaction, and persistence."],"seq-bootstrap":["Bootstrap Pipeline","Startup sequence from Python detection to session readiness."],"data-request":["Request Flow","End-to-end data flow for a single request through all stages."],"data-config":["Configuration Resolution","Three-layer config merge: user, project, and local overrides."]};
+const v=k=>`var(--${k})`;
+function bx(x,y,w,h,l,s,f,st,sw){f=f||v("boxFill");st=st||v("boxStroke");sw=sw||1;let r=`<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="6" fill="${f}" stroke="${st}" stroke-width="${sw}"/>`;r+=`<text x="${x+w/2}" y="${y+(s?h/2-4:h/2+4)}" text-anchor="middle" fill="${v("tx")}" font-size="11" font-weight="600">${l}</text>`;if(s)r+=`<text x="${x+w/2}" y="${y+h/2+10}" text-anchor="middle" fill="${v("dm")}" font-size="9">${s}</text>`;return r;}
+function ar(x1,y1,x2,y2,c,l,da){c=c||v("arrow");const dx=x2-x1,dy=y2-y1,ln=Math.sqrt(dx*dx+dy*dy),ux=dx/ln,uy=dy/ln,ax=x2-ux*8,ay=y2-uy*8;let r=`<line x1="${x1}" y1="${y1}" x2="${ax}" y2="${ay}" stroke="${c}" stroke-width="1.5" ${da?'stroke-dasharray="4,3"':''}/>`;r+=`<polygon points="${x2},${y2} ${ax-uy*4},${ay+ux*4} ${ax+uy*4},${ay-ux*4}" fill="${c}"/>`;if(l)r+=`<text x="${(x1+x2)/2}" y="${(y1+y2)/2-6}" text-anchor="middle" fill="${v("dm")}" font-size="9">${l}</text>`;return r;}
+function nt(t){return`<div class="note"><strong>Key insight: </strong>${t}</div>`}
+function sq(ac,st,w,n){w=w||900;const aw=100,gp=(w-ac.length*aw)/(ac.length+1),gx=i=>gp+i*(aw+gp)+aw/2,sY=50,sH=36,tH=sY+st.length*sH+80;let s=`<div style="overflow-x:auto"><svg width="${w}" height="${tH}">`;ac.forEach((a,i)=>{const x=gx(i);s+=`<rect x="${x-48}" y="8" width="96" height="28" rx="4" fill="${v("actorFill")}" stroke="${v("actorStroke")}"/>`;s+=`<text x="${x}" y="27" text-anchor="middle" fill="${v("tx")}" font-size="10" font-weight="600">${a}</text>`;s+=`<line x1="${x}" y1="36" x2="${x}" y2="${tH-20}" stroke="${v("bd")}" stroke-dasharray="3,3"/>`});st.forEach((e,i)=>{const y=sY+i*sH;if(e.t==="note"){s+=`<rect x="20" y="${y-8}" width="${w-40}" height="24" rx="4" fill="${v("seqNoteBg")}" stroke="${v("bd")}"/>`;s+=`<text x="${w/2}" y="${y+6}" text-anchor="middle" fill="${v("seqNoteTx")}" font-size="10" font-style="italic">${e.tx}</text>`}else if(e.t==="self"){const x=gx(e.f);s+=`<path d="M${x} ${y} L${x+30} ${y} L${x+30} ${y+14} L${x+8} ${y+14}" fill="none" stroke="${v("arrow")}" stroke-width="1.2"/>`;s+=`<polygon points="${x+8},${y+14} ${x+14},${y+11} ${x+14},${y+17}" fill="${v("arrow")}"/>`;s+=`<text x="${x+34}" y="${y+10}" fill="${v("dm")}" font-size="9">${e.lb}</text>`}else if(e.t==="alt"){s+=`<rect x="10" y="${y-4}" width="${w-20}" height="20" rx="3" fill="none" stroke="${v("green")}" stroke-dasharray="4,2"/>`;s+=`<text x="20" y="${y+10}" fill="${v("green")}" font-size="9" font-weight="600">${e.lb}</text>`}else if(e.t==="else"){s+=`<line x1="10" y1="${y}" x2="${w-10}" y2="${y}" stroke="${v("red")}" stroke-dasharray="4,2"/>`;s+=`<text x="20" y="${y+12}" fill="${v("red")}" font-size="9" font-weight="600">${e.lb}</text>`}else{const x1=gx(e.f),x2=gx(e.to),c=e.c||v("arrow"),d=x2>x1?1:-1;s+=`<line x1="${x1}" y1="${y}" x2="${x2-d*6}" y2="${y}" stroke="${c}" stroke-width="1.2" ${e.d?'stroke-dasharray="4,3"':''}/>`;s+=`<polygon points="${x2},${y} ${x2-d*7},${y-3.5} ${x2-d*7},${y+3.5}" fill="${c}"/>`;s+=`<text x="${(x1+x2)/2}" y="${y-6}" text-anchor="middle" fill="${v("tx")}" font-size="9">${e.lb}</text>`}});s+=`</svg></div>`;if(n)s+=nt(n);return s}
+function rd(id){const G=v("green"),B=v("blue"),A=v("amber"),R=v("red"),Pr=v("purple"),C=v("cyan");
+if(id==="arch-context"){return`<div style="overflow-x:auto"><svg width="860" height="480">`+
+bx(20,20,150,50,"User / Developer","CLI input, prompts",v("opFill"),v("opStroke"))+
+bx(20,110,150,40,"Anthropic API","Simulated responses",v("clFill"),v("clStroke"))+
+bx(20,180,150,40,"MCP Servers","External tool processes",v("actorFill"),v("actorStroke"))+
+bx(20,250,150,40,"CLAUDE.md","Config & instructions",v("rsFill"),v("rsStroke"))+
+bx(20,320,150,40,"Project Filesystem","Source code, assets",v("exFill"),v("exStroke"))+
+`<rect x="310" y="120" width="260" height="200" rx="12" fill="${v("sysFill")}" stroke="${v("sysStroke")}" stroke-width="2"/>
+<text x="440" y="190" text-anchor="middle" fill="${G}" font-size="14" font-weight="700">Claw Code</text>
+<text x="440" y="210" text-anchor="middle" fill="${G}" font-size="14" font-weight="700">Agent Harness</text>
+<text x="440" y="238" text-anchor="middle" fill="${v("dm")}" font-size="10">Parses prompts, routes tools,</text>
+<text x="440" y="252" text-anchor="middle" fill="${v("dm")}" font-size="10">enforces permissions, tracks sessions</text>`+
+bx(700,140,140,50,"Tool Registry","184 tools (JSON)",v("sf3"),v("bd"))+
+bx(700,220,140,50,"Command Registry","207 commands (JSON)",v("sf3"),v("bd"))+
+ar(170,45,310,170,null,"Prompts, input")+
+ar(310,180,170,55,Pr,"Responses, results")+
+ar(170,130,310,200,B,"API calls (simulated)")+
+ar(170,200,310,220,C,"MCP tool calls")+
+ar(170,270,310,240,A,"Config loading")+
+ar(170,340,310,280,G,"File read/write")+
+ar(570,200,700,165,null,"Lookup tools")+
+ar(570,230,700,245,null,"Lookup commands")+
+`</svg></div>`+nt("No public API. Human interacts via CLI only. Anthropic API is simulated for the harness. MCP servers are external processes spawned by configuration. All tool execution gated by permission checks.")}
+if(id==="arch-modules"){const ls=[{l:"INTERFACE",c:B,y:20,it:[{x:80,w:200,n:"main.py",s:"CLI entrypoint + argparse"}]},{l:"ORCHESTRATION",c:Pr,y:100,it:[{x:30,w:180,n:"query_engine.py",s:"Budget + turn orchestration"},{x:240,w:180,n:"runtime.py",s:"Tokenize + score + route"}]},{l:"REGISTRIES",c:C,y:200,it:[{x:30,w:150,n:"commands.py",s:"207 commands (JSON)"},{x:200,w:150,n:"tools.py",s:"184 tools (JSON)"},{x:370,w:150,n:"permissions.py",s:"3-tier gate"}]},{l:"PERSISTENCE",c:G,y:300,it:[{x:20,w:130,n:"session_store.py",s:"UUID sessions"},{x:160,w:120,n:"transcript.py",s:"Turn log"},{x:290,w:110,n:"config.py",s:"3-layer merge"},{x:410,w:100,n:"hooks.py",s:"Pre/Post hooks"}]},{l:"FOUNDATION",c:A,y:400,it:[{x:100,w:250,n:"models.py",s:"Frozen dataclasses (immutable)"}]}];
+let s=`<div style="overflow-x:auto"><svg width="600" height="480">`;
+ls.forEach(ly=>{s+=`<text x="14" y="${ly.y+8}" fill="${ly.c}" font-size="9" font-weight="700" letter-spacing="1.5">${ly.l}</text><line x1="14" y1="${ly.y+14}" x2="560" y2="${ly.y+14}" stroke="${ly.c}" stroke-width="0.5" opacity="0.3"/>`;ly.it.forEach(i=>{s+=bx(i.x,ly.y+22,i.w||140,52,i.n,i.s)})});
+s+=ar(180,94,120,120,Pr,"CLI args")+ar(280,94,300,120,Pr);
+s+=ar(120,174,100,220,C,"score cmds")+ar(330,174,280,220,C,"score tools")+ar(380,174,440,220,C,"check perms");
+s+=ar(100,274,75,320,G,"store")+ar(280,274,220,320,G,"append")+ar(440,274,350,320,G,"load config");
+s+=ar(180,374,225,420,A,"all models");
+return s+`</svg></div>`+nt("Layered architecture: each layer depends only on layers below. Models are frozen dataclasses for immutability. Registries loaded from JSON at startup.")}
+if(id==="arch-permission"){let s=`<div style="overflow-x:auto"><svg width="860" height="520">`;
+s+=`<rect x="20" y="20" width="380" height="110" rx="8" fill="${v("exFill")}" stroke="${v("exStroke")}" stroke-width="2"/>`;
+s+=`<text x="30" y="40" fill="${G}" font-size="11" font-weight="700">TIER 1: ReadOnly (Safe)</text>`;
+["read_file","glob_search","grep_search","web_search","web_fetch","skill"].forEach((t,i)=>{
+s+=`<rect x="${30+i*58}" y="${50}" width="54" height="22" rx="3" fill="${v("boxFill")}" stroke="${G}"/><text x="${57+i*58}" y="${65}" text-anchor="middle" fill="${v("tx")}" font-size="8">${t}</text>`;
+});
+s+=`<text x="210" y="115" text-anchor="middle" fill="${v("dm")}" font-size="9">No filesystem mutation. Always allowed.</text>`;
+
+s+=`<rect x="20" y="150" width="380" height="110" rx="8" fill="${v("rsFill")}" stroke="${v("rsStroke")}" stroke-width="2"/>`;
+s+=`<text x="30" y="170" fill="${A}" font-size="11" font-weight="700">TIER 2: WorkspaceWrite (Caution)</text>`;
+["write_file","edit_file","todo_write","config"].forEach((t,i)=>{
+s+=`<rect x="${30+i*90}" y="${180}" width="82" height="22" rx="3" fill="${v("boxFill")}" stroke="${A}"/><text x="${71+i*90}" y="${195}" text-anchor="middle" fill="${v("tx")}" font-size="8">${t}</text>`;
+});
+s+=`<text x="210" y="245" text-anchor="middle" fill="${v("dm")}" font-size="9">+ All Tier 1 tools. Scoped to workspace.</text>`;
+
+s+=`<rect x="20" y="280" width="380" height="110" rx="8" fill="${v("riskFill")}" stroke="${v("riskStroke")}" stroke-width="2"/>`;
+s+=`<text x="30" y="300" fill="${R}" font-size="11" font-weight="700">TIER 3: DangerFullAccess (Risk)</text>`;
+["bash","agent","notebook","powershell","repl"].forEach((t,i)=>{
+s+=`<rect x="${30+i*72}" y="${310}" width="64" height="22" rx="3" fill="${v("boxFill")}" stroke="${R}"/><text x="${62+i*72}" y="${325}" text-anchor="middle" fill="${v("tx")}" font-size="8">${t}</text>`;
+});
+s+=`<text x="210" y="375" text-anchor="middle" fill="${v("dm")}" font-size="9">+ All Tier 1 + 2. Arbitrary code execution.</text>`;
+
+s+=`<rect x="460" y="20" width="380" height="180" rx="8" fill="none" stroke="${Pr}" stroke-dasharray="4,2"/>`;
+s+=`<text x="470" y="40" fill="${Pr}" font-size="11" font-weight="700">ToolPermissionContext</text>`;
+s+=bx(470,55,170,40,"deny_names[]","Block specific tools",null,Pr);
+s+=bx(660,55,170,40,"deny_prefixes[]","Block tool families",null,Pr);
+s+=bx(470,110,170,40,"AllowedTools","Explicit override list",v("exFill"),G,2);
+s+=bx(660,110,170,40,"PermissionDenial","Tracked denial objects",v("riskFill"),R);
+
+s+=`<rect x="460" y="230" width="380" height="160" rx="8" fill="none" stroke="${B}" stroke-dasharray="4,2"/>`;
+s+=`<text x="470" y="250" fill="${B}" font-size="11" font-weight="700">Permission Check Flow</text>`;
+s+=bx(480,260,140,34,"Tool Request")+bx(480,310,140,34,"Check Tier Level",null,null,A)+bx(480,360,140,34,"Check deny_names",null,null,R);
+s+=bx(660,260,160,34,"Check deny_prefixes",null,null,R)+bx(660,310,160,34,"Check AllowedTools",null,v("exFill"),G)+bx(660,360,160,34,"ALLOW or DENY",null,null,Pr);
+s+=ar(620,277,660,277,null)+ar(550,294,550,310,null)+ar(620,327,660,327,null)+ar(550,344,550,360,null)+ar(620,377,660,377,null);
+
+return s+`</svg></div>`+nt("Every tool execution gated. No tool runs without permission check. Denials tracked as PermissionDenial objects. AllowedTools override can whitelist specific tools regardless of tier.")}
+if(id==="seq-turn")return sq(["User","main.py","QueryEngine","PortRuntime","Permissions","ToolExec","Transcript"],[
+{f:0,to:1,lb:"User prompt",c:B},
+{f:1,to:2,lb:"argparse route"},
+{t:"self",f:2,lb:"Check token budget"},
+{t:"alt",lb:"Budget remaining"},
+{f:2,to:3,lb:"Tokenize prompt"},
+{t:"self",f:3,lb:"lower() + split()"},
+{t:"self",f:3,lb:"Score commands (207) + tools (184)"},
+{f:3,to:4,lb:"Top-scored tool",c:Pr},
+{t:"self",f:4,lb:"Check tier + deny lists"},
+{t:"alt",lb:"Permission GRANTED"},
+{f:4,to:5,lb:"Execute tool",c:G},
+{t:"self",f:5,lb:"Run tool logic"},
+{f:5,to:6,lb:"Track usage + append",c:G},
+{t:"self",f:6,lb:"Check compaction threshold"},
+{f:6,to:2,lb:"TurnResult",d:true},
+{f:2,to:0,lb:"Response",d:true,c:B},
+{t:"else",lb:"Permission DENIED"},
+{f:4,to:6,lb:"Log PermissionDenial",c:R},
+{f:4,to:2,lb:"Denial result",d:true,c:R}
+],900,"Budget check first. If tokens exhausted, stop_reason='budget' without executing. Every tool goes through permission gate before execution.");
+if(id==="seq-routing")return sq(["User","PortRuntime","Commands","Tools","Permissions","Result"],[
+{f:0,to:1,lb:"Prompt input",c:B},
+{t:"self",f:1,lb:"Tokenize: lower() + split()"},
+{f:1,to:2,lb:"Score each command"},
+{t:"self",f:2,lb:"Token overlap count (207 entries)"},
+{f:2,to:1,lb:"Scored commands",d:true},
+{f:1,to:3,lb:"Score each tool"},
+{t:"self",f:3,lb:"Token overlap count (184 entries)"},
+{f:3,to:1,lb:"Scored tools",d:true},
+{t:"self",f:1,lb:"Sort all by score descending"},
+{f:1,to:4,lb:"Top candidates",c:Pr},
+{t:"self",f:4,lb:"Filter by ToolPermissionContext"},
+{f:4,to:5,lb:"RoutingResult",c:G},
+{f:5,to:0,lb:"Matched tool/command",d:true,c:B}
+],820,"Scoring is token overlap count \u2014 simple but effective. O(n) scan over 391 entries per prompt. No ML, no embeddings, just string matching.");
+if(id==="seq-session")return sq(["User","QueryEngine","SessionStore","Transcript","Filesystem"],[
+{f:0,to:1,lb:"New session",c:B},
+{f:1,to:2,lb:"Generate UUID"},
+{t:"self",f:2,lb:"Create session object"},
+{f:2,to:4,lb:"mkdir .port_sessions/",c:G},
+{t:"note",tx:"Turns accumulate over time"},
+{f:0,to:1,lb:"User prompt (turn N)",c:B},
+{f:1,to:3,lb:"Append turn result"},
+{t:"self",f:3,lb:"Increment token count"},
+{t:"self",f:3,lb:"Check: tokens > threshold?"},
+{t:"alt",lb:"Compaction triggered"},
+{t:"self",f:3,lb:"Keep last 10 turns, drop old"},
+{f:3,to:2,lb:"Update compacted transcript"},
+{t:"else",lb:"No compaction needed"},
+{f:3,to:2,lb:"Store full transcript"},
+{f:2,to:4,lb:"Save {id}.json",c:G},
+{t:"note",tx:"Resume later"},
+{f:0,to:1,lb:"Resume session",c:B},
+{f:1,to:2,lb:"load_session(id)"},
+{f:2,to:4,lb:"Read {id}.json",c:G},
+{f:2,to:1,lb:"Restored session",d:true}
+],820,"Sessions are JSON files \u2014 easy to inspect, debug, and replay. Compaction keeps recent context, drops old turns to stay within token budget.");
+if(id==="seq-bootstrap")return sq(["main.py","Workspace","Config","TrustGate","Registries","Runtime"],[
+{t:"self",f:0,lb:"Detect Python version"},
+{f:0,to:1,lb:"Scan project files"},
+{t:"self",f:1,lb:"Identify project structure"},
+{f:0,to:2,lb:"Load config layers"},
+{t:"self",f:2,lb:"User (~/.claude.json)"},
+{t:"self",f:2,lb:"Project (./.claude.json)"},
+{t:"self",f:2,lb:"Local (settings.local.json)"},
+{f:2,to:3,lb:"Merged config",c:A},
+{t:"self",f:3,lb:"Is workspace trusted?"},
+{t:"alt",lb:"Trusted workspace"},
+{f:3,to:4,lb:"Full features",c:G},
+{f:4,to:5,lb:"Load 207 commands (JSON)"},
+{f:4,to:5,lb:"Load 184 tools (JSON)"},
+{f:5,to:5,lb:"Init PortRuntime + QueryEngine",c:Pr},
+{t:"else",lb:"Untrusted workspace"},
+{f:3,to:4,lb:"Read-only mode",c:R},
+{f:4,to:5,lb:"Limited tool set"},
+{t:"note",tx:"Session ready \u2014 accepting prompts"}
+],820,"Trust model prevents malicious CLAUDE.md from executing arbitrary code in untrusted workspaces. Config merges with Local > Project > User precedence.");
+if(id==="data-request"){let s=`<div style="overflow-x:auto"><svg width="920" height="380">`;
+s+=`<text x="20" y="20" fill="${B}" font-size="10" font-weight="700" letter-spacing="1">REQUEST FLOW</text>`;
+const boxes=[
+{x:20,y:40,w:100,h:50,n:"User Input",s:"CLI prompt",c:B},
+{x:140,y:40,w:100,h:50,n:"main.py",s:"argparse",c:B},
+{x:260,y:40,w:110,h:50,n:"QueryEngine",s:"budget check",c:Pr},
+{x:390,y:40,w:110,h:50,n:"PortRuntime",s:"tokenize+score",c:Pr},
+{x:520,y:40,w:110,h:50,n:"PreToolUse",s:"hooks",c:A},
+{x:650,y:40,w:120,h:50,n:"PermissionCtx",s:"deny check",c:R},
+{x:790,y:40,w:110,h:50,n:"Tool Executor",s:"run tool",c:G}
+];
+const boxes2=[
+{x:790,y:140,w:110,h:50,n:"PostToolUse",s:"hooks",c:A},
+{x:630,y:140,w:140,h:50,n:"TranscriptStore",s:"append turn",c:G},
+{x:470,y:140,w:140,h:50,n:"Compaction",s:"check threshold",c:C},
+{x:310,y:140,w:140,h:50,n:"TurnResult",s:"return to user",c:B}
+];
+boxes.forEach(b=>{s+=bx(b.x,b.y,b.w,b.h,b.n,b.s,null,b.c)});
+boxes2.forEach(b=>{s+=bx(b.x,b.y,b.w,b.h,b.n,b.s,null,b.c)});
+s+=ar(120,65,140,65,B)+ar(240,65,260,65,Pr)+ar(370,65,390,65,Pr)+ar(500,65,520,65,A)+ar(630,65,650,65,R)+ar(770,65,790,65,G);
+s+=ar(845,90,845,140,G)+ar(790,165,770,165,A)+ar(630,165,610,165,G)+ar(470,165,450,165,C);
+
+s+=`<rect x="20" y="230" width="880" height="120" rx="8" fill="none" stroke="${Pr}" stroke-dasharray="4,2"/>`;
+s+=`<text x="30" y="250" fill="${Pr}" font-size="10" font-weight="700">GATE POINTS</text>`;
+s+=bx(30,260,160,34,"Budget Gate","Tokens remaining?",null,Pr)+bx(210,260,160,34,"Permission Gate","Tier + deny lists",null,R)+bx(390,260,160,34,"PreToolUse Hook","Can block execution",null,A)+bx(570,260,160,34,"Compaction Gate","Token threshold",null,C);
+s+=`<text x="30" y="330" fill="${v("dm")}" font-size="10">Each gate can halt the pipeline. Hooks return non-zero to block. Permission denials are tracked, not exceptions.</text>`;
+
+return s+`</svg></div>`+nt("Hooks can block execution (PreToolUse returns non-zero). Permission denials are tracked as PermissionDenial objects, not thrown as exceptions. Budget exhaustion produces stop_reason='budget'.")}
+if(id==="data-config"){let s=`<div style="overflow-x:auto"><svg width="860" height="460">`;
+s+=`<text x="20" y="20" fill="${A}" font-size="10" font-weight="700" letter-spacing="1">CONFIGURATION RESOLUTION</text>`;
+
+s+=`<rect x="20" y="40" width="220" height="180" rx="8" fill="${v("exFill")}" stroke="${G}"/>`;
+s+=`<text x="130" y="62" text-anchor="middle" fill="${G}" font-size="11" font-weight="700">~/.claude.json</text>`;
+s+=`<text x="130" y="80" text-anchor="middle" fill="${v("dm")}" font-size="10">USER (lowest priority)</text>`;
+["model: default","permission_mode","global hooks","mcp_servers (global)","allowedTools"].forEach((t,i)=>{
+s+=`<rect x="35" y="${92+i*24}" width="190" height="20" rx="3" fill="${v("boxFill")}" stroke="${v("bd")}"/><text x="130" y="${106+i*24}" text-anchor="middle" fill="${v("tx")}" font-size="9">${t}</text>`;
+});
+
+s+=`<rect x="280" y="40" width="220" height="180" rx="8" fill="${v("clFill")}" stroke="${B}"/>`;
+s+=`<text x="390" y="62" text-anchor="middle" fill="${B}" font-size="11" font-weight="700">./.claude.json</text>`;
+s+=`<text x="390" y="80" text-anchor="middle" fill="${v("dm")}" font-size="10">PROJECT (middle priority)</text>`;
+["project model override","project hooks","project mcp_servers","project permissions","CLAUDE.md path"].forEach((t,i)=>{
+s+=`<rect x="295" y="${92+i*24}" width="190" height="20" rx="3" fill="${v("boxFill")}" stroke="${v("bd")}"/><text x="390" y="${106+i*24}" text-anchor="middle" fill="${v("tx")}" font-size="9">${t}</text>`;
+});
+
+s+=`<rect x="540" y="40" width="220" height="180" rx="8" fill="${v("rsFill")}" stroke="${A}" stroke-width="2"/>`;
+s+=`<text x="650" y="62" text-anchor="middle" fill="${A}" font-size="11" font-weight="700">settings.local.json</text>`;
+s+=`<text x="650" y="80" text-anchor="middle" fill="${v("dm")}" font-size="10">LOCAL (highest priority)</text>`;
+["machine-specific model","local hooks override","local mcp_servers","local permission_mode","environment overrides"].forEach((t,i)=>{
+s+=`<rect x="555" y="${92+i*24}" width="190" height="20" rx="3" fill="${v("boxFill")}" stroke="${v("bd")}"/><text x="650" y="${106+i*24}" text-anchor="middle" fill="${v("tx")}" font-size="9">${t}</text>`;
+});
+
+s+=ar(240,130,280,130,B,"merges into")+ar(500,130,540,130,A,"overrides");
+
+s+=`<rect x="200" y="270" width="400" height="80" rx="8" fill="${v("sysFill")}" stroke="${v("sysStroke")}" stroke-width="2"/>`;
+s+=`<text x="400" y="298" text-anchor="middle" fill="${G}" font-size="14" font-weight="700">Merged Configuration</text>`;
+s+=`<text x="400" y="318" text-anchor="middle" fill="${v("dm")}" font-size="10">Local > Project > User</text>`;
+s+=`<text x="400" y="335" text-anchor="middle" fill="${v("dm")}" font-size="10">Later layers override earlier for same keys</text>`;
+
+s+=ar(130,220,300,270,G)+ar(390,220,400,270,B)+ar(650,220,500,270,A);
+
+s+=`<rect x="20" y="380" width="820" height="60" rx="8" fill="${v("sf")}" stroke="${v("bd")}"/>`;
+s+=`<text x="35" y="400" fill="${v("dm")}" font-size="10" font-weight="600">MERGE SEMANTICS</text>`;
+[{c:G,l:"User: global defaults for all projects"},{c:B,l:"Project: shared team settings"},{c:A,l:"Local: machine-specific overrides (never commit)"}].forEach((it,i)=>{
+s+=`<rect x="${35+i*270}" y="412" width="10" height="10" rx="2" fill="none" stroke="${it.c}" stroke-width="2"/><text x="${50+i*270}" y="421" fill="${v("dm")}" font-size="9">${it.l}</text>`;
+});
+
+return s+`</svg></div>`+nt("Same layering as Claude Code's real config system. Local overrides everything \u2014 use for machine-specific settings. Never commit settings.local.json to version control.")}
+return""}
+function render(){const gs={};D.forEach(d=>{if(!gs[d.g])gs[d.g]=[];gs[d.g].push(d)});let sb="";Object.entries(gs).forEach(([g,items])=>{sb+=`<div class="G"><div class="GL">${g.toUpperCase()}</div>`;items.forEach(d=>{sb+=`<button class="NB ${act===d.id?"a":""}" data-id="${d.id}"><span class="NV" style="background:${d.bc}22;color:${d.bc}">${d.b}</span>${d.l}</button>`});sb+=`</div>`});document.getElementById("si").innerHTML=sb;const s=document.getElementById("sb");s.className=so?"S":"S c";document.getElementById("mt").textContent=so?"✕":"☰";const cur=D.find(d=>d.id===act);const cb=document.getElementById("cb");if(!so&&cur){cb.style.display="";cb.style.background=cur.bc+"18";cb.style.color=cur.bc;cb.textContent=cur.b+" · "+cur.l}else cb.style.display="none";const p=P[act];document.getElementById("mn").innerHTML=`<div class="DT">${p[0]}</div><div class="DD">${p[1]}</div><div class="DC">${rd(act)}</div>`;document.querySelectorAll(".NB").forEach(b=>b.onclick=()=>{act=b.dataset.id;render()})}
+document.getElementById("tt").onclick=()=>{dk=!dk;document.body.className=dk?"dark":"light";document.getElementById("tt").textContent=dk?"☀":"☾";render()};
+document.getElementById("mt").onclick=()=>{so=!so;render()};
+render();
+</script>
+</body>
+</html>
