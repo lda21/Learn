@@ -180,6 +180,86 @@
       .course-icon { font-size: 2.5rem; }
       .course-card h2 { font-size: 1.35rem; }
     }
+    .view-toggle {
+      display: flex;
+      justify-content: center;
+      gap: 8px;
+      padding: 0 24px 20px;
+    }
+
+    .view-toggle button {
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 8px;
+      padding: 8px 18px;
+      font-size: 0.95rem;
+      cursor: pointer;
+      color: var(--text-muted);
+      transition: all 0.2s;
+    }
+
+    .view-toggle button:hover { border-color: var(--accent); color: var(--accent); }
+    .view-toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+    .course-table {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 60px;
+      display: none;
+    }
+
+    .course-table table {
+      width: 100%;
+      border-collapse: collapse;
+      background: var(--card-bg);
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: 0 2px 12px var(--shadow);
+    }
+
+    .course-table th, .course-table td {
+      padding: 14px 18px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 1rem;
+    }
+
+    .course-table th {
+      background: var(--accent2);
+      color: var(--accent);
+      font-weight: 700;
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .course-table tr:hover { background: var(--accent2); }
+
+    .course-table a {
+      color: var(--accent);
+      text-decoration: none;
+      font-weight: 600;
+    }
+
+    .course-table a:hover { text-decoration: underline; }
+
+    .course-table .tag {
+      font-size: 0.8rem;
+      padding: 2px 10px;
+    }
+
+    .course-table td.desc-cell {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      max-width: 400px;
+    }
+
+    @media (max-width: 768px) {
+      .course-table { padding: 0 12px 40px; }
+      .course-table th, .course-table td { padding: 10px 12px; font-size: 0.9rem; }
+      .course-table td.desc-cell { display: none; }
+    }
+
     .theme-toggle {
       position: fixed;
       top: 16px;
@@ -235,8 +315,14 @@
     <input type="text" id="courseSearch" placeholder="Search courses..." oninput="filterCourses()">
   </div>
 
+  <div class="view-toggle">
+    <button id="btnCards" class="active" onclick="setView('cards')">Cards</button>
+    <button id="btnTable" onclick="setView('table')">Table</button>
+  </div>
+
   <div class="course-count" id="courseCount"></div>
   <div class="courses" id="courseGrid"></div>
+  <div class="course-table" id="courseTable"></div>
 
   <div style="text-align:center; padding: 10px 24px 40px;">
     <a href="glossary.html" style="display:inline-block; padding:14px 36px; background:var(--accent); color:#fff; text-decoration:none; border-radius:12px; font-size:1.15rem; font-weight:600; transition:background 0.2s;">&#x1F4D6; Glossary &mdash; All Key Terms</a>
@@ -296,9 +382,20 @@ const COURSES = [
   {name:"Prometheus", href:"prometheus-presentation.html", icon:"&#x1F525;", desc:"Open-source monitoring and alerting toolkit. Learn PromQL, metric types, alerting rules, and Grafana integration.", tags:["Monitoring","CNCF","PromQL"], published:"2026-03-27"},
 ];
 
+let currentView = localStorage.getItem('courseView') || 'cards';
+
+function setView(view) {
+  currentView = view;
+  localStorage.setItem('courseView', view);
+  document.getElementById('btnCards').classList.toggle('active', view === 'cards');
+  document.getElementById('btnTable').classList.toggle('active', view === 'table');
+  filterCourses();
+}
+
 function filterCourses() {
   const q = document.getElementById('courseSearch').value.toLowerCase();
   const grid = document.getElementById('courseGrid');
+  const table = document.getElementById('courseTable');
   const countEl = document.getElementById('courseCount');
 
   const filtered = COURSES.filter(c =>
@@ -307,17 +404,39 @@ function filterCourses() {
 
   countEl.textContent = filtered.length + ' course' + (filtered.length !== 1 ? 's' : '');
 
-  grid.innerHTML = filtered.map(c => `
-    <a href="${c.href}" class="course-card">
-      <div class="course-icon">${c.icon}</div>
-      <h2>${c.name}</h2>
-      <p>${c.desc}</p>
-      <div class="tag-row">${c.tags.map(t => '<span class="tag">' + t + '</span>').join('')}</div>
-      <div class="slide-count">20 slides &middot; ${c.published}</div>
-    </a>
-  `).join('');
+  if (currentView === 'cards') {
+    grid.style.display = '';
+    table.style.display = 'none';
+    grid.innerHTML = filtered.map(c => `
+      <a href="${c.href}" class="course-card">
+        <div class="course-icon">${c.icon}</div>
+        <h2>${c.name}</h2>
+        <p>${c.desc}</p>
+        <div class="tag-row">${c.tags.map(t => '<span class="tag">' + t + '</span>').join('')}</div>
+        <div class="slide-count">20 slides &middot; ${c.published}</div>
+      </a>
+    `).join('');
+  } else {
+    grid.style.display = 'none';
+    table.style.display = 'block';
+    table.innerHTML = `<table>
+      <thead><tr><th>#</th><th>Course</th><th>Description</th><th>Tags</th><th>Published</th></tr></thead>
+      <tbody>${filtered.map((c, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td><a href="${c.href}">${c.icon} ${c.name}</a></td>
+          <td class="desc-cell">${c.desc}</td>
+          <td>${c.tags.map(t => '<span class="tag">' + t + '</span>').join(' ')}</td>
+          <td>${c.published}</td>
+        </tr>`).join('')}
+      </tbody></table>`;
+  }
 }
 
+(function() {
+  document.getElementById('btnCards').classList.toggle('active', currentView === 'cards');
+  document.getElementById('btnTable').classList.toggle('active', currentView === 'table');
+})();
 filterCourses();
 </script>
 
