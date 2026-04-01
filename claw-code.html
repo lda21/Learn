@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
   <title>Claw Code &mdash; Agent Harness Deep Dive</title>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/themes/prism-tomorrow.min.css">
   <style>
     :root {
       --bg: #FAF9F7;
@@ -64,6 +65,32 @@
 
     code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
     code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+
+    /* Prism.js overrides for VS Code-like theme */
+    pre[class*="language-"], code[class*="language-"] { background: var(--code-bg); font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; font-size: 0.95rem; line-height: 1.6; }
+    pre[class*="language-"] { padding: 24px 28px; border-left: 4px solid var(--accent); border-radius: 6px; margin: 0; overflow-x: auto; width: 100%; max-width: 900px; }
+    :not(pre) > code[class*="language-"] { padding: 2px 7px; color: var(--accent); background: var(--accent2); }
+    .token.comment, .token.prolog, .token.doctype, .token.cdata { color: #6A9955; }
+    .token.keyword { color: #569CD6; }
+    .token.builtin { color: #4EC9B0; }
+    .token.class-name, .token.type-tag { color: #4EC9B0; }
+    .token.function { color: #DCDCAA; }
+    .token.string, .token.char { color: #CE9178; }
+    .token.number { color: #B5CEA8; }
+    .token.boolean { color: #569CD6; }
+    .token.operator { color: #D4D4D4; }
+    .token.punctuation { color: #D4D4D4; }
+    .token.decorator, .token.annotation, .token.attr-name { color: #DCDCAA; }
+    .token.constant { color: #4FC1FF; }
+    .token.property { color: #9CDCFE; }
+    .token.parameter { color: #9CDCFE; }
+    .token.variable { color: #9CDCFE; }
+    .token.namespace { color: #4EC9B0; }
+    .token.triple-quoted-string { color: #CE9178; }
+    .token.self, .token.symbol { color: #569CD6; }
+    .token.attr-value { color: #CE9178; }
+    .token.lifetime-annotation { color: #569CD6; }
+    .token.macro { color: #569CD6; }
     pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
 
     .content { max-width: 1000px; width: 100%; }
@@ -289,7 +316,7 @@
 <div class="slide">
   <h2 class="animate">Repository Structure</h2>
   <div class="content animate">
-<pre>
+<pre class="language-markup"><code class="language-markup">
 claw-code/
 &#x251C;&#x2500;&#x2500; src/                          # Python porting workspace
 &#x2502;   &#x251C;&#x2500;&#x2500; main.py                   # CLI entrypoint (30+ subcommands)
@@ -321,7 +348,7 @@ claw-code/
 &#x251C;&#x2500;&#x2500; assets/                       # OmX workflow docs
 &#x251C;&#x2500;&#x2500; README.md
 &#x2514;&#x2500;&#x2500; PARITY.md                     # Feature parity analysis
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -396,7 +423,7 @@ claw-code/
 <div class="slide">
   <h2 class="animate">main.py &mdash; CLI Entry Point</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 # src/main.py - The orchestrator of the Python workspace
 # Functions: build_parser(), main(argv)
 
@@ -422,7 +449,7 @@ subcommands = [
     "exec-tool",         # Execute a mirrored tool
     "flush-transcript",  # Dump message history
 ]
-</pre>
+</code></pre>
   </div>
   <p class="animate" style="color:var(--text-muted); margin-top:12px;">Each subcommand routes to specialized modules &mdash; <code>query_engine</code>, <code>runtime</code>, <code>commands</code>, <code>tools</code>, <code>session_store</code></p>
 </div>
@@ -433,7 +460,7 @@ subcommands = [
 <div class="slide">
   <h2 class="animate">models.py &mdash; Core Data Structures</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 from dataclasses import dataclass
 
 @dataclass(frozen=True)
@@ -471,7 +498,7 @@ class PortingBacklog:
 
     def summary_lines(self) -> list[str]:
         return [f"  {m.name}: {m.status}" for m in self.modules]
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -483,7 +510,7 @@ class PortingBacklog:
   <div class="two-col animate">
     <div class="card">
       <h3>Configuration</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class QueryEngineConfig:
     max_turns: int = 8
@@ -491,7 +518,7 @@ class QueryEngineConfig:
     compact_after_turns: int = 12
     structured_output: bool = False
     structured_retry_limit: int = 2
-</pre>
+</code></pre>
       <ul style="margin-top:12px">
         <li>Token budgeting per turn</li>
         <li>Auto-compaction after N turns</li>
@@ -522,7 +549,7 @@ class QueryEngineConfig:
 <div class="slide">
   <h2 class="animate">TurnResult &mdash; What a Turn Produces</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class TurnResult:
     prompt: str              # The user's input
@@ -532,7 +559,7 @@ class TurnResult:
     permission_denials: tuple  # Tools blocked by permissions
     usage: UsageSummary      # Token counts for this turn
     stop_reason: str         # "end_turn" | "max_tokens" | "budget"
-</pre>
+</code></pre>
   </div>
   <div class="two-col animate" style="margin-top:24px">
     <div class="card">
@@ -562,7 +589,7 @@ class TurnResult:
 <div class="slide">
   <h2 class="animate">runtime.py &mdash; Prompt Routing Engine</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 class PortRuntime:
     """Routes prompts to matching commands/tools via token scoring."""
 
@@ -589,7 +616,7 @@ class PortRuntime:
     def run_turn_loop(self, prompts: list[str]) -> list[TurnResult]:
         """Execute multiple turns sequentially."""
         ...
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -601,14 +628,14 @@ class PortRuntime:
   <div class="two-col animate">
     <div class="card">
       <h3>RoutedMatch</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class RoutedMatch:
     kind: str        # 'command' | 'tool'
     name: str        # e.g., 'agents'
     source_hint: str # TS origin path
     score: float     # Match confidence
-</pre>
+</code></pre>
       <ul style="margin-top:12px">
         <li>Token overlap scoring</li>
         <li>Case-insensitive matching</li>
@@ -618,7 +645,7 @@ class RoutedMatch:
     </div>
     <div class="card">
       <h3>RuntimeSession</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass
 class RuntimeSession:
     prompt: str
@@ -633,7 +660,7 @@ class RuntimeSession:
     tool_execution_messages: list
     stream_events: list
     persisted_session_path: str | None
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -644,7 +671,7 @@ class RuntimeSession:
 <div class="slide">
   <h2 class="animate">commands.py &mdash; Command Registry</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 # Loaded from reference_data/commands_snapshot.json
 # 207 entries with: name, source_hint, responsibility
 
@@ -674,7 +701,7 @@ class CommandGraph:
     builtins: tuple     # Built-in slash commands
     plugin_like: tuple  # Plugin-originated commands
     skill_like: tuple   # Skill-originated commands
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -684,7 +711,7 @@ class CommandGraph:
 <div class="slide">
   <h2 class="animate">tools.py &mdash; Tool Registry</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 # Loaded from reference_data/tools_snapshot.json
 # 184 entries with: name, source_hint, responsibility
 
@@ -716,7 +743,7 @@ class ToolPool:
 
 def assemble_tool_pool(simple_mode=False, include_mcp=True) -> ToolPool:
     """Factory combining filtering + wrapping."""
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -728,7 +755,7 @@ def assemble_tool_pool(simple_mode=False, include_mcp=True) -> ToolPool:
   <div class="two-col animate">
     <div class="card">
       <h3>ToolPermissionContext</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class ToolPermissionContext:
     deny_names: frozenset  # Exact names
@@ -750,7 +777,7 @@ class ToolPermissionContext:
             lower.startswith(p)
             for p in self.deny_prefixes
         )
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>How It Works</h3>
@@ -763,12 +790,12 @@ class ToolPermissionContext:
         <li>Denials tracked as <code>PermissionDenial</code> objects</li>
       </ul>
       <h3 style="margin-top:18px">Permission Denials</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class PermissionDenial:
     tool_name: str
     reason: str
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -781,7 +808,7 @@ class PermissionDenial:
   <div class="two-col animate">
     <div class="card">
       <h3>session_store.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class StoredSession:
     session_id: str
@@ -803,11 +830,11 @@ def save_session(session: StoredSession):
 
 def load_session(session_id: str) -> StoredSession:
     """Deserialize from JSON."""
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>transcript.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 class TranscriptStore:
     entries: list     # All messages
     flushed: bool     # Whether dumped to disk
@@ -828,7 +855,7 @@ class TranscriptStore:
     def flush(self):
         """Mark as flushed to disk."""
         self.flushed = True
-</pre>
+</code></pre>
       <p style="font-size:0.95rem; color:var(--text-muted); margin-top:8px;">Compaction is key &mdash; prevents context window overflow in long sessions</p>
     </div>
   </div>
@@ -842,7 +869,7 @@ class TranscriptStore:
   <div class="two-col animate">
     <div class="card">
       <h3>context.py &mdash; Workspace Introspection</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class PortContext:
     source_root: Path
@@ -860,11 +887,11 @@ def build_port_context() -> PortContext:
 
 def render_context(ctx: PortContext) -> str:
     """Human-readable context summary."""
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>port_manifest.py &mdash; Structure Analysis</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass(frozen=True)
 class PortManifest:
     src_root: Path
@@ -879,7 +906,7 @@ def build_port_manifest() -> PortManifest:
     directory with note annotations.
     Uses Counter for frequency
     detection."""
-</pre>
+</code></pre>
       <ul style="margin-top:12px">
         <li>Counts files per subsystem</li>
         <li>Annotates special modules</li>
@@ -919,7 +946,7 @@ def build_port_manifest() -> PortManifest:
   <div class="two-col animate">
     <div class="card">
       <h3>deferred_init.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass
 class DeferredInitResult:
     trusted: bool       # Trust gate
@@ -940,7 +967,7 @@ def run_deferred_init(trusted: bool):
             session_hooks=False
         )
     # Full initialization...
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Trust Model</h3>
@@ -966,7 +993,7 @@ def run_deferred_init(trusted: bool):
 <div class="slide">
   <h2 class="animate">Parity Audit System</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 # parity_audit.py - Compare Python port against TypeScript archive
 
 ARCHIVE_ROOT_FILES = {       # 32 TS files mapped to Python equivalents
@@ -1001,7 +1028,7 @@ class ParityAuditResult:
     tool_entry_ratio: float       # 184/184 = 100%
     missing_root_targets: list
     missing_directory_targets: list
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1013,7 +1040,7 @@ class ParityAuditResult:
   <div class="two-col animate">
     <div class="card">
       <h3>execution_registry.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass
 class MirroredCommand:
     name: str
@@ -1042,7 +1069,7 @@ class ExecutionRegistry:
 def build_execution_registry():
     """Create registry from
     PORTED_COMMANDS + PORTED_TOOLS."""
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Dispatch Flow</h3>
@@ -1069,7 +1096,7 @@ def build_execution_registry():
   <div class="two-col animate">
     <div class="card">
       <h3>cost_tracker.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 class CostTracker:
     total_units: float
     events: list  # (label, units) tuples
@@ -1085,11 +1112,11 @@ def apply_cost_hook(tracker, label, units):
     Hook pattern for pluggable accounting."""
     tracker.record(label, units)
     return tracker
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>history.py</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-python"><code class="language-python">
 @dataclass
 class HistoryEvent:
     title: str
@@ -1108,7 +1135,7 @@ class HistoryLog:
             lines.append(f"### {e.title}")
             lines.append(e.detail)
         return "\n".join(lines)
-</pre>
+</code></pre>
       <ul style="margin-top:12px">
         <li>Event-sourced session history</li>
         <li>Markdown rendering for reports</li>
@@ -1146,7 +1173,7 @@ class HistoryLog:
     </div>
   </div>
   <div class="content animate" style="margin-top:20px">
-<pre>
+<pre class="language-python"><code class="language-python">
 @dataclass
 class RuntimeModeReport:
     mode: str        # "remote" | "ssh" | "teleport"
@@ -1158,7 +1185,7 @@ class DirectModeReport:
     mode: str        # "direct-connect" | "deep-link"
     target: str
     active: bool
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1168,7 +1195,7 @@ class DirectModeReport:
 <div class="slide">
   <h2 class="animate">Reference Data &amp; Snapshots</h2>
   <div class="content animate">
-<pre>
+<pre class="language-json"><code class="language-json">
 # reference_data/commands_snapshot.json
 # Array of 207 objects:
 [
@@ -1195,7 +1222,7 @@ class DirectModeReport:
 # assistant.json, bootstrap.json, cli.json, coordinator.json,
 # hooks.json, plugins.json, services.json, skills.json,
 # state.json, types.json, voice.json, vim.json, ...
-</pre>
+</code></pre>
   </div>
   <p class="animate" style="color:var(--text-muted);">Snapshots capture the TS archive surface area without including proprietary source code</p>
 </div>
@@ -1244,7 +1271,7 @@ class DirectModeReport:
 <div class="slide">
   <h2 class="animate">Cargo Workspace Configuration</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 # rust/Cargo.toml
 [workspace]
 members = ["crates/*"]
@@ -1270,7 +1297,7 @@ missing_panics_doc = "allow"
 # clap        - CLI parsing
 # rand        - PKCE generation
 # sha2        - OAuth hashing
-</pre>
+</code></pre>
   </div>
   <div class="bp-grid animate" style="margin-top:16px">
     <div class="bp-item"><span>1</span>Resolver 2 for improved dependency resolution</div>
@@ -1286,7 +1313,7 @@ missing_panics_doc = "allow"
 <div class="slide">
   <h2 class="animate">main.rs &mdash; CLI Entry Point</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // Constants
 const DEFAULT_MODEL: &str = "claude-opus-4-6";
 const DEFAULT_DATE: &str = "2026-03-31";
@@ -1320,7 +1347,7 @@ fn resolve_model_alias(alias: &str) -> &str {
         other    => other,
     }
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1332,7 +1359,7 @@ fn resolve_model_alias(alias: &str) -> &str {
   <div class="two-col animate">
     <div class="card">
       <h3>Manual Parsing (main.rs)</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 fn parse_args() -> Result&lt;CliAction&gt; {
     let args: Vec&lt;String&gt; = env::args()
         .skip(1).collect();
@@ -1351,11 +1378,11 @@ fn parse_args() -> Result&lt;CliAction&gt; {
     //   bootstrap-plan
     //   login / logout / init
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Clap Derive (args.rs)</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 #[derive(Parser)]
 struct Cli {
     #[arg(long)]
@@ -1382,7 +1409,7 @@ enum Command {
     Logout,
     Prompt { prompt: Vec&lt;String&gt; },
 }
-</pre>
+</code></pre>
     </div>
   </div>
   <p class="animate" style="color:var(--text-muted); margin-top:12px;">The repo has <strong>both</strong> approaches &mdash; manual parsing gives maximum control, Clap gives type safety</p>
@@ -1394,7 +1421,7 @@ enum Command {
 <div class="slide">
   <h2 class="animate">app.rs &mdash; Application State</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 struct SessionConfig {
     model: String,
     permission_mode: PermissionMode,
@@ -1435,7 +1462,7 @@ struct CliApp {
     conversation_client: ConversationRuntime,
     conversation_history: Vec&lt;ConversationMessage&gt;,
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1445,7 +1472,7 @@ struct CliApp {
 <div class="slide">
   <h2 class="animate">ConversationRuntime &mdash; The Agentic Loop</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/conversation.rs
 const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u64 = 200_000;
 
@@ -1477,7 +1504,7 @@ enum AssistantEvent {
     Usage(TokenUsage),               // Token accounting
     MessageStop,                     // End of response
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1516,7 +1543,7 @@ enum AssistantEvent {
   <div class="two-col animate">
     <div class="card">
       <h3>TurnSummary</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 struct TurnSummary {
     assistant_messages: Vec&lt;ConversationMessage&gt;,
     tool_results: Vec&lt;ToolResult&gt;,
@@ -1528,11 +1555,11 @@ struct TurnSummary {
 struct AutoCompactionEvent {
     removed_message_count: usize,
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Compaction Logic</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 // compact.rs
 struct CompactionConfig {
     threshold: u64,       // Default: 200K
@@ -1558,7 +1585,7 @@ fn compact_session(
     session: &mut Session,
     config: &CompactionConfig
 ) -> CompactionResult { ... }
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -1569,7 +1596,7 @@ fn compact_session(
 <div class="slide">
   <h2 class="animate">Three-Tier Permission Model (Rust)</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/permissions.rs
 enum PermissionMode {
     ReadOnly,           // File reads, searches, web operations only
@@ -1592,7 +1619,7 @@ enum PermissionDecision {
     AllowOnce,
     AllowAlways,
 }
-</pre>
+</code></pre>
   </div>
   <div class="metric-grid animate" style="margin-top:16px">
     <div class="metric-card">
@@ -1620,7 +1647,7 @@ enum PermissionDecision {
 <div class="slide">
   <h2 class="animate">Tool Specifications (Rust)</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // tools/src/lib.rs
 struct ToolSpec {
     name: String,
@@ -1653,7 +1680,7 @@ fn mvp_tool_specs() -> Vec&lt;ToolSpec&gt; {
         ToolSpec { name: "repl",         required_permission: DangerFullAccess, .. },
     ]
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1665,7 +1692,7 @@ fn mvp_tool_specs() -> Vec&lt;ToolSpec&gt; {
   <div class="two-col animate">
     <div class="card">
       <h3>bash.rs</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 struct BashCommandInput {
     command: String,
     timeout_ms: Option&lt;u64&gt;,
@@ -1687,11 +1714,11 @@ fn execute_bash(
     // Capture stdout/stderr
     // Return structured result
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>file_ops.rs</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 fn read_file(
     path: &Path,
     offset: Option&lt;usize&gt;,
@@ -1719,7 +1746,7 @@ fn grep_search(
     path: Option&lt;&Path&gt;,
     include: Option&lt;&str&gt;
 ) -> Result&lt;String&gt; { ... }
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -1730,7 +1757,7 @@ fn grep_search(
 <div class="slide">
   <h2 class="animate">API Crate &mdash; Anthropic Client</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // api/src/client.rs
 struct AnthropicClient {
     http_client: reqwest::Client,
@@ -1759,7 +1786,7 @@ fn resolve_startup_auth_source() -> Result&lt;AuthSource&gt; {
 fn oauth_token_is_expired(token: &OAuthToken) -> bool {
     // Check expiry timestamp against current time
 }
-</pre>
+</code></pre>
   </div>
   <p class="animate" style="color:var(--text-muted);">Supports both API key and OAuth authentication with automatic token refresh</p>
 </div>
@@ -1772,7 +1799,7 @@ fn oauth_token_is_expired(token: &OAuthToken) -> bool {
   <div class="two-col animate">
     <div class="card">
       <h3>api/src/sse.rs</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 struct SseParser {
     buffer: String,
     event_type: Option&lt;String&gt;,
@@ -1789,11 +1816,11 @@ fn parse_frame(line: &str) -> SseFrame {
         SseFrame::Comment
     }
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>api/src/types.rs &mdash; Event Types</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 // Stream event types from Anthropic API:
 enum StreamEvent {
     MessageStart { message: Message },
@@ -1820,7 +1847,7 @@ struct Usage {
     cache_read_input_tokens: Option&lt;u64&gt;,
     cache_creation_input_tokens: Option&lt;u64&gt;,
 }
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -1831,7 +1858,7 @@ struct Usage {
 <div class="slide">
   <h2 class="animate">OAuth 2.0 with PKCE</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/oauth.rs
 struct OAuthConfig {
     client_id: String,
@@ -1851,7 +1878,7 @@ fn generate_pkce_pair() -> (String, String, PkceChallengeMethod) {
     // 2. Compute code_challenge = BASE64URL(SHA256(code_verifier))
     // 3. Return (verifier, challenge, S256)
 }
-</pre>
+</code></pre>
   </div>
   <div class="diagram animate" style="margin-top:20px">
     <div class="box">Generate<br>PKCE Pair</div>
@@ -1872,7 +1899,7 @@ fn generate_pkce_pair() -> (String, String, PkceChallengeMethod) {
 <div class="slide">
   <h2 class="animate">Configuration Hierarchy</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/config.rs
 enum ConfigSource {
     User,     // ~/.claude.json              (global defaults)
@@ -1899,7 +1926,7 @@ struct RuntimeFeatureConfig {
     permission_mode: Option&lt;ResolvedPermissionMode&gt;,
     sandbox: bool,
 }
-</pre>
+</code></pre>
   </div>
   <div class="diagram animate" style="margin-top:16px">
     <div class="box">~/.claude.json<br><small>User (lowest priority)</small></div>
@@ -1916,7 +1943,7 @@ struct RuntimeFeatureConfig {
 <div class="slide">
   <h2 class="animate">MCP &mdash; Model Context Protocol</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/mcp.rs
 enum McpTransport {
     Stdio,         // Spawn process, communicate via stdin/stdout
@@ -1947,7 +1974,7 @@ struct McpServerManager {
 
 fn mcp_server_signature(name: &str, config: &McpServerConfig) -> String { ... }
 fn mcp_tool_name(server: &str, tool: &str) -> String { ... }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -1997,7 +2024,7 @@ fn mcp_tool_name(server: &str, tool: &str) -> String { ... }
   <div class="two-col animate">
     <div class="card">
       <h3>hooks.rs</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 enum HookEvent {
     PreToolUse {
         tool_name: String,
@@ -2020,7 +2047,7 @@ impl HookRunner {
         // Planned: shell command execution
     }
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Hook Lifecycle</h3>
@@ -2047,7 +2074,7 @@ impl HookRunner {
 <div class="slide">
   <h2 class="animate">Session &amp; Message Types</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/session.rs
 struct Session {
     id: String,
@@ -2074,7 +2101,7 @@ enum Role {
     User,
     Assistant,
 }
-</pre>
+</code></pre>
   </div>
   <p class="animate" style="color:var(--text-muted);">Sessions persist as JSON files for resume capability &mdash; same pattern as the Python <code>StoredSession</code></p>
 </div>
@@ -2085,7 +2112,7 @@ enum Role {
 <div class="slide">
   <h2 class="animate">System Prompt Assembly</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/prompt.rs
 struct SystemPromptBuilder {
     sections: Vec&lt;PromptSection&gt;,
@@ -2122,7 +2149,7 @@ fn load_system_prompt(context: &ProjectContext) -> Vec&lt;String&gt; {
 
     sections
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -2132,7 +2159,7 @@ fn load_system_prompt(context: &ProjectContext) -> Vec&lt;String&gt; {
 <div class="slide">
   <h2 class="animate">Usage Tracking &amp; Pricing</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // runtime/src/usage.rs
 struct TokenUsage {
     input_tokens: u64,
@@ -2162,7 +2189,7 @@ fn pricing_for_model(model: &str) -> ModelPricing {
     // Returns per-token rates for input, output, cache
     // Different rates for opus, sonnet, haiku
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -2172,7 +2199,7 @@ fn pricing_for_model(model: &str) -> ModelPricing {
 <div class="slide">
   <h2 class="animate">Slash Command Registry</h2>
   <div class="content animate">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // commands/src/lib.rs
 struct SlashCommandSpec {
     name: &'static str,
@@ -2201,7 +2228,7 @@ const SLASH_COMMAND_SPECS: &[SlashCommandSpec] = &[
     SlashCommandSpec { name: "bughunter",   summary: "Automated bug detection",     resume_supported: false },
     SlashCommandSpec { name: "ultraplan",   summary: "Deep planning mode",          resume_supported: false },
 ];
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -2223,7 +2250,7 @@ const SLASH_COMMAND_SPECS: &[SlashCommandSpec] = &[
     </div>
     <div class="card">
       <h3>remote.rs</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 struct RemoteSessionContext {
     session_id: String,
     remote_url: String,
@@ -2235,7 +2262,7 @@ struct UpstreamProxyBootstrap {
     target_model: String,
     headers: HashMap&lt;String, String&gt;,
 }
-</pre>
+</code></pre>
       <ul style="margin-top:12px">
         <li>Remote session management</li>
         <li>Upstream proxy configuration</li>
@@ -2275,7 +2302,7 @@ struct UpstreamProxyBootstrap {
     </div>
   </div>
   <div class="content animate" style="margin-top:20px">
-<pre>
+<pre class="language-rust"><code class="language-rust">
 // LiveCli struct manages the REPL lifecycle:
 struct LiveCli {
     model: String,
@@ -2289,7 +2316,7 @@ enum CliOutputFormat {
     Text,     // Human-readable terminal output
     Json,     // Structured JSON for automation
 }
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -2303,7 +2330,7 @@ enum CliOutputFormat {
 <div class="slide">
   <h2 class="animate">Part III: Testing &amp; Verification</h2>
   <div class="content animate">
-<pre>
+<pre class="language-python"><code class="language-python">
 # tests/test_porting_workspace.py - 32 test cases
 
 class TestPortManifest:
@@ -2336,7 +2363,7 @@ class TestQueryEngine:
     test_tool_pool_simple_mode     # Simple mode filtering
     test_tool_pool_mcp_exclusion   # MCP filtering
     # ... and more
-</pre>
+</code></pre>
   </div>
 </div>
 
@@ -2348,7 +2375,7 @@ class TestQueryEngine:
   <div class="two-col animate">
     <div class="card">
       <h3>args.rs Tests</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 #[test]
 fn test_parse_flags() {
     let cli = Cli::parse_from([
@@ -2368,11 +2395,11 @@ fn test_login_command() {
     let cli = Cli::parse_from(["claw", "login"]);
     assert!(matches!(cli.command, Some(Command::Login)));
 }
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>API Integration Tests</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-rust"><code class="language-rust">
 // api/tests/client_integration.rs
 // Tests require ANTHROPIC_API_KEY
 
@@ -2392,7 +2419,7 @@ fn test_sse_parsing() {
     let frame = parse_frame("data: {\"type\":\"message_start\"}");
     assert!(matches!(frame, SseFrame::Data(_)));
 }
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -2570,7 +2597,7 @@ fn test_sse_parsing() {
   <div class="two-col animate">
     <div class="card">
       <h3>Python</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-bash"><code class="language-bash">
 # No install needed - stdlib only
 python3 -m src.main summary
 python3 -m src.main manifest
@@ -2587,11 +2614,11 @@ python3 -m src.main remote-mode
 
 # Run tests
 python3 -m pytest tests/ -v
-</pre>
+</code></pre>
     </div>
     <div class="card">
       <h3>Rust</h3>
-<pre style="font-size:0.85rem">
+<pre class="language-bash"><code class="language-bash">
 # Build
 cd rust
 cargo build --release
@@ -2618,7 +2645,7 @@ cargo build --release
 # JSON output
 ./target/release/claw \
   --output-format json -p "query"
-</pre>
+</code></pre>
     </div>
   </div>
 </div>
@@ -2762,5 +2789,18 @@ cargo build --release
   })();
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-json.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-bash.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
+<script>
+  // Shrink code blocks inside .card containers
+  document.querySelectorAll('.card pre[class*="language-"]').forEach(function(el) {
+    el.style.fontSize = '0.85rem';
+  });
+</script>
 </body>
 </html>
