@@ -161,23 +161,24 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
-      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
-      p, li { font-size: 1.3rem; line-height: 1.7; }
-      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
-      code { font-size: 1.15rem; padding: 3px 8px; }
-      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
-      .two-col { grid-template-columns: 1fr; gap: 18px; }
-      .three-col { grid-template-columns: 1fr; gap: 14px; }
-      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
-      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
-      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
-      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
-      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
-      .diagram { flex-direction: column; gap: 8px; }
-      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
-      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
-      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .slide { padding: 20px 16px; justify-content: flex-start; padding-top: 50px; padding-bottom: 80px; overflow-y: auto; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2rem; } h2 { font-size: 1.7rem; } h3 { font-size: 1.3rem; }
+      p, li { font-size: 1.05rem; line-height: 1.6; }
+      .title-fire { font-size: 3rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.2rem; }
+      code { font-size: 0.85rem; padding: 2px 6px; }
+      pre, pre[class*="language-"] { padding: 14px 12px; font-size: 0.75rem; line-height: 1.45; max-width: 100%; overflow-x: auto; white-space: pre; word-wrap: normal; border-radius: 8px; }
+      .two-col { grid-template-columns: 1fr; gap: 14px; }
+      .three-col { grid-template-columns: 1fr; gap: 10px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 10px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 10px; }
+      .card { padding: 16px; } .card h3 { font-size: 1.2rem; } .card p { font-size: 1rem; }
+      .card pre, .card pre[class*="language-"] { font-size: 0.7rem; padding: 10px; }
+      .metric-card { padding: 16px; } .metric-card h3 { font-size: 1.2rem; } .metric-card p { font-size: 0.95rem; } .metric-card code { font-size: 0.8rem; }
+      .bp-item { padding: 12px 14px; font-size: 1rem; }
+      .diagram { flex-direction: column; gap: 6px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.4rem; }
+      .diagram .box { min-width: 85%; padding: 10px 16px; font-size: 1rem; }
+      table { font-size: 0.9rem; display: block; overflow-x: auto; } th, td { padding: 8px 10px; font-size: 0.9rem; }
       .nav-toggle { display: flex; }
       .nav { display: none; }
       .close-btn { display: none; }
@@ -188,14 +189,16 @@
       .content { max-width: 100%; }
     }
     @media (max-width: 480px) {
-      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
-      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
-      p, li { font-size: 1.2rem; line-height: 1.65; }
-      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
-      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
-      .tag { font-size: 1.1rem; padding: 5px 14px; }
-      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
-      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+      .slide { padding: 16px 12px; padding-top: 44px; padding-bottom: 70px; }
+      h1 { font-size: 1.8rem; } h2 { font-size: 1.5rem; } h3 { font-size: 1.15rem; }
+      p, li { font-size: 1rem; line-height: 1.55; }
+      pre, pre[class*="language-"] { font-size: 0.68rem; padding: 10px 8px; line-height: 1.4; }
+      .card pre, .card pre[class*="language-"] { font-size: 0.65rem; }
+      code { font-size: 0.8rem; }
+      .title-fire { font-size: 2.5rem; } .logo-icon { font-size: 3.5rem; } .subtitle { font-size: 1.1rem; }
+      .tag { font-size: 0.85rem; padding: 3px 10px; }
+      .bp-item { font-size: 0.95rem; } .card p, .metric-card p { font-size: 0.9rem; }
+      .diagram .box { font-size: 0.9rem; padding: 8px 12px; } table, th, td { font-size: 0.85rem; }
     }
 
     .nav-toggle {
@@ -2747,8 +2750,16 @@ cargo build --release
     slides[cur].classList.remove('active');
     cur = Math.max(0, Math.min(n, total - 1));
     slides[cur].classList.add('active');
+    slides[cur].scrollTop = 0;
     document.getElementById('progress').style.width = ((cur / (total - 1)) * 100) + '%';
     document.getElementById('slideCounter').textContent = (cur + 1) + ' / ' + total;
+    // Re-highlight code blocks that weren't visible during initial Prism run
+    if (typeof Prism !== 'undefined') {
+      slides[cur].querySelectorAll('code[class*="language-"]:not(.prism-done)').forEach(function(el) {
+        Prism.highlightElement(el);
+        el.classList.add('prism-done');
+      });
+    }
   }
 
   function go(d) { show(cur + d); }
@@ -2797,6 +2808,7 @@ cargo build --release
   })();
 </script>
 
+<script>window.Prism = window.Prism || {}; Prism.manual = true;</script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/prism.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-python.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-rust.min.js"></script>
@@ -2805,9 +2817,10 @@ cargo build --release
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-toml.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/prism/1.29.0/components/prism-markup.min.js"></script>
 <script>
-  // Shrink code blocks inside .card containers
-  document.querySelectorAll('.card pre[class*="language-"]').forEach(function(el) {
-    el.style.fontSize = '0.85rem';
+  // Highlight the first (active) slide immediately
+  document.querySelectorAll('.slide.active code[class*="language-"]').forEach(function(el) {
+    Prism.highlightElement(el);
+    el.classList.add('prism-done');
   });
 </script>
 </body>
