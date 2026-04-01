@@ -828,7 +828,100 @@ load 'test_helper/bats-assert/load'
   </div>
 
 
-  <!-- Slide 19: E2E Example Intro -->
+  <!-- Slide 19: Step-by-Step Developer Workflow -->
+  <div class="slide">
+    <h2 class="animate">Developer Workflow: Exact Steps</h2>
+    <div class="content animate">
+      <p>You have a task (assignment, PRD, feature spec). Here's <span class="highlight">exactly what you do</span>, command by command:</p>
+<pre style="margin-top:16px;font-size:0.82rem">
+# ── STEP 1: Create your project folder ──────────────────────
+mkdir battleship &amp;&amp; cd battleship
+git init
+
+# ── STEP 2: Run the Ralph wizard ────────────────────────────
+ralph-enable
+#   → Detects: empty project (or scans for tech stack)
+#   → Asks: where are your tasks? (manual / GitHub Issues / PRD file)
+#   → Asks: tool permissions, rate limits, timeouts
+#   → Creates: .ralph/ folder + .ralphrc config file
+#   You now have this structure:
+#     .ralphrc              ← config (edit rate limits, tools)
+#     .ralph/
+#       PROMPT.md           ← EMPTY — you must fill this in
+#       fix_plan.md         ← EMPTY — you must fill this in
+#       AGENT.md            ← pre-filled with detected build commands
+#       specs/              ← empty folder for detailed specs
+#       logs/               ← empty folder for execution logs
+
+# ── STEP 3: Write your instructions (THIS IS YOUR JOB) ─────
+#   Open .ralph/PROMPT.md in your editor and describe:
+#   - What to build (the goal)
+#   - Architecture decisions (tech stack, ports, structure)
+#   - Constraints and rules
+#   - "DO NOT MODIFY files in .ralph/ directory"
+
+# ── STEP 4: Break work into tasks ──────────────────────────
+#   Open .ralph/fix_plan.md and create a checklist:
+#   - [ ] Task 1 (do this first — no dependencies)
+#   - [ ] Task 2 (depends on task 1)
+#   - [ ] ...
+#   Order matters! Dependencies first. Claude works top to bottom.
+
+# ── STEP 5: Add detailed specs (optional but recommended) ──
+#   Create files in .ralph/specs/ for complex features:
+#     .ralph/specs/api-contract.md
+#     .ralph/specs/game-rules.md
+
+# ── STEP 6: Review .ralphrc and AGENT.md ───────────────────
+#   Edit .ralphrc: adjust MAX_LOOPS, RATE_LIMIT_PER_HOUR
+#   Edit AGENT.md: add your build/test/lint commands
+
+# ── STEP 7: Start Ralph ────────────────────────────────────
+ralph                # basic — runs in foreground
+ralph --monitor      # better — opens tmux with dashboard pane
+
+# ── STEP 8: Go do something else ───────────────────────────
+#   Ralph loops until fix_plan.md is fully checked off.
+#   Come back, review git log, check the result.
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: What You Write vs What Ralph Does -->
+  <div class="slide">
+    <h2 class="animate">Your Job vs Ralph's Job</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>You Write (Once)</h3>
+        <ul>
+          <li><span class="highlight">PROMPT.md</span> &mdash; the "what" and "why". Think of it as a brief to a contractor: what to build, what tech, what constraints.</li>
+          <li><span class="highlight">fix_plan.md</span> &mdash; ordered checklist. Each line = one unit of work Claude can complete in 1-3 iterations.</li>
+          <li><span class="highlight">AGENT.md</span> &mdash; how to verify. The build, test, and lint commands Claude runs to check itself.</li>
+          <li><span class="highlight">specs/</span> &mdash; detailed requirements for anything non-obvious (API contracts, data models, business rules).</li>
+          <li><span class="highlight">.ralphrc</span> &mdash; safety knobs. Rate limits, max loops, timeouts.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="green">Ralph Does (Automatically)</h3>
+        <ul>
+          <li>Reads your PROMPT.md and fix_plan.md</li>
+          <li>Picks the next unchecked <code>- [ ]</code> task</li>
+          <li>Claude writes code, creates files, runs commands</li>
+          <li>Claude runs your AGENT.md verify commands</li>
+          <li>Claude checks off <code>- [x]</code> the completed task</li>
+          <li>Reports RALPH_STATUS (progress, files changed)</li>
+          <li>Ralph checks circuit breaker and rate limits</li>
+          <li>Loops back &mdash; picks the next unchecked task</li>
+          <li>Exits when all tasks are <code>[x]</code> done</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center;color:var(--text-muted)"><span class="highlight">Key insight:</span> The quality of your PROMPT.md and fix_plan.md directly determines the quality of Ralph's output. Garbage in, garbage out.</p>
+  </div>
+
+
+  <!-- Slide 21: E2E Example Intro -->
   <div class="slide">
     <h2 class="animate">E2E Example: Battleship Game</h2>
     <div class="content animate">
@@ -1188,7 +1281,7 @@ EXIT_SIGNAL: true      # ← Both conditions met, Ralph stops cleanly
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 29</div>
+<div class="slide-counter" id="counter">1 / 31</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
