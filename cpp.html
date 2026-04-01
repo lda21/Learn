@@ -1,0 +1,1137 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>C++ for C# Developers</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate title-fire">C++ for C# Developers</h1>
+    <p class="subtitle animate">C# without the safety net, but with more power</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">C++</span>
+      <span class="tag">Modern C++</span>
+      <span class="tag">RAII</span>
+      <span class="tag">Templates</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: C# vs C++ Mental Model -->
+  <div class="slide">
+    <h2 class="animate">C# vs C++ Mental Model</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">Familiar from C#</h3>
+        <ul>
+          <li>Classes, structs, interfaces (abstract classes)</li>
+          <li>Inheritance &amp; polymorphism</li>
+          <li>Operator overloading</li>
+          <li>Namespaces</li>
+          <li>Exceptions (try/catch/throw)</li>
+          <li>Lambdas &amp; closures</li>
+          <li>Generics &rarr; Templates (much more powerful)</li>
+          <li>async/await &rarr; coroutines (C++20)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--warning);">New in C++</h3>
+        <ul>
+          <li><strong>No garbage collector</strong> &mdash; you manage memory</li>
+          <li><strong>No runtime</strong> &mdash; compiles to native machine code</li>
+          <li>Pointers &amp; raw memory access</li>
+          <li>RAII (deterministic resource cleanup)</li>
+          <li>Move semantics &amp; rvalue references</li>
+          <li>Header files &amp; separate compilation</li>
+          <li>Undefined behavior (the compiler trusts you)</li>
+          <li>Multiple inheritance</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Classes -->
+  <div class="slide">
+    <h2 class="animate">Classes &mdash; Familiar But Different</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Single file</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+public class Player {
+    public string Name { get; }
+    private int _health;
+
+    public Player(string name, int hp) {
+        Name = name;
+        _health = hp;
+    }
+
+    // No destructor needed - GC
+    // handles cleanup
+}
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ &mdash; Header + Source</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// player.h
+class Player {
+public:
+    Player(std::string name, int hp);
+    ~Player();  // Destructor: deterministic!
+
+    std::string getName() const;
+private:
+    std::string name_;
+    int health_;
+};
+
+// player.cpp
+Player::Player(std::string name, int hp)
+    : name_(std::move(name)), health_(hp) {}
+Player::~Player() { /* cleanup here */ }
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 16px; text-align: center; color: var(--text-muted);">
+      C++ destructors are <span class="highlight">deterministic</span> &mdash; called exactly when the object goes out of scope. No finalizers, no GC delay.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 4: Value vs Reference -->
+  <div class="slide">
+    <h2 class="animate">The Big Difference: Value vs Reference</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Classes are reference types</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+Player a = new Player("Alice", 100);
+Player b = a;  // b points to SAME object
+b.TakeDamage(10);
+// a.Health is also 90!
+
+// Classes always live on the heap
+// GC cleans them up eventually
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ &mdash; Objects are values by default</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+Player a("Alice", 100);
+Player b = a;  // COPIES the entire object!
+b.takeDamage(10);
+// a.health is still 100
+
+// a lives on the stack
+// Destroyed when scope ends
+// No GC needed
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <p style="text-align: center;"><span class="highlight">This changes EVERYTHING.</span> In C++, assignment copies by default. You must explicitly use pointers or references to share objects.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: References & Pointers -->
+  <div class="slide">
+    <h2 class="animate">References &amp; Pointers</h2>
+    <div class="content">
+      <pre class="animate">
+// C# ref parameter (closest to C++ reference)
+void Heal(ref int health, int amount) {
+    health += amount;  // Modifies original
+}
+
+// C++ REFERENCE: int&amp; (alias, cannot be null, cannot be reseated)
+void heal(int&amp; health, int amount) {
+    health += amount;  // Modifies original
+}
+
+// C++ POINTER: int* (memory address, CAN be null, can be reseated)
+void heal(int* health, int amount) {
+    if (health != nullptr) {
+        *health += amount;  // Dereference to access value
+    }
+}
+
+// Usage
+int hp = 50;
+heal(hp, 20);      // Reference: hp is now 70
+heal(&amp;hp, 10);     // Pointer: pass address with &amp;, hp is now 80
+      </pre>
+      <p class="animate" style="margin-top: 12px;">
+        <strong>Rule of thumb:</strong> Use <code>const T&amp;</code> for read-only params, <code>T&amp;</code> for output params, <code>T*</code> only when null is a valid value.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: RAII -->
+  <div class="slide">
+    <h2 class="animate">RAII &mdash; The Most Important C++ Concept</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; IDisposable + using</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Only works for IDisposable objects
+using var file = File.OpenRead("data.txt");
+// file.Dispose() called at scope end
+
+// Without using, you must remember:
+var conn = new SqlConnection(connStr);
+try {
+    conn.Open();
+    // use connection
+} finally {
+    conn.Dispose(); // must not forget!
+}
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ &mdash; RAII for everything</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Constructor acquires, destructor releases
+// Works for EVERY resource automatically
+{
+    std::ifstream file("data.txt");
+    std::lock_guard lock(mutex);
+    auto conn = db::connect(connStr);
+    // use file, lock, connection...
+
+}  // ALL destructors called automatically
+   // file closed, mutex unlocked,
+   // connection returned to pool
+   // No try/finally needed!
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 16px; text-align: center;">
+      <span class="highlight">RAII = Resource Acquisition Is Initialization.</span> Every resource is tied to an object's lifetime. Scope-based, deterministic, exception-safe.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 7: Smart Pointers -->
+  <div class="slide">
+    <h2 class="animate">Smart Pointers</h2>
+    <div class="content">
+      <pre class="animate">
+// NEVER use raw new/delete in modern C++!
+
+// unique_ptr: sole ownership (like owning a resource outright)
+auto player = std::make_unique&lt;Player&gt;("Alice", 100);
+player-&gt;takeDamage(10);
+// Automatically deleted when unique_ptr goes out of scope
+// Cannot be copied, only moved
+
+// shared_ptr: reference-counted (closest to C# reference behavior)
+auto boss = std::make_shared&lt;Enemy&gt;("Dragon", 5000);
+auto bossRef = boss;  // ref count = 2
+// Deleted when last shared_ptr is destroyed
+
+// weak_ptr: non-owning observer (breaks reference cycles)
+std::weak_ptr&lt;Enemy&gt; observer = boss;
+if (auto locked = observer.lock()) {
+    // object still alive, use it
+}
+      </pre>
+      <div class="metric-grid animate" style="margin-top: 16px;">
+        <div class="metric-card">
+          <h3>unique_ptr</h3>
+          <p>Single owner. Zero overhead vs raw pointer. Use by default.</p>
+        </div>
+        <div class="metric-card">
+          <h3>shared_ptr</h3>
+          <p>Multiple owners. Ref-counted (small overhead). Use when ownership is truly shared.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Move Semantics -->
+  <div class="slide">
+    <h2 class="animate">Move Semantics</h2>
+    <div class="content">
+      <pre class="animate">
+// Problem: copying large objects is expensive
+std::vector&lt;int&gt; createData() {
+    std::vector&lt;int&gt; result(1'000'000);  // 1 million ints
+    // ... fill result ...
+    return result;  // MOVE, not copy! Free!
+}
+
+// std::move transfers ownership instead of copying
+std::string name = "Alice";
+std::string other = std::move(name);
+// other is "Alice", name is now in a valid-but-unspecified state
+
+// Rvalue references (&&) enable move semantics
+class Buffer {
+public:
+    Buffer(Buffer&amp;&amp; other) noexcept       // Move constructor
+        : data_(other.data_), size_(other.size_) {
+        other.data_ = nullptr;              // Steal the resource
+        other.size_ = 0;
+    }
+private:
+    char* data_;
+    size_t size_;
+};
+      </pre>
+      <p class="animate" style="margin-top: 12px;">
+        <strong>Why C# doesn't need this:</strong> C# reference types are already just pointers under the hood. The GC handles the rest. C++ has no GC, so move semantics let you <span class="highlight">transfer ownership without copying</span>.
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Templates -->
+  <div class="slide">
+    <h2 class="animate">Templates &mdash; Generics on Steroids</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Generics (runtime)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Type info preserved at runtime
+T Max&lt;T&gt;(T a, T b)
+    where T : IComparable&lt;T&gt; {
+    return a.CompareTo(b) &gt; 0 ? a : b;
+}
+
+// Constraints via interfaces
+// Cannot use non-type parameters
+// Cannot specialize
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ Templates (compile-time)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Code generated at compile time
+template&lt;typename T&gt;
+T max(T a, T b) {
+    return (a &gt; b) ? a : b;
+}
+
+// Non-type parameters (C# can't do this)
+template&lt;typename T, int Size&gt;
+class FixedArray {
+    T data[Size];  // Size known at compile time!
+};
+
+// Concepts (C++20) = type constraints
+template&lt;std::integral T&gt;
+T gcd(T a, T b) { ... }
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 12px; text-align: center;">
+      Templates generate <span class="highlight">separate code for each type</span> at compile time. More powerful than C# generics, but can cause longer compile times and cryptic error messages.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 10: STL -->
+  <div class="slide">
+    <h2 class="animate">The Standard Library (STL)</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>C#</th><th>C++ STL</th><th>Notes</th></tr>
+        <tr><td><code>List&lt;T&gt;</code></td><td><code>std::vector&lt;T&gt;</code></td><td>Contiguous, resizable array</td></tr>
+        <tr><td><code>Dictionary&lt;K,V&gt;</code></td><td><code>std::unordered_map&lt;K,V&gt;</code></td><td>Hash map (O(1) lookup)</td></tr>
+        <tr><td><code>SortedDictionary</code></td><td><code>std::map&lt;K,V&gt;</code></td><td>Ordered tree (O(log n))</td></tr>
+        <tr><td><code>HashSet&lt;T&gt;</code></td><td><code>std::unordered_set&lt;T&gt;</code></td><td>Hash set</td></tr>
+        <tr><td><code>Queue&lt;T&gt;</code></td><td><code>std::queue&lt;T&gt;</code></td><td>FIFO queue</td></tr>
+        <tr><td><code>Stack&lt;T&gt;</code></td><td><code>std::stack&lt;T&gt;</code></td><td>LIFO stack</td></tr>
+        <tr><td><code>Span&lt;T&gt;</code></td><td><code>std::span&lt;T&gt;</code></td><td>Non-owning view (C++20)</td></tr>
+        <tr><td>LINQ</td><td><code>std::ranges</code></td><td>Composable algorithms (C++20)</td></tr>
+      </table>
+      <pre class="animate" style="margin-top: 16px;">
+// C# LINQ:    numbers.Where(x => x > 5).Select(x => x * 2).ToList();
+// C++ ranges: numbers | std::views::filter([](int x){ return x > 5; })
+//                      | std::views::transform([](int x){ return x * 2; });
+
+// Classic STL algorithms
+std::sort(vec.begin(), vec.end());
+auto it = std::find(vec.begin(), vec.end(), target);
+int sum = std::accumulate(vec.begin(), vec.end(), 0);
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Strings -->
+  <div class="slide">
+    <h2 class="animate">Strings</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Immutable, GC-managed</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+string name = "Alice";
+string greeting = $"Hello, {name}!";
+// string interpolation built-in
+
+ReadOnlySpan&lt;char&gt; slice
+    = name.AsSpan(0, 3);
+// "Ali" without allocating
+
+// Strings are immutable
+// StringBuilder for mutations
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ &mdash; Mutable, value type</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+std::string name = "Alice";
+// No string interpolation (pre-C++20)
+// Use std::format (C++20):
+auto greeting = std::format(
+    "Hello, {}!", name);
+
+// string_view = ReadOnlySpan&lt;char&gt;
+std::string_view sv = name;
+auto slice = sv.substr(0, 3);
+// "Ali" without copying
+
+// Strings ARE mutable
+name[0] = 'E';  // "Elice"
+// AVOID: char* (C-style, dangerous)
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 16px; text-align: center;">
+      Use <code>std::string</code> for owned strings, <code>std::string_view</code> for non-owning references. <span class="highlight">Never use <code>char*</code></span> in modern C++.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 12: Inheritance & Polymorphism -->
+  <div class="slide">
+    <h2 class="animate">Inheritance &amp; Polymorphism</h2>
+    <div class="content">
+      <pre class="animate">
+// C++ uses virtual functions like C# virtual/override
+class Shape {
+public:
+    virtual double area() const = 0;   // = 0 makes it pure virtual (abstract)
+    virtual ~Shape() = default;         // ALWAYS virtual destructor in base class!
+};
+
+class Circle : public Shape {
+public:
+    explicit Circle(double r) : radius_(r) {}
+    double area() const override { return 3.14159 * radius_ * radius_; }
+private:
+    double radius_;
+};
+
+// Multiple inheritance: C# doesn't have this!
+class Drawable {
+public:
+    virtual void draw() const = 0;
+};
+
+class VisualCircle : public Circle, public Drawable {
+    void draw() const override { /* render circle */ }
+};
+
+// Polymorphism requires pointers or references
+std::unique_ptr&lt;Shape&gt; shape = std::make_unique&lt;Circle&gt;(5.0);
+double a = shape-&gt;area();  // Calls Circle::area() via vtable
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Operator Overloading -->
+  <div class="slide">
+    <h2 class="animate">Operator Overloading</h2>
+    <div class="content">
+      <pre class="animate">
+class Vec2 {
+public:
+    double x, y;
+
+    // Same concept as C#, but more operators available
+    Vec2 operator+(const Vec2&amp; rhs) const {
+        return {x + rhs.x, y + rhs.y};
+    }
+
+    // Subscript operator (C# uses indexers)
+    double&amp; operator[](int i) {
+        return i == 0 ? x : y;
+    }
+
+    // Spaceship operator (C++20) = auto-generates ==, !=, &lt;, &gt;, &lt;=, &gt;=
+    auto operator&lt;=&gt;(const Vec2&amp;) const = default;
+
+    // Stream output (like C# ToString + Console.Write)
+    friend std::ostream&amp; operator&lt;&lt;(std::ostream&amp; os, const Vec2&amp; v) {
+        return os &lt;&lt; "(" &lt;&lt; v.x &lt;&lt; ", " &lt;&lt; v.y &lt;&lt; ")";
+    }
+
+    // Function call operator (makes object callable like a functor)
+    double operator()() const { return std::sqrt(x*x + y*y); }
+};
+
+Vec2 a{1, 2}, b{3, 4};
+Vec2 c = a + b;           // (4, 6)
+std::cout &lt;&lt; c;           // prints "(4, 6)"
+double magnitude = c();   // 7.21...
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Error Handling -->
+  <div class="slide">
+    <h2 class="animate">Error Handling</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Way &mdash; Exceptions everywhere</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+try {
+    var data = File.ReadAllText(path);
+    var parsed = JsonConvert.Deserialize(data);
+} catch (FileNotFoundException ex) {
+    Log.Error(ex.Message);
+} catch (Exception ex) {
+    Log.Error(ex);
+    throw;
+}
+
+// Nullable reference types
+string? name = GetName();
+if (name is not null) { ... }
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ Way &mdash; Multiple strategies</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Exceptions exist but many codebases
+// AVOID them (Google, Unreal, embedded)
+try {
+    auto data = readFile(path);
+} catch (const std::exception&amp; e) {
+    std::cerr &lt;&lt; e.what();
+}
+
+// std::optional (like Nullable&lt;T&gt;)
+std::optional&lt;int&gt; findUser(int id) {
+    if (!exists(id)) return std::nullopt;
+    return users[id];
+}
+
+// std::expected (C++23)
+std::expected&lt;Data, Error&gt; parse(str) {
+    if (bad) return std::unexpected(err);
+    return data;
+}
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 16px; text-align: center;">
+      C++ philosophy: errors are <span class="highlight">expected paths</span>, not exceptional ones. Many teams prefer <code>std::optional</code>, <code>std::expected</code>, or error codes over exceptions.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 15: Const Correctness -->
+  <div class="slide">
+    <h2 class="animate">Const Correctness</h2>
+    <div class="content">
+      <pre class="animate">
+// C# has readonly fields. C++ has const EVERYWHERE.
+
+const int MAX_HP = 100;                  // Like C# const
+
+void printName(const std::string&amp; name);  // Promise: won't modify name
+
+class Player {
+public:
+    std::string getName() const;          // Promise: won't modify object state
+    int getHealth() const { return hp_; } // const member function
+
+    void setHealth(int hp) { hp_ = hp; } // non-const: can modify
+private:
+    int hp_;
+};
+
+// Pointers + const: read right-to-left
+const int* p1;       // Pointer to const int (can't change *p1)
+int* const p2 = &amp;x;  // Const pointer to int (can't change p2)
+const int* const p3; // Const pointer to const int (can't change either)
+
+// const_cast exists but using it is almost always a code smell
+      </pre>
+      <p class="animate" style="margin-top: 12px;">
+        <strong>The rule:</strong> If something shouldn't change, make it <code>const</code>. Functions that don't modify state should be <code>const</code>. Parameters you only read should be <code>const&amp;</code>. <span class="highlight">More strict than C# readonly.</span>
+      </p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Lambda Expressions -->
+  <div class="slide">
+    <h2 class="animate">Lambda Expressions</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Lambdas</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Captures automatically (closure)
+int threshold = 5;
+var big = numbers
+    .Where(x => x > threshold)
+    .ToList();
+
+// Delegates / Func&lt;T&gt;
+Func&lt;int, int&gt; square = x => x * x;
+
+// Capture is implicit &mdash; compiler
+// decides value vs reference
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ Lambdas</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// EXPLICIT capture required
+int threshold = 5;
+auto big = vec
+    | std::views::filter(
+        [threshold](int x) {
+            return x > threshold;
+        });
+
+// Capture modes:
+// [=]    capture all by value (copy)
+// [&amp;]    capture all by reference
+// [x]    capture x by value
+// [&amp;x]   capture x by reference
+// [x, &amp;y] mix both
+
+// Generic lambda (C++14)
+auto square = [](auto x) {
+    return x * x;
+};
+        </pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top: 12px; text-align: center;">
+      C++ forces you to <span class="highlight">think about capture</span>. Capturing by reference to a local variable that goes out of scope = <strong>dangling reference</strong> (undefined behavior).
+    </p>
+  </div>
+
+
+  <!-- SLIDE 17: Modern C++ -->
+  <div class="slide">
+    <h2 class="animate">Modern C++ (17/20/23)</h2>
+    <div class="content">
+      <pre class="animate">
+// Structured bindings (C++17) &mdash; like C# tuple deconstruction
+auto [name, age] = std::pair{"Alice", 30};
+for (auto&amp; [key, value] : myMap) { ... }
+
+// if constexpr (C++17) &mdash; compile-time branching
+template&lt;typename T&gt;
+auto stringify(T val) {
+    if constexpr (std::is_arithmetic_v&lt;T&gt;)
+        return std::to_string(val);
+    else
+        return val;
+}
+
+// Concepts (C++20) &mdash; like C# generic constraints but more powerful
+template&lt;typename T&gt;
+concept Printable = requires(T t) { std::cout &lt;&lt; t; };
+
+template&lt;Printable T&gt;
+void print(const T&amp; val) { std::cout &lt;&lt; val; }
+
+// Ranges (C++20) &mdash; like LINQ
+auto result = numbers | std::views::filter([](int n){ return n % 2 == 0; })
+                      | std::views::transform([](int n){ return n * n; })
+                      | std::views::take(5);
+
+// Coroutines (C++20) &mdash; like C# async/await
+task&lt;std::string&gt; fetchData(std::string url) {
+    auto response = co_await http::get(url);
+    co_return response.body();
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Compilation Model -->
+  <div class="slide">
+    <h2 class="animate">Compilation Model</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Simple build</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// .csproj defines the project
+// dotnet build compiles everything
+// All files auto-discovered
+// Incremental, fast compilation
+// No headers, no forward declarations
+// NuGet for packages
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>C++ &mdash; Complex build</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Headers (.h) declare interfaces
+// Source (.cpp) define implementations
+// #include copies text into each file!
+// CMakeLists.txt = build config
+
+cmake_minimum_required(VERSION 3.28)
+project(MyApp LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 23)
+add_executable(myapp
+    main.cpp player.cpp enemy.cpp)
+target_link_libraries(myapp PRIVATE
+    fmt::fmt)
+        </pre>
+      </div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">.h headers</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Preprocessor</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Compiler (.o)</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Linker</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Executable</div>
+    </div>
+    <p class="animate" style="text-align: center; color: var(--text-muted);">
+      C++20 <strong>modules</strong> (<code>import std;</code>) aim to replace #include, dramatically improving compile times.
+    </p>
+  </div>
+
+
+  <!-- SLIDE 19: Memory Layout -->
+  <div class="slide">
+    <h2 class="animate">Memory Layout</h2>
+    <div class="content">
+      <pre class="animate">
+// Stack: fast, automatic, limited size (~1-8MB)
+void foo() {
+    int x = 42;              // 4 bytes on stack
+    std::array&lt;int, 100&gt; a;  // 400 bytes on stack, contiguous
+}  // Everything popped off stack instantly
+
+// Heap: slower, manual, virtually unlimited
+void bar() {
+    auto p = std::make_unique&lt;Player&gt;("Bob", 100);  // Heap allocated
+}  // unique_ptr calls delete automatically
+
+// Why C++ devs obsess over layout:
+struct Bad {          struct Good {
+    char a;   // 1B       int b;    // 4B
+    // 3B pad             char a;   // 1B
+    int b;    // 4B       char c;   // 1B
+    char c;   // 1B       // 2B pad
+    // 3B pad
+};  // 12 bytes!     };  // 8 bytes!
+
+// Cache-friendly: vector&lt;Player&gt; (contiguous) beats list&lt;Player*&gt; (scattered)
+// A cache miss costs ~200 CPU cycles. Layout matters for performance.
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Common Pitfalls -->
+  <div class="slide">
+    <h2 class="animate">Common Pitfalls for C# Devs</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> <strong>Dangling reference</strong> &mdash; returning a reference to a local variable. Object is destroyed, reference points to garbage.</div>
+      <div class="bp-item animate"><span>2</span> <strong>Object slicing</strong> &mdash; passing <code>Derived</code> by value to <code>Base</code> param. The derived part is chopped off. Use references or pointers.</div>
+      <div class="bp-item animate"><span>3</span> <strong>Forgetting virtual destructor</strong> &mdash; deleting a derived object through a base pointer leaks the derived part. Always <code>virtual ~Base() = default;</code>.</div>
+      <div class="bp-item animate"><span>4</span> <strong>Iterator invalidation</strong> &mdash; modifying a vector while iterating can invalidate iterators. Unlike C# which throws an exception, C++ is silently UB.</div>
+      <div class="bp-item animate"><span>5</span> <strong>Undefined behavior</strong> &mdash; out-of-bounds access, null dereference, use-after-free. No exceptions thrown &mdash; anything can happen (including "working fine" until production).</div>
+      <div class="bp-item animate"><span>6</span> <strong>Using raw new/delete</strong> &mdash; leads to leaks. Always use smart pointers and RAII containers.</div>
+      <div class="bp-item animate"><span>7</span> <strong>Copying when you mean to reference</strong> &mdash; passing large objects by value in a loop. Use <code>const&amp;</code>.</div>
+      <div class="bp-item animate"><span>8</span> <strong>Forgetting <code>const</code></strong> &mdash; C++ culture expects const-correctness. Mark everything that shouldn't mutate.</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: When to Use C++ -->
+  <div class="slide">
+    <h2 class="animate">When to Use C++</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Game Engines</h3>
+        <p>Unreal Engine, Unity internals, custom engines. Deterministic performance, no GC pauses.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Systems Software</h3>
+        <p>Browsers (Chrome, Firefox), databases (MySQL, MongoDB), operating systems, drivers.</p>
+      </div>
+      <div class="metric-card">
+        <h3>High-Frequency Trading</h3>
+        <p>Nanosecond latency. Zero allocations in hot paths. Cache-optimized data structures.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Embedded &amp; Real-Time</h3>
+        <p>IoT, automotive, medical devices. Predictable memory, no runtime overhead.</p>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 20px;">
+      <p style="text-align: center; margin-bottom: 8px;"><strong>Stay in C# when:</strong> business apps, web APIs, cloud services, rapid prototyping, team productivity matters more than raw performance.</p>
+      <p style="text-align: center; color: var(--text-muted);"><strong>Interop:</strong> Use <code>extern "C"</code> for C-compatible functions, P/Invoke from C#, or C++/CLI for .NET integration.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">C++ gives you <span class="highlight">direct hardware control</span> that C# abstracts away</li>
+        <li class="animate">Master the core: <span class="tag">RAII</span> <span class="tag">smart pointers</span> <span class="tag">const correctness</span> <span class="tag">move semantics</span></li>
+        <li class="animate"><strong>Value semantics by default</strong> &mdash; the biggest mental shift from C#</li>
+        <li class="animate">Modern C++ (17/20/23) is <strong>vastly</strong> more ergonomic than legacy C++</li>
+        <li class="animate">Use <strong>RAII everywhere</strong>, <strong>never raw new/delete</strong>, prefer <code>const&amp;</code></li>
+        <li class="animate">Start with small projects: CLI tools, data parsers, game prototypes</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Welcome to the world of zero-cost abstractions.
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 22</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

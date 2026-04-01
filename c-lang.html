@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>C for C# Developers</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate title-fire">C for C# Developers</h1>
+    <p class="subtitle animate">From Managed Runtime to Bare Metal</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">C</span>
+      <span class="tag">Systems</span>
+      <span class="tag">Pointers</span>
+      <span class="tag">Memory</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: C# vs C Mental Model -->
+  <div class="slide">
+    <h2 class="animate">C# vs C Mental Model</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Managed World</h3>
+        <ul>
+          <li>Garbage collector frees memory for you</li>
+          <li>.NET runtime handles exceptions, bounds checks</li>
+          <li>JIT compiles IL to native at runtime</li>
+          <li>Rich standard library (LINQ, async, collections)</li>
+          <li>Type-safe references &mdash; no raw memory access</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Bare Metal</h3>
+        <ul>
+          <li><strong>You</strong> allocate and free every byte</li>
+          <li>No runtime &mdash; compiles directly to machine code</li>
+          <li>No exceptions, no bounds checks, no GC</li>
+          <li>Minimal standard library (stdio, stdlib, string)</li>
+          <li>Raw pointers &mdash; full control over memory layout</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 24px;">
+      <p><span class="highlight">What you gain:</span> Predictable performance, zero overhead, hardware control, understanding of how computers actually work.</p>
+      <p><span class="highlight">What you lose:</span> Safety nets, convenience, productivity. Every bug is your responsibility.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: No Classes, No Objects -->
+  <div class="slide">
+    <h2 class="animate">No Classes, No Objects</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Class with Methods</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+public class Player {
+    public string Name { get; set; }
+    public int Health { get; set; }
+
+    public void TakeDamage(int amount) {
+        Health -= amount;
+        if (Health &lt; 0) Health = 0;
+    }
+}
+
+var p = new Player {
+    Name = "Hero", Health = 100
+};
+p.TakeDamage(30);
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Struct + Functions</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+typedef struct {
+    char name[64];
+    int health;
+} Player;
+
+void player_take_damage(Player *p,
+                        int amount) {
+    p-&gt;health -= amount;
+    if (p-&gt;health &lt; 0) p-&gt;health = 0;
+}
+
+Player p = {"Hero", 100};
+player_take_damage(&amp;p, 30);
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <ul>
+        <li>No inheritance, no interfaces, no generics, no method overloading</li>
+        <li>Structs hold <strong>data only</strong> &mdash; functions are standalone and take a pointer to the struct</li>
+        <li>Naming convention: <code>modulename_action()</code> replaces <code>object.Method()</code></li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Types & Sizes -->
+  <div class="slide">
+    <h2 class="animate">Types &amp; Sizes</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Warning:</span> In C#, <code>int</code> is always 32-bit. In C, <code>int</code> is "at least 16 bits" &mdash; its size depends on the platform!</p>
+      <table class="animate">
+        <tr><th>C Type</th><th>Minimum Size</th><th>Typical (64-bit)</th><th>C# Equivalent</th></tr>
+        <tr><td><code>char</code></td><td>8 bits</td><td>1 byte</td><td><code>byte</code></td></tr>
+        <tr><td><code>short</code></td><td>16 bits</td><td>2 bytes</td><td><code>short</code></td></tr>
+        <tr><td><code>int</code></td><td>16 bits</td><td>4 bytes</td><td><code>int</code> (but not guaranteed!)</td></tr>
+        <tr><td><code>long</code></td><td>32 bits</td><td>4 or 8 bytes</td><td><code>long</code> (varies!)</td></tr>
+        <tr><td><code>long long</code></td><td>64 bits</td><td>8 bytes</td><td><code>long</code></td></tr>
+      </table>
+      <pre class="animate">
+#include &lt;stdint.h&gt;   // Use these for guaranteed sizes!
+int32_t  x = 42;     // Always 32-bit (like C# int)
+uint64_t y = 999;    // Always unsigned 64-bit
+
+#include &lt;stdbool.h&gt; // C has no built-in bool!
+bool flag = true;    // Without this: use int (0/1)
+
+#include &lt;stddef.h&gt;
+size_t len = sizeof(x);  // sizeof() returns size in bytes
+
+// No string type! Strings are char arrays (more on this later)
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Pointers - The Big One -->
+  <div class="slide">
+    <h2 class="animate">Pointers &mdash; The Big One</h2>
+    <div class="content">
+      <p class="animate">In C#, every <code>class</code> variable is secretly a pointer. In C, you see and control them directly.</p>
+      <pre class="animate">
+int x = 42;
+int *p = &amp;x;    // p holds the MEMORY ADDRESS of x
+
+// &amp;x  = "address of x"     (like getting a reference)
+// *p  = "value at address"  (like dereferencing)
+// p   = the address itself  (e.g., 0x7ffd5e8a3b2c)
+
+*p = 100;       // x is now 100 (modified through the pointer)
+printf("%d\n", x);   // prints 100
+printf("%p\n", p);   // prints the memory address
+      </pre>
+      <div class="diagram animate">
+        <div class="box">x = 42<br><small style="color:var(--text-muted)">addr: 0x1000</small></div>
+        <div class="arrow">&larr;</div>
+        <div class="box">p = 0x1000<br><small style="color:var(--text-muted)">points to x</small></div>
+      </div>
+      <pre class="animate">
+// C# analogy:
+// MyClass obj = new MyClass();  // obj IS a pointer (hidden)
+// In C, you manage pointers explicitly:
+Player *p = malloc(sizeof(Player));  // allocate on heap
+p-&gt;health = 100;                    // -&gt; dereferences AND accesses member
+free(p);                             // YOU must free it
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Pointer Arithmetic -->
+  <div class="slide">
+    <h2 class="animate">Pointer Arithmetic</h2>
+    <div class="content">
+      <p class="animate">In C#, you never do math on references. In C, pointer arithmetic is fundamental.</p>
+      <pre class="animate">
+int arr[] = {10, 20, 30, 40, 50};
+int *p = arr;        // arrays decay to pointers
+
+// p + 1 does NOT add 1 byte!
+// It adds sizeof(int) bytes (typically 4 bytes)
+printf("%d\n", *(p + 0));  // 10  (arr[0])
+printf("%d\n", *(p + 1));  // 20  (arr[1])
+printf("%d\n", *(p + 3));  // 40  (arr[3])
+
+// Array indexing IS pointer arithmetic:
+// arr[3] is IDENTICAL to *(arr + 3)
+// And even 3[arr] works! (because addition is commutative)
+      </pre>
+      <div class="diagram animate">
+        <div class="box">p+0<br>10<br><small>0x1000</small></div>
+        <div class="box">p+1<br>20<br><small>0x1004</small></div>
+        <div class="box">p+2<br>30<br><small>0x1008</small></div>
+        <div class="box">p+3<br>40<br><small>0x100C</small></div>
+        <div class="box">p+4<br>50<br><small>0x1010</small></div>
+      </div>
+      <pre class="animate">
+// Walking through memory:
+for (int *ptr = arr; ptr &lt; arr + 5; ptr++) {
+    printf("%d ", *ptr);  // 10 20 30 40 50
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Arrays Are Not Objects -->
+  <div class="slide">
+    <h2 class="animate">Arrays Are Not Objects</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Arrays are Objects</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+int[] arr = new int[5];
+arr[0] = 42;
+
+// Safe:
+Console.WriteLine(arr.Length); // 5
+arr[10] = 1; // IndexOutOfRange!
+
+// Resizable:
+var list = new List&lt;int&gt;();
+list.Add(42);
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Arrays are Raw Memory</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+int arr[5];           // stack array
+arr[0] = 42;
+
+// NO .Length, NO bounds checking:
+arr[10] = 1; // compiles fine!
+             // corrupts memory silently
+
+// Heap array:
+int *arr2 = malloc(5 * sizeof(int));
+// Must track size yourself:
+size_t len = 5;
+free(arr2);
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <ul>
+        <li><span class="highlight">Arrays decay to pointers</span> when passed to functions &mdash; size information is lost</li>
+        <li>You must always pass the length separately: <code>void process(int *arr, size_t len)</code></li>
+        <li>Buffer overruns are the #1 source of security vulnerabilities in C code</li>
+        <li>No resizing &mdash; use <code>realloc()</code> for heap arrays (copies entire block)</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Strings Are Char Arrays -->
+  <div class="slide">
+    <h2 class="animate">Strings Are Char Arrays</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; String Class</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+string name = "Alice";
+string greeting = "Hello, " + name;
+int len = name.Length;       // 5
+bool eq = name == "Alice";   // true
+string upper = name.ToUpper();
+string sub = name.Substring(0, 3);
+// Immutable, GC-managed, Unicode
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Null-Terminated char*</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+char name[] = "Alice";
+// In memory: {'A','l','i','c','e','\0'}
+// That \0 is the null terminator!
+
+size_t len = strlen(name);   // 5
+char buf[64];
+strcpy(buf, "Hello, ");      // DANGER!
+strcat(buf, name);           // buffer overflow?
+
+// Safe version:
+snprintf(buf, sizeof(buf),
+         "Hello, %s", name);
+
+int eq = strcmp(name, "Alice"); // 0 = equal
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <ul>
+        <li><code>strlen()</code> walks memory until it finds <code>\0</code> &mdash; O(n) every time (no cached .Length)</li>
+        <li><code>strcpy</code>/<code>strcat</code> don't check buffer sizes &mdash; always prefer <code>snprintf</code></li>
+        <li>Strings are mutable in C &mdash; you can modify characters in place</li>
+        <li>No Unicode support by default &mdash; <code>char</code> is a single byte (ASCII)</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Memory Management -->
+  <div class="slide">
+    <h2 class="animate">Memory Management</h2>
+    <div class="content">
+      <p class="animate" style="font-size:1.3rem; text-align:center; margin-bottom:16px;"><em>"In C#, the GC does this. In C, <span class="highlight">you ARE the GC.</span>"</em></p>
+      <pre class="animate">
+#include &lt;stdlib.h&gt;
+
+// malloc: allocate uninitialized memory
+int *arr = malloc(10 * sizeof(int));  // 10 ints on heap
+if (arr == NULL) { /* handle allocation failure! */ }
+
+// calloc: allocate AND zero-initialize
+int *arr2 = calloc(10, sizeof(int));  // all zeros
+
+// realloc: resize existing allocation
+arr = realloc(arr, 20 * sizeof(int)); // now 20 ints
+
+// free: release memory back to OS
+free(arr);
+free(arr2);
+arr = NULL;   // good practice: prevent use-after-free
+      </pre>
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Memory Leak</h3>
+          <p>malloc without free. Memory grows until process dies.</p>
+          <code>int *p = malloc(100); /* forgot free(p) */</code>
+        </div>
+        <div class="metric-card">
+          <h3>Double Free</h3>
+          <p>Freeing the same pointer twice. Undefined behavior &mdash; crashes or worse.</p>
+          <code>free(p); free(p); /* BOOM */</code>
+        </div>
+        <div class="metric-card">
+          <h3>Use-After-Free</h3>
+          <p>Accessing memory after freeing it. Data may be overwritten by another allocation.</p>
+          <code>free(p); p-&gt;x = 5; /* reading garbage */</code>
+        </div>
+        <div class="metric-card">
+          <h3>Dangling Pointer</h3>
+          <p>Pointer to freed memory. Set to NULL after freeing.</p>
+          <code>free(p); p = NULL; /* safe */</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Stack vs Heap -->
+  <div class="slide">
+    <h2 class="animate">Stack vs Heap</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">Stack (Automatic)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+void foo() {
+    int x = 42;        // stack
+    char buf[256];      // stack
+    Player p = {0};     // stack
+
+    // All freed automatically
+    // when foo() returns
+}
+// Fast allocation (just moves
+// the stack pointer)
+// Limited size (~1-8 MB)
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">Heap (Manual)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+void bar() {
+    int *x = malloc(sizeof(int));
+    *x = 42;           // heap
+    char *buf = malloc(256);
+    Player *p = calloc(1,
+                 sizeof(Player));
+
+    // Must free manually:
+    free(x); free(buf); free(p);
+}
+// Slower allocation (OS call)
+// Virtually unlimited size
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <pre>
+// CLASSIC BUG: returning pointer to stack variable
+int *broken() {
+    int x = 42;
+    return &amp;x;      // DANGLING POINTER! x is gone after return
+}
+
+// FIX: allocate on heap
+int *correct() {
+    int *x = malloc(sizeof(int));
+    *x = 42;
+    return x;       // caller must free(x) later
+}
+
+// In C#, the GC would keep the object alive. In C, the stack
+// frame is destroyed the moment the function returns.
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Structs & Enums -->
+  <div class="slide">
+    <h2 class="animate">Structs &amp; Enums</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Class with Methods</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+public class Vector2 {
+    public float X { get; set; }
+    public float Y { get; set; }
+
+    public float Length() =&gt;
+        MathF.Sqrt(X*X + Y*Y);
+}
+
+enum Color { Red, Green, Blue }
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Struct + Functions</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+typedef struct {
+    float x;
+    float y;
+} Vector2;
+
+float vec2_length(const Vector2 *v) {
+    return sqrtf(v-&gt;x*v-&gt;x
+               + v-&gt;y*v-&gt;y);
+}
+
+typedef enum {
+    COLOR_RED, COLOR_GREEN, COLOR_BLUE
+} Color;
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <pre>
+// Struct padding &amp; alignment: the compiler inserts gaps!
+typedef struct {
+    char  a;    // 1 byte
+                // 3 bytes padding (to align int)
+    int   b;    // 4 bytes
+    char  c;    // 1 byte
+                // 3 bytes padding (to align struct size)
+} Padded;       // sizeof = 12, not 6!
+
+// Use sizeof() to check. Never assume struct size.
+// Pass large structs by pointer, not by value:
+void process(const Player *p);  // good: passes 8-byte pointer
+void process(Player p);         // bad: copies entire struct
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Header Files & Compilation -->
+  <div class="slide">
+    <h2 class="animate">Header Files &amp; Compilation</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>player.h (Declarations)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+#ifndef PLAYER_H     // include guard
+#define PLAYER_H
+
+typedef struct {
+    char name[64];
+    int health;
+} Player;
+
+// Function declarations (prototypes)
+Player player_create(const char *name,
+                     int health);
+void player_take_damage(Player *p,
+                        int amount);
+
+#endif // PLAYER_H
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>player.c (Definitions)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+#include "player.h"
+#include &lt;string.h&gt;
+
+Player player_create(const char *name,
+                     int health) {
+    Player p;
+    snprintf(p.name, sizeof(p.name),
+             "%s", name);
+    p.health = health;
+    return p;
+}
+
+void player_take_damage(Player *p,
+                        int amount) {
+    p-&gt;health -= amount;
+    if (p-&gt;health &lt; 0) p-&gt;health = 0;
+}
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <div class="diagram">
+        <div class="box">Preprocessor<br><small>#include, #define</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Compiler<br><small>.c &rarr; .o</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Linker<br><small>.o files &rarr; executable</small></div>
+      </div>
+      <pre>
+# Compile: gcc main.c player.c -o game
+# Or step by step:
+gcc -c player.c -o player.o    # compile to object file
+gcc -c main.c -o main.o
+gcc main.o player.o -o game    # link into executable
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: The Preprocessor -->
+  <div class="slide">
+    <h2 class="animate">The Preprocessor</h2>
+    <div class="content">
+      <p class="animate">C has a <span class="highlight">text substitution engine</span> that runs before the compiler sees your code. C# has nothing like this.</p>
+      <pre class="animate">
+// Simple constants (prefer over magic numbers)
+#define MAX_PLAYERS 64
+#define PI 3.14159265358979
+
+// Macros with arguments (inline text replacement)
+#define MAX(a, b)  ((a) &gt; (b) ? (a) : (b))
+#define SQUARE(x)  ((x) * (x))
+
+// DANGER: macros are text substitution, not functions!
+int val = SQUARE(i++);  // expands to ((i++) * (i++))
+                        // i gets incremented TWICE!
+
+// Conditional compilation
+#ifdef _WIN32
+    #include &lt;windows.h&gt;
+#elif defined(__linux__)
+    #include &lt;unistd.h&gt;
+#endif
+
+// Debug logging (commonly used pattern)
+#ifdef DEBUG
+    #define LOG(fmt, ...) fprintf(stderr, fmt, ##__VA_ARGS__)
+#else
+    #define LOG(fmt, ...) ((void)0)
+#endif
+
+// Stringify and token pasting
+#define STR(x)    #x          // STR(hello) -&gt; "hello"
+#define CONCAT(a,b) a##b     // CONCAT(foo,bar) -&gt; foobar
+      </pre>
+      <p class="animate"><span class="highlight">Rule of thumb:</span> Prefer <code>static inline</code> functions over macros. Use macros only for conditional compilation and constants.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Function Pointers -->
+  <div class="slide">
+    <h2 class="animate">Function Pointers</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Delegates / Func&lt;&gt;</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Delegate type
+Func&lt;int, int, int&gt; compare;
+compare = (a, b) =&gt; a - b;
+
+// Usage
+var sorted = list.OrderBy(x =&gt; x.Name);
+
+// Events
+button.Click += OnClick;
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Function Pointers</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Declaration:
+// return_type (*name)(param_types)
+int (*compare)(const void *,
+               const void *);
+
+int cmp_int(const void *a,
+            const void *b) {
+    return *(int*)a - *(int*)b;
+}
+
+compare = cmp_int;
+int result = compare(&amp;x, &amp;y);
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <pre>
+// Classic example: qsort (C's generic sort)
+int scores[] = {50, 20, 80, 10, 40};
+
+int cmp_desc(const void *a, const void *b) {
+    return *(int*)b - *(int*)a;  // descending
+}
+
+qsort(scores, 5, sizeof(int), cmp_desc);
+// scores is now {80, 50, 40, 20, 10}
+
+// How C fakes vtables (polymorphism via function pointers):
+typedef struct {
+    void (*draw)(void *self);
+    void (*update)(void *self, float dt);
+    void (*destroy)(void *self);
+} ShapeVTable;
+
+typedef struct {
+    ShapeVTable *vtable;  // pointer to function table
+    float x, y;
+} Shape;
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Error Handling -->
+  <div class="slide">
+    <h2 class="animate">Error Handling</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; Exceptions</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+try {
+    var data = File.ReadAllText(path);
+    Process(data);
+}
+catch (FileNotFoundException ex) {
+    Console.Error.WriteLine(
+        $"Not found: {ex.Message}");
+}
+finally {
+    Cleanup();
+}
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; Return Codes + errno</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+#include &lt;errno.h&gt;
+
+FILE *f = fopen(path, "r");
+if (f == NULL) {
+    // errno is set by fopen
+    perror("fopen failed");
+    // prints: "fopen failed: No such
+    //          file or directory"
+    return -1;
+}
+// process file...
+fclose(f);
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <pre>
+// The "goto cleanup" pattern (widely used in the Linux kernel):
+int process_file(const char *path) {
+    int result = -1;
+    FILE *f = NULL;
+    char *buf = NULL;
+
+    f = fopen(path, "r");
+    if (!f) goto cleanup;
+
+    buf = malloc(4096);
+    if (!buf) goto cleanup;
+
+    if (fread(buf, 1, 4096, f) == 0) goto cleanup;
+
+    // Success path
+    result = 0;
+
+cleanup:
+    free(buf);        // free(NULL) is safe
+    if (f) fclose(f);
+    return result;    // 0 = success, -1 = error
+}
+// This is C's equivalent of try/finally!
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: File I/O -->
+  <div class="slide">
+    <h2 class="animate">File I/O</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# &mdash; File Class</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Read all text
+string text =
+    File.ReadAllText("data.txt");
+
+// Write
+File.WriteAllText("out.txt", text);
+
+// Stream reading
+using var reader =
+    new StreamReader("data.txt");
+string? line;
+while ((line = reader.ReadLine())
+        != null) {
+    Console.WriteLine(line);
+}
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C &mdash; FILE* Streams</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+// Read text file
+FILE *f = fopen("data.txt", "r");
+if (!f) { perror("fopen"); return; }
+
+char line[256];
+while (fgets(line, sizeof(line), f)) {
+    printf("%s", line);
+}
+fclose(f);  // No 'using' -- manual!
+
+// Write text file
+FILE *out = fopen("out.txt", "w");
+fprintf(out, "Score: %d\n", 42);
+fclose(out);
+
+// Binary I/O
+FILE *bin = fopen("data.bin", "rb");
+int nums[10];
+fread(nums, sizeof(int), 10, bin);
+fclose(bin);
+        </pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <ul>
+        <li>No <code>using</code> statement &mdash; you must <code>fclose()</code> every <code>fopen()</code></li>
+        <li>Mode strings: <code>"r"</code> read, <code>"w"</code> write (truncates), <code>"a"</code> append, <code>"rb"</code>/<code>"wb"</code> binary</li>
+        <li><code>fprintf</code>/<code>fscanf</code> for formatted I/O, <code>fread</code>/<code>fwrite</code> for binary</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Common Patterns -->
+  <div class="slide">
+    <h2 class="animate">Common Patterns</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Opaque Types (pimpl)</h3>
+          <p>Hide struct internals from users. Header declares only a pointer.</p>
+          <pre style="border:none; padding:8px; font-size:0.8rem;">
+// db.h -- users see only this:
+typedef struct Database Database;
+Database *db_open(const char *path);
+void db_close(Database *db);
+
+// db.c -- internals hidden here:
+struct Database {
+    FILE *file;
+    int cache_size;
+};
+          </pre>
+        </div>
+        <div class="metric-card">
+          <h3>Tagged Unions</h3>
+          <p>C's version of discriminated unions / sum types.</p>
+          <pre style="border:none; padding:8px; font-size:0.8rem;">
+typedef enum {
+    SHAPE_CIRCLE, SHAPE_RECT
+} ShapeType;
+
+typedef struct {
+    ShapeType type;
+    union {
+        struct { float radius; } circle;
+        struct { float w, h; } rect;
+    };
+} Shape;
+          </pre>
+        </div>
+        <div class="metric-card">
+          <h3>Arena Allocator</h3>
+          <p>Allocate many objects, free them all at once. Fast and leak-proof.</p>
+          <pre style="border:none; padding:8px; font-size:0.8rem;">
+typedef struct {
+    char *buf;
+    size_t used, cap;
+} Arena;
+
+void *arena_alloc(Arena *a, size_t n) {
+    void *p = a-&gt;buf + a-&gt;used;
+    a-&gt;used += n;
+    return p;
+}
+void arena_free(Arena *a) {
+    a-&gt;used = 0; // reset everything!
+}
+          </pre>
+        </div>
+        <div class="metric-card">
+          <h3>Linked List (by Hand)</h3>
+          <p>No List&lt;T&gt; in C. You build data structures from scratch.</p>
+          <pre style="border:none; padding:8px; font-size:0.8rem;">
+typedef struct Node {
+    int value;
+    struct Node *next;
+} Node;
+
+void push(Node **head, int val) {
+    Node *n = malloc(sizeof(Node));
+    n-&gt;value = val;
+    n-&gt;next = *head;
+    *head = n;
+}
+          </pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Undefined Behavior -->
+  <div class="slide">
+    <h2 class="animate">Undefined Behavior</h2>
+    <div class="content">
+      <p class="animate" style="text-align:center; font-size:1.3rem; margin-bottom:16px;"><em>"The compiler assumes undefined behavior <span class="highlight">never happens</span> and optimizes accordingly."</em></p>
+      <pre class="animate">
+// 1. Signed integer overflow (C# wraps around; C = UB)
+int x = INT_MAX;
+x + 1;  // UB! Compiler may optimize away checks like "if (x+1 &lt; x)"
+
+// 2. Null pointer dereference
+int *p = NULL;
+*p = 42;  // In C#: NullReferenceException. In C: UB (anything can happen)
+
+// 3. Buffer overrun
+int arr[5];
+arr[10] = 1;  // In C#: IndexOutOfRangeException. In C: silent corruption
+
+// 4. Use after free
+free(p);
+printf("%d", *p);  // May print old value, crash, or launch nethack
+
+// 5. Uninitialized variable
+int y;
+printf("%d", y);  // Could be 0, could be 42, could be -9999
+
+// 6. Accessing union member that wasn't last written
+// 7. Shifting by more than width of type (e.g., 1 &lt;&lt; 33 for int)
+// 8. Modifying a string literal: char *s = "hello"; s[0] = 'H';
+      </pre>
+      <p class="animate"><span class="highlight">Real-world consequence:</span> The compiler can delete your null check, reorder operations, or remove entire code blocks if it proves that reaching them requires UB. Your "working" debug build may break in release builds with optimizations.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Tools -->
+  <div class="slide">
+    <h2 class="animate">Tools</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">C# Tooling</h3>
+        <ul>
+          <li><code>dotnet build</code> / MSBuild</li>
+          <li>Visual Studio Debugger</li>
+          <li>Roslyn Analyzers</li>
+          <li>NuGet packages</li>
+          <li>dotnet test / xUnit</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">C Tooling Equivalents</h3>
+        <ul>
+          <li><code>gcc</code> / <code>clang</code> (compilers)</li>
+          <li><code>gdb</code> / <code>lldb</code> (debuggers)</li>
+          <li><code>cppcheck</code> (static analysis)</li>
+          <li>No package manager (copy source / use system libs)</li>
+          <li>No built-in test framework (use check, Unity, CUnit)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+      <pre>
+# Compile with warnings (always do this!)
+gcc -Wall -Wextra -Werror -std=c11 -o app main.c
+
+# Debug with gdb
+gcc -g -O0 main.c -o app_debug     # compile with debug symbols
+gdb ./app_debug                     # start debugger
+  (gdb) break main                  # set breakpoint
+  (gdb) run                         # run program
+  (gdb) print variable              # inspect variables
+  (gdb) backtrace                   # show call stack
+
+# Sanitizers (catch bugs at runtime -- like C#'s safety, but opt-in)
+gcc -fsanitize=address main.c       # ASan: buffer overflows, use-after-free
+gcc -fsanitize=undefined main.c     # UBSan: undefined behavior
+gcc -fsanitize=memory main.c        # MSan: uninitialized reads (clang only)
+
+# Valgrind (memory leak detector)
+valgrind --leak-check=full ./app
+
+# Basic Makefile
+app: main.o player.o
+	gcc -o app main.o player.o
+main.o: main.c player.h
+	gcc -Wall -c main.c
+clean:
+	rm -f *.o app
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Cheat Sheet -->
+  <div class="slide">
+    <h2 class="animate">From C# to C Cheat Sheet</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>C# Concept</th><th>C Equivalent</th></tr>
+        <tr><td><code>List&lt;T&gt;</code></td><td>Array + <code>size_t len</code> (or dynamic array with realloc)</td></tr>
+        <tr><td><code>Dictionary&lt;K,V&gt;</code></td><td>Hand-roll hash table or use <strong>uthash</strong> library</td></tr>
+        <tr><td><code>string</code></td><td><code>char*</code> (null-terminated) + <code>strlen</code>/<code>snprintf</code></td></tr>
+        <tr><td><code>using / IDisposable</code></td><td>Manual <code>fclose()</code> / <code>free()</code> + goto cleanup</td></tr>
+        <tr><td><code>async / await</code></td><td><code>select()</code> / <code>poll()</code> / <code>epoll()</code> (OS-level I/O multiplexing)</td></tr>
+        <tr><td><code>LINQ</code></td><td>For loops. Every. Single. Time.</td></tr>
+        <tr><td><code>var</code></td><td>Explicit types always: <code>int x = 5;</code></td></tr>
+        <tr><td><code>null</code></td><td><code>NULL</code> (a macro for <code>(void*)0</code>)</td></tr>
+        <tr><td><code>new MyClass()</code></td><td><code>malloc(sizeof(MyClass))</code> + init function</td></tr>
+        <tr><td><code>class</code></td><td><code>typedef struct</code> + standalone functions</td></tr>
+        <tr><td><code>interface</code></td><td>Struct of function pointers (vtable)</td></tr>
+        <tr><td><code>event / delegate</code></td><td>Function pointer + callback registration</td></tr>
+        <tr><td><code>try / catch</code></td><td>Return codes + <code>errno</code> + goto cleanup</td></tr>
+        <tr><td><code>nameof()</code></td><td><code>#x</code> (preprocessor stringify)</td></tr>
+        <tr><td><code>sizeof(T)</code></td><td><code>sizeof(T)</code> (same concept, evaluated at compile time)</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: When to Use C -->
+  <div class="slide">
+    <h2 class="animate">When to Use C</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Embedded Systems</h3>
+          <p>Microcontrollers with 2KB RAM. No OS, no runtime. C is often the only option.</p>
+        </div>
+        <div class="metric-card">
+          <h3>OS Kernels &amp; Drivers</h3>
+          <p>Linux, Windows NT kernel, macOS kernel &mdash; all written in C. Hardware needs direct memory access.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Game Engines &amp; Graphics</h3>
+          <p>Performance-critical inner loops, GPU interfaces, real-time systems where GC pauses are fatal.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Interpreters &amp; Compilers</h3>
+          <p>CPython, Lua, Ruby &mdash; your favorite languages are implemented in C.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Performance Libraries</h3>
+          <p>SQLite, zlib, OpenSSL, curl &mdash; used by every language via FFI/bindings.</p>
+        </div>
+        <div class="metric-card">
+          <h3>C# Interop via P/Invoke</h3>
+          <p>Call C libraries from C#: <code>[DllImport("mylib.so")]</code> for native performance where you need it.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top: 20px; text-align: center;"><span class="highlight">When to stay in C#:</span> Web apps, business logic, desktop apps, rapid prototyping &mdash; anywhere developer productivity and safety matter more than raw performance.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">C gives you <span class="highlight">total control</span> &mdash; and total responsibility</li>
+        <li class="animate">Master the fundamentals: <span class="tag">pointers</span> <span class="tag">memory</span> <span class="tag">structs</span> <span class="tag">headers</span></li>
+        <li class="animate">Always compile with <code>-Wall -Wextra</code> and use <strong>sanitizers</strong></li>
+        <li class="animate">Understanding C makes you a <strong>better C# developer</strong> &mdash; you'll know what the runtime does for you</li>
+        <li class="animate">Start small: write a linked list, then a hash table, then a simple allocator</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Welcome to the bare metal. Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 22</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
