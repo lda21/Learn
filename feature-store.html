@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Feature Store &amp; Feast</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F9E0;</span>
+    <h1 class="animate">Feature Store</h1>
+    <p class="subtitle animate">Bridging ML training and production serving with Feast</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">ML</span><span class="tag">Feast</span><span class="tag">Feature Engineering</span><span class="tag">MLOps</span>
+    </div>
+  </div>
+
+
+  <!-- Slide 2: The Problem -->
+  <div class="slide">
+    <h2 class="animate">The Problem</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Without a Feature Store</h3>
+        <ul>
+          <li>Training features computed in notebooks</li>
+          <li>Serving features rewritten in production code</li>
+          <li><span class="highlight">Training/serving skew</span> &mdash; different logic, different results</li>
+          <li>Duplicated feature pipelines across teams</li>
+          <li>No discoverability &mdash; "does this feature exist?"</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>With a Feature Store</h3>
+        <ul>
+          <li><span class="green">Single source of truth</span> for feature definitions</li>
+          <li>Same features for training and serving</li>
+          <li>Consistent transformations everywhere</li>
+          <li>Feature catalog &mdash; search, reuse, share</li>
+          <li>Point-in-time correct training data</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 3: What Is a Feature Store? -->
+  <div class="slide">
+    <h2 class="animate">What Is a Feature Store?</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:20px">A <span class="highlight">feature store</span> is a centralized platform for defining, storing, and serving ML features consistently across training and inference.</p>
+      <div class="diagram">
+        <div class="box">Raw Data<br><small>DB, Streams, APIs</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Feature<br>Pipelines</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box" style="border-color:var(--success)">Feature Store<br><small>Offline + Online</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">ML Models<br><small>Train + Serve</small></div>
+      </div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:20px">
+      <div class="metric-card">
+        <h3>Offline Store</h3>
+        <p>Historical feature values for training. Supports point-in-time joins. Backed by data warehouses (BigQuery, Snowflake, Redshift, files).</p>
+      </div>
+      <div class="metric-card">
+        <h3>Online Store</h3>
+        <p>Latest feature values for real-time serving. Low-latency lookups (< 10ms). Backed by Redis, DynamoDB, or SQLite.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Feature Registry</h3>
+        <p>Catalog of all feature definitions, metadata, ownership, and lineage. The "schema" of your ML data.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Feature Serving</h3>
+        <p>APIs and SDKs for fetching features at training time (batch) and inference time (real-time).</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 4: Training/Serving Skew -->
+  <div class="slide">
+    <h2 class="animate">Training/Serving Skew</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">The #1 reason ML models degrade in production.</p>
+      <table>
+        <tr><th>Cause</th><th>What Goes Wrong</th><th>Feature Store Fix</th></tr>
+        <tr><td>Different code paths</td><td>Python notebook vs. Java service compute features differently</td><td>Single feature definition used everywhere</td></tr>
+        <tr><td>Temporal leakage</td><td>Training uses future data not available at inference time</td><td>Point-in-time joins prevent leakage</td></tr>
+        <tr><td>Stale features</td><td>Online features lag behind reality</td><td>Materialization pipelines keep online store fresh</td></tr>
+        <tr><td>Missing values</td><td>Training fills nulls one way, serving another</td><td>Consistent default values in feature definitions</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- Slide 5: Feast Overview -->
+  <div class="slide">
+    <h2 class="animate">Feast &mdash; Open-Source Feature Store</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is Feast?</h3>
+        <ul>
+          <li>Open-source feature store (Linux Foundation / LF AI)</li>
+          <li>Python-first, declarative feature definitions</li>
+          <li>Supports batch, streaming, and on-demand features</li>
+          <li>Pluggable offline/online stores</li>
+          <li>Built-in feature server (REST/gRPC)</li>
+          <li>Used by Gojek, Twitter, Shopify, Robinhood</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Concepts</h3>
+        <ul>
+          <li><span class="highlight">Entity</span> &mdash; primary key (user_id, driver_id)</li>
+          <li><span class="highlight">Feature View</span> &mdash; group of related features from one source</li>
+          <li><span class="highlight">Data Source</span> &mdash; where raw data lives (Parquet, BigQuery, Kafka)</li>
+          <li><span class="highlight">Feature Service</span> &mdash; set of features for a specific model</li>
+          <li><span class="highlight">Registry</span> &mdash; metadata store for all definitions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 6: Feast Architecture -->
+  <div class="slide">
+    <h2 class="animate">Feast Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Data Sources<br><small>Parquet, BigQuery,<br>Kafka, Kinesis</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box" style="border-color:var(--success)">Feast SDK<br><small>feast apply<br>feast materialize</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Online Store<br><small>Redis, DynamoDB,<br>SQLite, Postgres</small></div>
+      </div>
+      <div class="diagram" style="margin-top:10px">
+        <div class="box">Feast Registry<br><small>File, S3, GCS,<br>SQL Database</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Feature Server<br><small>REST / gRPC<br>Python / Go</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">ML Models<br><small>Training (batch)<br>Inference (online)</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>Offline Path (Training)</h3>
+        <p>SDK reads directly from the data source (warehouse/files). Performs point-in-time joins for historically accurate feature vectors.</p>
+      </div>
+      <div class="card">
+        <h3>Online Path (Serving)</h3>
+        <p><code>feast materialize</code> pushes latest values to the online store. Feature server returns values in &lt; 10ms for real-time inference.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 7: Defining Features in Feast -->
+  <div class="slide">
+    <h2 class="animate">Defining Features</h2>
+    <div class="content animate">
+<pre>
+# feature_repo/features.py
+from feast import Entity, FeatureView, Field, FileSource
+from feast.types import Float32, Int64, String
+from datetime import timedelta
+
+# 1. Entity &mdash; the primary key
+driver = Entity(
+    name="driver",
+    join_keys=["driver_id"],
+    description="Unique driver identifier",
+)
+
+# 2. Data Source &mdash; where raw features live
+driver_stats_source = FileSource(
+    path="data/driver_stats.parquet",
+    timestamp_field="event_timestamp",
+)
+
+# 3. Feature View &mdash; a group of features from one source
+driver_stats_fv = FeatureView(
+    name="driver_hourly_stats",
+    entities=[driver],
+    ttl=timedelta(hours=2),
+    schema=[
+        Field(name="conv_rate", dtype=Float32),
+        Field(name="acc_rate", dtype=Float32),
+        Field(name="avg_daily_trips", dtype=Int64),
+    ],
+    source=driver_stats_source,
+)
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 8: Feature Services & On-Demand Features -->
+  <div class="slide">
+    <h2 class="animate">Feature Services &amp; On-Demand</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Feature Service</h3>
+<pre style="font-size:0.85rem">
+from feast import FeatureService
+
+# Bundle features for a specific model
+driver_model_v1 = FeatureService(
+    name="driver_model_v1",
+    features=[
+        driver_stats_fv,
+        driver_ratings_fv,
+    ],
+    description="Features for driver ETA model v1",
+)
+
+# Retrieve via service name
+features = store.get_online_features(
+    features=driver_model_v1,
+    entity_rows=[{"driver_id": 1001}],
+)
+</pre>
+      </div>
+      <div class="card">
+        <h3>On-Demand Features</h3>
+<pre style="font-size:0.85rem">
+from feast import on_demand_feature_view
+
+# Computed at request time
+@on_demand_feature_view(
+    sources=[driver_stats_fv],
+    schema=[
+        Field(name="trips_today_pct", dtype=Float32),
+    ],
+)
+def driver_trips_pct(inputs):
+    df = inputs["driver_hourly_stats"]
+    df["trips_today_pct"] = (
+        df["avg_daily_trips"] / 500.0
+    )
+    return df
+
+# No materialization needed
+# Runs in real-time during serving
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 9: Feast CLI Workflow -->
+  <div class="slide">
+    <h2 class="animate">Feast CLI Workflow</h2>
+    <div class="content animate">
+<pre>
+# Initialize a new feature repository
+feast init my_feature_repo
+cd my_feature_repo
+
+# Project structure
+my_feature_repo/
+  feature_store.yaml     # Config: provider, online/offline stores
+  features.py            # Entity, FeatureView, FeatureService definitions
+  data/                  # Sample data (Parquet files)
+
+# Apply definitions to the registry
+feast apply
+
+# Materialize features to the online store
+feast materialize 2024-01-01T00:00:00 2024-12-31T23:59:59
+
+# Incremental materialization (from last run to now)
+feast materialize-incremental $(date -u +"%Y-%m-%dT%H:%M:%S")
+
+# Start the feature server
+feast serve --host 0.0.0.0 --port 6566
+
+# View registered features
+feast feature-views list
+feast entities list
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 10: feature_store.yaml Configuration -->
+  <div class="slide">
+    <h2 class="animate">Configuration</h2>
+    <div class="content animate">
+<pre>
+# feature_store.yaml
+
+project: my_ml_project
+provider: local            # local | gcp | aws
+
+registry: data/registry.db  # or s3://bucket/registry.db
+
+online_store:
+  type: redis              # redis | dynamodb | sqlite | postgres
+  connection_string: "localhost:6379"
+
+offline_store:
+  type: file               # file | bigquery | snowflake | redshift | spark
+
+entity_key_serialization_version: 2
+</pre>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>Local / Dev</h3>
+        <p>SQLite online store + file offline store. Zero infrastructure. Great for prototyping.</p>
+      </div>
+      <div class="metric-card">
+        <h3>AWS</h3>
+        <p>DynamoDB online + Redshift/S3 offline. Registry on S3. Serverless scaling.</p>
+      </div>
+      <div class="metric-card">
+        <h3>GCP</h3>
+        <p>Datastore online + BigQuery offline. Registry on GCS. Native BigQuery integration.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Self-Hosted</h3>
+        <p>Redis/Postgres online + Spark/Trino offline. Full control. Kubernetes-friendly.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 11: Training - Historical Features -->
+  <div class="slide">
+    <h2 class="animate">Training: Historical Features</h2>
+    <div class="content animate">
+<pre>
+from feast import FeatureStore
+import pandas as pd
+
+store = FeatureStore(repo_path="feature_repo/")
+
+# Entity DataFrame &mdash; "who" and "when" you want features for
+entity_df = pd.DataFrame({
+    "driver_id": [1001, 1002, 1003, 1001],
+    "event_timestamp": [
+        "2024-06-01 10:00:00",
+        "2024-06-01 11:00:00",
+        "2024-06-02 09:00:00",
+        "2024-06-03 14:00:00",   # same driver, different time
+    ],
+})
+
+# Point-in-time join &mdash; no future data leakage!
+training_df = store.get_historical_features(
+    entity_df=entity_df,
+    features=[
+        "driver_hourly_stats:conv_rate",
+        "driver_hourly_stats:acc_rate",
+        "driver_hourly_stats:avg_daily_trips",
+    ],
+).to_df()
+
+# training_df now has features as they existed AT each timestamp
+print(training_df.head())
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 12: Serving - Online Features -->
+  <div class="slide">
+    <h2 class="animate">Serving: Online Features</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Python SDK</h3>
+<pre style="font-size:0.85rem">
+from feast import FeatureStore
+
+store = FeatureStore(repo_path=".")
+
+# Low-latency lookup (< 10ms)
+features = store.get_online_features(
+    features=[
+        "driver_hourly_stats:conv_rate",
+        "driver_hourly_stats:acc_rate",
+        "driver_hourly_stats:avg_daily_trips",
+    ],
+    entity_rows=[
+        {"driver_id": 1001},
+        {"driver_id": 1002},
+    ],
+).to_dict()
+
+# {
+#   "driver_id": [1001, 1002],
+#   "conv_rate": [0.85, 0.72],
+#   "acc_rate": [0.91, 0.88],
+#   "avg_daily_trips": [15, 22],
+# }
+</pre>
+      </div>
+      <div class="card">
+        <h3>REST API (Feature Server)</h3>
+<pre style="font-size:0.85rem">
+# Start: feast serve --port 6566
+
+# HTTP request
+curl -X POST http://localhost:6566/get-online-features \
+  -H "Content-Type: application/json" \
+  -d '{
+    "features": [
+      "driver_hourly_stats:conv_rate",
+      "driver_hourly_stats:acc_rate"
+    ],
+    "entities": {
+      "driver_id": [1001, 1002]
+    }
+  }'
+
+# Response
+{
+  "metadata": { "feature_names": [...] },
+  "results": [
+    { "values": [0.85, 0.72], ... },
+    { "values": [0.91, 0.88], ... }
+  ]
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 13: Point-in-Time Joins -->
+  <div class="slide">
+    <h2 class="animate">Point-in-Time Joins</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">The most critical capability of a feature store for correct training data.</p>
+      <div class="diagram">
+        <div class="box">Entity DF<br><small>driver_id + timestamp</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box" style="border-color:var(--success)">Point-in-Time<br>Join Engine</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Training DF<br><small>Features as-of timestamp</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>How It Works</h3>
+        <ul>
+          <li>For each entity row, find feature values that existed <span class="highlight">at or before</span> that timestamp</li>
+          <li>Prevents using future data in training</li>
+          <li>Respects TTL &mdash; stale features return null</li>
+          <li>Handles multiple feature views with different time granularities</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example Timeline</h3>
+<pre style="font-size:0.85rem">
+Feature updates:
+  09:00 conv_rate = 0.80
+  10:30 conv_rate = 0.85
+  12:00 conv_rate = 0.90
+
+Entity request at 11:00:
+  &rarr; Gets conv_rate = 0.85
+  (latest value BEFORE 11:00)
+
+Entity request at 09:30:
+  &rarr; Gets conv_rate = 0.80
+  (latest value BEFORE 09:30)
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 14: Streaming Features -->
+  <div class="slide">
+    <h2 class="animate">Streaming Features</h2>
+    <div class="content animate">
+<pre>
+from feast import KafkaSource, FeatureView, Field
+from feast.types import Float32, Int64
+from feast.data_format import JsonFormat
+from datetime import timedelta
+
+# Kafka source for real-time feature updates
+driver_trips_source = KafkaSource(
+    name="driver_trips_stream",
+    kafka_bootstrap_servers="broker:9092",
+    topic="driver_trips",
+    timestamp_field="event_timestamp",
+    message_format=JsonFormat(schema_json="driver_id integer, trips integer, ts timestamp"),
+    watermark_delay_threshold=timedelta(minutes=5),
+    batch_source=driver_stats_batch_source,  # fallback for historical
+)
+
+# Feature View backed by streaming source
+driver_realtime_fv = FeatureView(
+    name="driver_realtime_stats",
+    entities=[driver],
+    ttl=timedelta(minutes=30),
+    schema=[
+        Field(name="trips_last_30m", dtype=Int64),
+        Field(name="avg_speed", dtype=Float32),
+    ],
+    source=driver_trips_source,
+)
+</pre>
+      <p style="margin-top:10px;text-align:center"><span class="highlight">Streaming + batch</span> &mdash; Feast uses the batch source for training and the stream source for online materialization.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 15: Feast on Kubernetes -->
+  <div class="slide">
+    <h2 class="animate">Feast on Kubernetes</h2>
+    <div class="content animate">
+<pre>
+# Helm install
+helm repo add feast-charts https://feast-helm-charts.storage.googleapis.com
+helm install feast feast-charts/feast \
+  --set feast-feature-server.enabled=true \
+  --set global.registry.path=s3://my-bucket/registry.db \
+  --set global.registry.registryType=s3
+
+# --- Kubernetes Deployment (manual) ---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: feast-feature-server
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: feast-server
+  template:
+    spec:
+      containers:
+      - name: feast-server
+        image: feastdev/feature-server:latest
+        command: ["feast", "serve", "--host", "0.0.0.0", "--port", "6566"]
+        ports:
+        - containerPort: 6566
+        env:
+        - name: FEAST_REPO_PATH
+          value: /feature_repo
+        volumeMounts:
+        - name: feature-repo
+          mountPath: /feature_repo
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 16: Materialization & Scheduling -->
+  <div class="slide">
+    <h2 class="animate">Materialization &amp; Scheduling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is Materialization?</h3>
+        <ul>
+          <li>Copies feature values from <span class="highlight">offline store</span> to <span class="highlight">online store</span></li>
+          <li>Makes batch-computed features available for real-time serving</li>
+          <li>Runs on a schedule (hourly, daily)</li>
+          <li>Incremental &mdash; only processes new data since last run</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+# Full materialization
+feast materialize \
+  2024-01-01T00:00:00 \
+  2024-12-31T23:59:59
+
+# Incremental (last run to now)
+feast materialize-incremental \
+  $(date -u +"%Y-%m-%dT%H:%M:%S")
+</pre>
+      </div>
+      <div class="card">
+        <h3>Scheduling Options</h3>
+        <ul>
+          <li><span class="highlight">Airflow</span> &mdash; DAG runs <code>feast materialize-incremental</code></li>
+          <li><span class="highlight">Kubernetes CronJob</span> &mdash; scheduled pod</li>
+          <li><span class="highlight">GitHub Actions</span> &mdash; cron trigger</li>
+          <li><span class="highlight">Prefect / Dagster</span> &mdash; workflow orchestrators</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+# Airflow DAG example
+materialize_task = BashOperator(
+    task_id="feast_materialize",
+    bash_command=(
+        "feast -c /repo "
+        "materialize-incremental "
+        "$(date -u +%Y-%m-%dT%H:%M:%S)"
+    ),
+    dag=dag,
+)
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 17: Feature Store Landscape -->
+  <div class="slide">
+    <h2 class="animate">Feature Store Landscape</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Platform</th><th>Type</th><th>Best For</th><th>Online Store</th></tr>
+        <tr><td><span class="highlight">Feast</span></td><td>Open-source</td><td>Flexible, self-managed, any cloud</td><td>Redis, DynamoDB, Postgres</td></tr>
+        <tr><td>Tecton</td><td>Managed</td><td>Enterprise, real-time features at scale</td><td>DynamoDB, Redis</td></tr>
+        <tr><td>Hopsworks</td><td>Open-source + managed</td><td>End-to-end ML platform</td><td>RonDB (NDB Cluster)</td></tr>
+        <tr><td>Vertex AI Feature Store</td><td>Managed (GCP)</td><td>GCP-native ML workflows</td><td>Bigtable</td></tr>
+        <tr><td>SageMaker Feature Store</td><td>Managed (AWS)</td><td>AWS-native ML workflows</td><td>DynamoDB-backed</td></tr>
+        <tr><td>Databricks Feature Store</td><td>Managed</td><td>Databricks/Spark ecosystems</td><td>Cosmos DB, DynamoDB</td></tr>
+      </table>
+      <p style="margin-top:14px;text-align:center"><span class="highlight">Feast</span> is the de-facto open-source standard. Most managed platforms share the same core concepts.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 18: Feature Engineering Patterns -->
+  <div class="slide">
+    <h2 class="animate">Feature Engineering Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Aggregation Windows</h3>
+        <p>Compute stats over time windows: <code>avg_trips_7d</code>, <code>total_revenue_30d</code>. Pre-compute in batch, serve online.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Embedding Features</h3>
+        <p>Store pre-computed embeddings (text, image, user) as feature vectors. Serve for similarity search or model input.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cross-Entity Features</h3>
+        <p>Combine features across entities: <code>user_avg_order_value</code> joined with <code>product_popularity</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Freshness Tiers</h3>
+        <p><span class="highlight">Real-time</span> (streaming, seconds), <span class="highlight">Near-real-time</span> (hourly batch), <span class="highlight">Daily</span> (nightly ETL).</p>
+      </div>
+      <div class="metric-card">
+        <h3>Feature Versioning</h3>
+        <p>Version feature views: <code>driver_stats_v1</code>, <code>driver_stats_v2</code>. Old models keep reading old features during migration.</p>
+      </div>
+      <div class="metric-card">
+        <h3>On-Demand Transforms</h3>
+        <p>Compute at request time from stored features + request data. No materialization needed. Great for derived ratios.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> One feature view per data source &mdash; keep lineage clean</div>
+      <div class="bp-item"><span>2.</span> Always set TTL to prevent serving stale features</div>
+      <div class="bp-item"><span>3.</span> Use Feature Services to bundle features per model</div>
+      <div class="bp-item"><span>4.</span> Name features descriptively: entity_metric_window</div>
+      <div class="bp-item"><span>5.</span> Store feature definitions in version control (GitOps)</div>
+      <div class="bp-item"><span>6.</span> Monitor feature freshness and null rates in production</div>
+      <div class="bp-item"><span>7.</span> Use point-in-time joins for all training data &mdash; never join naively</div>
+      <div class="bp-item"><span>8.</span> Start with batch features, add streaming only when latency requires it</div>
+      <div class="bp-item"><span>9.</span> Run feast apply in CI/CD to validate definitions before deploy</div>
+      <div class="bp-item"><span>10.</span> Test features with great_expectations or Deequ for data quality</div>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F9E0;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Feature Stores &amp; Feast:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Feature Store</span><span class="tag">Feast</span><span class="tag">Offline Store</span>
+        <span class="tag">Online Store</span><span class="tag">Point-in-Time Joins</span><span class="tag">Materialization</span>
+        <span class="tag">Streaming</span><span class="tag">Feature Services</span><span class="tag">On-Demand Features</span>
+      </div>
+      <p style="color:var(--text-muted)">A feature store eliminates training/serving skew and makes ML features a first-class, reusable asset.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
