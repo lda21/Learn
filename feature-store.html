@@ -247,7 +247,136 @@
   </div>
 
 
-  <!-- Slide 2: The Problem -->
+  <!-- Slide 2: What Is a Feature? -->
+  <div class="slide">
+    <h2 class="animate">What Is a Feature?</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:20px">A <span class="highlight">feature</span> is a measurable property or attribute of data that serves as input to a machine learning model. It is how raw data becomes something a model can learn from.</p>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Raw Data</h3>
+        <ul>
+          <li>A user signed up on 2023-01-15</li>
+          <li>An order was placed for $49.99</li>
+          <li>A driver completed a trip in 23 minutes</li>
+          <li>A login happened at 3:42 AM</li>
+          <li>A product page was viewed 8 times</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Features (model inputs)</h3>
+        <ul>
+          <li><span class="highlight">account_age_days</span> = 842</li>
+          <li><span class="highlight">avg_order_value_30d</span> = $37.50</li>
+          <li><span class="highlight">avg_trip_duration_min</span> = 18.4</li>
+          <li><span class="highlight">is_late_night_login</span> = true</li>
+          <li><span class="highlight">page_views_last_7d</span> = 23</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center">Features are <span class="highlight">derived from raw data</span> through transformations &mdash; aggregations, calculations, encodings, and business logic.</p>
+  </div>
+
+
+  <!-- Slide 3: Feature Examples by Domain -->
+  <div class="slide">
+    <h2 class="animate">Feature Examples by Domain</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Domain</th><th>Entity</th><th>Example Features</th></tr>
+        <tr><td>Fraud Detection</td><td>Transaction</td><td><code>txn_amount</code>, <code>txns_last_1h</code>, <code>avg_txn_amount_30d</code>, <code>is_new_device</code>, <code>distance_from_home_km</code></td></tr>
+        <tr><td>Ride-Hailing</td><td>Driver</td><td><code>avg_rating</code>, <code>trips_today</code>, <code>acceptance_rate</code>, <code>minutes_since_last_trip</code></td></tr>
+        <tr><td>E-Commerce</td><td>User</td><td><code>cart_value</code>, <code>days_since_last_purchase</code>, <code>lifetime_orders</code>, <code>preferred_category</code></td></tr>
+        <tr><td>Content Rec</td><td>User + Item</td><td><code>watch_time_avg</code>, <code>genre_affinity_score</code>, <code>item_popularity_7d</code>, <code>user_embedding</code></td></tr>
+        <tr><td>Credit Scoring</td><td>Applicant</td><td><code>credit_utilization_pct</code>, <code>payment_history_score</code>, <code>open_accounts</code>, <code>debt_to_income</code></td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Good features</span> capture the signal your model needs. The best features encode domain expertise into numbers.</p>
+  </div>
+
+
+  <!-- Slide 4: Why Features Matter -->
+  <div class="slide">
+    <h2 class="animate">Why Features Matter</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Model Quality</h3>
+        <p>Better features = better models. A simple model with great features beats a complex model with poor features every time.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Reusability</h3>
+        <p>Features like <code>user_lifetime_value</code> or <code>avg_rating_30d</code> can power dozens of models across teams.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Consistency</h3>
+        <p>The same feature must be computed the same way during training and production serving. Any difference degrades predictions.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Time Sensitivity</h3>
+        <p>Features change over time. <code>avg_spend_7d</code> today is different from a month ago. Models need the right value at the right time.</p>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+<pre>
+# The feature engineering lifecycle
+Raw Data  ──►  Transform  ──►  Feature  ──►  Store  ──►  Serve to Model
+
+Example:
+  orders table  ──►  GROUP BY user, last 30d  ──►  avg_order_value_30d = $37.50
+                     COUNT(*)                      order_count_30d = 12
+                     MAX(order_date)                days_since_last_order = 3
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 5: How Features Are Used -->
+  <div class="slide">
+    <h2 class="animate">How Features Are Used</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Training (Batch)</h3>
+        <ul>
+          <li>Collect historical features for past events</li>
+          <li>Each training row: <span class="highlight">features + label</span></li>
+          <li>Features must reflect what was known <em>at that time</em></li>
+          <li>Typically millions of rows from a data warehouse</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+# Training data example
+| user_id | avg_spend_30d | orders_7d | churned |
+|---------|---------------|-----------|---------|
+| u_101   | 42.50         | 3         | 0       |
+| u_202   | 12.00         | 0         | 1       |
+| u_303   | 78.90         | 7         | 0       |
+</pre>
+      </div>
+      <div class="card">
+        <h3>Serving (Real-Time)</h3>
+        <ul>
+          <li>Fetch the <span class="highlight">latest</span> feature values for an entity</li>
+          <li>Must be fast (&lt; 10ms) for online inference</li>
+          <li>Model receives features, returns prediction</li>
+          <li>Typically one entity at a time</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+# Real-time serving flow
+Request: "Should we show user u_101 a discount?"
+
+1. Fetch features for u_101:
+   avg_spend_30d = 42.50
+   orders_7d = 3
+2. Send to model
+3. Model returns: churn_risk = 0.12
+4. Decision: No discount needed
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 6: The Problem -->
   <div class="slide">
     <h2 class="animate">The Problem</h2>
     <div class="two-col animate">
@@ -919,7 +1048,7 @@ materialize_task = BashOperator(
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 24</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
