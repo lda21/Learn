@@ -318,7 +318,68 @@
   </div>
 
 
-  <!-- Slide 5: Installation & Setup -->
+  <!-- Slide 5: Process Architecture -->
+  <div class="slide">
+    <h2 class="animate">How Ralph Runs: Process Architecture</h2>
+    <div class="content animate">
+      <p>Ralph is a <span class="highlight">bash script</span> that orchestrates the <span class="highlight">Claude Code CLI</span> in a while loop. No daemon, no server &mdash; just processes and files.</p>
+<pre style="margin-top:16px;font-size:0.85rem">
+Terminal (your shell)
+&#9500;&#9472;&#9472; ralph_loop.sh              &larr; main bash script (parent process)
+&#9474;   &#9500;&#9472;&#9472; claude -p "..."          &larr; child process, spawned each iteration
+&#9474;   &#9474;                               blocks until Claude finishes
+&#9474;   &#9500;&#9472;&#9472; response_analyzer.sh    &larr; parses Claude's stdout
+&#9474;   &#9500;&#9472;&#9472; circuit_breaker.sh      &larr; reads/writes state file
+&#9474;   &#9492;&#9472;&#9472; (loops back to claude --continue)
+&#9474;
+&#9492;&#9472;&#9472; ralph_monitor.sh           &larr; SEPARATE process (tmux pane)
+    &#9492;&#9472;&#9472; reads log files + state files on disk
+</pre>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>Why tmux?</h3>
+          <p>Ralph needs <span class="highlight">two panes</span>: one running the loop, one showing the live dashboard. tmux provides split-terminal without a GUI. The monitor reads shared log files every few seconds.</p>
+        </div>
+        <div class="card">
+          <h3>Why jq?</h3>
+          <p>Parses the <span class="highlight">RALPH_STATUS</span> JSON block from Claude's output. Also reads/writes <code>.ralph/state.json</code> (circuit breaker state, session IDs, API counts). Falls back to grep/sed if output isn't valid JSON.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 6: Communication Flow -->
+  <div class="slide">
+    <h2 class="animate">CLI Communication Flow</h2>
+    <div class="content animate">
+      <p>Each iteration follows this sequence &mdash; Ralph captures Claude's stdout and decides what to do next:</p>
+<pre style="margin-top:16px;font-size:0.82rem">
+# Iteration 1 — new session
+claude -p "$(cat .ralph/PROMPT.md)" --allowedTools "Bash,Read,Write,Edit"
+
+# Iterations 2+ — continue same session (context preserved)
+claude --continue -p "Continue working on fix_plan.md. Report RALPH_STATUS."
+</pre>
+      <div style="margin-top:20px">
+        <table>
+          <tr><th>Step</th><th>Who</th><th>What Happens</th></tr>
+          <tr><td>1</td><td>Ralph</td><td>Builds prompt string from PROMPT.md + fix_plan.md</td></tr>
+          <tr><td>2</td><td>Ralph</td><td>Spawns <code>claude --continue -p "$prompt"</code> as child process</td></tr>
+          <tr><td>3</td><td>Claude</td><td>Runs 1-10 min: reads files, writes code, runs builds, appends RALPH_STATUS</td></tr>
+          <tr><td>4</td><td>Ralph</td><td>Claude exits &rarr; stdout captured in bash variable</td></tr>
+          <tr><td>5</td><td>Ralph</td><td><code>response_analyzer.sh</code> extracts STATUS, EXIT_SIGNAL, tasks, files (jq then grep fallback)</td></tr>
+          <tr><td>6</td><td>Ralph</td><td><code>circuit_breaker.sh</code> updates state &mdash; progress or no progress?</td></tr>
+          <tr><td>7</td><td>Ralph</td><td>Rate limiter checks API call count for this hour</td></tr>
+          <tr><td>8</td><td>Ralph</td><td>Decision: <span class="green">loop again</span>, <span class="highlight">wait</span> (rate limit), or <span style="color:#c0392b">exit</span></td></tr>
+        </table>
+      </div>
+      <p style="margin-top:14px;color:var(--text-muted);text-align:center">The <code>--continue</code> flag is the key &mdash; it resumes the same Claude session so context (completed tasks, file changes) carries over between iterations.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 7: Installation & Setup -->
   <div class="slide">
     <h2 class="animate">Installation &amp; Setup</h2>
     <div class="two-col animate">
@@ -767,7 +828,330 @@ load 'test_helper/bats-assert/load'
   </div>
 
 
-  <!-- Slide 19: Best Practices -->
+  <!-- Slide 19: E2E Example Intro -->
+  <div class="slide">
+    <h2 class="animate">E2E Example: Battleship Game</h2>
+    <div class="content animate">
+      <p>Let's build a <span class="highlight">full-stack Battleship game</span> from a home assignment spec using Ralph &mdash; showing every step from task to running app.</p>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>Backend</h3>
+          <p>ASP.NET Core Web API &mdash; game state, ship placement, turn logic, hit/miss/sunk detection via REST endpoints.</p>
+        </div>
+        <div class="metric-card">
+          <h3>MCP Server</h3>
+          <p>C# MCP tool server over Streamable HTTP &mdash; exposes game actions as tools so an AI agent can play.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Frontend</h3>
+          <p>React + TypeScript &mdash; two grids (your board + attack view), ship placement, fire shots. Player 1 controls only.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Infrastructure</h3>
+          <p>Docker Compose &mdash; all services containerized. Single <code>docker compose up --build</code> brings everything up.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;text-align:center;color:var(--text-muted)">6&times;6 board, 3 ships (sizes 2, 3, 4), two players, first to sink all wins.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: PROMPT.md Example -->
+  <div class="slide">
+    <h2 class="animate">Step 1: Write PROMPT.md</h2>
+    <div class="content animate">
+      <p>The PROMPT.md tells Claude <span class="highlight">what to build</span> and <span class="highlight">what rules to follow</span> every iteration:</p>
+<pre style="margin-top:16px;font-size:0.82rem">
+# Battleship Full-Stack Application
+
+## Goal
+Build a two-player Battleship game as a full-stack web app.
+
+## Architecture
+- **API**: ASP.NET Core Web API (C#) on port 5000
+- **MCP**: C# MCP tool server (Streamable HTTP) on port 5001
+- **UI**: React + TypeScript (Vite) on port 3000
+- **Infra**: Docker Compose at project root
+
+## Rules
+- 6x6 board, 3 ships per player (sizes: 2, 3, 4)
+- Players place ships, then alternate turns firing shots
+- A player must NEVER see opponent ship positions
+- Only expose hits/misses on the attack grid
+- First to sink all 3 opponent ships wins
+
+## Constraints
+- No database needed (in-memory state is fine)
+- No authentication required
+- No tests required
+- Player 2 can be idle (no UI controls for P2)
+
+## DO NOT MODIFY files in .ralph/ directory
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 21: fix_plan.md Example -->
+  <div class="slide">
+    <h2 class="animate">Step 2: Create fix_plan.md</h2>
+    <div class="content animate">
+      <p>The task checklist Claude works through. <span class="highlight">Order matters</span> &mdash; dependencies first:</p>
+<pre style="margin-top:16px;font-size:0.82rem">
+# Battleship - Task Plan
+
+## Phase 1: Project Setup
+- [ ] Initialize solution structure: API, MCP, UI projects
+- [ ] Create docker-compose.yml with all three services
+- [ ] Add Dockerfiles for API, MCP server, and React app
+- [ ] Verify `docker compose up --build` runs without errors
+
+## Phase 2: Game Engine (Backend Core)
+- [ ] Define game models: Board, Ship, Cell, GameState
+- [ ] Implement ship placement with validation (bounds, overlap, adjacency)
+- [ ] Implement shot processing: hit, miss, sunk detection
+- [ ] Implement turn logic: alternate players, win condition
+- [ ] Add game state manager (in-memory, supports multiple games)
+
+## Phase 3: REST API
+- [ ] POST /api/games - create new game
+- [ ] POST /api/games/{id}/place-ship - place a ship
+- [ ] POST /api/games/{id}/fire - fire a shot
+- [ ] GET  /api/games/{id}/board/{player} - get board (filtered view)
+- [ ] GET  /api/games/{id}/status - game status and whose turn
+
+## Phase 4: MCP Tool Server
+- [ ] Set up MCP server with C# SDK (Streamable HTTP transport)
+- [ ] Expose create_game, place_ship, fire_shot, get_board tools
+- [ ] Ensure tools call the same game engine as the REST API
+
+## Phase 5: React Frontend
+- [ ] Scaffold Vite + React + TypeScript project
+- [ ] Build 6x6 grid component with cell states (empty/ship/hit/miss/sunk)
+- [ ] Implement ship placement UI (click to place, rotate)
+- [ ] Implement attack grid (click to fire, show hit/miss)
+- [ ] Wire up to REST API endpoints
+- [ ] Add game status display (whose turn, winner announcement)
+
+## Phase 6: Polish & Verify
+- [ ] Test full game flow: create → place ships → fire → win
+- [ ] Verify opponent ships are never leaked to the other player
+- [ ] Verify docker compose up --build works from clean state
+- [ ] Write README.md with run instructions
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 22: AGENT.md & .ralphrc -->
+  <div class="slide">
+    <h2 class="animate">Step 3: AGENT.md &amp; .ralphrc</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>AGENT.md</h3>
+        <p>Build and verify commands Claude uses to check its own work:</p>
+<pre style="font-size:0.82rem;margin-top:10px">
+# Build & Verify Commands
+
+## Build All
+docker compose build
+
+## Run All
+docker compose up --build -d
+
+## Check API Health
+curl -s http://localhost:5000/health
+
+## Check MCP Health
+curl -s http://localhost:5001/health
+
+## Check UI
+curl -s http://localhost:3000
+
+## Build API Only
+cd src/BattleshipApi
+dotnet build
+
+## Build MCP Only
+cd src/BattleshipMcp
+dotnet build
+
+## Lint Frontend
+cd src/battleship-ui
+npm run lint
+
+## Stop All
+docker compose down
+</pre>
+      </div>
+      <div class="card">
+        <h3>.ralphrc</h3>
+        <p>Conservative config for a multi-service build:</p>
+<pre style="font-size:0.82rem;margin-top:10px">
+# Tool Permissions
+ALLOWED_TOOLS="Bash,Read,Write,Edit,
+  Glob,Grep"
+
+# Loop Control
+MAX_LOOPS=40
+TIMEOUT_SECONDS=600
+
+# Rate Limiting (conservative start)
+RATE_LIMIT_PER_HOUR=80
+TOKEN_BUDGET_PER_HOUR=400000
+
+# Circuit Breaker
+CIRCUIT_BREAKER_THRESHOLD=3
+COOLDOWN_MINUTES=15
+
+# Session
+SESSION_EXPIRY_HOURS=24
+
+# Unattended (overnight build)
+UNATTENDED_MODE=true
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 23: Specs Example -->
+  <div class="slide">
+    <h2 class="animate">Step 4: Add Specs</h2>
+    <div class="content animate">
+      <p>Detailed specs for complex features go in <code>.ralph/specs/</code>. Claude references them when needed:</p>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>specs/game-rules.md</h3>
+<pre style="font-size:0.78rem">
+# Game Rules
+
+## Board
+- 6x6 grid, columns A-F, rows 1-6
+
+## Ships
+| Name       | Size |
+|------------|------|
+| Patrol     | 2    |
+| Submarine  | 3    |
+| Destroyer  | 4    |
+
+## Placement Rules
+- Ships placed horizontally or vertically
+- No overlap with other ships
+- Must fit within board bounds
+- No adjacency requirement
+
+## Turn Rules
+- Player 1 always goes first
+- Players alternate turns
+- Fire at one cell per turn
+- Result: HIT, MISS, or SUNK
+
+## Win Condition
+- First player to sink all 3
+  opponent ships wins
+</pre>
+        </div>
+        <div class="card">
+          <h3>specs/api-contract.md</h3>
+<pre style="font-size:0.78rem">
+# API Contract
+
+## POST /api/games
+Response: { gameId, status }
+
+## POST /api/games/{id}/place-ship
+Body: {
+  player: 1|2,
+  shipSize: 2|3|4,
+  startCell: "B3",
+  orientation: "H"|"V"
+}
+Response: { success, board }
+
+## POST /api/games/{id}/fire
+Body: {
+  player: 1|2,
+  cell: "C4"
+}
+Response: {
+  result: "HIT"|"MISS"|"SUNK",
+  sunkShip?: { size },
+  gameOver: bool,
+  winner?: 1|2
+}
+
+## GET /api/games/{id}/board/{player}
+Response: own ships + opponent
+hits/misses (NO opponent ships)
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 24: Running Ralph -->
+  <div class="slide">
+    <h2 class="animate">Step 5: Run Ralph</h2>
+    <div class="content animate">
+      <p>With all files in place, start the loop and watch Claude build:</p>
+<pre style="margin-top:16px">
+cd battleship-project/
+ralph-enable          # Already done — .ralph/ is ready
+ralph --monitor       # Start loop + open tmux dashboard
+</pre>
+      <div class="diagram" style="margin-top:20px">
+        <div class="box">ralph reads<br>PROMPT.md</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Claude reads<br>fix_plan.md</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Picks next<br>unchecked task</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Implements<br>& verifies</div>
+      </div>
+      <div class="diagram" style="margin-top:8px">
+        <div class="box">Marks task<br><code>[x]</code> done</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Reports<br>RALPH_STATUS</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Ralph loops<br>or exits</div>
+      </div>
+      <p class="animate" style="margin-top:16px;text-align:center;color:var(--text-muted)">Each iteration: Claude picks the next unchecked task, implements it, runs the verify commands from AGENT.md, checks off the task, and reports status.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 25: Loop-by-Loop Progress -->
+  <div class="slide">
+    <h2 class="animate">Loop-by-Loop Progress</h2>
+    <div class="content animate">
+      <p>What the monitor shows as Ralph builds Battleship overnight:</p>
+      <table style="margin-top:12px;font-size:1rem">
+        <tr><th>Loop</th><th>Tasks Done</th><th>Files</th><th>What Happened</th></tr>
+        <tr><td>1-3</td><td>4</td><td>12</td><td>Solution structure, Dockerfiles, docker-compose.yml, initial build passes</td></tr>
+        <tr><td>4-8</td><td>5</td><td>9</td><td>Game models, placement validation, shot logic, turn engine, state manager</td></tr>
+        <tr><td>9-12</td><td>5</td><td>6</td><td>REST endpoints wired up, tested with curl, board filtering (no ship leak)</td></tr>
+        <tr><td>13-16</td><td>3</td><td>8</td><td>MCP server setup, tools mapped to game engine, Streamable HTTP transport</td></tr>
+        <tr><td>17-23</td><td>5</td><td>14</td><td>React scaffold, grid component, placement UI, attack grid, API integration</td></tr>
+        <tr><td>24-27</td><td>4</td><td>7</td><td>Full-game flow test, security check, docker compose verify, README</td></tr>
+        <tr><td>28</td><td>0</td><td>0</td><td style="color:var(--success)">EXIT_SIGNAL: true &mdash; all tasks complete</td></tr>
+      </table>
+<pre style="margin-top:16px;font-size:0.85rem">
+---RALPH_STATUS---
+STATUS: COMPLETE
+TASKS_COMPLETED_THIS_LOOP: 0
+FILES_MODIFIED: 0
+EXIT_SIGNAL: true      # ← Both conditions met, Ralph stops cleanly
+---END_RALPH_STATUS---
+</pre>
+      <p style="margin-top:12px;text-align:center"><span class="highlight">Result:</span> 26 tasks completed in 28 loops. Full-stack Battleship game, containerized, ready to play.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 26 (was 19): Best Practices -->
   <div class="slide">
     <h2 class="animate">Best Practices</h2>
     <div class="bp-grid animate">
@@ -785,17 +1169,18 @@ load 'test_helper/bats-assert/load'
   </div>
 
 
-  <!-- Slide 20: Course Complete -->
+  <!-- Slide 27 (was 20): Course Complete -->
   <div class="slide">
     <span class="logo-icon animate">&#x1F501;</span>
     <h2 class="animate">Course Complete!</h2>
     <div class="content animate" style="text-align:center">
-      <p>You have mastered Ralph for Claude Code:</p>
+      <p>You have mastered Ralph for Claude Code &mdash; from concepts to building a full-stack app:</p>
       <div style="margin:20px 0">
         <span class="tag">Ralph</span><span class="tag">Autonomous AI</span><span class="tag">Circuit Breaker</span>
         <span class="tag">Claude Code</span><span class="tag">Exit Detection</span><span class="tag">Rate Limiting</span>
+        <span class="tag">E2E Example</span><span class="tag">PROMPT.md</span><span class="tag">fix_plan.md</span>
       </div>
-      <p style="color:var(--text-muted)">Let Ralph handle the iteration loop while you focus on what matters: defining the right goals.</p>
+      <p style="color:var(--text-muted)">Define your goals in PROMPT.md, break tasks in fix_plan.md, and let Ralph build while you sleep.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
     </div>
   </div>
@@ -803,7 +1188,7 @@ load 'test_helper/bats-assert/load'
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 29</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
