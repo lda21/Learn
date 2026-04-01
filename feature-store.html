@@ -408,7 +408,60 @@ New tick: BTCUSDT @ $67,432
   </div>
 
 
-  <!-- Slide 3: What Is a Feature Store? -->
+  <!-- Slide 7: Why Not Just Postgres? -->
+  <div class="slide">
+    <h2 class="animate">Why Not Just a Postgres Table?</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">You <em>could</em> store features in a regular table. Here's what you'd have to build yourself:</p>
+      <table>
+        <tr><th>Capability</th><th>Postgres Table</th><th>Feature Store (Feast)</th></tr>
+        <tr><td>Store feature values</td><td><span class="green">Yes</span> &mdash; just rows and columns</td><td><span class="green">Yes</span> &mdash; same, but structured</td></tr>
+        <tr><td>Low-latency serving (&lt;10ms)</td><td><span class="highlight">Slow</span> &mdash; 5-50ms per query under load, no built-in caching</td><td><span class="green">Built-in</span> &mdash; Redis/DynamoDB online store, sub-ms reads</td></tr>
+        <tr><td>Point-in-time joins</td><td><span class="highlight">Manual</span> &mdash; complex SQL with window functions, error-prone</td><td><span class="green">Built-in</span> &mdash; one API call, handles TTL and multiple time granularities</td></tr>
+        <tr><td>Training/serving consistency</td><td><span class="highlight">Your problem</span> &mdash; must ensure Python training code and .NET serving code compute identically</td><td><span class="green">Guaranteed</span> &mdash; same feature definition serves both paths</td></tr>
+        <tr><td>Feature catalog &amp; discovery</td><td><span class="highlight">None</span> &mdash; "which table has RSI? Is it rsi_14 or rsi14_1h?"</td><td><span class="green">Registry</span> &mdash; <code>feast feature-views list</code>, metadata, descriptions, ownership</td></tr>
+        <tr><td>Streaming ingestion</td><td><span class="highlight">Custom</span> &mdash; build Kafka &rarr; Postgres pipeline yourself</td><td><span class="green">Native</span> &mdash; KafkaSource with watermark, auto-materialization</td></tr>
+        <tr><td>Feature versioning</td><td><span class="highlight">Schema migrations</span> &mdash; ALTER TABLE, hope nothing breaks</td><td><span class="green">Declarative</span> &mdash; <code>technical_v1</code> and <code>technical_v2</code> coexist, <code>feast apply</code> validates</td></tr>
+        <tr><td>Offline + Online split</td><td><span class="highlight">One store</span> &mdash; can't optimize for both batch reads and real-time lookups</td><td><span class="green">Dual store</span> &mdash; warehouse for training, Redis for serving, synced by materialization</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">Postgres is great for storing data. A feature store adds the <span class="highlight">ML-specific plumbing</span> &mdash; point-in-time correctness, dual-store serving, and a contract between training and production.</p>
+  </div>
+
+
+  <!-- Slide 8: When Postgres IS Enough -->
+  <div class="slide">
+    <h2 class="animate">When Postgres IS Enough</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Skip the Feature Store If...</h3>
+        <ul>
+          <li>You have &lt; 20 features and 1-2 models</li>
+          <li>Batch predictions only (no real-time serving)</li>
+          <li>Single team, single codebase (no sharing needed)</li>
+          <li>Latency budget is relaxed (&gt; 100ms is fine)</li>
+          <li>No need for historical point-in-time joins</li>
+          <li>You're prototyping or in early MVP stage</li>
+        </ul>
+        <p style="margin-top:10px;color:var(--text-muted)">A <code>features</code> table with good indexes can work well for simple cases.</p>
+      </div>
+      <div class="card">
+        <h3>You Need a Feature Store When...</h3>
+        <ul>
+          <li><span class="highlight">500+ features</span> across multiple timeframes (like our trading agent)</li>
+          <li>Real-time serving under &lt; 10ms latency</li>
+          <li>Multiple models consuming overlapping features</li>
+          <li>Backtesting requires exact historical feature state</li>
+          <li>Streaming + batch features need to coexist</li>
+          <li>Multiple teams or services produce and consume features</li>
+        </ul>
+        <p style="margin-top:10px;color:var(--text-muted)">The trading agent hits <strong>every</strong> item on this list.</p>
+      </div>
+    </div>
+  </div>
+
+
+
   <div class="slide">
     <h2 class="animate">What Is a Feature Store?</h2>
     <div class="content animate">
@@ -1079,7 +1132,7 @@ materialize_task = BashOperator(
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 24</div>
+<div class="slide-counter" id="counter">1 / 26</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
