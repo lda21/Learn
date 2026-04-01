@@ -257,21 +257,21 @@
       <div class="card">
         <h3>Raw Data</h3>
         <ul>
-          <li>A user signed up on 2023-01-15</li>
-          <li>An order was placed for $49.99</li>
-          <li>A driver completed a trip in 23 minutes</li>
-          <li>A login happened at 3:42 AM</li>
-          <li>A product page was viewed 8 times</li>
+          <li>BTCUSDT last price: $67,432.50 at 14:03:22</li>
+          <li>Funding rate: +0.012% at 08:00 UTC</li>
+          <li>A whale moved 5,000 BTC to Coinbase</li>
+          <li>24h trading volume: $18.2B</li>
+          <li>RSI(14) on 1h candle: 72.3</li>
         </ul>
       </div>
       <div class="card">
         <h3>Features (model inputs)</h3>
         <ul>
-          <li><span class="highlight">account_age_days</span> = 842</li>
-          <li><span class="highlight">avg_order_value_30d</span> = $37.50</li>
-          <li><span class="highlight">avg_trip_duration_min</span> = 18.4</li>
-          <li><span class="highlight">is_late_night_login</span> = true</li>
-          <li><span class="highlight">page_views_last_7d</span> = 23</li>
+          <li><span class="highlight">rsi_14_1h</span> = 72.3</li>
+          <li><span class="highlight">funding_rate_trend_24h</span> = +0.008</li>
+          <li><span class="highlight">whale_net_flow_4h</span> = -12,500 BTC</li>
+          <li><span class="highlight">volume_ratio_24h_7d</span> = 1.45</li>
+          <li><span class="highlight">atr_14_pct</span> = 3.2%</li>
         </ul>
       </div>
     </div>
@@ -279,20 +279,22 @@
   </div>
 
 
-  <!-- Slide 3: Feature Examples by Domain -->
+  <!-- Slide 3: Feature Examples - Crypto Trading Agent -->
   <div class="slide">
-    <h2 class="animate">Feature Examples by Domain</h2>
+    <h2 class="animate">Real-World: Crypto Trading Agent Features</h2>
     <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">An <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> uses 500+ features across 4 timeframes. Here are the key categories:</p>
       <table>
-        <tr><th>Domain</th><th>Entity</th><th>Example Features</th></tr>
-        <tr><td>Fraud Detection</td><td>Transaction</td><td><code>txn_amount</code>, <code>txns_last_1h</code>, <code>avg_txn_amount_30d</code>, <code>is_new_device</code>, <code>distance_from_home_km</code></td></tr>
-        <tr><td>Ride-Hailing</td><td>Driver</td><td><code>avg_rating</code>, <code>trips_today</code>, <code>acceptance_rate</code>, <code>minutes_since_last_trip</code></td></tr>
-        <tr><td>E-Commerce</td><td>User</td><td><code>cart_value</code>, <code>days_since_last_purchase</code>, <code>lifetime_orders</code>, <code>preferred_category</code></td></tr>
-        <tr><td>Content Rec</td><td>User + Item</td><td><code>watch_time_avg</code>, <code>genre_affinity_score</code>, <code>item_popularity_7d</code>, <code>user_embedding</code></td></tr>
-        <tr><td>Credit Scoring</td><td>Applicant</td><td><code>credit_utilization_pct</code>, <code>payment_history_score</code>, <code>open_accounts</code>, <code>debt_to_income</code></td></tr>
+        <tr><th>Category</th><th>Entity</th><th>Example Features</th></tr>
+        <tr><td>Technical</td><td>Instrument</td><td><code>rsi_14</code>, <code>macd_signal</code>, <code>bbands_width</code>, <code>atr_14</code>, <code>ema_crossover</code>, <code>volume_profile</code></td></tr>
+        <tr><td>Funding Rate</td><td>Instrument</td><td><code>funding_rate_current</code>, <code>funding_rate_trend_24h</code>, <code>funding_volatility</code>, <code>is_extreme_funding</code></td></tr>
+        <tr><td>On-Chain</td><td>Token</td><td><code>whale_net_flow_4h</code>, <code>dex_cex_volume_ratio</code>, <code>large_txn_count_1h</code>, <code>holder_concentration</code></td></tr>
+        <tr><td>Sentiment</td><td>Token</td><td><code>news_sentiment_score</code>, <code>social_momentum</code>, <code>accumulation_distribution</code></td></tr>
+        <tr><td>Market Regime</td><td>Market</td><td><code>realized_volatility</code>, <code>hurst_exponent</code>, <code>btc_dominance_trend</code>, <code>regime_label</code></td></tr>
+        <tr><td>Execution</td><td>Venue</td><td><code>avg_slippage_bps</code>, <code>fill_rate_pct</code>, <code>spread_avg_1h</code></td></tr>
       </table>
     </div>
-    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Good features</span> capture the signal your model needs. The best features encode domain expertise into numbers.</p>
+    <p class="animate" style="margin-top:14px;text-align:center">These features flow through <span class="highlight">Kafka &rarr; Redis (hot) &rarr; Feast (versioned) &rarr; TimescaleDB (historical)</span>.</p>
   </div>
 
 
@@ -302,30 +304,31 @@
     <div class="metric-grid animate">
       <div class="metric-card">
         <h3>Model Quality</h3>
-        <p>Better features = better models. A simple model with great features beats a complex model with poor features every time.</p>
+        <p>Better features = better models. XGBoost with well-engineered <code>rsi</code>, <code>atr</code>, and <code>funding_rate</code> features outperforms a deep model fed raw candles.</p>
       </div>
       <div class="metric-card">
         <h3>Reusability</h3>
-        <p>Features like <code>user_lifetime_value</code> or <code>avg_rating_30d</code> can power dozens of models across teams.</p>
+        <p><code>rsi_14_1h</code> powers the signal model, regime classifier, and risk evaluator. Compute once, serve to all.</p>
       </div>
       <div class="metric-card">
         <h3>Consistency</h3>
-        <p>The same feature must be computed the same way during training and production serving. Any difference degrades predictions.</p>
+        <p>If <code>atr_14</code> is computed differently in training vs. live trading, the model's position sizing will be wrong &mdash; real money lost.</p>
       </div>
       <div class="metric-card">
         <h3>Time Sensitivity</h3>
-        <p>Features change over time. <code>avg_spend_7d</code> today is different from a month ago. Models need the right value at the right time.</p>
+        <p>Crypto markets run 24/7. <code>funding_rate_trend_24h</code> right now is different from 8 hours ago. Models need the right value at the right time.</p>
       </div>
     </div>
     <div class="content animate" style="margin-top:20px">
 <pre>
-# The feature engineering lifecycle
+# The feature engineering lifecycle (crypto trading)
 Raw Data  ──►  Transform  ──►  Feature  ──►  Store  ──►  Serve to Model
 
 Example:
-  orders table  ──►  GROUP BY user, last 30d  ──►  avg_order_value_30d = $37.50
-                     COUNT(*)                      order_count_30d = 12
-                     MAX(order_date)                days_since_last_order = 3
+  Kafka ticks  ──►  Kafka Streams compute  ──►  rsi_14_1h = 72.3
+  (crypto.ticks)    over sliding windows        atr_14_pct = 3.2%
+                                                funding_rate_trend = +0.008
+                    ──►  Redis (latest)  +  Feast (versioned)  +  TimescaleDB (historical)
 </pre>
     </div>
   </div>
@@ -338,38 +341,39 @@ Example:
       <div class="card">
         <h3>Training (Batch)</h3>
         <ul>
-          <li>Collect historical features for past events</li>
-          <li>Each training row: <span class="highlight">features + label</span></li>
+          <li>Collect historical features for past trading signals</li>
+          <li>Each training row: <span class="highlight">features + label</span> (profitable or not)</li>
           <li>Features must reflect what was known <em>at that time</em></li>
-          <li>Typically millions of rows from a data warehouse</li>
+          <li>Point-in-time: no peeking at future prices!</li>
         </ul>
 <pre style="font-size:0.85rem;margin-top:10px">
-# Training data example
-| user_id | avg_spend_30d | orders_7d | churned |
-|---------|---------------|-----------|---------|
-| u_101   | 42.50         | 3         | 0       |
-| u_202   | 12.00         | 0         | 1       |
-| u_303   | 78.90         | 7         | 0       |
+# XGBoost signal model training data
+| instrument | rsi_14 | atr_pct | funding | profitable |
+|------------|--------|---------|---------|------------|
+| BTCUSDT    | 72.3   | 3.2%    | +0.012  | 0          |
+| ETHUSDT    | 31.5   | 4.1%    | -0.005  | 1          |
+| BTCUSDT    | 55.0   | 2.8%    | +0.001  | 1          |
 </pre>
       </div>
       <div class="card">
         <h3>Serving (Real-Time)</h3>
         <ul>
-          <li>Fetch the <span class="highlight">latest</span> feature values for an entity</li>
-          <li>Must be fast (&lt; 10ms) for online inference</li>
-          <li>Model receives features, returns prediction</li>
-          <li>Typically one entity at a time</li>
+          <li>Fetch <span class="highlight">latest</span> features for an instrument</li>
+          <li>Must be fast (&lt; 2s) for live trading decisions</li>
+          <li>Model returns signal: direction + confidence</li>
+          <li>Risk gate checks before execution</li>
         </ul>
 <pre style="font-size:0.85rem;margin-top:10px">
-# Real-time serving flow
-Request: "Should we show user u_101 a discount?"
+# Live trading signal flow
+New tick: BTCUSDT @ $67,432
 
-1. Fetch features for u_101:
-   avg_spend_30d = 42.50
-   orders_7d = 3
-2. Send to model
-3. Model returns: churn_risk = 0.12
-4. Decision: No discount needed
+1. Fetch features for BTCUSDT:
+   rsi_14_1h=72.3, atr_14_pct=3.2%
+   funding_trend=+0.008, regime=TRENDING
+2. XGBoost model returns:
+   direction=SELL, strength=0.7, confidence=0.82
+3. Risk gate: position size, drawdown check
+4. Execute order (or reject)
 </pre>
       </div>
     </div>
@@ -383,21 +387,21 @@ Request: "Should we show user u_101 a discount?"
       <div class="card">
         <h3>Without a Feature Store</h3>
         <ul>
-          <li>Training features computed in notebooks</li>
-          <li>Serving features rewritten in production code</li>
-          <li><span class="highlight">Training/serving skew</span> &mdash; different logic, different results</li>
-          <li>Duplicated feature pipelines across teams</li>
-          <li>No discoverability &mdash; "does this feature exist?"</li>
+          <li>Training: RSI computed in a Python notebook</li>
+          <li>Serving: RSI recomputed in .NET trading engine</li>
+          <li><span class="highlight">Training/serving skew</span> &mdash; subtle differences = bad trades</li>
+          <li>Signal model, regime classifier, and risk gate all compute <code>atr_14</code> independently</li>
+          <li>Backtesting uses features that didn't exist at that historical moment</li>
         </ul>
       </div>
       <div class="card">
         <h3>With a Feature Store</h3>
         <ul>
-          <li><span class="green">Single source of truth</span> for feature definitions</li>
-          <li>Same features for training and serving</li>
-          <li>Consistent transformations everywhere</li>
-          <li>Feature catalog &mdash; search, reuse, share</li>
-          <li>Point-in-time correct training data</li>
+          <li><span class="green">Single source of truth</span> &mdash; one <code>rsi_14</code> definition shared everywhere</li>
+          <li>XGBoost trains on the exact features it will see in production</li>
+          <li>Point-in-time joins: backtests use features as they existed <em>at that moment</em></li>
+          <li>Feature catalog: 500+ features searchable by name, entity, or owner</li>
+          <li>Decision replay: exact feature snapshot stored with every trade</li>
         </ul>
       </div>
     </div>
@@ -446,11 +450,11 @@ Request: "Should we show user u_101 a discount?"
     <div class="content animate">
       <p style="text-align:center;margin-bottom:16px">The #1 reason ML models degrade in production.</p>
       <table>
-        <tr><th>Cause</th><th>What Goes Wrong</th><th>Feature Store Fix</th></tr>
-        <tr><td>Different code paths</td><td>Python notebook vs. Java service compute features differently</td><td>Single feature definition used everywhere</td></tr>
-        <tr><td>Temporal leakage</td><td>Training uses future data not available at inference time</td><td>Point-in-time joins prevent leakage</td></tr>
-        <tr><td>Stale features</td><td>Online features lag behind reality</td><td>Materialization pipelines keep online store fresh</td></tr>
-        <tr><td>Missing values</td><td>Training fills nulls one way, serving another</td><td>Consistent default values in feature definitions</td></tr>
+        <tr><th>Cause</th><th>What Goes Wrong (Trading)</th><th>Feature Store Fix</th></tr>
+        <tr><td>Different code paths</td><td>Python backtest computes <code>rsi_14</code> with TA-Lib, .NET engine uses custom impl &mdash; values diverge by 0.3-2%</td><td>Single Feast feature definition, computed once in Kafka Streams</td></tr>
+        <tr><td>Temporal leakage</td><td>Backtest accidentally uses the closing candle that includes the trade timestamp &mdash; inflated win rate</td><td>Point-in-time joins ensure features as-of the signal moment</td></tr>
+        <tr><td>Stale features</td><td><code>funding_rate</code> in Redis is 45 min old during exchange outage &mdash; model over-sizes position</td><td>TTL-based staleness detection; null returned if beyond threshold</td></tr>
+        <tr><td>Missing values</td><td>Training fills missing <code>whale_flow</code> with 0, serving leaves it null &mdash; different model behavior</td><td>Default values defined in FeatureView schema, consistent everywhere</td></tr>
       </table>
     </div>
   </div>
@@ -522,35 +526,37 @@ Request: "Should we show user u_101 a discount?"
     <h2 class="animate">Defining Features</h2>
     <div class="content animate">
 <pre>
-# feature_repo/features.py
+# feature_repo/features.py  (AI Crypto Trading Agent)
 from feast import Entity, FeatureView, Field, FileSource
-from feast.types import Float32, Int64, String
+from feast.types import Float32, Float64, Int64, String
 from datetime import timedelta
 
-# 1. Entity &mdash; the primary key
-driver = Entity(
-    name="driver",
-    join_keys=["driver_id"],
-    description="Unique driver identifier",
+# 1. Entity &mdash; the trading instrument (BTCUSDT, ETHUSDT, etc.)
+instrument = Entity(
+    name="instrument",
+    join_keys=["instrument_id"],
+    description="Trading pair (e.g. BTCUSDT)",
 )
 
-# 2. Data Source &mdash; where raw features live
-driver_stats_source = FileSource(
-    path="data/driver_stats.parquet",
+# 2. Data Source &mdash; technical indicators from TimescaleDB/Parquet
+technical_source = FileSource(
+    path="data/technical_features.parquet",
     timestamp_field="event_timestamp",
 )
 
-# 3. Feature View &mdash; a group of features from one source
-driver_stats_fv = FeatureView(
-    name="driver_hourly_stats",
-    entities=[driver],
+# 3. Feature View &mdash; technical indicator features per instrument
+technical_fv = FeatureView(
+    name="instrument_technical_1h",
+    entities=[instrument],
     ttl=timedelta(hours=2),
     schema=[
-        Field(name="conv_rate", dtype=Float32),
-        Field(name="acc_rate", dtype=Float32),
-        Field(name="avg_daily_trips", dtype=Int64),
+        Field(name="rsi_14", dtype=Float32),
+        Field(name="macd_signal", dtype=Float32),
+        Field(name="atr_14_pct", dtype=Float32),
+        Field(name="bbands_width", dtype=Float32),
+        Field(name="volume_ratio_24h_7d", dtype=Float32),
     ],
-    source=driver_stats_source,
+    source=technical_source,
 )
 </pre>
     </div>
@@ -566,20 +572,22 @@ driver_stats_fv = FeatureView(
 <pre style="font-size:0.85rem">
 from feast import FeatureService
 
-# Bundle features for a specific model
-driver_model_v1 = FeatureService(
-    name="driver_model_v1",
+# Bundle all features for the XGBoost signal model
+signal_model_v1 = FeatureService(
+    name="signal_model_v1",
     features=[
-        driver_stats_fv,
-        driver_ratings_fv,
+        technical_fv,       # RSI, MACD, ATR, BBands
+        funding_fv,         # funding rate, trend
+        sentiment_fv,       # news + social scores
+        regime_fv,          # market regime label
     ],
-    description="Features for driver ETA model v1",
+    description="Features for XGBoost signal model v1",
 )
 
 # Retrieve via service name
 features = store.get_online_features(
-    features=driver_model_v1,
-    entity_rows=[{"driver_id": 1001}],
+    features=signal_model_v1,
+    entity_rows=[{"instrument_id": "BTCUSDT"}],
 )
 </pre>
       </div>
@@ -588,22 +596,25 @@ features = store.get_online_features(
 <pre style="font-size:0.85rem">
 from feast import on_demand_feature_view
 
-# Computed at request time
+# Computed at request time (no materialization)
 @on_demand_feature_view(
-    sources=[driver_stats_fv],
+    sources=[technical_fv, funding_fv],
     schema=[
-        Field(name="trips_today_pct", dtype=Float32),
+        Field(name="risk_adjusted_signal", dtype=Float32),
     ],
 )
-def driver_trips_pct(inputs):
-    df = inputs["driver_hourly_stats"]
-    df["trips_today_pct"] = (
-        df["avg_daily_trips"] / 500.0
+def compute_risk_signal(inputs):
+    tech = inputs["instrument_technical_1h"]
+    fund = inputs["instrument_funding"]
+    # Combine ATR volatility with funding pressure
+    tech["risk_adjusted_signal"] = (
+        (100 - tech["rsi_14"]) / 100.0
+        * (1 - abs(fund["funding_rate"]) * 10)
     )
-    return df
+    return tech
 
-# No materialization needed
 # Runs in real-time during serving
+# Great for derived ratios and cross-view logic
 </pre>
       </div>
     </div>
@@ -650,19 +661,24 @@ feast entities list
     <h2 class="animate">Configuration</h2>
     <div class="content animate">
 <pre>
-# feature_store.yaml
+# feature_store.yaml  (AI Crypto Trading Agent - Production)
 
-project: my_ml_project
-provider: local            # local | gcp | aws
+project: crypto_trading_agent
+provider: aws
 
-registry: data/registry.db  # or s3://bucket/registry.db
+registry: s3://trading-ml-artifacts/feast/registry.db
 
 online_store:
-  type: redis              # redis | dynamodb | sqlite | postgres
-  connection_string: "localhost:6379"
+  type: redis                    # Redis Cluster on AWS ElastiCache
+  connection_string: "redis-cluster.internal:6379"
 
 offline_store:
-  type: file               # file | bigquery | snowflake | redshift | spark
+  type: redshift                 # or file/spark for TimescaleDB exports
+  cluster_id: trading-warehouse
+  region: us-east-1
+  database: features
+  user: feast_reader
+  s3_staging_location: s3://trading-ml-artifacts/feast/staging/
 
 entity_key_serialization_version: 2
 </pre>
@@ -698,29 +714,33 @@ import pandas as pd
 
 store = FeatureStore(repo_path="feature_repo/")
 
-# Entity DataFrame &mdash; "who" and "when" you want features for
+# Entity DataFrame &mdash; historical trading signals we want to label
+# "what instrument, at what moment did we generate a signal?"
 entity_df = pd.DataFrame({
-    "driver_id": [1001, 1002, 1003, 1001],
+    "instrument_id": ["BTCUSDT", "ETHUSDT", "BTCUSDT", "BTCUSDT"],
     "event_timestamp": [
-        "2024-06-01 10:00:00",
-        "2024-06-01 11:00:00",
-        "2024-06-02 09:00:00",
-        "2024-06-03 14:00:00",   # same driver, different time
+        "2024-06-01 10:00:00",   # signal during trending regime
+        "2024-06-01 11:00:00",   # ETH signal
+        "2024-06-02 03:15:00",   # overnight BTC signal
+        "2024-06-03 14:00:00",   # same instrument, different market state
     ],
 })
 
-# Point-in-time join &mdash; no future data leakage!
+# Point-in-time join &mdash; no future price leakage!
 training_df = store.get_historical_features(
     entity_df=entity_df,
     features=[
-        "driver_hourly_stats:conv_rate",
-        "driver_hourly_stats:acc_rate",
-        "driver_hourly_stats:avg_daily_trips",
+        "instrument_technical_1h:rsi_14",
+        "instrument_technical_1h:atr_14_pct",
+        "instrument_technical_1h:macd_signal",
+        "instrument_funding:funding_rate",
+        "instrument_funding:funding_rate_trend_24h",
+        "market_regime:regime_label",
     ],
 ).to_df()
 
-# training_df now has features as they existed AT each timestamp
-print(training_df.head())
+# training_df has features exactly as they existed AT each signal timestamp
+# Join with trade outcomes (P&amp;L) to create labeled training data
 </pre>
     </div>
   </div>
@@ -731,30 +751,33 @@ print(training_df.head())
     <h2 class="animate">Serving: Online Features</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Python SDK</h3>
+        <h3>Python SDK (Signal Model)</h3>
 <pre style="font-size:0.85rem">
 from feast import FeatureStore
 
 store = FeatureStore(repo_path=".")
 
-# Low-latency lookup (< 10ms)
+# Low-latency lookup for live trading
 features = store.get_online_features(
     features=[
-        "driver_hourly_stats:conv_rate",
-        "driver_hourly_stats:acc_rate",
-        "driver_hourly_stats:avg_daily_trips",
+        "instrument_technical_1h:rsi_14",
+        "instrument_technical_1h:atr_14_pct",
+        "instrument_technical_1h:macd_signal",
+        "instrument_funding:funding_rate",
+        "market_regime:regime_label",
     ],
     entity_rows=[
-        {"driver_id": 1001},
-        {"driver_id": 1002},
+        {"instrument_id": "BTCUSDT"},
+        {"instrument_id": "ETHUSDT"},
     ],
 ).to_dict()
 
 # {
-#   "driver_id": [1001, 1002],
-#   "conv_rate": [0.85, 0.72],
-#   "acc_rate": [0.91, 0.88],
-#   "avg_daily_trips": [15, 22],
+#   "instrument_id": ["BTCUSDT", "ETHUSDT"],
+#   "rsi_14": [72.3, 45.1],
+#   "atr_14_pct": [3.2, 4.1],
+#   "funding_rate": [0.012, -0.003],
+#   "regime_label": ["TRENDING", "RANGING"],
 # }
 </pre>
       </div>
@@ -763,16 +786,17 @@ features = store.get_online_features(
 <pre style="font-size:0.85rem">
 # Start: feast serve --port 6566
 
-# HTTP request
-curl -X POST http://localhost:6566/get-online-features \
+# .NET trading engine calls Feast feature server
+curl -X POST http://feast-server:6566/get-online-features \
   -H "Content-Type: application/json" \
   -d '{
     "features": [
-      "driver_hourly_stats:conv_rate",
-      "driver_hourly_stats:acc_rate"
+      "instrument_technical_1h:rsi_14",
+      "instrument_technical_1h:atr_14_pct",
+      "instrument_funding:funding_rate"
     ],
     "entities": {
-      "driver_id": [1001, 1002]
+      "instrument_id": ["BTCUSDT"]
     }
   }'
 
@@ -780,8 +804,9 @@ curl -X POST http://localhost:6566/get-online-features \
 {
   "metadata": { "feature_names": [...] },
   "results": [
-    { "values": [0.85, 0.72], ... },
-    { "values": [0.91, 0.88], ... }
+    { "values": [72.3], ... },
+    { "values": [3.2], ... },
+    { "values": [0.012], ... }
   ]
 }
 </pre>
@@ -796,37 +821,38 @@ curl -X POST http://localhost:6566/get-online-features \
     <div class="content animate">
       <p style="text-align:center;margin-bottom:16px">The most critical capability of a feature store for correct training data.</p>
       <div class="diagram">
-        <div class="box">Entity DF<br><small>driver_id + timestamp</small></div>
+        <div class="box">Signal Events<br><small>instrument + timestamp</small></div>
         <div class="arrow">&#x2192;</div>
         <div class="box" style="border-color:var(--success)">Point-in-Time<br>Join Engine</div>
         <div class="arrow">&#x2192;</div>
-        <div class="box">Training DF<br><small>Features as-of timestamp</small></div>
+        <div class="box">Training DF<br><small>Features as-of signal time</small></div>
       </div>
     </div>
     <div class="two-col animate" style="margin-top:20px">
       <div class="card">
-        <h3>How It Works</h3>
+        <h3>Why It Matters for Trading</h3>
         <ul>
-          <li>For each entity row, find feature values that existed <span class="highlight">at or before</span> that timestamp</li>
-          <li>Prevents using future data in training</li>
-          <li>Respects TTL &mdash; stale features return null</li>
-          <li>Handles multiple feature views with different time granularities</li>
+          <li>For each historical signal, find features <span class="highlight">at or before</span> that moment</li>
+          <li>Prevents using future candle data &mdash; no look-ahead bias</li>
+          <li>TTL=2h: if last <code>rsi_14</code> update was 3h ago, returns null (stale)</li>
+          <li>Joins technical (1h), funding (8h), and sentiment (5m) features at different granularities</li>
         </ul>
       </div>
       <div class="card">
-        <h3>Example Timeline</h3>
+        <h3>Example: BTCUSDT RSI Timeline</h3>
 <pre style="font-size:0.85rem">
-Feature updates:
-  09:00 conv_rate = 0.80
-  10:30 conv_rate = 0.85
-  12:00 conv_rate = 0.90
+RSI-14 feature updates (1h candles):
+  09:00 rsi_14 = 58.2
+  10:00 rsi_14 = 64.7
+  11:00 rsi_14 = 72.3
 
-Entity request at 11:00:
-  &rarr; Gets conv_rate = 0.85
-  (latest value BEFORE 11:00)
+Signal generated at 10:45:
+  &rarr; Gets rsi_14 = 64.7
+  (latest value BEFORE 10:45)
+  NOT 72.3 (that candle hasn't closed yet!)
 
-Entity request at 09:30:
-  &rarr; Gets conv_rate = 0.80
+Signal generated at 09:30:
+  &rarr; Gets rsi_14 = 58.2
   (latest value BEFORE 09:30)
 </pre>
       </div>
@@ -844,30 +870,35 @@ from feast.types import Float32, Int64
 from feast.data_format import JsonFormat
 from datetime import timedelta
 
-# Kafka source for real-time feature updates
-driver_trips_source = KafkaSource(
-    name="driver_trips_stream",
-    kafka_bootstrap_servers="broker:9092",
-    topic="driver_trips",
+# Kafka source &mdash; real-time tick data from AWS MSK
+tick_features_source = KafkaSource(
+    name="tick_features_stream",
+    kafka_bootstrap_servers="msk-cluster.internal:9092",
+    topic="crypto.features.computed",        # Kafka Streams output topic
     timestamp_field="event_timestamp",
-    message_format=JsonFormat(schema_json="driver_id integer, trips integer, ts timestamp"),
-    watermark_delay_threshold=timedelta(minutes=5),
-    batch_source=driver_stats_batch_source,  # fallback for historical
+    message_format=JsonFormat(
+        schema_json="instrument_id string, rsi_14 float, atr_14_pct float, "
+                    "macd_signal float, volume_ratio float, ts timestamp"
+    ),
+    watermark_delay_threshold=timedelta(minutes=2),
+    batch_source=technical_batch_source,     # TimescaleDB export for training
 )
 
-# Feature View backed by streaming source
-driver_realtime_fv = FeatureView(
-    name="driver_realtime_stats",
-    entities=[driver],
-    ttl=timedelta(minutes=30),
+# Streaming Feature View &mdash; updated every tick
+instrument_realtime_fv = FeatureView(
+    name="instrument_realtime_technical",
+    entities=[instrument],
+    ttl=timedelta(minutes=15),               # aggressive TTL for live trading
     schema=[
-        Field(name="trips_last_30m", dtype=Int64),
-        Field(name="avg_speed", dtype=Float32),
+        Field(name="rsi_14", dtype=Float32),
+        Field(name="atr_14_pct", dtype=Float32),
+        Field(name="macd_signal", dtype=Float32),
+        Field(name="volume_ratio", dtype=Float32),
     ],
-    source=driver_trips_source,
+    source=tick_features_source,
 )
 </pre>
-      <p style="margin-top:10px;text-align:center"><span class="highlight">Streaming + batch</span> &mdash; Feast uses the batch source for training and the stream source for online materialization.</p>
+      <p style="margin-top:10px;text-align:center"><span class="highlight">Streaming + batch</span> &mdash; Kafka Streams computes features from <code>crypto.ticks</code>, pushes to Feast online store (Redis). Batch source (TimescaleDB) used for historical training.</p>
     </div>
   </div>
 
@@ -985,27 +1016,27 @@ materialize_task = BashOperator(
     <div class="metric-grid animate">
       <div class="metric-card">
         <h3>Aggregation Windows</h3>
-        <p>Compute stats over time windows: <code>avg_trips_7d</code>, <code>total_revenue_30d</code>. Pre-compute in batch, serve online.</p>
+        <p>Compute stats over time windows: <code>avg_volume_24h</code>, <code>funding_rate_trend_7d</code>, <code>realized_vol_30d</code>. Pre-compute in Kafka Streams, serve from Redis.</p>
       </div>
       <div class="metric-card">
-        <h3>Embedding Features</h3>
-        <p>Store pre-computed embeddings (text, image, user) as feature vectors. Serve for similarity search or model input.</p>
+        <h3>Market Regime Features</h3>
+        <p>HMM classifier outputs <code>regime_label</code> (TRENDING, RANGING, VOLATILE, CRISIS) every 15 min. Strategies activate/deactivate based on regime.</p>
       </div>
       <div class="metric-card">
         <h3>Cross-Entity Features</h3>
-        <p>Combine features across entities: <code>user_avg_order_value</code> joined with <code>product_popularity</code>.</p>
+        <p>Combine instrument features with market-wide features: <code>eth_rsi_14</code> + <code>btc_dominance_trend</code> + <code>market_regime</code> for correlated signals.</p>
       </div>
       <div class="metric-card">
         <h3>Freshness Tiers</h3>
-        <p><span class="highlight">Real-time</span> (streaming, seconds), <span class="highlight">Near-real-time</span> (hourly batch), <span class="highlight">Daily</span> (nightly ETL).</p>
+        <p><span class="highlight">Hot</span> (Kafka &rarr; Redis, seconds), <span class="highlight">Warm</span> (Feast materialization, minutes), <span class="highlight">Cold</span> (TimescaleDB, batch nightly).</p>
       </div>
       <div class="metric-card">
         <h3>Feature Versioning</h3>
-        <p>Version feature views: <code>driver_stats_v1</code>, <code>driver_stats_v2</code>. Old models keep reading old features during migration.</p>
+        <p>Version feature views: <code>technical_v1</code>, <code>technical_v2</code>. Old XGBoost model keeps reading v1 while new model trains on v2.</p>
       </div>
       <div class="metric-card">
         <h3>On-Demand Transforms</h3>
-        <p>Compute at request time from stored features + request data. No materialization needed. Great for derived ratios.</p>
+        <p>Compute <code>risk_adjusted_signal</code> at request time from stored RSI + funding rate. No materialization needed. Great for position sizing ratios.</p>
       </div>
     </div>
   </div>
@@ -1038,9 +1069,9 @@ materialize_task = BashOperator(
       <div style="margin:20px 0">
         <span class="tag">Feature Store</span><span class="tag">Feast</span><span class="tag">Offline Store</span>
         <span class="tag">Online Store</span><span class="tag">Point-in-Time Joins</span><span class="tag">Materialization</span>
-        <span class="tag">Streaming</span><span class="tag">Feature Services</span><span class="tag">On-Demand Features</span>
+        <span class="tag">Streaming</span><span class="tag">Feature Services</span><span class="tag">Crypto Trading</span>
       </div>
-      <p style="color:var(--text-muted)">A feature store eliminates training/serving skew and makes ML features a first-class, reusable asset.</p>
+      <p style="color:var(--text-muted)">A feature store eliminates training/serving skew and makes ML features a first-class, reusable asset &mdash; critical for systems like the <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> where wrong features mean real money lost.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
     </div>
   </div>
