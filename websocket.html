@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>WebSocket &amp; Real-Time Streaming</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4E1;</span>
+    <h1 class="animate">WebSocket &amp; Real-Time Streaming</h1>
+    <p class="subtitle animate">Persistent connections for live data</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">WebSocket</span><span class="tag">Real-Time</span><span class="tag">Streaming</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is WebSocket? -->
+  <div class="slide">
+    <h2 class="animate">What Is WebSocket?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Core Concept</h3>
+        <ul>
+          <li><span class="highlight">Full-duplex</span> &mdash; both sides send/receive simultaneously</li>
+          <li><span class="highlight">Persistent connection</span> &mdash; single TCP socket stays open</li>
+          <li>Standardized as <code>RFC 6455</code> (2011)</li>
+          <li>Protocols: <code>ws://</code> (unencrypted) and <code>wss://</code> (TLS)</li>
+          <li>Minimal framing overhead (2-14 bytes per message)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li>No repeated HTTP headers on every message</li>
+          <li>Server can push data without client polling</li>
+          <li>Sub-millisecond message delivery latency</li>
+          <li>Ideal for real-time: trading, chat, gaming, IoT</li>
+          <li><span class="highlight">AI Crypto Agent</span> uses WebSocket for live tick data from Binance, Coinbase, Kraken</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: WebSocket vs HTTP -->
+  <div class="slide">
+    <h2 class="animate">WebSocket vs HTTP</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>HTTP Polling</th><th>SSE</th><th>WebSocket</th></tr>
+        <tr><td>Direction</td><td>Client &rarr; Server</td><td>Server &rarr; Client</td><td><span class="highlight">Bidirectional</span></td></tr>
+        <tr><td>Connection</td><td>New per request</td><td>Persistent (half-duplex)</td><td><span class="highlight">Persistent (full-duplex)</span></td></tr>
+        <tr><td>Overhead</td><td>High (headers each time)</td><td>Medium</td><td><span class="green">Low (2-14 bytes)</span></td></tr>
+        <tr><td>Latency</td><td>Polling interval</td><td>Low</td><td><span class="green">Sub-millisecond</span></td></tr>
+        <tr><td>Binary data</td><td>Base64 encoded</td><td>Text only</td><td><span class="green">Native binary frames</span></td></tr>
+        <tr><td>Scalability</td><td>Easy (stateless)</td><td>Moderate</td><td>Requires sticky sessions</td></tr>
+        <tr><td>Use case</td><td>Simple dashboards</td><td>Notifications, feeds</td><td><span class="highlight">Trading, gaming, chat</span></td></tr>
+      </table>
+      <p style="margin-top:14px;text-align:center"><span class="highlight">AI Crypto Agent chose WebSocket</span> because exchange tick data requires bidirectional, low-latency, high-throughput streaming.</p>
+    </div>
+  </div>
+
+  <!-- Slide 4: The WebSocket Handshake -->
+  <div class="slide">
+    <h2 class="animate">The WebSocket Handshake</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Client</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">HTTP Upgrade Request</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Server</div>
+      </div>
+<pre>
+# Client sends HTTP upgrade request
+GET /ws/btcusdt@trade HTTP/1.1
+Host: stream.binance.com
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==
+Sec-WebSocket-Version: 13
+
+# Server responds with 101
+HTTP/1.1 101 Switching Protocols
+Upgrade: websocket
+Connection: Upgrade
+Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=
+
+# Connection is now upgraded!
+# Both sides can send frames freely over this TCP socket.
+# No more HTTP overhead &mdash; just lightweight WebSocket frames.
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Key point:</span> The handshake is a one-time HTTP upgrade. After <code>101 Switching Protocols</code>, the connection is pure WebSocket.</p>
+    </div>
+  </div>
+
+  <!-- Slide 5: WebSocket in the Browser -->
+  <div class="slide">
+    <h2 class="animate">WebSocket in the Browser</h2>
+    <div class="content animate">
+<pre>
+// JavaScript WebSocket API
+const ws = new WebSocket("wss://stream.binance.com:9443/ws/btcusdt@trade");
+
+// Connection opened
+ws.onopen = () => {
+  console.log("Connected to Binance trade stream");
+  // Subscribe to additional streams
+  ws.send(JSON.stringify({
+    method: "SUBSCRIBE",
+    params: ["ethusdt@trade", "solusdt@trade"],
+    id: 1
+  }));
+};
+
+// Receive messages
+ws.onmessage = (event) => {
+  const trade = JSON.parse(event.data);
+  console.log(`${trade.s}: ${trade.p} @ ${trade.q}`);
+  // BTC/USDT: 67432.50 @ 0.015
+};
+
+// Handle errors and closure
+ws.onerror = (err) => console.error("WebSocket error:", err);
+ws.onclose = (event) => {
+  console.log(`Closed: code=${event.code} reason=${event.reason}`);
+  // Trigger reconnection logic here
+};
+
+// Send data anytime
+ws.send(JSON.stringify({ method: "PING" }));
+
+// Clean up
+ws.close(1000, "Done");  // 1000 = normal closure
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 6: WebSocket Servers -->
+  <div class="slide">
+    <h2 class="animate">WebSocket Servers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Node.js (ws)</h3>
+<pre style="font-size:0.85rem">
+import { WebSocketServer } from "ws";
+
+const wss = new WebSocketServer({ port: 8080 });
+
+wss.on("connection", (ws, req) => {
+  console.log("Client connected");
+
+  ws.on("message", (data) => {
+    // Broadcast to all clients
+    wss.clients.forEach((client) => {
+      if (client.readyState === 1) {
+        client.send(data);
+      }
+    });
+  });
+
+  ws.on("close", () =>
+    console.log("Client disconnected"));
+});
+</pre>
+      </div>
+      <div class="card">
+        <h3>Python (websockets)</h3>
+<pre style="font-size:0.85rem">
+import asyncio
+import websockets
+
+connected = set()
+
+async def handler(ws):
+    connected.add(ws)
+    try:
+        async for message in ws:
+            # Broadcast to all
+            await asyncio.gather(
+                *[c.send(message)
+                  for c in connected
+                  if c.state == 1]
+            )
+    finally:
+        connected.discard(ws)
+
+asyncio.run(
+  websockets.serve(handler, "0.0.0.0", 8080)
+)
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Real-World: Exchange WebSocket Feeds -->
+  <div class="slide">
+    <h2 class="animate">Exchange WebSocket Feeds</h2>
+    <p class="subtitle animate">AI Crypto Trading Agent &mdash; <a href="https://lda21.github.io/docs" style="color:var(--accent)">lda21.github.io/docs</a></p>
+    <div class="content animate">
+<pre>
+# Python adapter managing concurrent exchange WebSocket connections
+class ExchangeWSManager:
+    """Connects to Binance, Coinbase, Kraken simultaneously."""
+
+    ENDPOINTS = {
+        "binance":  "wss://stream.binance.com:9443/ws",
+        "coinbase": "wss://ws-feed.exchange.coinbase.com",
+        "kraken":   "wss://ws.kraken.com/v2",
+    }
+
+    async def connect_all(self, symbols: list[str]):
+        tasks = [
+            self._connect_exchange(name, url, symbols)
+            for name, url in self.ENDPOINTS.items()
+        ]
+        await asyncio.gather(*tasks)  # All 3 run concurrently
+
+    async def _connect_exchange(self, name, url, symbols):
+        async with websockets.connect(url) as ws:
+            await self._subscribe(ws, name, symbols)
+            async for msg in ws:
+                tick = self._normalize(name, msg)  # Unified format
+                await self.tick_queue.put(tick)     # Feed to Kafka
+
+# Each exchange has different message formats:
+# Binance:  {"e":"trade","s":"BTCUSDT","p":"67432.50","q":"0.015"}
+# Coinbase: {"type":"ticker","product_id":"BTC-USD","price":"67432.50"}
+# Kraken:   {"channel":"ticker","data":[{"symbol":"BTC/USD","last":"67432.50"}]}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 8: Connection Management -->
+  <div class="slide">
+    <h2 class="animate">Connection Management</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Heartbeat / Ping-Pong</h3>
+        <p>WebSocket protocol has built-in ping/pong frames. Server sends ping, client auto-replies pong. Detects dead connections in seconds.</p>
+        <code>ws.ping() &rarr; client pong</code>
+      </div>
+      <div class="metric-card">
+        <h3>Application-Level Keepalive</h3>
+        <p>Exchanges require app-level pings too. Binance disconnects after 10 min without a pong. The agent sends keepalive every 30s.</p>
+        <code>{"method": "PING"}</code>
+      </div>
+      <div class="metric-card">
+        <h3>Connection Pooling</h3>
+        <p>Binance limits 5 messages/sec per connection. The agent uses multiple connections per exchange, partitioned by symbol groups.</p>
+        <code>3 exchanges x 4 connections = 12 WS</code>
+      </div>
+      <div class="metric-card">
+        <h3>Health Monitoring</h3>
+        <p>Track last message timestamp per connection. If no data for 60s on an active market, flag connection as stale and reconnect.</p>
+        <code>if now - last_msg > 60s: reconnect()</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Reconnection Strategies -->
+  <div class="slide">
+    <h2 class="animate">Reconnection Strategies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Exponential Backoff + Jitter</h3>
+<pre style="font-size:0.85rem">
+class ReconnectPolicy:
+    BASE_DELAY = 1.0    # seconds
+    MAX_DELAY  = 60.0
+    MAX_RETRIES = 20
+
+    async def connect_with_retry(self, url):
+        for attempt in range(self.MAX_RETRIES):
+            try:
+                ws = await websockets.connect(url)
+                self.attempt = 0  # reset on success
+                return ws
+            except Exception as e:
+                delay = min(
+                    self.BASE_DELAY * (2 ** attempt),
+                    self.MAX_DELAY
+                )
+                # Add jitter to avoid thundering herd
+                jitter = random.uniform(0, delay * 0.3)
+                await asyncio.sleep(delay + jitter)
+        raise MaxRetriesExceeded(url)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Circuit Breaker Pattern</h3>
+        <ul>
+          <li><span class="green">CLOSED</span> &mdash; normal operation, attempts connect</li>
+          <li><span class="highlight">OPEN</span> &mdash; too many failures, stop trying for cooldown period</li>
+          <li><span class="highlight">HALF-OPEN</span> &mdash; allow one test connection, promote to CLOSED on success</li>
+        </ul>
+        <p style="margin-top:12px">The AI Crypto Agent uses circuit breakers per exchange. If Kraken is down, Binance and Coinbase continue unaffected.</p>
+        <div class="diagram" style="margin-top:12px">
+          <div class="box" style="border-color:var(--success)">CLOSED</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="border-color:var(--warning)">OPEN</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">HALF-OPEN</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 10: Message Formats -->
+  <div class="slide">
+    <h2 class="animate">Message Formats</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>JSON (Most Common)</h3>
+<pre style="font-size:0.85rem">
+// Binance trade message
+{
+  "e": "trade",
+  "s": "BTCUSDT",
+  "p": "67432.50",
+  "q": "0.015",
+  "T": 1711900800000,
+  "m": true
+}
+// Human readable, self-describing
+// ~150 bytes per tick
+</pre>
+        <p style="margin-top:8px">Easy to debug, wide support. Used by most exchange WebSocket APIs.</p>
+      </div>
+      <div class="card">
+        <h3>Binary &amp; Protobuf</h3>
+<pre style="font-size:0.85rem">
+// Protobuf definition
+message Trade {
+  string symbol = 1;
+  double price  = 2;
+  double qty    = 3;
+  int64  ts     = 4;
+  bool   maker  = 5;
+}
+// ~30 bytes per tick (5x smaller)
+
+// WebSocket supports binary frames natively
+ws.binaryType = "arraybuffer";
+ws.onmessage = (e) => {
+  const trade = Trade.decode(
+    new Uint8Array(e.data)
+  );
+};
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Authentication & Security -->
+  <div class="slide">
+    <h2 class="animate">Authentication &amp; Security</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Token-Based Auth</h3>
+        <p>Pass JWT or API key in the initial HTTP upgrade request. WebSocket has no built-in auth mechanism.</p>
+        <code>wss://api.exchange.com/ws?token=eyJ...</code>
+      </div>
+      <div class="metric-card">
+        <h3>Always Use wss://</h3>
+        <p>TLS encryption prevents eavesdropping on tick data and trading signals. Never use plain <code>ws://</code> in production.</p>
+        <code>wss:// = WebSocket + TLS (port 443)</code>
+      </div>
+      <div class="metric-card">
+        <h3>Origin Validation</h3>
+        <p>Server checks the <code>Origin</code> header during handshake to reject connections from unauthorized domains.</p>
+        <code>Origin: https://your-app.com</code>
+      </div>
+      <div class="metric-card">
+        <h3>Rate Limiting</h3>
+        <p>Protect against abuse: limit messages per second, max connections per IP, and payload size caps.</p>
+        <code>Binance: 5 msgs/sec, 1024 connections</code>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">The AI agent</span> authenticates to private exchange endpoints using HMAC-signed API keys passed in the upgrade request headers.</p>
+  </div>
+
+  <!-- Slide 12: Scaling WebSocket Servers -->
+  <div class="slide">
+    <h2 class="animate">Scaling WebSocket Servers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Challenges</h3>
+        <ul>
+          <li>WebSocket connections are <span class="highlight">stateful</span> &mdash; tied to a specific server</li>
+          <li>Load balancers must use <span class="highlight">sticky sessions</span></li>
+          <li>Broadcasting requires cross-server coordination</li>
+          <li>Each connection holds memory (~10KB per socket)</li>
+          <li>100K connections = ~1GB RAM just for sockets</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Solutions</h3>
+        <ul>
+          <li><span class="highlight">Redis Pub/Sub</span> &mdash; fan out messages across server instances</li>
+          <li><span class="highlight">NATS / Kafka</span> &mdash; durable message bus for cross-server broadcast</li>
+          <li><span class="highlight">Consistent hashing</span> &mdash; route users to stable servers</li>
+          <li><span class="highlight">Connection draining</span> &mdash; gracefully migrate on deploy</li>
+          <li><span class="highlight">AWS ALB / Nginx</span> &mdash; WebSocket-aware load balancers</li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Client A</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Server 1</div>
+      <div class="arrow">&harr;</div>
+      <div class="box" style="border-color:var(--success)">Redis Pub/Sub</div>
+      <div class="arrow">&harr;</div>
+      <div class="box">Server 2</div>
+      <div class="arrow">&larr;</div>
+      <div class="box">Client B</div>
+    </div>
+  </div>
+
+  <!-- Slide 13: WebSocket → Kafka Pipeline -->
+  <div class="slide">
+    <h2 class="animate">WebSocket &rarr; Kafka Pipeline</h2>
+    <p class="subtitle animate">AI Crypto Agent ingests exchange ticks into Kafka for downstream processing</p>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Binance WS</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Python Adapter</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Kafka Topics</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Consumers</div>
+      </div>
+<pre>
+# WebSocket to Kafka bridge in the AI Crypto Agent
+class TickIngester:
+    """Reads normalized ticks from WS and publishes to Kafka."""
+
+    async def run(self, ws_manager: ExchangeWSManager):
+        producer = AIOKafkaProducer(bootstrap_servers="kafka:9092")
+        await producer.start()
+
+        while True:
+            tick = await ws_manager.tick_queue.get()
+
+            # Route to exchange-specific topic
+            topic = f"ticks.{tick.exchange}.{tick.symbol}"
+            await producer.send_and_wait(
+                topic,
+                key=tick.symbol.encode(),
+                value=json.dumps(tick.to_dict()).encode(),
+            )
+            # Topics: ticks.binance.BTCUSDT, ticks.coinbase.BTC-USD, etc.
+
+    # Kafka consumers downstream:
+    # 1. Pricing engine   &mdash; best bid/ask aggregation
+    # 2. Signal detector  &mdash; pattern recognition
+    # 3. Risk monitor     &mdash; position exposure
+    # 4. Dashboard        &mdash; real-time UI via WebSocket out
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 14: Data Quality Filtering -->
+  <div class="slide">
+    <h2 class="animate">Data Quality Filtering</h2>
+    <p class="subtitle animate">Garbage in, garbage out &mdash; the agent filters bad ticks before they reach the trading engine</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Stale Quote Detection</h3>
+        <p>Reject quotes older than 30 seconds. Exchange WS can replay old data during reconnection. Compare <code>tick.timestamp</code> vs <code>now()</code>.</p>
+        <code>if now - tick.ts > 30s: drop</code>
+      </div>
+      <div class="metric-card">
+        <h3>Crossed Quote Detection</h3>
+        <p>Bid price should never exceed ask price. Crossed quotes indicate stale or corrupted data from one leg of the book.</p>
+        <code>if bid > ask: flag_crossed()</code>
+      </div>
+      <div class="metric-card">
+        <h3>Flash Move Filter (&gt;5&sigma;)</h3>
+        <p>A price move exceeding 5 standard deviations from the rolling mean is likely a data error or flash crash. Hold for confirmation.</p>
+        <code>if abs(price - mean) > 5 * std: quarantine</code>
+      </div>
+      <div class="metric-card">
+        <h3>Duplicate Detection</h3>
+        <p>Exchanges can send duplicate trade IDs during reconnection. Track seen IDs in a bounded set to dedup.</p>
+        <code>if tick.trade_id in seen: skip</code>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Data quality pipeline in the AI Crypto Agent
+class TickFilter:
+    def is_valid(self, tick: Tick) -> bool:
+        if time.time() - tick.timestamp > 30:     return False  # stale
+        if tick.bid and tick.ask and tick.bid > tick.ask: return False  # crossed
+        if self._is_flash_move(tick):              return False  # >5 sigma
+        if tick.trade_id in self.seen_ids:         return False  # duplicate
+        self.seen_ids.add(tick.trade_id)
+        return True
+</pre>
+  </div>
+
+  <!-- Slide 15: Server-Sent Events (SSE) -->
+  <div class="slide">
+    <h2 class="animate">Server-Sent Events (SSE)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>When SSE Is Better</h3>
+        <ul>
+          <li><span class="highlight">Server-to-client only</span> &mdash; news feeds, notifications, dashboards</li>
+          <li>Automatic reconnection built into the browser API</li>
+          <li>Works over standard HTTP &mdash; no proxy issues</li>
+          <li>Simpler server implementation (just text/event-stream)</li>
+          <li>Event IDs enable resumption from last received event</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>SSE API</h3>
+<pre style="font-size:0.85rem">
+// Browser
+const es = new EventSource("/api/prices");
+es.onmessage = (e) => {
+  const data = JSON.parse(e.data);
+  updateDashboard(data);
+};
+
+// Server (Node.js)
+app.get("/api/prices", (req, res) => {
+  res.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    "Connection": "keep-alive",
+  });
+
+  const interval = setInterval(() => {
+    res.write(`data: ${JSON.stringify(
+      getLatestPrice()
+    )}\n\n`);
+  }, 1000);
+
+  req.on("close", () =>
+    clearInterval(interval));
+});
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Rule of thumb:</span> Use SSE for one-way server push. Use WebSocket when the client also needs to send data.</p>
+  </div>
+
+  <!-- Slide 16: Socket.IO & Libraries -->
+  <div class="slide">
+    <h2 class="animate">Socket.IO &amp; Libraries</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Socket.IO</h3>
+        <p>Most popular WebSocket library. Auto-reconnect, rooms, namespaces, HTTP long-polling fallback. Node.js + browser.</p>
+        <code>io.to("room1").emit("tick", data)</code>
+      </div>
+      <div class="metric-card">
+        <h3>SignalR (.NET)</h3>
+        <p>Microsoft's real-time framework. WebSocket, SSE, and long-polling transports. Hub-based RPC model with strong typing.</p>
+        <code>hub.Clients.All.SendAsync("tick", data)</code>
+      </div>
+      <div class="metric-card">
+        <h3>Phoenix Channels (Elixir)</h3>
+        <p>Built on Erlang/OTP for massive concurrency. 2M+ connections per server. Presence tracking built-in.</p>
+        <code>channel.push("tick", data)</code>
+      </div>
+      <div class="metric-card">
+        <h3>ws (Node.js)</h3>
+        <p>Lightweight, bare-metal WebSocket. No abstraction overhead. The AI Agent's React dashboard uses <code>ws</code> for raw speed.</p>
+        <code>npm install ws  (zero dependencies)</code>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Choose wisely:</span> Socket.IO for rapid prototyping with fallbacks. Raw <code>ws</code> or native WebSocket for performance-critical systems.</p>
+  </div>
+
+  <!-- Slide 17: WebSocket in React -->
+  <div class="slide">
+    <h2 class="animate">WebSocket in React</h2>
+    <p class="subtitle animate">The AI Crypto Agent's real-time dashboard</p>
+    <div class="content animate">
+<pre>
+// Custom React hook for WebSocket connection
+function useTickStream(symbol: string) {
+  const [tick, setTick] = useState&lt;Tick | null&gt;(null);
+  const wsRef = useRef&lt;WebSocket | null&gt;(null);
+
+  useEffect(() => {
+    const ws = new WebSocket(`wss://api.agent.com/ws/ticks/${symbol}`);
+    wsRef.current = ws;
+
+    ws.onmessage = (event) => {
+      const data: Tick = JSON.parse(event.data);
+      setTick(data);  // Triggers re-render with latest price
+    };
+
+    ws.onclose = () => {
+      // Auto-reconnect with exponential backoff
+      setTimeout(() => wsRef.current = reconnect(symbol), getBackoff());
+    };
+
+    return () => ws.close();  // Cleanup on unmount
+  }, [symbol]);
+
+  return tick;
+}
+
+// Usage in a component
+function PriceTicker({ symbol }: { symbol: string }) {
+  const tick = useTickStream(symbol);
+  return (
+    &lt;div className="ticker"&gt;
+      &lt;span&gt;{symbol}&lt;/span&gt;
+      &lt;span className={tick?.direction}&gt;${tick?.price.toFixed(2)}&lt;/span&gt;
+      &lt;span&gt;{tick?.volume}&lt;/span&gt;
+    &lt;/div&gt;
+  );
+}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 18: Testing & Debugging -->
+  <div class="slide">
+    <h2 class="animate">Testing &amp; Debugging</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Tools</h3>
+        <ul>
+          <li><span class="highlight">wscat</span> &mdash; CLI tool to connect and send messages: <code>wscat -c wss://...</code></li>
+          <li><span class="highlight">Browser DevTools</span> &mdash; Network tab &rarr; WS filter shows frames in real time</li>
+          <li><span class="highlight">Wireshark</span> &mdash; packet-level WebSocket frame inspection</li>
+          <li><span class="highlight">Postman</span> &mdash; WebSocket request builder with saved collections</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Testing Strategies</h3>
+<pre style="font-size:0.85rem">
+# Mock WebSocket for unit tests (Python)
+import pytest
+from unittest.mock import AsyncMock
+
+@pytest.fixture
+def mock_ws():
+    ws = AsyncMock()
+    ws.recv.side_effect = [
+        '{"price": "67432.50"}',
+        '{"price": "67433.00"}',
+        ConnectionClosed(1000, "done"),
+    ]
+    return ws
+
+async def test_tick_processing(mock_ws):
+    handler = TickHandler()
+    ticks = await handler.process(mock_ws)
+    assert len(ticks) == 2
+    assert ticks[0].price == 67432.50
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Always use <code>wss://</code> in production (TLS encrypted)</div>
+      <div class="bp-item"><span>2.</span> Implement heartbeat/ping-pong to detect dead connections</div>
+      <div class="bp-item"><span>3.</span> Use exponential backoff + jitter for reconnection</div>
+      <div class="bp-item"><span>4.</span> Validate and sanitize all incoming WebSocket messages</div>
+      <div class="bp-item"><span>5.</span> Set max message size limits to prevent memory attacks</div>
+      <div class="bp-item"><span>6.</span> Use circuit breakers for external WebSocket dependencies</div>
+      <div class="bp-item"><span>7.</span> Normalize data from multiple sources into a unified format</div>
+      <div class="bp-item"><span>8.</span> Filter data quality issues (stale, crossed, flash moves)</div>
+      <div class="bp-item"><span>9.</span> Monitor connection count, message rate, and latency metrics</div>
+      <div class="bp-item"><span>10.</span> Gracefully drain connections during deployments</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4E1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered WebSocket &amp; Real-Time Streaming:</p>
+      <div style="margin:20px 0">
+        <span class="tag">WebSocket API</span><span class="tag">Handshake</span><span class="tag">Ping-Pong</span>
+        <span class="tag">Reconnection</span><span class="tag">Kafka Pipeline</span><span class="tag">Data Quality</span>
+        <span class="tag">SSE</span><span class="tag">Socket.IO</span><span class="tag">React Hooks</span>
+      </div>
+      <p style="color:var(--text-muted)">Real-time data is the backbone of modern trading systems. Master the connection lifecycle and your streams will never miss a tick.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

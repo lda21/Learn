@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Event Sourcing &amp; CQRS</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4DC;</span>
+    <h1 class="animate">Event Sourcing &amp; CQRS</h1>
+    <p class="subtitle animate">Immutable event logs for trustworthy systems</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Event Sourcing</span><span class="tag">CQRS</span><span class="tag">Marten</span><span class="tag">Wolverine</span>
+    </div>
+  </div>
+
+
+  <!-- Slide 2: What Is Event Sourcing? -->
+  <div class="slide">
+    <h2 class="animate">What Is Event Sourcing?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Traditional: Store Current State</h3>
+        <ul>
+          <li>Database holds the <span class="highlight">latest snapshot</span> of each entity</li>
+          <li>UPDATE overwrites previous values</li>
+          <li>History is lost unless you build audit logging separately</li>
+          <li>Like a bank showing only your current balance</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Event Sourcing: Store Every Change</h3>
+        <ul>
+          <li>Database holds an <span class="highlight">ordered sequence of events</span></li>
+          <li>Current state is derived by replaying events</li>
+          <li>Nothing is ever deleted or overwritten</li>
+          <li>Like a bank showing every transaction that led to your balance</li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Event 1</div>
+      <div class="arrow">&#x25B6;</div>
+      <div class="box">Event 2</div>
+      <div class="arrow">&#x25B6;</div>
+      <div class="box">Event 3</div>
+      <div class="arrow">&#x25B6;</div>
+      <div class="box">Current State</div>
+    </div>
+  </div>
+
+
+  <!-- Slide 3: Event Sourcing vs Traditional CRUD -->
+  <div class="slide">
+    <h2 class="animate">Event Sourcing vs Traditional CRUD</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Aspect</th><th>CRUD</th><th>Event Sourcing</th></tr>
+        <tr><td>Storage</td><td>Current state only</td><td>Full history of events</td></tr>
+        <tr><td>Updates</td><td>In-place mutation (UPDATE)</td><td>Append new event (INSERT only)</td></tr>
+        <tr><td>Audit Trail</td><td>Requires separate logging</td><td>Built-in by design</td></tr>
+        <tr><td>Debugging</td><td>Reproduce bugs from logs</td><td>Replay exact event sequence</td></tr>
+        <tr><td>Schema Changes</td><td>Migrations on live data</td><td>Upcast old events on read</td></tr>
+        <tr><td>Temporal Queries</td><td>Not possible without snapshots</td><td>Replay to any point in time</td></tr>
+        <tr><td>Complexity</td><td>Simple, well-understood</td><td>Higher, requires projections</td></tr>
+        <tr><td>Storage Size</td><td>Compact (latest state)</td><td>Grows with every event</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- Slide 4: Why Event Sourcing? -->
+  <div class="slide">
+    <h2 class="animate">Why Event Sourcing?</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Complete Audit Trail</h3>
+        <p>Every state change is recorded as an immutable event. Perfect for regulated industries like finance and trading.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Temporal Queries</h3>
+        <p>Reconstruct state at any point in time. "What was the portfolio value at 2:37 PM on March 15th?"</p>
+      </div>
+      <div class="metric-card">
+        <h3>Debugging &amp; Replay</h3>
+        <p>Reproduce any bug by replaying the exact sequence of events that caused it. No more "works on my machine."</p>
+      </div>
+      <div class="metric-card">
+        <h3>Event-Driven Integration</h3>
+        <p>Events are a natural integration point. Publish to Kafka, trigger workflows, build multiple read models from the same stream.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Trading systems</span> are a perfect fit: every order, fill, and position change must be traceable.</p>
+  </div>
+
+
+  <!-- Slide 5: Real-World Trading Agent Events -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Events</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">From the AI Crypto Trading Agent (<a href="https://lda21.github.io/docs" style="color:var(--accent)">lda21.github.io/docs</a>)</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Trade Intent Lifecycle</h3>
+        <div class="diagram" style="flex-direction:column;gap:8px;margin:8px 0">
+          <div class="box" style="min-width:80%">IntentCreated</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">RiskApproved</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">Submitted</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">Filled</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">Closed</div>
+        </div>
+      </div>
+      <div class="card">
+        <h3>Position Lifecycle</h3>
+        <div class="diagram" style="flex-direction:column;gap:8px;margin:8px 0">
+          <div class="box" style="min-width:80%">PositionOpened</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">PositionModified</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">StopTriggered</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x25B6;</div>
+          <div class="box" style="min-width:80%">PositionClosed</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 6: Event Store Fundamentals -->
+  <div class="slide">
+    <h2 class="animate">Event Store Fundamentals</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Append-only</span> &mdash; events are never updated or deleted, only appended</li>
+        <li><span class="highlight">Immutable</span> &mdash; once written, an event is permanent. Corrections are new events (e.g., <code>TradeCorrected</code>)</li>
+        <li><span class="highlight">Stream per aggregate</span> &mdash; each entity (trade intent, position) has its own event stream</li>
+        <li><span class="highlight">Global ordering</span> &mdash; a sequence number or timestamp guarantees total order within a stream</li>
+        <li><span class="highlight">Optimistic concurrency</span> &mdash; expected version checked on write to prevent conflicts</li>
+      </ul>
+<pre style="margin-top:16px">
+Stream: TradeIntent-a1b2c3d4
+  [1] IntentCreated   { symbol: "BTC/USD", qty: 0.5, signal: "momentum" }
+  [2] RiskApproved    { maxLoss: 250.00, riskScore: 0.3 }
+  [3] Submitted       { exchangeOrderId: "EX-98765" }
+  [4] Filled          { price: 64250.00, fee: 12.85 }
+  [5] Closed          { reason: "take-profit", pnl: +430.00 }
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 7: Marten: Event Sourcing on PostgreSQL -->
+  <div class="slide">
+    <h2 class="animate">Marten: Event Sourcing on PostgreSQL</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Marten?</h3>
+        <ul>
+          <li>Event sourcing + document DB on <span class="highlight">PostgreSQL</span></li>
+          <li>No separate event store infrastructure needed</li>
+          <li>Uses PostgreSQL JSONB for event payloads</li>
+          <li>Built-in projections, snapshots, and multi-tenancy</li>
+          <li>Integrates natively with Wolverine for CQRS</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Setup</h3>
+<pre style="font-size:0.85rem">
+// Program.cs
+builder.Services.AddMarten(opts =>
+{
+    opts.Connection(connectionString);
+
+    // Register event types
+    opts.Events.AddEventType&lt;IntentCreated&gt;();
+    opts.Events.AddEventType&lt;RiskApproved&gt;();
+    opts.Events.AddEventType&lt;Filled&gt;();
+    opts.Events.AddEventType&lt;PositionOpened&gt;();
+
+    // Use string stream identity
+    opts.Events.StreamIdentity =
+        StreamIdentity.AsString;
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 8: Defining Events & Aggregates -->
+  <div class="slide">
+    <h2 class="animate">Defining Events &amp; Aggregates</h2>
+    <div class="content animate">
+<pre>
+// Domain Events (immutable records)
+public record IntentCreated(
+    string Symbol, decimal Quantity, string Signal, DateTimeOffset Timestamp);
+
+public record RiskApproved(
+    decimal MaxLoss, double RiskScore, DateTimeOffset Timestamp);
+
+public record Filled(
+    decimal Price, decimal Fee, string ExchangeOrderId, DateTimeOffset Timestamp);
+
+public record Closed(string Reason, decimal Pnl, DateTimeOffset Timestamp);
+
+// Aggregate - rebuilt from events via Apply methods
+public class TradeIntent
+{
+    public string Id { get; set; }
+    public string Symbol { get; private set; }
+    public string Status { get; private set; } = "Pending";
+    public decimal? FilledPrice { get; private set; }
+
+    public void Apply(IntentCreated e)  { Symbol = e.Symbol; Status = "Created"; }
+    public void Apply(RiskApproved e)   { Status = "Approved"; }
+    public void Apply(Filled e)         { Status = "Filled"; FilledPrice = e.Price; }
+    public void Apply(Closed e)         { Status = "Closed"; }
+}
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 9: Projections -->
+  <div class="slide">
+    <h2 class="animate">Projections</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Transform events into optimized read models for dashboards and queries</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Inline Projection</h3>
+<pre style="font-size:0.85rem">
+// Updated within same transaction
+public class TradeSummaryProjection
+    : SingleStreamProjection&lt;TradeSummary&gt;
+{
+    public void Apply(IntentCreated e,
+        TradeSummary view)
+    {
+        view.Symbol = e.Symbol;
+        view.Quantity = e.Quantity;
+        view.Status = "Created";
+    }
+
+    public void Apply(Filled e,
+        TradeSummary view)
+    {
+        view.FilledPrice = e.Price;
+        view.Status = "Filled";
+    }
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Async Projection</h3>
+<pre style="font-size:0.85rem">
+// Processed in background daemon
+// Eventual consistency, higher throughput
+opts.Projections.Add&lt;TradeSummaryProjection&gt;(
+    ProjectionLifecycle.Async);
+
+// Analytics dashboard read model
+public class DailyPnlProjection
+    : MultiStreamProjection&lt;DailyPnl, string&gt;
+{
+    public DailyPnlProjection()
+    {
+        Identity&lt;Closed&gt;(e =>
+            e.Timestamp.ToString("yyyy-MM-dd"));
+    }
+
+    public void Apply(Closed e,
+        DailyPnl view)
+    {
+        view.TotalPnl += e.Pnl;
+        view.TradeCount++;
+    }
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 10: CQRS -->
+  <div class="slide">
+    <h2 class="animate">CQRS: Command Query Responsibility Segregation</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">UI / API</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:var(--success)">Commands<br><small>(Write Model)</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Event Store</div>
+      </div>
+      <div class="diagram" style="margin-top:8px">
+        <div class="box">UI / API</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:#5A9A6E">Queries<br><small>(Read Model)</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Projections DB</div>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <ul>
+        <li><span class="highlight">Commands</span> &mdash; validate business rules, emit events, modify state</li>
+        <li><span class="highlight">Queries</span> &mdash; read from pre-built projections, no business logic</li>
+        <li>Write model and read model can use <span class="highlight">different schemas and databases</span></li>
+        <li>Natural pairing with event sourcing: events feed projections that serve queries</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- Slide 11: Why CQRS? -->
+  <div class="slide">
+    <h2 class="animate">Why CQRS?</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Optimize Independently</h3>
+        <p>Write model is normalized for consistency. Read model is denormalized for fast queries. Each is tuned for its workload.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Scale Independently</h3>
+        <p>Scale read replicas without affecting write throughput. Most systems are 90% reads &mdash; scale what matters.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Multiple Read Models</h3>
+        <p>One event stream feeds many projections: analytics dashboard, search index, notification service, compliance report.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Simpler Code</h3>
+        <p>Command handlers focus on business rules. Query handlers focus on data retrieval. No mixed concerns.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Trading Agent example:</span> Commands validate risk &amp; submit orders. Queries serve the analytics dashboard with pre-aggregated PnL data.</p>
+  </div>
+
+
+  <!-- Slide 12: CQRS with Wolverine -->
+  <div class="slide">
+    <h2 class="animate">CQRS with Wolverine</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Wolverine: message bus + command handler framework integrated with Marten</p>
+    <div class="content animate">
+<pre>
+// Command
+public record CreateTradeIntent(string Symbol, decimal Quantity, string Signal);
+
+// Command Handler - Wolverine discovers by convention
+public static class CreateTradeIntentHandler
+{
+    public static async Task&lt;TradeIntentCreated&gt; Handle(
+        CreateTradeIntent command,
+        IDocumentSession session)
+    {
+        var intentId = CombGuidIdGeneration.NewGuid();
+        var @event = new IntentCreated(
+            command.Symbol, command.Quantity, command.Signal, DateTimeOffset.UtcNow);
+
+        // Append event to stream
+        session.Events.StartStream&lt;TradeIntent&gt;(intentId, @event);
+        await session.SaveChangesAsync();
+
+        return new TradeIntentCreated(intentId);
+    }
+}
+
+// API endpoint dispatches command via Wolverine
+app.MapPost("/api/intents", (CreateTradeIntent cmd, IMessageBus bus)
+    => bus.InvokeAsync&lt;TradeIntentCreated&gt;(cmd));
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 13: The Outbox Pattern -->
+  <div class="slide">
+    <h2 class="animate">The Outbox Pattern</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Preventing dual-write problems when publishing events to Kafka</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--warning)">The Dual-Write Problem</h3>
+        <ul>
+          <li>Save event to PostgreSQL</li>
+          <li>Publish to Kafka</li>
+          <li>What if step 2 fails? <span class="highlight">Data inconsistency</span></li>
+          <li>What if step 1 succeeds but app crashes before step 2?</li>
+          <li>You cannot have an atomic transaction across two systems</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="green">Outbox Solution</h3>
+        <ul>
+          <li>Save event + outbox message in <span class="highlight">same PostgreSQL transaction</span></li>
+          <li>Background process reads outbox and publishes to Kafka</li>
+          <li>Marten + Wolverine handle this automatically</li>
+          <li>Guaranteed at-least-once delivery</li>
+          <li>Consumers must be idempotent</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Marten + Wolverine outbox: zero configuration needed
+builder.Services.AddMarten(opts => { /* ... */ })
+    .IntegrateWithWolverine();  // Enables transactional outbox automatically
+
+// Events saved to PostgreSQL + outbox in same transaction
+// Wolverine daemon polls outbox and publishes to Kafka/RabbitMQ
+</pre>
+  </div>
+
+
+  <!-- Slide 14: Event-Driven Architecture -->
+  <div class="slide">
+    <h2 class="animate">Event-Driven Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Trading Agent</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Marten (PostgreSQL)</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:var(--success)">Kafka</div>
+      </div>
+      <div class="diagram" style="margin-top:8px">
+        <div class="box">Analytics Service</div>
+        <div class="arrow">&#x25C0;</div>
+        <div class="box" style="border-color:var(--success)">Kafka</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Risk Service</div>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <ul>
+        <li><span class="highlight">Eventual consistency</span> &mdash; consumers process events asynchronously; read models may lag by milliseconds</li>
+        <li><span class="highlight">Loose coupling</span> &mdash; producers and consumers don't know about each other</li>
+        <li><span class="highlight">Kafka topics per event type</span> &mdash; <code>trades.intent.created</code>, <code>positions.opened</code></li>
+        <li><span class="highlight">Consumer groups</span> &mdash; scale consumers independently, each group tracks its own offset</li>
+        <li><span class="highlight">Replay from Kafka</span> &mdash; new services can consume the full history from topic beginning</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- Slide 15: Decision Replay -->
+  <div class="slide">
+    <h2 class="animate">Decision Replay</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Reproduce any historical trade decision with the exact original context</p>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Why?</span> &mdash; debug why the AI agent opened a losing position at 3:42 AM</li>
+        <li><span class="highlight">How?</span> &mdash; replay the event stream up to that point to reconstruct exact-as-of state</li>
+        <li>Includes: market data snapshot, portfolio state, risk parameters, model signals</li>
+        <li>Deterministic: same events in, same state out, every time</li>
+      </ul>
+<pre style="margin-top:16px">
+// Replay aggregate state to a specific point in time
+var intentAtDecision = await session.Events
+    .AggregateStreamAsync&lt;TradeIntent&gt;(
+        streamId,
+        timestamp: new DateTimeOffset(2026, 3, 15, 3, 42, 0, TimeSpan.Zero));
+
+// Fetch all events for forensic analysis
+var events = await session.Events
+    .FetchStreamAsync(streamId);
+
+foreach (var e in events)
+    Console.WriteLine($"[{e.Sequence}] {e.Timestamp} - {e.EventType.Name}");
+</pre>
+    </div>
+    <p class="animate" style="margin-top:10px;text-align:center"><span class="highlight">Regulatory value:</span> demonstrate to auditors exactly why each trade decision was made.</p>
+  </div>
+
+
+  <!-- Slide 16: Snapshots & Performance -->
+  <div class="slide">
+    <h2 class="animate">Snapshots &amp; Performance</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Long-lived aggregates accumulate thousands of events</li>
+          <li>Replaying 10,000 events to load current state is slow</li>
+          <li>A position stream with frequent price modifications can grow quickly</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Snapshots</h3>
+        <ul>
+          <li>Periodically save a snapshot of the aggregate state</li>
+          <li>Load snapshot + replay only events since snapshot</li>
+          <li>Marten handles this automatically with configuration</li>
+          <li>Snapshots are an optimization, not a source of truth</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Configure Marten to snapshot every 100 events
+opts.Projections.Snapshot&lt;TradeIntent&gt;(SnapshotLifecycle.Inline, snapshotConfig =>
+{
+    snapshotConfig.CreateEvery = 100;  // Snapshot every 100 events
+});
+
+// Marten automatically:
+// 1. Checks for latest snapshot
+// 2. Replays only events AFTER snapshot
+// 3. Returns fully hydrated aggregate
+var intent = await session.Events.AggregateStreamAsync&lt;TradeIntent&gt;(streamId);
+</pre>
+  </div>
+
+
+  <!-- Slide 17: Schema Evolution -->
+  <div class="slide">
+    <h2 class="animate">Schema Evolution</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Events are forever &mdash; but your schema will change</p>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Events are immutable</span> &mdash; you cannot change events already stored</li>
+        <li><span class="highlight">Upcasting</span> &mdash; transform old event shapes into new ones on read</li>
+        <li><span class="highlight">Versioning</span> &mdash; <code>IntentCreated_V1</code>, <code>IntentCreated_V2</code> with explicit version numbers</li>
+        <li><span class="highlight">Backward compatibility</span> &mdash; new fields should have defaults; never remove fields consumers depend on</li>
+      </ul>
+<pre style="margin-top:16px">
+// V1: Original event
+public record IntentCreated_V1(string Symbol, decimal Quantity, string Signal);
+
+// V2: Added confidence score
+public record IntentCreated(
+    string Symbol, decimal Quantity, string Signal, double Confidence);
+
+// Upcast V1 -> V2 in Marten
+opts.Events.Upcast&lt;IntentCreated_V1, IntentCreated&gt;(old =>
+    new IntentCreated(old.Symbol, old.Quantity, old.Signal, Confidence: 0.5));
+
+// Old events stored as V1 are transparently upcasted to V2 on read
+// No data migration needed!
+</pre>
+    </div>
+  </div>
+
+
+  <!-- Slide 18: Event Sourcing + Kafka -->
+  <div class="slide">
+    <h2 class="animate">Event Sourcing + Kafka</h2>
+    <p class="animate subtitle" style="margin-bottom:16px">Publishing domain events to Kafka topics for cross-service integration</p>
+    <div class="content animate">
+<pre>
+// Wolverine Kafka transport configuration
+builder.Services.AddWolverineWithKafka(opts =>
+{
+    opts.UseKafka("localhost:9092")
+        .ConfigureConsumers(consumer =>
+        {
+            consumer.AutoOffsetReset = AutoOffsetReset.Earliest;
+        });
+
+    // Publish specific events to Kafka topics
+    opts.PublishMessage&lt;IntentCreated&gt;()
+        .ToKafkaTopic("trades.intent.created");
+
+    opts.PublishMessage&lt;Filled&gt;()
+        .ToKafkaTopic("trades.filled");
+
+    opts.PublishMessage&lt;PositionOpened&gt;()
+        .ToKafkaTopic("positions.opened");
+
+    // Subscribe to external events
+    opts.ListenToKafkaTopic("market.signals")
+        .ProcessInline();
+});
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Key pattern:</span> Marten is the event store (source of truth). Kafka is the event bus (distribution). The outbox guarantees delivery between them.</p>
+    </div>
+  </div>
+
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Make events immutable records &mdash; never modify stored events</div>
+      <div class="bp-item"><span>2.</span> Name events in past tense: IntentCreated, not CreateIntent</div>
+      <div class="bp-item"><span>3.</span> Keep events small &mdash; store facts, not derived data</div>
+      <div class="bp-item"><span>4.</span> Use the outbox pattern to prevent dual-write inconsistencies</div>
+      <div class="bp-item"><span>5.</span> Design consumers to be idempotent (at-least-once delivery)</div>
+      <div class="bp-item"><span>6.</span> Use snapshots for aggregates with more than 100-200 events</div>
+      <div class="bp-item"><span>7.</span> Version events from day one &mdash; schema evolution is inevitable</div>
+      <div class="bp-item"><span>8.</span> Separate read models per use case &mdash; don't share projections</div>
+      <div class="bp-item"><span>9.</span> Use async projections for analytics, inline for transactional reads</div>
+      <div class="bp-item"><span>10.</span> Test with event replay: assert state after applying a sequence of events</div>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4DC;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Event Sourcing &amp; CQRS:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Event Sourcing</span><span class="tag">CQRS</span><span class="tag">Marten</span>
+        <span class="tag">Wolverine</span><span class="tag">Outbox Pattern</span><span class="tag">Projections</span>
+        <span class="tag">Snapshots</span><span class="tag">Schema Evolution</span><span class="tag">Kafka</span>
+      </div>
+      <p style="color:var(--text-muted)">Event sourcing gives you a complete, replayable history of every decision your trading agent makes. Pair it with CQRS for scalable reads and Wolverine's outbox for reliable messaging.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,874 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Incident Response &amp; SRE</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h1 class="animate">Incident Response &amp; SRE</h1>
+    <p class="subtitle animate">Keeping systems reliable under pressure</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">SRE</span><span class="tag">Incident Response</span><span class="tag">Reliability</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is SRE? -->
+  <div class="slide">
+    <h2 class="animate">What Is SRE?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Site Reliability Engineering</h3>
+        <ul>
+          <li>Coined by Google in 2003 &mdash; "what happens when you treat operations as a software problem"</li>
+          <li>Bridge between development and operations</li>
+          <li>Quantify reliability with <span class="highlight">SLOs</span> (Service Level Objectives)</li>
+          <li>Automate toil &mdash; anything manual, repetitive, and automatable</li>
+          <li>Blameless culture focused on learning from failure</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Error Budgets</h3>
+        <ul>
+          <li><span class="highlight">Error budget</span> = 100% &minus; SLO target</li>
+          <li>99.9% SLO = 0.1% budget = ~43 min/month downtime</li>
+          <li>Budget remaining? Ship features faster</li>
+          <li>Budget exhausted? Freeze deploys, focus on reliability</li>
+          <li>Aligns incentives between product and ops teams</li>
+          <li>For a 24/7 trading agent: <code>99.95%</code> = ~22 min/month</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: SLIs, SLOs & SLAs -->
+  <div class="slide">
+    <h2 class="animate">SLIs, SLOs &amp; SLAs</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Concept</th><th>Definition</th><th>Trading Agent Example</th></tr>
+        <tr><td><span class="highlight">SLI</span></td><td>Service Level Indicator &mdash; a measurable metric</td><td>Order fill latency p99, WebSocket uptime %</td></tr>
+        <tr><td><span class="highlight">SLO</span></td><td>Service Level Objective &mdash; target for an SLI</td><td>Order fill p99 &lt; 200ms, WS uptime &ge; 99.95%</td></tr>
+        <tr><td><span class="highlight">SLA</span></td><td>Service Level Agreement &mdash; contractual commitment</td><td>System available 99.9% or credits issued</td></tr>
+      </table>
+      <div style="margin-top:20px">
+<pre>
+# Key SLIs for the AI Trading Agent (lda21.github.io/docs)
+- Order execution latency:  p50 &lt; 50ms, p99 &lt; 200ms
+- Exchange WS uptime:       &ge; 99.95% per exchange
+- Risk gate evaluation:     p99 &lt; 10ms
+- Position sync accuracy:   &ge; 99.99%
+- Signal-to-order latency:  p99 &lt; 500ms
+- System recovery time:     &lt; 30s after kill switch
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Incident Severity Classification -->
+  <div class="slide">
+    <h2 class="animate">Incident Severity Classification</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Severity</th><th>Impact</th><th>Response Time</th><th>Escalation</th></tr>
+        <tr><td><span class="highlight">SEV-1</span></td><td>Total system down, active loss of funds, kill switch triggered</td><td>&lt; 5 minutes</td><td>Immediate phone call + all hands</td></tr>
+        <tr><td><span class="highlight">SEV-2</span></td><td>Major degradation: exchange disconnect, risk gate failure, drawdown breach</td><td>&lt; 15 minutes</td><td>SMS + Slack escalation</td></tr>
+        <tr><td><span class="highlight">SEV-3</span></td><td>Partial degradation: single feed stale, elevated latency, model drift</td><td>&lt; 1 hour</td><td>Slack notification</td></tr>
+        <tr><td><span class="highlight">SEV-4</span></td><td>Minor: dashboard slow, non-critical alert noise, log volume spike</td><td>&lt; 4 hours</td><td>Ticket created, next business day</td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Rule:</span> When in doubt, escalate up one level. Downgrade after triage, never upgrade too late.</p>
+    </div>
+  </div>
+
+  <!-- Slide 5: Real-World Trading Agent Incidents -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Incidents</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Exchange Down (SEV-2)</h3>
+        <p>Binance WebSocket disconnects. Agent loses price feed. Stale quotes lead to mispriced orders on other venues.</p>
+        <code>Impact: Cross-exchange arb exposure</code>
+      </div>
+      <div class="metric-card">
+        <h3>Drawdown Breach (SEV-1)</h3>
+        <p>Portfolio hits -5% daily drawdown limit. Kill switch must fire within 30 seconds to flatten all positions.</p>
+        <code>Impact: Direct financial loss</code>
+      </div>
+      <div class="metric-card">
+        <h3>Risk Gate Failure (SEV-2)</h3>
+        <p>Risk evaluation service crashes. Orders bypass position limits. Concentration risk builds undetected.</p>
+        <code>Impact: Unbounded position sizing</code>
+      </div>
+      <div class="metric-card">
+        <h3>Position Mismatch (SEV-2)</h3>
+        <p>Internal state diverges from exchange. Agent thinks it is flat but holds 10 BTC. Reconciliation fails.</p>
+        <code>Impact: Phantom P&amp;L, hidden risk</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: On-Call & Escalation -->
+  <div class="slide">
+    <h2 class="animate">On-Call &amp; Escalation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>On-Call Rotation</h3>
+        <ul>
+          <li>24/7 coverage &mdash; no maintenance windows for a live trading system</li>
+          <li>Primary + secondary on-call per rotation</li>
+          <li>1-week rotations with handoff documents</li>
+          <li>On-call engineer has full deploy access</li>
+          <li>Compensated time-off after high-severity incidents</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Multi-Tier Escalation</h3>
+        <div class="diagram">
+          <div class="box">Slack Alert</div>
+          <div class="arrow">&#x2192;</div>
+          <div class="box">SMS (2 min)</div>
+          <div class="arrow">&#x2192;</div>
+          <div class="box">Phone Call (5 min)</div>
+        </div>
+        <ul>
+          <li><span class="highlight">Tier 1:</span> Slack #incidents channel &mdash; all severities</li>
+          <li><span class="highlight">Tier 2:</span> SMS to on-call &mdash; SEV-1, SEV-2 with no ack</li>
+          <li><span class="highlight">Tier 3:</span> Phone call chain &mdash; SEV-1 unacked after 5 min</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Incident Response Process -->
+  <div class="slide">
+    <h2 class="animate">Incident Response Process</h2>
+    <div class="diagram animate">
+      <div class="box">Detect</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Triage</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Mitigate</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Resolve</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Review</div>
+    </div>
+    <div class="content animate">
+      <table>
+        <tr><th>Phase</th><th>Actions</th><th>Trading Agent Context</th></tr>
+        <tr><td><span class="highlight">Detect</span></td><td>Alerts fire, anomaly detected</td><td>Grafana alert: order latency p99 &gt; 500ms</td></tr>
+        <tr><td><span class="highlight">Triage</span></td><td>Classify severity, assign IC</td><td>IC confirms: Binance feed stale &rarr; SEV-2</td></tr>
+        <tr><td><span class="highlight">Mitigate</span></td><td>Stop the bleeding, reduce blast radius</td><td>Disable Binance venue, reduce position sizes 50%</td></tr>
+        <tr><td><span class="highlight">Resolve</span></td><td>Root cause fix, restore full service</td><td>Reconnect WS, verify feed, re-enable venue</td></tr>
+        <tr><td><span class="highlight">Review</span></td><td>Blameless postmortem, action items</td><td>Add WS heartbeat timeout, improve reconnect logic</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 8: Runbooks -->
+  <div class="slide">
+    <h2 class="animate">Runbooks</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is a Runbook?</h3>
+        <ul>
+          <li>Step-by-step playbook for known failure scenarios</li>
+          <li>Written <em>before</em> the incident &mdash; not during</li>
+          <li>Reduces MTTR (Mean Time To Recover)</li>
+          <li>Enables junior engineers to handle SEV-2 incidents</li>
+          <li>Stored in version control, reviewed quarterly</li>
+          <li>Links to dashboards, logs, and escalation contacts</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Runbook Structure</h3>
+<pre style="font-size:0.85rem">
+## Runbook: [Failure Name]
+**Severity:** SEV-2
+**Last Updated:** 2026-03-15
+**Owner:** @on-call-sre
+
+### Symptoms
+- What alerts fire
+- What dashboards show
+
+### Diagnosis
+- Commands to run
+- Logs to check
+
+### Mitigation
+- Immediate steps to stop bleeding
+
+### Resolution
+- Root cause fix steps
+
+### Verification
+- How to confirm recovery
+
+### Escalation
+- When to escalate to SEV-1
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Runbook Examples -->
+  <div class="slide">
+    <h2 class="animate">Runbook Examples</h2>
+    <div class="content animate">
+<pre>
+## Runbook: Exchange WebSocket Disconnect
+Severity: SEV-2 | Response: &lt; 15 min
+
+1. DETECT: Alert "ws_disconnect_{exchange}" fires
+2. CHECK:  Grafana dashboard &rarr; Exchange Connectivity panel
+3. VERIFY: curl -s https://api.binance.com/api/v3/ping  (is exchange up?)
+4. IF exchange up:
+   - Restart WS reconnect:  kubectl rollout restart deploy/feed-handler-binance
+   - Monitor reconnect in Loki: {app="feed-handler"} |= "reconnected"
+5. IF exchange down:
+   - Disable venue:  curl -X POST http://agent:8080/venue/binance/disable
+   - Reduce positions 50%: curl -X POST http://agent:8080/risk/reduce?factor=0.5
+   - Monitor exchange status page, re-enable when stable
+
+## Runbook: Risk Gate Failure
+Severity: SEV-2 | Response: &lt; 15 min
+
+1. DETECT: Alert "risk_gate_error_rate &gt; 1%" fires
+2. IMMEDIATE: Enable fail-closed mode (reject all new orders)
+   curl -X POST http://agent:8080/risk/mode/fail-closed
+3. CHECK: Loki logs {app="risk-engine"} |= "error"
+4. FIX: Restart risk engine, verify evaluation latency &lt; 10ms
+5. RE-ENABLE: curl -X POST http://agent:8080/risk/mode/normal
+
+## Runbook: Position Mismatch
+Severity: SEV-2 | Response: &lt; 15 min
+
+1. DETECT: Alert "position_mismatch_detected" fires
+2. HALT: Pause all new orders for affected exchange
+3. RECONCILE: curl -X POST http://agent:8080/positions/reconcile?exchange=binance
+4. COMPARE: Internal state vs exchange API response
+5. RESOLVE: Accept exchange state as source of truth, adjust internal ledger
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 10: Circuit Breaker Pattern -->
+  <div class="slide">
+    <h2 class="animate">Circuit Breaker Pattern</h2>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--success)">Closed<br><small>Normal flow</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:#E74C3C">Open<br><small>All calls blocked</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:#F39C12">Half-Open<br><small>Probe requests</small></div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Per-Exchange Circuit Breaker</h3>
+        <ul>
+          <li><span class="highlight">Closed:</span> Orders flow normally to exchange</li>
+          <li>Error threshold: 5 failures in 30 seconds</li>
+          <li><span class="highlight">Open:</span> All orders to that exchange rejected</li>
+          <li>Cooldown: 60 seconds before probing</li>
+          <li><span class="highlight">Half-Open:</span> Send 1 test order, if OK &rarr; close</li>
+          <li>Other exchanges remain unaffected</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Global Circuit Breaker</h3>
+        <ul>
+          <li>Triggers when 2+ exchange breakers open simultaneously</li>
+          <li>Reduces total portfolio exposure by 75%</li>
+          <li>Halts all new position entries</li>
+          <li>Allows exits and risk-reducing trades only</li>
+          <li>Auto-recovers when all per-exchange breakers close</li>
+          <li>Manual override via kill switch if needed</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Graceful Degradation -->
+  <div class="slide">
+    <h2 class="animate">Graceful Degradation</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Condition</th><th>Detection</th><th>Degradation Action</th></tr>
+        <tr><td>Price feed stale (&gt; 5s)</td><td><code>feed_staleness_seconds &gt; 5</code></td><td>Reduce position sizes by 50%, widen spreads</td></tr>
+        <tr><td>Single exchange down</td><td>Circuit breaker opens</td><td>Route orders to remaining venues, reduce exposure</td></tr>
+        <tr><td>Risk service down</td><td><code>risk_gate_health == 0</code></td><td>Fail-closed: reject all new orders, allow exits</td></tr>
+        <tr><td>Model inference slow</td><td><code>model_latency_p99 &gt; 1s</code></td><td>Fall back to simple momentum signals</td></tr>
+        <tr><td>Database unreachable</td><td>Connection pool exhausted</td><td>Trade from in-memory state, queue writes</td></tr>
+        <tr><td>Funding rate spike</td><td><code>funding_rate &gt; 0.1%</code></td><td>Close affected perpetual positions, switch to spot</td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Principle:</span> Every component must have a degraded mode. Never fail silently &mdash; always reduce risk.</p>
+    </div>
+  </div>
+
+  <!-- Slide 12: Kill Switch Design -->
+  <div class="slide">
+    <h2 class="animate">Kill Switch Design</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Emergency Halt Requirements</h3>
+        <ul>
+          <li>Flatten all positions across all exchanges in <span class="highlight">&lt; 30 seconds</span></li>
+          <li>Cancel all open orders immediately</li>
+          <li>Disable all new order submission</li>
+          <li>Triggered by: drawdown breach, operator command, or system anomaly</li>
+          <li>Multiple trigger paths: API, CLI, Slack command, physical button</li>
+          <li>Cannot be accidentally triggered (2-step confirmation)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Kill Switch Sequence</h3>
+<pre style="font-size:0.85rem">
+# Kill switch activation sequence
+1. TRIGGER received (drawdown / manual)
+2. SET global_halt = true          # 0ms
+3. CANCEL all open orders          # parallel, per-exchange
+   - Binance: cancel_all()         # ~200ms
+   - OKX: cancel_all()             # ~200ms
+   - Bybit: cancel_all()           # ~200ms
+4. FLATTEN all positions            # market orders
+   - Send market sells/buys        # ~500ms
+   - Verify fills received         # ~2s
+5. VERIFY net exposure == 0         # ~5s
+6. LOCK system (require manual restart)
+7. NOTIFY: Slack + SMS + phone
+8. LOG: Full state snapshot to S3
+
+Total time budget: &lt; 30 seconds
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: Observability for Incidents -->
+  <div class="slide">
+    <h2 class="animate">Observability for Incidents</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Grafana Dashboards</h3>
+        <p>Unified view: P&amp;L, positions, exchange connectivity, latency heatmaps, error rates. One-click drill-down from alert to dashboard.</p>
+        <code>grafana.internal/d/trading-overview</code>
+      </div>
+      <div class="metric-card">
+        <h3>Prometheus / Mimir (Metrics)</h3>
+        <p>Time-series metrics with 15s scrape interval. Alert rules in PromQL. Long-term storage via Mimir for capacity planning.</p>
+        <code>rate(order_errors_total[5m]) &gt; 0.01</code>
+      </div>
+      <div class="metric-card">
+        <h3>Loki (Logs)</h3>
+        <p>Centralized log aggregation. LogQL queries correlate logs with metrics. Structured JSON logs with trace IDs for cross-service queries.</p>
+        <code>{app="agent"} |= "error" | json</code>
+      </div>
+      <div class="metric-card">
+        <h3>Alertmanager</h3>
+        <p>Routes alerts by severity. Deduplicates, groups, and silences. Integrates with Slack, PagerDuty, SMS gateways.</p>
+        <code>route: group_by: [severity, exchange]</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: Distributed Tracing in Incidents -->
+  <div class="slide">
+    <h2 class="animate">Distributed Tracing in Incidents</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Tempo + OpenTelemetry</h3>
+        <ul>
+          <li><span class="highlight">Tempo:</span> Distributed trace backend in the LGTM stack</li>
+          <li><span class="highlight">OpenTelemetry:</span> Vendor-neutral instrumentation SDK</li>
+          <li>Every request gets a trace ID propagated across services</li>
+          <li>Spans show latency at each hop: signal &rarr; risk &rarr; order &rarr; exchange</li>
+          <li>Grafana links metrics &rarr; traces &rarr; logs via trace ID</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Tracing a Failed Trade</h3>
+<pre style="font-size:0.85rem">
+Trace ID: abc123def456
+
+signal-generator    [0ms  - 12ms]
+  &rarr; risk-evaluator [12ms - 18ms]
+    &rarr; order-router  [18ms - 22ms]
+      &rarr; binance-api  [22ms - 8522ms] ERROR
+        status: TIMEOUT
+        error: "connection reset"
+        exchange: binance
+        retry_count: 3
+
+Root cause: Binance API gateway
+           returned TCP RST after
+           8.5s (timeout threshold: 5s)
+Action:    Circuit breaker opened
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Post-Incident Review -->
+  <div class="slide">
+    <h2 class="animate">Post-Incident Review</h2>
+    <div class="content animate">
+<pre>
+## Post-Incident Review: Drawdown Breach - 2026-03-28
+**Severity:** SEV-1  |  **Duration:** 14 minutes  |  **Financial Impact:** -$12,400
+
+### Timeline (UTC)
+14:02  Model generates large BTC long signal (3x normal size)
+14:03  Risk gate approves &mdash; position limit check passes (bug: checked notional, not leverage)
+14:05  BTC drops 2.1% in 2 minutes (cascading liquidations on-chain)
+14:07  Drawdown alert fires: portfolio at -4.8% daily
+14:08  On-call acks alert, begins triage
+14:10  Kill switch activated manually
+14:12  All positions flattened, net exposure = 0
+14:16  System locked, full state snapshot saved
+
+### Root Cause
+Risk gate evaluated position limits by notional value but did not check effective
+leverage. The 3x signal passed because notional was within bounds, but leverage
+was 8.2x (limit: 5x).
+
+### Action Items
+[ ] Fix risk gate to check both notional AND leverage (owner: @alice, due: 2026-04-01)
+[ ] Add leverage metric to Grafana dashboard (owner: @bob, due: 2026-04-02)
+[ ] Reduce kill switch trigger from -5% to -3% daily drawdown (owner: @carol)
+[ ] Schedule monthly kill switch drill (owner: @dave)
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 16: Capacity Planning -->
+  <div class="slide">
+    <h2 class="animate">Capacity Planning</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Component</th><th>Scaling Trigger</th><th>Action</th></tr>
+        <tr><td>Order Router</td><td>p99 latency &gt; 100ms for 5 min</td><td>Add replica, increase connection pool</td></tr>
+        <tr><td>Risk Engine</td><td>CPU &gt; 70% sustained 10 min</td><td>Vertical scale (more cores), then horizontal</td></tr>
+        <tr><td>Feed Handler</td><td>Message queue depth &gt; 10k</td><td>Add handler per exchange, increase buffer</td></tr>
+        <tr><td>Prometheus/Mimir</td><td>Ingestion rate &gt; 80% capacity</td><td>Add ingesters, increase retention sharding</td></tr>
+        <tr><td>Loki</td><td>Log volume &gt; 500 GB/day</td><td>Add compactor resources, review log levels</td></tr>
+        <tr><td>Tempo</td><td>Trace storage &gt; 70% disk</td><td>Reduce retention, increase compaction</td></tr>
+        <tr><td>PostgreSQL</td><td>Connection pool &gt; 80% utilized</td><td>PgBouncer scaling, read replicas</td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Forecast:</span> Review capacity quarterly. Load test at 2x peak volume before major launches.</p>
+    </div>
+  </div>
+
+  <!-- Slide 17: Chaos Engineering -->
+  <div class="slide">
+    <h2 class="animate">Chaos Engineering</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Fault Injection Tests</h3>
+        <ul>
+          <li><span class="highlight">Exchange disconnect:</span> Terminate WS connections randomly &mdash; verify circuit breaker opens within 30s</li>
+          <li><span class="highlight">Risk gate crash:</span> Kill risk engine pod &mdash; verify fail-closed mode activates</li>
+          <li><span class="highlight">Network partition:</span> Block traffic between agent and exchange &mdash; verify graceful degradation</li>
+          <li><span class="highlight">Clock skew:</span> Offset system time by 5s &mdash; verify timestamp validation catches it</li>
+          <li><span class="highlight">Disk full:</span> Fill log volume &mdash; verify log rotation and alerts fire</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Kill Switch Drills</h3>
+        <ul>
+          <li>Run monthly on staging with simulated positions</li>
+          <li>Measure: time to flatten, order cancellation completeness</li>
+          <li>Target: full flatten in &lt; 30 seconds</li>
+          <li>Record results, compare against previous drills</li>
+          <li>Rotate drill leader each month (trains entire team)</li>
+        </ul>
+        <h3 style="margin-top:16px">Game Days</h3>
+        <ul>
+          <li>Quarterly full-scale incident simulation</li>
+          <li>Inject SEV-1 scenario into staging</li>
+          <li>Team responds as if production incident</li>
+          <li>Score: detection time, MTTR, communication quality</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 18: Operational Checklists -->
+  <div class="slide">
+    <h2 class="animate">Operational Checklists</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Daily Checklist</h3>
+        <p>Review P&amp;L vs expectations. Check overnight alerts. Verify all exchange connections active. Review position reconciliation. Check error budget burn rate. Confirm backup completion.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Weekly Checklist</h3>
+        <p>Model health review (drift detection). Dependency CVE scan. On-call handoff with incident summary. Review open action items from postmortems. Capacity utilization review.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Monthly Checklist</h3>
+        <p>Architecture review and tech debt assessment. Kill switch drill execution. Runbook review and updates. SLO achievement report. Chaos engineering experiment. Access audit and secret rotation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Quarterly Checklist</h3>
+        <p>Full game day exercise. Capacity planning forecast. Disaster recovery test. Dependency upgrade review. On-call retrospective. Error budget policy review.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Define SLOs before writing alerts &mdash; alert on SLO burn rate, not raw metrics</div>
+      <div class="bp-item"><span>2.</span> Every alert must have a runbook link &mdash; no alert without a documented response</div>
+      <div class="bp-item"><span>3.</span> Practice blameless postmortems &mdash; focus on systems, not individuals</div>
+      <div class="bp-item"><span>4.</span> Test your kill switch monthly &mdash; an untested safety net is not a safety net</div>
+      <div class="bp-item"><span>5.</span> Design for graceful degradation &mdash; every component needs a failure mode</div>
+      <div class="bp-item"><span>6.</span> Use circuit breakers per dependency &mdash; isolate blast radius of failures</div>
+      <div class="bp-item"><span>7.</span> Correlate metrics, logs, and traces &mdash; the LGTM stack with shared trace IDs</div>
+      <div class="bp-item"><span>8.</span> Automate toil ruthlessly &mdash; if you do it twice, automate it the third time</div>
+      <div class="bp-item"><span>9.</span> Maintain on-call health &mdash; compensate, rotate fairly, limit alert fatigue</div>
+      <div class="bp-item"><span>10.</span> Treat incidents as learning opportunities &mdash; every failure makes the system stronger</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Incident Response &amp; SRE:</p>
+      <div style="margin:20px 0">
+        <span class="tag">SLOs &amp; Error Budgets</span><span class="tag">Severity Classification</span><span class="tag">Escalation</span>
+        <span class="tag">Runbooks</span><span class="tag">Circuit Breakers</span><span class="tag">Kill Switch</span>
+        <span class="tag">LGTM Stack</span><span class="tag">Postmortems</span><span class="tag">Chaos Engineering</span>
+      </div>
+      <p style="color:var(--text-muted)">Reliability is not a feature &mdash; it is the foundation everything else depends on.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

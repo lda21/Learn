@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Resilience Patterns</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3D7;</span>
+    <h1 class="animate">Resilience Patterns</h1>
+    <p class="subtitle animate">Design for failure, not just prevention</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Resilience</span><span class="tag">Circuit Breaker</span><span class="tag">Fault Tolerance</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: Why Resilience? -->
+  <div class="slide">
+    <h2 class="animate">Why Resilience?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Distributed Systems Fail</h3>
+        <ul>
+          <li>Networks are unreliable &mdash; packets drop, latency spikes</li>
+          <li>Services crash, restart, deploy mid-request</li>
+          <li>Databases hit connection limits under load</li>
+          <li>Third-party APIs have outages (exchange downtime)</li>
+          <li>Hardware fails &mdash; disks, NICs, entire AZs</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Design for Failure</h3>
+        <ul>
+          <li><span class="highlight">Accept failure</span> as normal, not exceptional</li>
+          <li><span class="highlight">Contain blast radius</span> &mdash; one failure should not cascade</li>
+          <li><span class="highlight">Degrade gracefully</span> &mdash; partial function beats total outage</li>
+          <li><span class="highlight">Recover automatically</span> &mdash; self-healing over manual intervention</li>
+          <li><span class="highlight">Fail fast</span> &mdash; don't waste resources on doomed requests</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px;text-align:center">In a crypto trading agent, a 5-second exchange outage should <span class="highlight">not</span> take down the entire system.</p>
+  </div>
+
+  <!-- Slide 3: Circuit Breaker Pattern -->
+  <div class="slide">
+    <h2 class="animate">Circuit Breaker Pattern</h2>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--success)">&#x2705; Closed<br><small>Requests flow through</small></div>
+      <div class="arrow">&#x27A1;</div>
+      <div class="box" style="border-color:#E74C3C">&#x274C; Open<br><small>Requests blocked</small></div>
+      <div class="arrow">&#x27A1;</div>
+      <div class="box" style="border-color:var(--warning)">&#x26A0; Half-Open<br><small>Test requests</small></div>
+    </div>
+    <div class="content animate">
+      <table>
+        <tr><th>State</th><th>Behavior</th><th>Transition</th></tr>
+        <tr><td><span class="green">Closed</span></td><td>All requests pass through normally</td><td>Failure threshold exceeded &rarr; Open</td></tr>
+        <tr><td><span style="color:#E74C3C">Open</span></td><td>All requests fail immediately (fast fail)</td><td>Timeout expires &rarr; Half-Open</td></tr>
+        <tr><td><span class="highlight">Half-Open</span></td><td>Limited test requests allowed through</td><td>Success &rarr; Closed / Failure &rarr; Open</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Key parameters:</span> failure threshold (e.g. 5 failures in 30s), open duration (e.g. 60s), half-open test count (e.g. 3 requests)</p>
+  </div>
+
+  <!-- Slide 4: Circuit Breaker Implementation -->
+  <div class="slide">
+    <h2 class="animate">Circuit Breaker Implementation</h2>
+    <div class="content animate">
+<pre>
+// Per-exchange circuit breaker in the AI Trading Agent
+// Each exchange (Binance, Kraken, Coinbase) has its own breaker
+
+public class ExchangeCircuitBreaker {
+    private CircuitState _state = CircuitState.Closed;
+    private int _failureCount = 0;
+    private DateTime _lastFailure;
+    private readonly int _threshold = 5;        // failures before opening
+    private readonly TimeSpan _openDuration = TimeSpan.FromSeconds(60);
+
+    public async Task&lt;T&gt; ExecuteAsync&lt;T&gt;(Func&lt;Task&lt;T&gt;&gt; action) {
+        if (_state == CircuitState.Open) {
+            if (DateTime.UtcNow - _lastFailure > _openDuration)
+                _state = CircuitState.HalfOpen;  // allow test request
+            else
+                throw new CircuitOpenException("Exchange circuit open");
+        }
+        try {
+            var result = await action();
+            OnSuccess();
+            return result;
+        } catch (Exception ex) {
+            OnFailure();
+            throw;
+        }
+    }
+}
+
+// Global breaker wraps all exchanges &mdash; trips if ALL exchanges fail
+// Per-exchange breaker isolates individual exchange failures
+</pre>
+    </div>
+    <p class="animate" style="margin-top:10px;text-align:center">Libraries: <code>Polly</code> (.NET), <code>resilience4j</code> (Java), <code>opossum</code> (Node.js), <code>pybreaker</code> (Python)</p>
+  </div>
+
+  <!-- Slide 5: Retry Pattern -->
+  <div class="slide">
+    <h2 class="animate">Retry Pattern</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Exponential Backoff + Jitter</h3>
+        <ul>
+          <li><span class="highlight">Base delay</span> doubles each attempt: 1s, 2s, 4s, 8s</li>
+          <li><span class="highlight">Jitter</span> adds randomness to prevent thundering herd</li>
+          <li><span class="highlight">Max retries</span> caps total attempts (e.g. 3-5)</li>
+          <li><span class="highlight">Max delay</span> caps backoff ceiling (e.g. 30s)</li>
+          <li>Only retry <span class="highlight">transient</span> errors (5xx, timeout, network)</li>
+          <li>Never retry <span class="highlight">permanent</span> errors (400, 401, 403)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Idempotency Requirement</h3>
+<pre style="font-size:0.85rem">
+// Retry is only safe for idempotent operations!
+// Exchange API call with idempotency key:
+
+POST /api/v1/orders
+X-Idempotency-Key: ord_abc123_binance_v1
+
+{
+  "symbol": "BTC/USDT",
+  "side": "buy",
+  "quantity": 0.5,
+  "price": 42000
+}
+
+// Safe to retry: exchange deduplicates
+// by idempotency key, returns same result
+</pre>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Exponential backoff formula
+delay = min(base * 2^attempt + random(0, jitter), maxDelay)
+// Attempt 1: min(1s * 2^0 + rand(0, 500ms), 30s) = ~1.3s
+// Attempt 2: min(1s * 2^1 + rand(0, 500ms), 30s) = ~2.4s
+// Attempt 3: min(1s * 2^2 + rand(0, 500ms), 30s) = ~4.2s
+</pre>
+  </div>
+
+  <!-- Slide 6: Timeout Pattern -->
+  <div class="slide">
+    <h2 class="animate">Timeout Pattern</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Timeout Types</h3>
+        <ul>
+          <li><span class="highlight">Connection timeout</span> &mdash; how long to establish connection (1-5s)</li>
+          <li><span class="highlight">Read timeout</span> &mdash; how long to wait for response (5-30s)</li>
+          <li><span class="highlight">gRPC deadline</span> &mdash; end-to-end call budget propagated through chain</li>
+          <li><span class="highlight">Cancellation tokens</span> &mdash; cooperative cancellation in .NET/Go</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Timeouts</h3>
+        <table>
+          <tr><th>Operation</th><th>Timeout</th></tr>
+          <tr><td>gRPC risk gate check</td><td><span class="highlight">&lt; 50ms</span></td></tr>
+          <tr><td>Exchange API order</td><td><span class="highlight">&lt; 5s</span></td></tr>
+          <tr><td>Market data feed</td><td><span class="highlight">&lt; 2s</span></td></tr>
+          <tr><td>Position reconciliation</td><td><span class="highlight">&lt; 10s</span></td></tr>
+        </table>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// gRPC deadline propagation in trading agent
+var deadline = DateTime.UtcNow.AddMilliseconds(50);
+var callOptions = new CallOptions(deadline: deadline);
+
+// If risk gate doesn't respond in 50ms, order is REJECTED
+// Better to miss a trade than to trade without risk validation
+var riskResult = await riskClient.ValidateOrderAsync(order, callOptions);
+</pre>
+  </div>
+
+  <!-- Slide 7: Bulkhead Pattern -->
+  <div class="slide">
+    <h2 class="animate">Bulkhead Pattern</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Isolation Strategy</h3>
+        <ul>
+          <li>Named after ship bulkheads &mdash; <span class="highlight">compartmentalize failures</span></li>
+          <li>Separate thread/connection pools per dependency</li>
+          <li>One slow service cannot exhaust all resources</li>
+          <li>Limit concurrent calls to each downstream service</li>
+          <li>Reject excess requests immediately (fail fast)</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+// Bulkhead: max 10 concurrent calls per exchange
+var binanceBulkhead = Policy
+  .BulkheadAsync(maxParallelization: 10,
+                  maxQueuingActions: 20);
+
+var krakenBulkhead = Policy
+  .BulkheadAsync(maxParallelization: 10,
+                  maxQueuingActions: 20);
+</pre>
+      </div>
+      <div class="card">
+        <h3>Without vs With Bulkhead</h3>
+        <p style="margin-bottom:12px"><strong>Without:</strong> Shared connection pool</p>
+        <ul>
+          <li>Binance slow &rarr; exhausts all connections</li>
+          <li>Kraken requests queue behind Binance</li>
+          <li>Coinbase also blocked &mdash; <span style="color:#E74C3C">cascade failure</span></li>
+        </ul>
+        <p style="margin-top:16px;margin-bottom:12px"><strong>With:</strong> Isolated pools</p>
+        <ul>
+          <li>Binance slow &rarr; only its pool saturated</li>
+          <li>Kraken and Coinbase <span class="green">unaffected</span></li>
+          <li>Trading continues on healthy exchanges</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Real-World Trading Agent Resilience -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Resilience</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:18px">The <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> combines multiple resilience patterns per exchange:</p>
+      <div class="diagram">
+        <div class="box">Order Request</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Bulkhead<br><small>Isolation</small></div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Circuit Breaker<br><small>Per-Exchange</small></div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Retry + Backoff<br><small>w/ Jitter</small></div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Timeout<br><small>&lt;5s</small></div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Exchange API</div>
+      </div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:18px">
+      <div class="metric-card">
+        <h3>Per-Exchange Breakers</h3>
+        <p>Each exchange has its own circuit breaker. Binance down? Kraken and Coinbase continue trading normally.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Global Breaker</h3>
+        <p>If all exchanges trip, global breaker halts all new orders and triggers emergency position flattening.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Graceful Degradation</h3>
+        <p>Single exchange down &rarr; redistribute to others. All feeds stale &rarr; progressive position reduction.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Data Freshness Signal</h3>
+        <p>Market data age is a resilience signal. Stale feed (&gt;2min) triggers automatic position reduction.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Fail-Safe Defaults -->
+  <div class="slide">
+    <h2 class="animate">Fail-Safe Defaults</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:18px">When in doubt, choose the <span class="highlight">safest possible action</span>. In trading, safety means reducing risk exposure.</p>
+    </div>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Feed Stale &rarr; Flatten</h3>
+        <p>If market data is stale (no updates for &gt;2min), begin flattening positions. Stale prices mean unknown risk.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Service Down &rarr; No New Orders</h3>
+        <p>If risk service, pricing engine, or order router is down, reject all new orders. Never trade blind.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Unknown State &rarr; Halt</h3>
+        <p>If position state is uncertain (reconciliation failure), halt trading and alert. Don't guess positions.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Error &rarr; Reject Order</h3>
+        <p>Any unhandled exception in the order pipeline defaults to rejection. Better to miss a trade than to place an unvalidated one.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+// Fail-safe default: reject order if ANY validation step fails or times out
+public async Task&lt;OrderResult&gt; ProcessOrder(Order order) {
+    try {
+        await ValidateRisk(order);       // 50ms timeout
+        await CheckExchangeHealth();     // circuit breaker check
+        await VerifyDataFreshness();     // stale data check
+        return await SubmitToExchange(order);
+    } catch (Exception) {
+        return OrderResult.Rejected("Fail-safe: validation incomplete");
+    }
+}
+</pre>
+  </div>
+
+  <!-- Slide 10: Graceful Degradation -->
+  <div class="slide">
+    <h2 class="animate">Graceful Degradation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Partial Failure Handling</h3>
+        <ul>
+          <li><span class="highlight">1 of 3 exchanges down</span> &rarr; continue on remaining 2</li>
+          <li><span class="highlight">Risk service slow</span> &rarr; use cached risk limits (with tighter bounds)</li>
+          <li><span class="highlight">Analytics pipeline down</span> &rarr; trade without ML signals, use rule-based only</li>
+          <li><span class="highlight">Monitoring down</span> &rarr; continue but reduce position sizes</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Progressive Position Reduction</h3>
+        <table>
+          <tr><th>Condition</th><th>Action</th></tr>
+          <tr><td>All feeds fresh</td><td><span class="green">Normal trading</span></td></tr>
+          <tr><td>1 feed stale &gt;30s</td><td>Halt that exchange</td></tr>
+          <tr><td>All feeds stale &gt;2min</td><td><span class="highlight">Reduce to 50%</span></td></tr>
+          <tr><td>All feeds stale &gt;5min</td><td><span style="color:#E74C3C">Flatten to 0%</span></td></tr>
+        </table>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Progressive degradation based on data freshness
+var staleness = DateTime.UtcNow - lastMarketDataUpdate;
+
+if (staleness > TimeSpan.FromMinutes(5))
+    await FlattenAllPositions();              // 100% reduction
+else if (staleness > TimeSpan.FromMinutes(2))
+    await ReducePositions(targetPercent: 50); // 50% reduction
+else if (staleness > TimeSpan.FromSeconds(30))
+    await HaltExchange(staleExchangeId);      // isolate stale exchange
+// else: normal operations
+</pre>
+  </div>
+
+  <!-- Slide 11: Health Checks & Probes -->
+  <div class="slide">
+    <h2 class="animate">Health Checks &amp; Probes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Kubernetes Probes</h3>
+        <ul>
+          <li><span class="highlight">Liveness</span> &mdash; "Is the process alive?" Fail &rarr; container restart</li>
+          <li><span class="highlight">Readiness</span> &mdash; "Can it serve traffic?" Fail &rarr; removed from load balancer</li>
+          <li><span class="highlight">Startup</span> &mdash; "Has it finished initializing?" Delays liveness checks</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+# K8s deployment for trading agent
+livenessProbe:
+  httpGet:
+    path: /health/live
+    port: 8080
+  periodSeconds: 10
+  failureThreshold: 3
+
+readinessProbe:
+  httpGet:
+    path: /health/ready
+    port: 8080
+  periodSeconds: 5
+  failureThreshold: 2
+</pre>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Health</h3>
+        <ul>
+          <li><span class="highlight">Liveness:</span> process running, no deadlock</li>
+          <li><span class="highlight">Readiness:</span> exchange connections open, data feeds active, risk service reachable</li>
+          <li><span class="highlight">Deep health:</span> data freshness, circuit breaker states, position reconciliation status</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+// Readiness check includes dependencies
+app.MapGet("/health/ready", () => {
+  var checks = new {
+    binance = binanceBreaker.State,
+    kraken  = krakenBreaker.State,
+    riskSvc = riskClient.IsConnected,
+    dataAge = marketData.StalenessMs
+  };
+  var healthy = checks.dataAge < 5000
+    && checks.riskSvc;
+  return healthy
+    ? Results.Ok(checks)
+    : Results.StatusCode(503);
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 12: Rate Limiting & Throttling -->
+  <div class="slide">
+    <h2 class="animate">Rate Limiting &amp; Throttling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Exchange API Rate Limits</h3>
+        <ul>
+          <li>Binance: <code>1200 req/min</code> (weight-based)</li>
+          <li>Kraken: <code>15 req/s</code> with call counter decay</li>
+          <li>Coinbase: <code>10 req/s</code> per endpoint</li>
+          <li>Exceeding limits &rarr; <span style="color:#E74C3C">IP ban (temporary or permanent)</span></li>
+          <li>Must track rate limit headers in every response</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Token Bucket Algorithm</h3>
+<pre style="font-size:0.85rem">
+// Token bucket rate limiter
+class TokenBucket {
+  capacity: 1200,    // max tokens
+  refillRate: 20,    // tokens per second
+  tokens: 1200,      // current tokens
+
+  async acquire(weight = 1) {
+    this.refill();
+    if (this.tokens >= weight) {
+      this.tokens -= weight;
+      return true;  // request allowed
+    }
+    // Queue or reject
+    await this.waitForTokens(weight);
+  }
+}
+
+// Each exchange has its own bucket
+const binanceLimiter = new TokenBucket(1200, 20);
+const krakenLimiter  = new TokenBucket(15, 15);
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Critical:</span> Rate limiting is both a resilience pattern (protect yourself) and a compliance requirement (respect exchange limits).</p>
+  </div>
+
+  <!-- Slide 13: Fallback Strategies -->
+  <div class="slide">
+    <h2 class="animate">Fallback Strategies</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Cache Fallback</h3>
+        <p>Primary data source down? Serve from cache. Mark response as stale. In trading: use last known price with wider spreads.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Default Values</h3>
+        <p>Config service unreachable? Use hardcoded safe defaults. Risk limits default to most conservative settings.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Degraded Mode</h3>
+        <p>ML model service down? Fall back to rule-based signals. Less optimal but still functional trading.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Alternative Provider</h3>
+        <p>Primary exchange API down? Route orders to backup exchange. Different liquidity but maintains availability.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+// Fallback chain with Polly
+var policy = Policy&lt;Price&gt;
+    .Handle&lt;Exception&gt;()
+    .FallbackAsync(async (ct) => {
+        // Fallback 1: Try cached price
+        var cached = await cache.GetAsync&lt;Price&gt;(symbol);
+        if (cached != null && cached.Age < TimeSpan.FromMinutes(1))
+            return cached.WithFlag("stale");
+
+        // Fallback 2: Use last known price with safety margin
+        var lastKnown = positionStore.GetLastPrice(symbol);
+        return lastKnown.WithSpread(multiplier: 2.0).WithFlag("degraded");
+    });
+</pre>
+  </div>
+
+  <!-- Slide 14: Saga Pattern -->
+  <div class="slide">
+    <h2 class="animate">Saga Pattern</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Manage distributed transactions across services with <span class="highlight">compensating actions</span> instead of distributed locks.</p>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Reserve Margin</div>
+      <div class="arrow">&#x27A1;</div>
+      <div class="box">Place Order</div>
+      <div class="arrow">&#x27A1;</div>
+      <div class="box">Update Position</div>
+      <div class="arrow">&#x27A1;</div>
+      <div class="box">Record Trade</div>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Order Lifecycle Saga</h3>
+        <ul>
+          <li><span class="highlight">Step 1:</span> Reserve margin in risk service</li>
+          <li><span class="highlight">Step 2:</span> Submit order to exchange</li>
+          <li><span class="highlight">Step 3:</span> Update position tracking</li>
+          <li><span class="highlight">Step 4:</span> Record in trade ledger</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Compensation (Rollback)</h3>
+        <ul>
+          <li><span style="color:#E74C3C">Step 3 fails:</span> Cancel order on exchange, release margin</li>
+          <li><span style="color:#E74C3C">Step 2 fails:</span> Release reserved margin</li>
+          <li>Each step has a defined <span class="highlight">compensating action</span></li>
+          <li>Compensation must be idempotent</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Outbox Pattern -->
+  <div class="slide">
+    <h2 class="animate">Outbox Pattern</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem: Dual Writes</h3>
+        <ul>
+          <li>Save trade to DB <strong>and</strong> publish event to message bus</li>
+          <li>DB write succeeds, event publish fails &rarr; <span style="color:#E74C3C">data inconsistency</span></li>
+          <li>Event published, DB write fails &rarr; <span style="color:#E74C3C">phantom events</span></li>
+          <li>Two-phase commit is slow and fragile</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Solution: Outbox</h3>
+        <ul>
+          <li>Write trade <strong>and</strong> event to same DB transaction</li>
+          <li>Background worker polls outbox table, publishes events</li>
+          <li>Guarantees <span class="highlight">at-least-once delivery</span></li>
+          <li>Consumers must handle duplicates (idempotency)</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Single transaction: trade + outbox event
+await using var tx = await db.BeginTransactionAsync();
+
+// 1. Write trade record
+await db.Trades.AddAsync(new Trade { Symbol = "BTC/USDT", Qty = 0.5, Price = 42000 });
+
+// 2. Write event to outbox (same transaction!)
+await db.Outbox.AddAsync(new OutboxEvent {
+    Type = "TradeExecuted",
+    Payload = JsonSerializer.Serialize(tradeEvent),
+    CreatedAt = DateTime.UtcNow,
+    Published = false
+});
+
+await tx.CommitAsync();  // atomic: both succeed or both fail
+
+// Background worker: poll outbox, publish to Kafka/RabbitMQ, mark published
+</pre>
+  </div>
+
+  <!-- Slide 16: Idempotency -->
+  <div class="slide">
+    <h2 class="animate">Idempotency</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Idempotency Matters</h3>
+        <ul>
+          <li>Retries can deliver the same request <span class="highlight">multiple times</span></li>
+          <li>Network timeout &ne; failure (request may have succeeded)</li>
+          <li>Message queues deliver at-least-once, not exactly-once</li>
+          <li>Without idempotency: duplicate orders, double charges</li>
+          <li><span class="green">Idempotent:</span> same request N times = same result as 1 time</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Implementation Strategies</h3>
+        <ul>
+          <li><span class="highlight">Idempotency keys</span> &mdash; client-generated unique ID per operation</li>
+          <li><span class="highlight">Database constraints</span> &mdash; unique index on (order_id, exchange)</li>
+          <li><span class="highlight">Conditional writes</span> &mdash; "update WHERE version = X"</li>
+          <li><span class="highlight">Natural idempotency</span> &mdash; GET, DELETE (by ID) are inherently idempotent</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// Idempotency key for exchange orders
+public async Task&lt;OrderResult&gt; PlaceOrder(Order order) {
+    var idempotencyKey = $"{order.ClientOrderId}_{order.Exchange}_{order.Symbol}";
+
+    // Check if already processed
+    var existing = await db.Orders.FindByKeyAsync(idempotencyKey);
+    if (existing != null)
+        return existing.Result;  // return cached result, don't re-submit
+
+    // First time: submit to exchange
+    var result = await exchange.SubmitAsync(order, idempotencyKey);
+    await db.Orders.SaveWithKeyAsync(idempotencyKey, result);
+    return result;
+}
+</pre>
+  </div>
+
+  <!-- Slide 17: Chaos Engineering -->
+  <div class="slide">
+    <h2 class="animate">Chaos Engineering</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Fault Injection</h3>
+        <ul>
+          <li><span class="highlight">Network faults</span> &mdash; inject latency, packet loss, DNS failures</li>
+          <li><span class="highlight">Service faults</span> &mdash; kill pods, return 500s, corrupt responses</li>
+          <li><span class="highlight">Resource faults</span> &mdash; exhaust CPU, memory, disk, file descriptors</li>
+          <li><span class="highlight">Clock skew</span> &mdash; shift system time to test time-dependent logic</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:10px">
+# Chaos Mesh: inject 3s delay to exchange API
+apiVersion: chaos-mesh.org/v1alpha1
+kind: NetworkChaos
+spec:
+  action: delay
+  delay:
+    latency: "3000ms"
+  selector:
+    labelSelectors:
+      app: exchange-gateway
+</pre>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Drills</h3>
+        <ul>
+          <li><span class="highlight">Circuit breaker test:</span> force-open a per-exchange breaker, verify graceful degradation</li>
+          <li><span class="highlight">Kill switch drill:</span> trigger emergency halt, verify all positions flatten within SLA</li>
+          <li><span class="highlight">Stale feed test:</span> freeze market data, verify progressive position reduction kicks in</li>
+          <li><span class="highlight">Exchange outage:</span> block traffic to one exchange, verify orders route to alternatives</li>
+          <li><span class="highlight">Full chaos day:</span> multiple simultaneous faults, verify system degrades (not crashes)</li>
+        </ul>
+        <p style="margin-top:10px">Tools: <code>Chaos Mesh</code>, <code>Litmus</code>, <code>Gremlin</code>, <code>Toxiproxy</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 18: Monitoring Resilience -->
+  <div class="slide">
+    <h2 class="animate">Monitoring Resilience</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Circuit Breaker Metrics</h3>
+        <p>Track state transitions (closed/open/half-open), trip frequency, and recovery time per exchange.</p>
+        <code>circuit_breaker_state{exchange="binance"}</code>
+      </div>
+      <div class="metric-card">
+        <h3>Retry Counts</h3>
+        <p>Monitor retry rates per operation. Rising retries = degrading dependency. Alert if retries exceed baseline.</p>
+        <code>exchange_api_retries_total{attempt="3"}</code>
+      </div>
+      <div class="metric-card">
+        <h3>Timeout Rates</h3>
+        <p>Track timeout percentage per dependency. gRPC risk gate timeouts (&gt;50ms) directly impact order throughput.</p>
+        <code>grpc_request_duration_ms{service="risk",quantile="0.99"}</code>
+      </div>
+      <div class="metric-card">
+        <h3>Data Freshness</h3>
+        <p>Age of last market data update per exchange. Staleness triggers degradation. Alert at 30s, action at 2min.</p>
+        <code>market_data_staleness_seconds{exchange="kraken"}</code>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px">
+# Prometheus alerting rules for resilience
+- alert: CircuitBreakerOpen
+  expr: circuit_breaker_state{state="open"} == 1
+  for: 1m
+  labels: { severity: warning }
+  annotations: { summary: "Circuit breaker open for {{ $labels.exchange }}" }
+
+- alert: HighRetryRate
+  expr: rate(exchange_api_retries_total[5m]) > 10
+  labels: { severity: warning }
+
+- alert: MarketDataStale
+  expr: market_data_staleness_seconds > 120
+  labels: { severity: critical }
+  annotations: { summary: "Market data stale > 2min, position reduction triggered" }
+</pre>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Apply circuit breakers to every external dependency, not just HTTP calls</div>
+      <div class="bp-item"><span>2.</span> Always add jitter to retry backoff to prevent thundering herd</div>
+      <div class="bp-item"><span>3.</span> Set timeouts on every outbound call &mdash; no call should wait forever</div>
+      <div class="bp-item"><span>4.</span> Use bulkheads to isolate failure domains (per-exchange, per-service)</div>
+      <div class="bp-item"><span>5.</span> Design fail-safe defaults: when uncertain, choose the safest action</div>
+      <div class="bp-item"><span>6.</span> Make all retryable operations idempotent with unique keys</div>
+      <div class="bp-item"><span>7.</span> Monitor resilience metrics (breaker state, retry rate, timeout %) in dashboards</div>
+      <div class="bp-item"><span>8.</span> Practice chaos engineering regularly &mdash; test failure modes before production does</div>
+      <div class="bp-item"><span>9.</span> Use data freshness as a first-class resilience signal, not just an afterthought</div>
+      <div class="bp-item"><span>10.</span> Combine patterns: bulkhead + circuit breaker + retry + timeout as a resilience pipeline</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3D7;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Resilience Patterns:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Circuit Breaker</span><span class="tag">Retry</span><span class="tag">Timeout</span>
+        <span class="tag">Bulkhead</span><span class="tag">Fail-Safe</span><span class="tag">Graceful Degradation</span>
+        <span class="tag">Health Checks</span><span class="tag">Saga</span><span class="tag">Outbox</span>
+        <span class="tag">Idempotency</span><span class="tag">Chaos Engineering</span>
+      </div>
+      <p style="color:var(--text-muted)">Resilience is not optional in distributed systems. Design for failure, degrade gracefully, and recover automatically.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>MLOps &amp; ML Pipelines</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate">MLOps &amp; ML Pipelines</h1>
+    <p class="subtitle animate">From model training to production at scale</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">MLOps</span><span class="tag">XGBoost</span><span class="tag">Model Lifecycle</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is MLOps? -->
+  <div class="slide">
+    <h2 class="animate">What Is MLOps?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>ML + DevOps</h3>
+        <ul>
+          <li>Applies DevOps principles to machine learning</li>
+          <li>Automates the full model lifecycle</li>
+          <li>Bridges data science and production engineering</li>
+          <li>Enables reproducible, auditable ML systems</li>
+          <li>Treats models as versioned artifacts, not notebooks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><span class="highlight">87%</span> of ML models never reach production</li>
+          <li>Model decay &mdash; accuracy degrades over time</li>
+          <li>Data drift &mdash; input distributions shift</li>
+          <li>Compliance &mdash; audit trail for predictions</li>
+          <li>Velocity &mdash; retrain and deploy in hours, not months</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: The ML Lifecycle -->
+  <div class="slide">
+    <h2 class="animate">The ML Lifecycle</h2>
+    <div class="diagram animate">
+      <div class="box">Data</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Features</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Train</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Validate</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Deploy</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Monitor</div>
+    </div>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Data</span> &mdash; Collect, clean, version raw datasets (OHLCV, order books, sentiment)</li>
+        <li><span class="highlight">Features</span> &mdash; Engineer indicators (RSI, MACD, Bollinger), store in feature store</li>
+        <li><span class="highlight">Train</span> &mdash; Fit models on historical data with walk-forward splits</li>
+        <li><span class="highlight">Validate</span> &mdash; Backtest on held-out periods, check for overfitting</li>
+        <li><span class="highlight">Deploy</span> &mdash; Shadow mode first, then canary, then full production</li>
+        <li><span class="highlight">Monitor</span> &mdash; Track prediction accuracy, feature drift, latency</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 4: Real-World Trading Agent ML Pipeline -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent ML Pipeline</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">The <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> runs three ML models in production:</p>
+    </div>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>XGBoost Signal Model</h3>
+        <p>Tabular features (RSI, MACD, volume profile, order flow) predict buy/sell/hold signals. Gradient-boosted trees handle feature interactions naturally.</p>
+      </div>
+      <div class="metric-card">
+        <h3>HMM Regime Classifier</h3>
+        <p>Hidden Markov Model with 4 states: <code>TRENDING</code>, <code>RANGING</code>, <code>VOLATILE</code>, <code>CRISIS</code>. Adjusts position sizing and strategy selection per regime.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Sentiment NLP</h3>
+        <p>Processes news headlines, social media, and on-chain metrics. Feeds sentiment scores as features into the signal model.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Claude Post-Mortem</h3>
+        <p>Claude API analyzes every closed trade: entry timing, exit reasoning, regime context. Generates actionable insights for strategy refinement.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Training Pipelines -->
+  <div class="slide">
+    <h2 class="animate">Training Pipelines</h2>
+    <div class="content animate">
+<pre>
+# Training pipeline stages (weekly cron job)
+
+# 1. Data Collection
+fetch_ohlcv(exchange="binance", symbols=["BTC/USDT", "ETH/USDT"])
+fetch_order_book_snapshots(depth=20)
+fetch_funding_rates()
+
+# 2. Feature Engineering
+features = compute_technical_indicators(ohlcv)  # RSI, MACD, BB, ATR
+features = add_volume_profile(features, order_books)
+features = add_sentiment_scores(features, news_headlines)
+feast_store.materialize(features, timestamp_col="event_time")
+
+# 3. Model Training
+X_train, y_train = feast_store.get_training_data(
+    entity="symbol", features=feature_refs,
+    start="2023-01-01", end="2025-12-31"
+)
+model = xgb.XGBClassifier(n_estimators=500, max_depth=6, eta=0.05)
+model.fit(X_train, y_train, eval_set=[(X_val, y_val)], early_stopping_rounds=20)
+
+# 4. Validation
+metrics = walk_forward_validate(model, data, n_splits=12)
+assert metrics["sharpe_ratio"] > 1.2, "Model fails minimum Sharpe threshold"
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 6: Walk-Forward Validation -->
+  <div class="slide">
+    <h2 class="animate">Walk-Forward Validation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Expanding Window</h3>
+        <ul>
+          <li>Train on all data up to time <code>T</code></li>
+          <li>Test on period <code>T</code> to <code>T+k</code></li>
+          <li>Slide window forward, retrain, repeat</li>
+          <li>Mimics real-world sequential deployment</li>
+          <li>Prevents look-ahead bias completely</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Config</h3>
+<pre style="font-size:0.85rem">
+walk_forward:
+  n_splits: 12
+  train_period: "52w"    # expanding
+  test_period: "4w"      # 1 month OOS
+  gap: "1d"              # avoid leakage
+  embargo: "24h"         # post-test buffer
+
+thresholds:
+  min_sharpe: 1.2
+  max_drawdown: -0.15
+  min_win_rate: 0.52
+  min_profit_factor: 1.3
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Key rule:</span> Never use future data in training. The gap and embargo periods prevent subtle information leakage at split boundaries.</p>
+  </div>
+
+  <!-- Slide 7: XGBoost for Signal Generation -->
+  <div class="slide">
+    <h2 class="animate">XGBoost for Signal Generation</h2>
+    <div class="content animate">
+<pre>
+import xgboost as xgb
+from sklearn.model_selection import TimeSeriesSplit
+
+# Feature matrix: 45 technical indicators + sentiment + on-chain
+features = [
+    "rsi_14", "macd_signal", "bb_width", "atr_14", "volume_zscore",
+    "order_flow_imbalance", "funding_rate", "open_interest_change",
+    "sentiment_score", "whale_tx_count", "exchange_netflow",
+    # ... 34 more features
+]
+
+# Hyperparameter tuning with Optuna
+def objective(trial):
+    params = {
+        "n_estimators": trial.suggest_int("n_estimators", 200, 1000),
+        "max_depth": trial.suggest_int("max_depth", 3, 8),
+        "learning_rate": trial.suggest_float("eta", 0.01, 0.1, log=True),
+        "subsample": trial.suggest_float("subsample", 0.6, 1.0),
+        "colsample_bytree": trial.suggest_float("colsample", 0.6, 1.0),
+        "min_child_weight": trial.suggest_int("min_child_weight", 1, 10),
+    }
+    model = xgb.XGBClassifier(**params)
+    scores = walk_forward_cv(model, X, y, n_splits=8)
+    return scores["sharpe_ratio"].mean()
+
+# Feature importance drives feature selection
+top_features = model.feature_importances_  # prune low-importance features
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 8: Hidden Markov Models for Regime Classification -->
+  <div class="slide">
+    <h2 class="animate">HMM for Regime Classification</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>4-State Model</h3>
+        <ul>
+          <li><span class="highlight">TRENDING</span> &mdash; Clear directional momentum, wide position sizing</li>
+          <li><span class="highlight">RANGING</span> &mdash; Mean-reversion signals, tight stops</li>
+          <li><span class="highlight">VOLATILE</span> &mdash; High uncertainty, reduced exposure</li>
+          <li><span class="highlight">CRISIS</span> &mdash; Extreme drawdown risk, hedge or exit</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+from hmmlearn import hmm
+
+model = hmm.GaussianHMM(
+    n_components=4,
+    covariance_type="full",
+    n_iter=200
+)
+</pre>
+      </div>
+      <div class="card">
+        <h3>How It Works</h3>
+        <ul>
+          <li><span class="highlight">States</span> &mdash; Latent regimes (not directly observed)</li>
+          <li><span class="highlight">Transitions</span> &mdash; Probability of switching between regimes</li>
+          <li><span class="highlight">Emissions</span> &mdash; Observable features per state (returns, volatility)</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+# Observations: [log_return, volatility, volume]
+observations = np.column_stack([
+    log_returns, rolling_vol, volume_zscore
+])
+model.fit(observations)
+
+# Predict current regime
+regime = model.predict(recent_obs)[-1]
+# regime -> 0:TRENDING, 1:RANGING,
+#           2:VOLATILE, 3:CRISIS
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Model Registry & Versioning -->
+  <div class="slide">
+    <h2 class="animate">Model Registry &amp; Versioning</h2>
+    <div class="content animate">
+<pre>
+# Model registry tracks every trained artifact
+model_registry/
+  xgboost_signal/
+    v42/
+      model.json              # serialized XGBoost model
+      metadata.yaml           # training params, dataset hash, metrics
+      feature_importance.json  # ranked feature contributions
+      validation_report.html   # walk-forward backtest results
+    v43/
+      ...
+
+# metadata.yaml
+model_name: xgboost_signal
+version: 43
+trained_at: "2026-03-28T02:00:00Z"
+dataset_hash: "sha256:a4f8c2..."
+training_rows: 524_288
+features_used: 45
+walk_forward_sharpe: 1.47
+max_drawdown: -0.11
+status: shadow          # staged -> shadow -> canary -> production
+promoted_by: "auto-pipeline"
+parent_version: 42
+</pre>
+    </div>
+    <p class="animate" style="margin-top:10px;text-align:center"><span class="highlight">Every model version</span> is immutable, reproducible, and linked to the exact dataset and code that produced it.</p>
+  </div>
+
+  <!-- Slide 10: Shadow Mode Deployment -->
+  <div class="slide">
+    <h2 class="animate">Shadow Mode Deployment</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How Shadow Mode Works</h3>
+        <ul>
+          <li>New model runs alongside production model</li>
+          <li>Both receive identical live market data</li>
+          <li>Shadow predictions are logged but <span class="highlight">not acted on</span></li>
+          <li>Compare predictions over 1-2 weeks</li>
+          <li>Promote only if shadow outperforms</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Implementation</h3>
+<pre style="font-size:0.85rem">
+class ShadowDeployment:
+    def predict(self, features):
+        # Production model makes the trade
+        prod_signal = self.prod_model.predict(
+            features
+        )
+
+        # Shadow model logs prediction only
+        shadow_signal = self.shadow_model.predict(
+            features
+        )
+        self.metrics.log_shadow(
+            prod=prod_signal,
+            shadow=shadow_signal,
+            timestamp=now()
+        )
+
+        return prod_signal  # always use prod
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Zero-risk validation:</span> Shadow mode catches regressions before they cost real money.</p>
+  </div>
+
+  <!-- Slide 11: A/B Testing & Canary Releases -->
+  <div class="slide">
+    <h2 class="animate">A/B Testing &amp; Canary Releases</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Canary Release</h3>
+        <p>Route 5% of trading capital to the new model. Monitor for 48 hours. Gradually increase to 25%, 50%, 100% if metrics hold.</p>
+      </div>
+      <div class="metric-card">
+        <h3>A/B Split</h3>
+        <p>Run model A on BTC/USDT and model B on ETH/USDT. Compare risk-adjusted returns over the same period. Statistical significance required.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Automatic Rollback</h3>
+        <p>If drawdown exceeds <code>-8%</code> during canary, auto-revert to previous model version. Alert on-call engineer via PagerDuty.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Promotion Criteria</h3>
+        <p>Sharpe ratio within <code>0.9x</code> of shadow period. Win rate above <code>52%</code>. Max drawdown under <code>-15%</code>. Latency under <code>50ms p99</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 12: Feature Drift Detection -->
+  <div class="slide">
+    <h2 class="animate">Feature Drift Detection</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is Feature Drift?</h3>
+        <ul>
+          <li>Input feature distributions shift over time</li>
+          <li>Model was trained on different data patterns</li>
+          <li>Predictions become unreliable without retraining</li>
+          <li>Common in crypto: regime changes, new regulations, exchange API changes</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Detection Methods</h3>
+<pre style="font-size:0.85rem">
+# Information Coefficient (IC) monitoring
+# IC = rank correlation between predicted
+# signal and actual forward returns
+
+ic_rolling = compute_ic(
+    predictions, actual_returns,
+    window="7d"
+)
+
+# Alert if IC decays below threshold
+if ic_rolling.mean() < 0.03:
+    trigger_retrain("IC decay detected")
+
+# KS-test for distribution shift
+from scipy.stats import ks_2samp
+stat, p = ks_2samp(
+    train_feature_dist, live_feature_dist
+)
+if p < 0.01:
+    alert("Feature drift: RSI distribution")
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: Model Monitoring in Production -->
+  <div class="slide">
+    <h2 class="animate">Model Monitoring in Production</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Accuracy Tracking</h3>
+        <p>Rolling hit rate, Sharpe ratio, profit factor. Compare live performance to shadow period baseline. Alert on <code>&gt;20%</code> degradation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prediction Distribution</h3>
+        <p>Monitor signal class balance (buy/sell/hold). Sudden skew toward one class suggests model instability or data pipeline issues.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Latency &amp; Throughput</h3>
+        <p>Inference latency <code>p50: 8ms</code>, <code>p99: 45ms</code>. Feature store lookups under <code>20ms</code>. Total signal pipeline under <code>100ms</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prometheus Metrics</h3>
+<pre style="font-size:0.8rem">
+# Custom metrics exported
+model_prediction_total{signal="buy"}
+model_prediction_total{signal="sell"}
+model_inference_seconds_bucket
+model_feature_drift_score{feature="rsi"}
+model_ic_rolling_7d
+model_sharpe_rolling_30d
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: Retraining Pipelines -->
+  <div class="slide">
+    <h2 class="animate">Retraining Pipelines</h2>
+    <div class="content animate">
+<pre>
+# Retraining triggers (any of these fire the pipeline)
+
+triggers:
+  scheduled:
+    cron: "0 2 * * 0"        # Every Sunday at 2:00 AM UTC
+  drift_triggered:
+    ic_threshold: 0.03        # IC drops below 0.03 for 3 consecutive days
+    ks_pvalue: 0.01           # Feature distribution shift detected
+  manual:
+    endpoint: "POST /api/retrain"
+
+# Automated promotion pipeline
+pipeline:
+  1_fetch_data:     "Pull latest 2 years of OHLCV + features from Feast"
+  2_train:          "XGBoost with Optuna hyperparameter search (100 trials)"
+  3_validate:       "Walk-forward validation, 12 splits"
+  4_gate:           "Sharpe > 1.2, drawdown < -15%, win_rate > 52%"
+  5_register:       "Push to model registry with metadata + lineage"
+  6_shadow:         "Deploy as shadow for 7 days"
+  7_compare:        "Statistical comparison vs production model"
+  8_promote:        "Auto-promote if shadow beats prod by > 5% Sharpe"
+  9_notify:         "Slack alert with promotion report"
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 15: Model Serving Patterns -->
+  <div class="slide">
+    <h2 class="animate">Model Serving Patterns</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Batch Inference</h3>
+        <ul>
+          <li>Run predictions on a schedule (every 5 min)</li>
+          <li>Pre-compute signals for all symbols</li>
+          <li>Store in Redis for fast lookup</li>
+          <li>Good for: position rebalancing, portfolio scoring</li>
+          <li>Latency tolerance: seconds to minutes</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:8px">
+# Batch: score all symbols every 5 min
+for symbol in active_symbols:
+    features = feast.get_online(symbol)
+    signal = model.predict(features)
+    redis.set(f"signal:{symbol}", signal)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Real-Time Inference</h3>
+        <ul>
+          <li>Model loaded in memory, predict on each tick</li>
+          <li>Feature store provides point-in-time features</li>
+          <li>Feast online store for low-latency reads</li>
+          <li>Good for: order execution, stop-loss triggers</li>
+          <li>Latency target: <code>&lt; 50ms</code> end-to-end</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:8px">
+# Real-time: predict on each new candle
+@on_candle_close
+def handle(candle):
+    features = feast.get_online(candle.symbol)
+    signal = model.predict(features)
+    if signal == "BUY":
+        execute_order(candle.symbol, side="buy")
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 16: Monte Carlo Simulation -->
+  <div class="slide">
+    <h2 class="animate">Monte Carlo Simulation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Drawdown Estimation</h3>
+        <ul>
+          <li>Simulate <span class="highlight">10,000 trial</span> return sequences</li>
+          <li>Sample from historical return distribution</li>
+          <li>Calculate max drawdown for each trial</li>
+          <li>Estimate probability of ruin at various confidence levels</li>
+          <li>Size positions to survive 99th percentile drawdown</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Implementation</h3>
+<pre style="font-size:0.85rem">
+import numpy as np
+
+def monte_carlo_drawdown(
+    returns, n_trials=10_000, horizon=252
+):
+    max_drawdowns = []
+    for _ in range(n_trials):
+        # Resample returns with replacement
+        sim = np.random.choice(
+            returns, size=horizon, replace=True
+        )
+        equity = np.cumprod(1 + sim)
+        peak = np.maximum.accumulate(equity)
+        dd = (equity - peak) / peak
+        max_drawdowns.append(dd.min())
+
+    return {
+        "median_dd": np.median(max_drawdowns),
+        "p95_dd": np.percentile(max_drawdowns, 5),
+        "p99_dd": np.percentile(max_drawdowns, 1),
+    }
+# Result: {median: -12%, p95: -28%, p99: -41%}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: LLM in the Loop -->
+  <div class="slide">
+    <h2 class="animate">LLM in the Loop</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Claude for Post-Mortem Analysis</h3>
+        <ul>
+          <li>Every closed trade is analyzed by Claude API</li>
+          <li>Provides narrative explanation of entry/exit decisions</li>
+          <li>Identifies pattern failures and regime mismatches</li>
+          <li>Suggests parameter adjustments for edge cases</li>
+          <li>Generates weekly strategy performance reports</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Integration</h3>
+<pre style="font-size:0.85rem">
+import anthropic
+
+client = anthropic.Anthropic()
+
+def analyze_trade(trade):
+    response = client.messages.create(
+        model="claude-sonnet-4-20250514",
+        max_tokens=1024,
+        messages=[{
+            "role": "user",
+            "content": f"""Analyze this trade:
+Entry: {trade.entry_price} ({trade.entry_time})
+Exit: {trade.exit_price} ({trade.exit_time})
+Regime: {trade.regime}
+Signal confidence: {trade.confidence}
+PnL: {trade.pnl_pct}%
+
+Market context: {trade.market_summary}
+
+What went right/wrong? Suggest improvements."""
+        }]
+    )
+    return response.content[0].text
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 18: MLOps Infrastructure -->
+  <div class="slide">
+    <h2 class="animate">MLOps Infrastructure</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Kubernetes Jobs</h3>
+        <p>Training runs as <code>CronJob</code> on K8s. GPU node pool for XGBoost/HMM training. Auto-scaling based on queue depth. Job history retained for 30 days.</p>
+      </div>
+      <div class="metric-card">
+        <h3>S3 Artifact Store</h3>
+        <p>Model binaries, training datasets, validation reports stored in S3. Versioned buckets with lifecycle policies. <code>s3://ml-artifacts/models/xgboost/v43/</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Feast Feature Store</h3>
+        <p>Point-in-time correct training data. Online store (Redis) for low-latency serving. Offline store (S3/Parquet) for batch training. Feature lineage tracking.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prometheus + Grafana</h3>
+        <p>Model metrics: IC, Sharpe, drift scores. Infra metrics: inference latency, memory, GPU utilization. Alerting: PagerDuty for critical drift or model failures.</p>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:16px">
+      <div class="box">Feast</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">K8s Training</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">S3 Registry</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Shadow Deploy</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Prometheus</div>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Version everything: data, features, models, configs, and code together</div>
+      <div class="bp-item"><span>2.</span> Use walk-forward validation, never random splits for time-series data</div>
+      <div class="bp-item"><span>3.</span> Deploy in shadow mode before routing real capital to a new model</div>
+      <div class="bp-item"><span>4.</span> Monitor feature drift continuously, not just model accuracy</div>
+      <div class="bp-item"><span>5.</span> Automate retraining with quality gates (Sharpe, drawdown, win rate)</div>
+      <div class="bp-item"><span>6.</span> Use a feature store for point-in-time correctness and feature reuse</div>
+      <div class="bp-item"><span>7.</span> Run Monte Carlo simulations to size positions for worst-case scenarios</div>
+      <div class="bp-item"><span>8.</span> Keep models simple: XGBoost on clean features beats deep learning on noise</div>
+      <div class="bp-item"><span>9.</span> Log every prediction with full context for post-mortem analysis</div>
+      <div class="bp-item"><span>10.</span> Use LLMs (Claude) for qualitative analysis humans cannot scale</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered MLOps &amp; ML Pipelines:</p>
+      <div style="margin:20px 0">
+        <span class="tag">ML Lifecycle</span><span class="tag">XGBoost</span><span class="tag">HMM Regimes</span>
+        <span class="tag">Walk-Forward</span><span class="tag">Shadow Deploy</span><span class="tag">Feature Drift</span>
+        <span class="tag">Model Registry</span><span class="tag">Monte Carlo</span><span class="tag">LLM Analysis</span>
+      </div>
+      <p style="color:var(--text-muted)">MLOps turns experiments into reliable production systems. Automate the lifecycle, monitor everything, and retrain before drift costs you.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,1265 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>.NET &amp; C#</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4BB;</span>
+    <h1 class="animate">.NET &amp; C#</h1>
+    <p class="subtitle animate">Building high-performance systems with modern C#</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">.NET</span><span class="tag">C#</span><span class="tag">ASP.NET</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is .NET? -->
+  <div class="slide">
+    <h2 class="animate">What Is .NET?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Cross-platform, open-source runtime &amp; SDK</li>
+          <li>.NET 10 (latest LTS) &mdash; unified platform</li>
+          <li>C#, F#, VB.NET language support</li>
+          <li>High-performance Kestrel web server</li>
+          <li>NuGet package ecosystem (400k+ packages)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why .NET for Trading?</h3>
+        <ul>
+          <li><span class="highlight">Performance</span> &mdash; near-C++ throughput with GC</li>
+          <li><span class="highlight">Type Safety</span> &mdash; catch bugs at compile time</li>
+          <li><span class="highlight">Async/Await</span> &mdash; native async for I/O-heavy workloads</li>
+          <li><span class="highlight">Ecosystem</span> &mdash; Marten, Wolverine, gRPC, Kafka clients</li>
+          <li><span class="highlight">Tooling</span> &mdash; Visual Studio, Rider, dotnet CLI</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: C# Fundamentals -->
+  <div class="slide">
+    <h2 class="animate">C# Fundamentals</h2>
+    <div class="content animate">
+<pre>
+// Value types (stack-allocated)
+int price = 42_000;
+double btcPrice = 67_521.50;
+bool isActive = true;
+decimal portfolioValue = 1_250_000.75m;  // precise for finance
+
+// Reference types (heap-allocated)
+string symbol = "BTC-USD";
+int[] recentPrices = [67000, 67200, 67500, 67521];
+
+// Nullable value types
+double? stopLoss = null;  // no stop loss set yet
+stopLoss = 66_800.00;
+
+// Control flow
+if (btcPrice > 67_000)
+    Console.WriteLine("Above threshold");
+
+// Switch expression (C# 8+)
+var signal = btcPrice switch
+{
+    > 70_000 => "Strong Buy",
+    > 65_000 => "Hold",
+    > 60_000 => "Watch",
+    _        => "Stay Out"
+};
+
+// Loops
+foreach (var p in recentPrices)
+    Console.WriteLine($"Price: {p:C}");
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 4: Classes, Records & Structs -->
+  <div class="slide">
+    <h2 class="animate">Classes, Records &amp; Structs</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Classes &amp; Records</h3>
+<pre style="font-size:0.85rem">
+// Mutable class
+public class OrderBook
+{
+    public string Symbol { get; set; }
+    public List&lt;OrderLevel&gt; Bids { get; set; }
+    public List&lt;OrderLevel&gt; Asks { get; set; }
+}
+
+// Immutable record (domain events)
+public record OrderPlaced(
+    Guid OrderId,
+    string Symbol,
+    decimal Price,
+    decimal Quantity,
+    DateTimeOffset Timestamp
+);
+
+// Record with-expression (new copy)
+var updated = original with
+{
+    Price = 67_800m
+};
+</pre>
+      </div>
+      <div class="card">
+        <h3>Structs &amp; Value Objects</h3>
+<pre style="font-size:0.85rem">
+// Readonly struct for hot-path data
+public readonly struct Tick
+{
+    public required string Symbol { get; init; }
+    public required decimal Price { get; init; }
+    public required decimal Volume { get; init; }
+    public required long Timestamp { get; init; }
+}
+
+// Record struct (value semantics)
+public readonly record struct Money(
+    decimal Amount,
+    string Currency
+);
+
+// Usage in trading agent
+var tick = new Tick
+{
+    Symbol = "BTC-USD",
+    Price = 67_521.50m,
+    Volume = 1.25m,
+    Timestamp = DateTimeOffset.UtcNow.ToUnixTimeMs()
+};
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Async/Await & Tasks -->
+  <div class="slide">
+    <h2 class="animate">Async/Await &amp; Tasks</h2>
+    <div class="content animate">
+<pre>
+// Async method for fetching market data
+public async Task&lt;MarketData&gt; GetMarketDataAsync(string symbol,
+    CancellationToken ct = default)
+{
+    var response = await _httpClient.GetAsync($"/api/v1/ticker/{symbol}", ct);
+    response.EnsureSuccessStatusCode();
+    return await response.Content.ReadFromJsonAsync&lt;MarketData&gt;(ct)
+        ?? throw new InvalidOperationException("Null market data");
+}
+
+// Parallel execution for multiple exchanges
+public async Task&lt;TickData[]&gt; FetchAllExchangesAsync(string symbol)
+{
+    var tasks = _exchanges.Select(ex => ex.GetTickAsync(symbol));
+    return await Task.WhenAll(tasks);  // concurrent I/O
+}
+
+// Async stream for continuous tick processing
+public async IAsyncEnumerable&lt;Tick&gt; StreamTicksAsync(
+    string symbol,
+    [EnumeratorCancellation] CancellationToken ct = default)
+{
+    await foreach (var tick in _tickChannel.ReadAllAsync(ct))
+    {
+        if (tick.Symbol == symbol)
+            yield return tick;
+    }
+}
+
+// Channel-based producer/consumer (trading pipeline)
+var channel = Channel.CreateBounded&lt;Tick&gt;(new BoundedChannelOptions(10_000)
+{
+    FullMode = BoundedChannelFullMode.DropOldest
+});
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 6: Collections & LINQ -->
+  <div class="slide">
+    <h2 class="animate">Collections &amp; LINQ</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Collections</h3>
+<pre style="font-size:0.85rem">
+// List - ordered, resizable
+var ticks = new List&lt;Tick&gt;();
+ticks.Add(newTick);
+
+// Dictionary - fast key lookup
+var positions = new Dictionary&lt;string, Position&gt;
+{
+    ["BTC-USD"] = new Position(1.5m, 67_000m),
+    ["ETH-USD"] = new Position(20m, 3_400m),
+};
+
+// ConcurrentDictionary - thread-safe
+var liveOrders = new ConcurrentDictionary&lt;Guid, Order&gt;();
+liveOrders.TryAdd(orderId, order);
+
+// ImmutableList - safe sharing
+var signals = ImmutableList.Create("RSI", "MACD");
+var updated = signals.Add("Bollinger");
+</pre>
+      </div>
+      <div class="card">
+        <h3>LINQ for Feature Processing</h3>
+<pre style="font-size:0.85rem">
+// Query syntax
+var bullishSignals = from f in features
+                     where f.Score > 0.7
+                     orderby f.Confidence descending
+                     select f;
+
+// Method syntax (preferred)
+var avgPrice = ticks
+    .Where(t => t.Symbol == "BTC-USD")
+    .TakeLast(20)
+    .Average(t => t.Price);
+
+var topPerformers = positions
+    .Where(p => p.Value.PnL > 0)
+    .OrderByDescending(p => p.Value.PnL)
+    .Take(5)
+    .ToDictionary(p => p.Key, p => p.Value);
+
+// Aggregate for rolling calculations
+var volatility = ticks
+    .Select(t => (double)t.Price)
+    .Chunk(20)
+    .Select(window => StdDev(window));
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Dependency Injection -->
+  <div class="slide">
+    <h2 class="animate">Dependency Injection</h2>
+    <div class="content animate">
+<pre>
+// Service registration in Program.cs
+var builder = WebApplication.CreateBuilder(args);
+
+// Transient: new instance every time
+builder.Services.AddTransient&lt;IFeatureProvider, TechnicalFeatureProvider&gt;();
+
+// Scoped: one per request/scope
+builder.Services.AddScoped&lt;IRiskGateClient, GrpcRiskGateClient&gt;();
+
+// Singleton: one for app lifetime
+builder.Services.AddSingleton&lt;IOrderBook, InMemoryOrderBook&gt;();
+
+// Keyed services (.NET 8+)
+builder.Services.AddKeyedSingleton&lt;IStrategy&gt;("momentum", new MomentumStrategy());
+builder.Services.AddKeyedSingleton&lt;IStrategy&gt;("meanrev", new MeanReversionStrategy());
+
+// Registration with factory
+builder.Services.AddSingleton&lt;IExecutionEngine&gt;(sp =>
+{
+    var config = sp.GetRequiredService&lt;IOptions&lt;ExecutionConfig&gt;&gt;();
+    var logger = sp.GetRequiredService&lt;ILogger&lt;ExecutionEngine&gt;&gt;();
+    return new ExecutionEngine(config, logger);
+});
+
+// Constructor injection (automatic)
+public class TradingService(
+    IRiskGateClient riskGate,         // Primary constructor (C# 12)
+    IExecutionEngine engine,
+    ILogger&lt;TradingService&gt; logger)
+{
+    public async Task ExecuteSignalAsync(Signal signal)
+    {
+        var approved = await riskGate.CheckAsync(signal);
+        if (approved) await engine.SubmitAsync(signal);
+    }
+}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 8: Trading Agent Architecture -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Architecture</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">AI Crypto Trading Agent &mdash; .NET 10 core with 28 components (<a href="https://lda21.github.io/docs" style="color:var(--accent)">docs</a>)</p>
+      <div class="diagram">
+        <div class="box">Kafka<br><small>crypto.ticks</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Feature Engine<br><small>LINQ pipelines</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">ML Inference<br><small>ONNX Runtime</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Risk Gate<br><small>gRPC &lt;50ms</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">OMS<br><small>Marten ES</small></div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px">
+        <div class="metric-card">
+          <h3>Event Sourcing (Marten)</h3>
+          <p>All order state changes stored as immutable events. <code>OrderPlaced</code>, <code>OrderFilled</code>, <code>OrderCancelled</code> records projected into read models.</p>
+        </div>
+        <div class="metric-card">
+          <h3>CQRS/Messaging (Wolverine)</h3>
+          <p>Commands and queries separated. <code>PlaceOrderCommand</code> handled by Wolverine message handlers with automatic retry and outbox.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Risk Management (gRPC)</h3>
+          <p>Synchronous risk gate calls under 50ms. Position limits, drawdown checks, exposure validation before every order.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Execution Engine</h3>
+          <p>Smart order routing, TWAP/VWAP algorithms. Background services process fills and update positions via DI-injected services.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Pattern Matching & Switch Expressions -->
+  <div class="slide">
+    <h2 class="animate">Pattern Matching &amp; Switch Expressions</h2>
+    <div class="content animate">
+<pre>
+// Switch expression on OrderState enum
+public string GetOrderStatus(OrderState state) => state switch
+{
+    OrderState.Pending   => "Awaiting risk approval",
+    OrderState.Submitted => "Sent to exchange",
+    OrderState.Filled    => "Fully executed",
+    OrderState.Partial   => "Partially filled",
+    OrderState.Cancelled => "Order cancelled",
+    OrderState.Rejected  => "Rejected by risk gate",
+    _ => throw new ArgumentOutOfRangeException(nameof(state))
+};
+
+// Property pattern matching on regime labels
+public decimal GetPositionMultiplier(MarketRegime regime) => regime switch
+{
+    { Label: RegimeLabel.Trending, Confidence: > 0.8 }  => 1.5m,
+    { Label: RegimeLabel.Trending, Confidence: > 0.5 }  => 1.0m,
+    { Label: RegimeLabel.MeanReverting }                 => 0.8m,
+    { Label: RegimeLabel.HighVolatility }                => 0.3m,
+    { Label: RegimeLabel.Unknown }                       => 0.0m,
+    _                                                    => 0.5m
+};
+
+// List patterns (C# 11+)
+var trend = recentPrices switch
+{
+    [.., var a, var b, var c] when a &lt; b &amp;&amp; b &lt; c => "Uptrend",
+    [.., var a, var b, var c] when a > b &amp;&amp; b > c => "Downtrend",
+    _ => "Sideways"
+};
+
+// Type pattern in event handler
+public void Apply(object @event) => @event switch
+{
+    OrderPlaced e   => OnOrderPlaced(e),
+    OrderFilled e   => OnOrderFilled(e),
+    OrderCancelled e => OnOrderCancelled(e),
+    _ => { }  // ignore unknown events
+};
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 10: Error Handling -->
+  <div class="slide">
+    <h2 class="animate">Error Handling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Exceptions</h3>
+<pre style="font-size:0.85rem">
+// Custom domain exceptions
+public class InsufficientBalanceException
+    : DomainException
+{
+    public InsufficientBalanceException(
+        string symbol, decimal required)
+        : base($"Need {required} for {symbol}")
+    { }
+}
+
+// Try-catch with filters
+try
+{
+    await engine.SubmitOrderAsync(order);
+}
+catch (HttpRequestException ex)
+    when (ex.StatusCode == HttpStatusCode
+        .TooManyRequests)
+{
+    await Task.Delay(rateLimitBackoff);
+    await engine.SubmitOrderAsync(order); // retry
+}
+catch (TimeoutException)
+{
+    logger.LogWarning("Exchange timeout");
+    await CancelAndRequeueAsync(order);
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Result Pattern</h3>
+<pre style="font-size:0.85rem">
+// Result type for domain operations
+public record Result&lt;T&gt;
+{
+    public T? Value { get; init; }
+    public DomainError? Error { get; init; }
+    public bool IsSuccess => Error is null;
+
+    public static Result&lt;T&gt; Ok(T value) =>
+        new() { Value = value };
+    public static Result&lt;T&gt; Fail(DomainError err) =>
+        new() { Error = err };
+}
+
+// Usage in risk gate
+public Result&lt;RiskApproval&gt; CheckOrder(Order o)
+{
+    if (o.Quantity &lt;= 0)
+        return Result&lt;RiskApproval&gt;.Fail(
+            new DomainError("Invalid quantity"));
+
+    if (GetExposure(o.Symbol) > _maxExposure)
+        return Result&lt;RiskApproval&gt;.Fail(
+            new DomainError("Exposure limit"));
+
+    return Result&lt;RiskApproval&gt;.Ok(
+        new RiskApproval(o.OrderId));
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Interfaces & Generics -->
+  <div class="slide">
+    <h2 class="animate">Interfaces &amp; Generics</h2>
+    <div class="content animate">
+<pre>
+// Generic repository interface
+public interface IRepository&lt;T&gt; where T : class, IAggregateRoot
+{
+    Task&lt;T?&gt; GetByIdAsync(Guid id, CancellationToken ct = default);
+    Task&lt;IReadOnlyList&lt;T&gt;&gt; GetAllAsync(CancellationToken ct = default);
+    Task SaveAsync(T entity, CancellationToken ct = default);
+}
+
+// Feature provider interface
+public interface IFeatureProvider&lt;TInput, TOutput&gt;
+{
+    string Name { get; }
+    Task&lt;TOutput&gt; ComputeAsync(TInput input, CancellationToken ct = default);
+}
+
+// Concrete implementations
+public class RsiFeatureProvider : IFeatureProvider&lt;Tick[], double&gt;
+{
+    public string Name => "RSI-14";
+    public Task&lt;double&gt; ComputeAsync(Tick[] ticks, CancellationToken ct)
+    {
+        var gains = ticks.Zip(ticks.Skip(1), (a, b) => b.Price - a.Price);
+        // ... RSI calculation
+    }
+}
+
+// Generic message handler (Wolverine-style)
+public interface IMessageHandler&lt;TMessage&gt; where TMessage : IMessage
+{
+    Task HandleAsync(TMessage message, CancellationToken ct);
+}
+
+// Registration with open generics
+builder.Services.AddScoped(typeof(IRepository&lt;&gt;), typeof(MartenRepository&lt;&gt;));
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 12: Configuration & Options Pattern -->
+  <div class="slide">
+    <h2 class="animate">Configuration &amp; Options Pattern</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Options Setup</h3>
+<pre style="font-size:0.85rem">
+// appsettings.json
+{
+  "RiskManagement": {
+    "MaxPositionSize": 10.0,
+    "MaxDrawdownPct": 5.0,
+    "MaxDailyLoss": 50000,
+    "ExposureLimitUsd": 500000,
+    "CircuitBreakerThreshold": 3
+  }
+}
+
+// Strongly-typed options class
+public class RiskOptions
+{
+    public decimal MaxPositionSize { get; set; }
+    public double MaxDrawdownPct { get; set; }
+    public decimal MaxDailyLoss { get; set; }
+    public decimal ExposureLimitUsd { get; set; }
+    public int CircuitBreakerThreshold { get; set; }
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Registration &amp; Hot Reload</h3>
+<pre style="font-size:0.85rem">
+// Register with validation
+builder.Services
+    .AddOptions&lt;RiskOptions&gt;()
+    .BindConfiguration("RiskManagement")
+    .ValidateDataAnnotations()
+    .ValidateOnStart();
+
+// Inject IOptionsMonitor for hot reload
+public class RiskGateService(
+    IOptionsMonitor&lt;RiskOptions&gt; options,
+    ILogger&lt;RiskGateService&gt; logger)
+{
+    public bool CheckExposure(decimal amount)
+    {
+        // Always reads latest config
+        var limit = options.CurrentValue
+            .ExposureLimitUsd;
+        return amount &lt;= limit;
+    }
+
+    // React to config changes
+    options.OnChange(newOpts =>
+        logger.LogInformation(
+            "Risk params updated: {Max}",
+            newOpts.MaxPositionSize));
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: gRPC in .NET -->
+  <div class="slide">
+    <h2 class="animate">gRPC in .NET</h2>
+    <div class="content animate">
+<pre>
+// risk_gate.proto
+syntax = "proto3";
+package trading;
+
+service RiskGate {
+  rpc CheckOrder (OrderRequest) returns (RiskDecision);
+  rpc StreamPositions (Empty) returns (stream PositionUpdate);
+}
+
+message OrderRequest {
+  string order_id = 1;
+  string symbol = 2;
+  double quantity = 3;
+  double price = 4;
+  string side = 5;  // BUY or SELL
+}
+
+message RiskDecision {
+  bool approved = 1;
+  string reason = 2;
+  double exposure_after = 3;
+}
+</pre>
+<pre style="margin-top:14px">
+// C# gRPC service implementation
+public class RiskGateService(
+    IPositionTracker positions,
+    IOptionsMonitor&lt;RiskOptions&gt; riskOptions)
+    : RiskGate.RiskGateBase
+{
+    public override async Task&lt;RiskDecision&gt; CheckOrder(
+        OrderRequest request, ServerCallContext context)
+    {
+        var opts = riskOptions.CurrentValue;
+        var currentExposure = await positions.GetExposureAsync(request.Symbol);
+        var orderValue = (decimal)(request.Quantity * request.Price);
+
+        if (currentExposure + orderValue > opts.ExposureLimitUsd)
+            return new RiskDecision { Approved = false, Reason = "Exposure limit" };
+
+        return new RiskDecision { Approved = true, ExposureAfter = (double)(currentExposure + orderValue) };
+    }
+}
+
+// Client call (&lt;50ms target)
+var decision = await _riskClient.CheckOrderAsync(request, deadline: DateTime.UtcNow.AddMilliseconds(50));
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 14: Kafka Integration -->
+  <div class="slide">
+    <h2 class="animate">Kafka Integration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Producer</h3>
+<pre style="font-size:0.85rem">
+// Kafka producer for trade events
+using Confluent.Kafka;
+
+public class TradeEventProducer(
+    IProducer&lt;string, string&gt; producer,
+    ILogger&lt;TradeEventProducer&gt; logger)
+{
+    public async Task PublishAsync(
+        OrderFilled e, CancellationToken ct)
+    {
+        var message = new Message&lt;string, string&gt;
+        {
+            Key = e.Symbol,  // partition by symbol
+            Value = JsonSerializer.Serialize(e),
+            Headers = new Headers
+            {
+                { "event-type", Encoding.UTF8
+                    .GetBytes("OrderFilled") }
+            }
+        };
+
+        var result = await producer.ProduceAsync(
+            "trading.events", message, ct);
+
+        logger.LogInformation(
+            "Published to {Partition}@{Offset}",
+            result.Partition, result.Offset);
+    }
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Consumer</h3>
+<pre style="font-size:0.85rem">
+// Kafka consumer for crypto ticks
+public class TickConsumerService(
+    IConsumer&lt;string, string&gt; consumer,
+    ChannelWriter&lt;Tick&gt; writer,
+    ILogger&lt;TickConsumerService&gt; logger)
+    : BackgroundService
+{
+    protected override async Task ExecuteAsync(
+        CancellationToken ct)
+    {
+        consumer.Subscribe("crypto.ticks");
+
+        while (!ct.IsCancellationRequested)
+        {
+            var result = consumer.Consume(ct);
+            var tick = JsonSerializer
+                .Deserialize&lt;Tick&gt;(result.Message.Value)!;
+
+            await writer.WriteAsync(tick, ct);
+
+            // Manual commit for at-least-once
+            consumer.Commit(result);
+        }
+    }
+}
+
+// DI registration
+builder.Services.AddSingleton&lt;IConsumer&lt;string, string&gt;&gt;(
+    _ => new ConsumerBuilder&lt;string, string&gt;(
+        new ConsumerConfig
+        {
+            BootstrapServers = "kafka:9092",
+            GroupId = "trading-agent",
+            AutoOffsetReset = AutoOffsetReset.Latest,
+            EnableAutoCommit = false
+        }).Build());
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Background Services & Hosted Services -->
+  <div class="slide">
+    <h2 class="animate">Background Services &amp; Hosted Services</h2>
+    <div class="content animate">
+<pre>
+// Long-running background service for continuous processing
+public class FeatureComputeService(
+    ChannelReader&lt;Tick&gt; tickReader,
+    IFeatureProvider&lt;Tick[], double&gt;[] providers,
+    IEventBus eventBus,
+    ILogger&lt;FeatureComputeService&gt; logger)
+    : BackgroundService
+{
+    private readonly List&lt;Tick&gt; _window = new(capacity: 200);
+
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        logger.LogInformation("Feature compute service started");
+
+        await foreach (var tick in tickReader.ReadAllAsync(ct))
+        {
+            _window.Add(tick);
+            if (_window.Count &lt; 20) continue;  // wait for enough data
+
+            // Compute all features in parallel
+            var ticks = _window.ToArray();
+            var tasks = providers.Select(p => p.ComputeAsync(ticks, ct));
+            var features = await Task.WhenAll(tasks);
+
+            await eventBus.PublishAsync(new FeaturesComputed(tick.Symbol, features), ct);
+
+            // Sliding window: remove oldest
+            if (_window.Count > 200)
+                _window.RemoveRange(0, _window.Count - 200);
+        }
+    }
+}
+
+// Timed background service for periodic health checks
+public class ExchangeHealthCheck(IHttpClientFactory httpFactory) : BackgroundService
+{
+    protected override async Task ExecuteAsync(CancellationToken ct)
+    {
+        using var timer = new PeriodicTimer(TimeSpan.FromSeconds(30));
+        while (await timer.WaitForNextTickAsync(ct))
+        {
+            var client = httpFactory.CreateClient("exchange");
+            var healthy = (await client.GetAsync("/health", ct)).IsSuccessStatusCode;
+            ExchangeMetrics.HealthStatus.Set(healthy ? 1 : 0);
+        }
+    }
+}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 16: Middleware & Pipelines -->
+  <div class="slide">
+    <h2 class="animate">Middleware &amp; Pipelines</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>ASP.NET Middleware</h3>
+<pre style="font-size:0.85rem">
+// Custom middleware for request timing
+public class RequestTimingMiddleware(
+    RequestDelegate next,
+    ILogger&lt;RequestTimingMiddleware&gt; logger)
+{
+    public async Task InvokeAsync(HttpContext ctx)
+    {
+        var sw = Stopwatch.StartNew();
+        ctx.Response.OnStarting(() =>
+        {
+            sw.Stop();
+            ctx.Response.Headers["X-Response-Time"]
+                = $"{sw.ElapsedMilliseconds}ms";
+            return Task.CompletedTask;
+        });
+        await next(ctx);
+
+        logger.LogInformation(
+            "{Method} {Path} => {Status} in {Ms}ms",
+            ctx.Request.Method, ctx.Request.Path,
+            ctx.Response.StatusCode, sw.ElapsedMilliseconds);
+    }
+}
+
+// Pipeline setup
+app.UseMiddleware&lt;RequestTimingMiddleware&gt;();
+app.UseAuthentication();
+app.UseAuthorization();
+app.MapControllers();
+</pre>
+      </div>
+      <div class="card">
+        <h3>Wolverine Message Middleware</h3>
+<pre style="font-size:0.85rem">
+// Wolverine handler chain middleware
+public class RiskCheckMiddleware
+{
+    // Runs BEFORE the handler
+    public static async Task&lt;HandlerContinuation&gt;
+        BeforeAsync(
+        PlaceOrderCommand cmd,
+        IRiskGateClient riskGate)
+    {
+        var result = await riskGate
+            .CheckAsync(cmd);
+        return result.Approved
+            ? HandlerContinuation.Continue
+            : HandlerContinuation.Stop;
+    }
+}
+
+// Handler with automatic middleware
+public class PlaceOrderHandler
+{
+    [Middleware(typeof(RiskCheckMiddleware))]
+    public static OrderPlaced Handle(
+        PlaceOrderCommand cmd,
+        IOrderRepository repo)
+    {
+        var order = Order.Create(cmd);
+        repo.Store(order);
+        return new OrderPlaced(order.Id,
+            cmd.Symbol, cmd.Price,
+            cmd.Quantity, DateTimeOffset.UtcNow);
+    }
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Testing in .NET -->
+  <div class="slide">
+    <h2 class="animate">Testing in .NET</h2>
+    <div class="content animate">
+<pre>
+// xUnit test with Moq for risk gate
+public class RiskGateTests
+{
+    [Fact]
+    public async Task CheckOrder_ExceedsExposure_ReturnsRejected()
+    {
+        // Arrange
+        var positions = new Mock&lt;IPositionTracker&gt;();
+        positions.Setup(p => p.GetExposureAsync("BTC-USD"))
+                 .ReturnsAsync(490_000m);  // near limit
+
+        var options = Options.Create(new RiskOptions { ExposureLimitUsd = 500_000m });
+        var sut = new RiskGateService(positions.Object, new OptionsMonitorStub(options));
+
+        var request = new OrderRequest { Symbol = "BTC-USD", Quantity = 1, Price = 67_000 };
+
+        // Act
+        var result = await sut.CheckOrder(request, TestServerCallContext.Create());
+
+        // Assert
+        Assert.False(result.Approved);
+        Assert.Contains("Exposure limit", result.Reason);
+    }
+
+    [Theory]
+    [InlineData(0.5, 67_000, true)]    // small order, approved
+    [InlineData(10.0, 67_000, false)]   // huge order, rejected
+    [InlineData(1.0, 1_000, true)]      // cheap, approved
+    public async Task CheckOrder_VariousSizes_ReturnsExpected(
+        double qty, double price, bool expectedApproved)
+    {
+        // Parameterized test for boundary conditions
+        var result = await _sut.CheckOrder(
+            new OrderRequest { Symbol = "BTC-USD", Quantity = qty, Price = price },
+            TestServerCallContext.Create());
+        Assert.Equal(expectedApproved, result.Approved);
+    }
+}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 18: Performance -->
+  <div class="slide">
+    <h2 class="animate">Performance</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Span&lt;T&gt; &amp; Memory&lt;T&gt;</h3>
+        <p>Zero-allocation slicing over arrays, strings, and native memory. Critical for parsing tick data without GC pressure.</p>
+        <code>Span&lt;byte&gt; slice = buffer.AsSpan(0, 64);</code>
+      </div>
+      <div class="metric-card">
+        <h3>ArrayPool&lt;T&gt;</h3>
+        <p>Rent and return arrays to avoid allocation on hot paths. Reduces GC pauses in high-throughput tick processing.</p>
+        <code>var buf = ArrayPool&lt;byte&gt;.Shared.Rent(4096);</code>
+      </div>
+      <div class="metric-card">
+        <h3>ValueTask&lt;T&gt;</h3>
+        <p>Avoids Task allocation when result is already available (cached data, synchronous completion).</p>
+        <code>public ValueTask&lt;Tick&gt; GetCachedAsync();</code>
+      </div>
+      <div class="metric-card">
+        <h3>FrozenDictionary</h3>
+        <p>.NET 8+ immutable dictionary optimized for read-heavy scenarios. Ideal for symbol lookup tables.</p>
+        <code>var map = data.ToFrozenDictionary();</code>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+// High-throughput tick parsing with Span
+public static Tick ParseTick(ReadOnlySpan&lt;byte&gt; buffer)
+{
+    var reader = new Utf8JsonReader(buffer);
+    // Zero-allocation JSON parsing directly from network buffer
+    return JsonSerializer.Deserialize&lt;Tick&gt;(ref reader);
+}
+
+// Object pooling for reusable computation buffers
+private static readonly ObjectPool&lt;FeatureBuffer&gt; _pool =
+    new DefaultObjectPool&lt;FeatureBuffer&gt;(new FeatureBufferPolicy(), maximumRetained: 64);
+</pre>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use records for immutable domain events and value objects</div>
+      <div class="bp-item"><span>2.</span> Prefer async/await for all I/O; never block with .Result or .Wait()</div>
+      <div class="bp-item"><span>3.</span> Always pass CancellationToken through the call chain</div>
+      <div class="bp-item"><span>4.</span> Use IOptions/IOptionsMonitor for configuration, not static values</div>
+      <div class="bp-item"><span>5.</span> Register services with correct lifetimes (avoid captive dependencies)</div>
+      <div class="bp-item"><span>6.</span> Use Channels for producer/consumer pipelines over shared collections</div>
+      <div class="bp-item"><span>7.</span> Seal classes that are not designed for inheritance</div>
+      <div class="bp-item"><span>8.</span> Use Span&lt;T&gt; and ArrayPool on hot paths to minimize GC pressure</div>
+      <div class="bp-item"><span>9.</span> Write parameterized tests with [Theory] for boundary conditions</div>
+      <div class="bp-item"><span>10.</span> Use Result pattern over exceptions for expected domain failures</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4BB;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered .NET &amp; C#:</p>
+      <div style="margin:20px 0">
+        <span class="tag">C# Fundamentals</span><span class="tag">Records</span><span class="tag">Async/Await</span>
+        <span class="tag">LINQ</span><span class="tag">DI</span><span class="tag">gRPC</span>
+        <span class="tag">Kafka</span><span class="tag">Pattern Matching</span><span class="tag">Performance</span>
+      </div>
+      <p style="color:var(--text-muted)">.NET is the backbone of high-performance trading systems. Build fast, type-safe, and scalable.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

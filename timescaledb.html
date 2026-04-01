@@ -1,0 +1,1050 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>TimescaleDB</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x23F1;</span>
+    <h1 class="animate">TimescaleDB</h1>
+    <p class="subtitle animate">Time-series superpowers for PostgreSQL</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">TimescaleDB</span><span class="tag">Time-Series</span><span class="tag">PostgreSQL</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is TimescaleDB? -->
+  <div class="slide">
+    <h2 class="animate">What Is TimescaleDB?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>PostgreSQL Extension</h3>
+        <ul>
+          <li>Runs as an extension inside PostgreSQL</li>
+          <li>Full SQL compatibility &mdash; joins, CTEs, subqueries</li>
+          <li>All PostgreSQL tools work: psql, pg_dump, ORMs</li>
+          <li>ACID-compliant, row-level security, roles</li>
+          <li>No new query language to learn</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Time-Series Optimized</h3>
+        <ul>
+          <li>Automatic time-based partitioning (hypertables)</li>
+          <li>10-100x faster inserts vs vanilla PostgreSQL</li>
+          <li>Columnar compression (90%+ space savings)</li>
+          <li>Continuous aggregates for real-time rollups</li>
+          <li>Built-in retention &amp; data lifecycle policies</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Why TimescaleDB? -->
+  <div class="slide">
+    <h2 class="animate">Why TimescaleDB?</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>TimescaleDB</th><th>InfluxDB</th><th>Vanilla Postgres</th><th>Prometheus</th></tr>
+        <tr><td>Query Language</td><td><span class="green">Full SQL</span></td><td>InfluxQL / Flux</td><td><span class="green">Full SQL</span></td><td>PromQL</td></tr>
+        <tr><td>JOINs &amp; CTEs</td><td><span class="green">Native</span></td><td>Limited</td><td><span class="green">Native</span></td><td>None</td></tr>
+        <tr><td>Time Partitioning</td><td><span class="green">Automatic</span></td><td>Automatic</td><td>Manual</td><td>Automatic</td></tr>
+        <tr><td>Compression</td><td><span class="green">90%+</span></td><td>Good</td><td>None</td><td>Good</td></tr>
+        <tr><td>Long-term Storage</td><td><span class="green">Years</span></td><td>Good</td><td>Slow at scale</td><td>15-30 days</td></tr>
+        <tr><td>Ecosystem</td><td><span class="green">PostgreSQL</span></td><td>Proprietary</td><td><span class="green">PostgreSQL</span></td><td>Grafana</td></tr>
+        <tr><td>Relational Data</td><td><span class="green">Full support</span></td><td>None</td><td><span class="green">Full support</span></td><td>None</td></tr>
+      </table>
+      <p style="margin-top:14px;text-align:center"><span class="highlight">Key insight:</span> TimescaleDB gives you time-series performance without abandoning PostgreSQL.</p>
+    </div>
+  </div>
+
+  <!-- Slide 4: Hypertables -->
+  <div class="slide">
+    <h2 class="animate">Hypertables</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Regular Table</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">create_hypertable()</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">Auto-Partitioned Chunks</div>
+      </div>
+<pre>
+-- Convert a regular table into a hypertable
+-- Automatically partitions by time into "chunks"
+CREATE TABLE ticks (
+    time        TIMESTAMPTZ NOT NULL,
+    symbol      TEXT        NOT NULL,
+    price       DOUBLE PRECISION,
+    volume      DOUBLE PRECISION
+);
+
+SELECT create_hypertable('ticks', 'time');
+-- Chunks: 7-day intervals by default
+
+-- Each chunk is a separate PostgreSQL table under the hood
+-- Queries automatically route to relevant chunks
+-- Old chunks can be compressed, moved, or dropped independently
+
+-- Custom chunk interval (1 day for high-frequency data)
+SELECT create_hypertable('ticks', 'time',
+    chunk_time_interval => INTERVAL '1 day');
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 5: Creating Time-Series Tables -->
+  <div class="slide">
+    <h2 class="animate">Creating Time-Series Tables</h2>
+    <div class="content animate">
+<pre>
+-- Tick data: every trade from exchange
+CREATE TABLE ticks (
+    time        TIMESTAMPTZ NOT NULL,
+    exchange    TEXT NOT NULL,
+    symbol      TEXT NOT NULL,
+    price       DOUBLE PRECISION NOT NULL,
+    volume      DOUBLE PRECISION NOT NULL,
+    side        TEXT  -- 'buy' or 'sell'
+);
+SELECT create_hypertable('ticks', 'time',
+    chunk_time_interval => INTERVAL '1 day');
+
+-- Candle (OHLCV) data: aggregated price bars
+CREATE TABLE candles (
+    time        TIMESTAMPTZ NOT NULL,
+    symbol      TEXT NOT NULL,
+    interval    TEXT NOT NULL,  -- '1m', '5m', '1h', '1d'
+    open        DOUBLE PRECISION,
+    high        DOUBLE PRECISION,
+    low         DOUBLE PRECISION,
+    close       DOUBLE PRECISION,
+    volume      DOUBLE PRECISION
+);
+SELECT create_hypertable('candles', 'time',
+    chunk_time_interval => INTERVAL '7 days');
+
+-- Feature data: computed indicators for ML models
+CREATE TABLE features (
+    time        TIMESTAMPTZ NOT NULL,
+    symbol      TEXT NOT NULL,
+    rsi_14      DOUBLE PRECISION,
+    ema_20      DOUBLE PRECISION,
+    bb_upper    DOUBLE PRECISION,
+    bb_lower    DOUBLE PRECISION,
+    atr_14      DOUBLE PRECISION
+);
+SELECT create_hypertable('features', 'time');
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 6: Real-World Trading Agent Schema -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Schema</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">From the <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> project</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>ticks</h3>
+        <p>Raw trade data from exchanges. Chunk interval: 1 day. Billions of rows per year.</p>
+        <code>time, exchange, symbol, price, volume, side</code>
+      </div>
+      <div class="metric-card">
+        <h3>candles</h3>
+        <p>OHLCV bars at multiple intervals. Built from ticks via continuous aggregates.</p>
+        <code>time, symbol, interval, open, high, low, close, volume</code>
+      </div>
+      <div class="metric-card">
+        <h3>features</h3>
+        <p>Computed technical indicators fed to ML models for signal generation.</p>
+        <code>time, symbol, rsi_14, ema_20, bb_upper, bb_lower, atr_14</code>
+      </div>
+      <div class="metric-card">
+        <h3>funding_rates</h3>
+        <p>Perpetual futures funding rates. Used for carry trade signals and cost tracking.</p>
+        <code>time, exchange, symbol, rate, next_time</code>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">All tables are hypertables</span> with compression, retention, and continuous aggregate policies.</p>
+  </div>
+
+  <!-- Slide 7: Inserting Time-Series Data -->
+  <div class="slide">
+    <h2 class="animate">Inserting Time-Series Data</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Batch Inserts</h3>
+<pre style="font-size:0.85rem">
+-- Multi-row INSERT (fast)
+INSERT INTO ticks (time, exchange, symbol,
+                   price, volume, side)
+VALUES
+  (NOW(), 'binance', 'BTC/USDT',
+   67500.50, 0.15, 'buy'),
+  (NOW(), 'binance', 'ETH/USDT',
+   3450.25, 2.5, 'sell'),
+  (NOW(), 'binance', 'SOL/USDT',
+   145.80, 50.0, 'buy');
+
+-- COPY for bulk loading (fastest)
+COPY ticks FROM '/data/ticks.csv'
+  WITH (FORMAT csv, HEADER true);
+
+-- Typical: 500K+ rows/sec with COPY
+</pre>
+      </div>
+      <div class="card">
+        <h3>Streaming Pipeline</h3>
+<pre style="font-size:0.85rem">
+# Python: Kafka consumer -> TimescaleDB
+import psycopg2
+from kafka import KafkaConsumer
+
+consumer = KafkaConsumer('trades')
+conn = psycopg2.connect(DSN)
+cur = conn.cursor()
+
+batch = []
+for msg in consumer:
+    trade = json.loads(msg.value)
+    batch.append((
+        trade['time'],
+        trade['exchange'],
+        trade['symbol'],
+        trade['price'],
+        trade['volume'],
+        trade['side']
+    ))
+    if len(batch) >= 1000:
+        cur.executemany(INSERT_SQL, batch)
+        conn.commit()
+        batch.clear()
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Time-Series Queries -->
+  <div class="slide">
+    <h2 class="animate">Time-Series Queries</h2>
+    <div class="content animate">
+<pre>
+-- time_bucket: group data into fixed intervals
+SELECT
+    time_bucket('5 minutes', time) AS bucket,
+    symbol,
+    first(price, time)  AS open,
+    max(price)           AS high,
+    min(price)           AS low,
+    last(price, time)    AS close,
+    sum(volume)          AS volume
+FROM ticks
+WHERE symbol = 'BTC/USDT'
+  AND time > NOW() - INTERVAL '24 hours'
+GROUP BY bucket, symbol
+ORDER BY bucket DESC;
+
+-- Gap filling: fill missing intervals with previous values
+SELECT
+    time_bucket_gapfill('1 hour', time) AS bucket,
+    symbol,
+    locf(avg(price)) AS avg_price  -- Last Observation Carried Forward
+FROM ticks
+WHERE time BETWEEN '2025-01-01' AND '2025-01-02'
+  AND symbol = 'BTC/USDT'
+GROUP BY bucket, symbol;
+
+-- Interpolation: linear fill between known values
+SELECT
+    time_bucket_gapfill('1 hour', time) AS bucket,
+    interpolate(avg(price)) AS interpolated_price
+FROM ticks
+WHERE time BETWEEN '2025-01-01' AND '2025-01-02'
+GROUP BY bucket;
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 9: Continuous Aggregates -->
+  <div class="slide">
+    <h2 class="animate">Continuous Aggregates</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Materialized views that <span class="highlight">auto-refresh</span> as new data arrives. Build candle hierarchy from raw ticks.</p>
+      <div class="diagram">
+        <div class="box">1m Ticks</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">5m Candles</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">1h Candles</div>
+        <div class="arrow">&#x27A1;</div>
+        <div class="box">1d Candles</div>
+      </div>
+<pre>
+-- 5-minute candles from raw ticks (continuous aggregate)
+CREATE MATERIALIZED VIEW candles_5m
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('5 minutes', time) AS bucket,
+    symbol,
+    first(price, time)  AS open,
+    max(price)           AS high,
+    min(price)           AS low,
+    last(price, time)    AS close,
+    sum(volume)          AS volume
+FROM ticks
+GROUP BY bucket, symbol
+WITH NO DATA;
+
+-- 1-hour candles from 5-minute candles (cascading)
+CREATE MATERIALIZED VIEW candles_1h
+WITH (timescaledb.continuous) AS
+SELECT
+    time_bucket('1 hour', bucket) AS bucket,
+    symbol,
+    first(open, bucket)  AS open,
+    max(high)             AS high,
+    min(low)              AS low,
+    last(close, bucket)   AS close,
+    sum(volume)           AS volume
+FROM candles_5m
+GROUP BY time_bucket('1 hour', bucket), symbol
+WITH NO DATA;
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 10: Continuous Aggregate Policies -->
+  <div class="slide">
+    <h2 class="animate">Continuous Aggregate Policies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Refresh Policies</h3>
+<pre style="font-size:0.85rem">
+-- Auto-refresh 5m candles
+-- Looks back 1 hour, runs every 5 min
+SELECT add_continuous_aggregate_policy(
+  'candles_5m',
+  start_offset    => INTERVAL '1 hour',
+  end_offset      => INTERVAL '5 minutes',
+  schedule_interval => INTERVAL '5 minutes'
+);
+
+-- Auto-refresh 1h candles
+SELECT add_continuous_aggregate_policy(
+  'candles_1h',
+  start_offset    => INTERVAL '3 hours',
+  end_offset      => INTERVAL '1 hour',
+  schedule_interval => INTERVAL '1 hour'
+);
+
+-- Auto-refresh 1d candles
+SELECT add_continuous_aggregate_policy(
+  'candles_1d',
+  start_offset    => INTERVAL '3 days',
+  end_offset      => INTERVAL '1 day',
+  schedule_interval => INTERVAL '1 day'
+);
+</pre>
+      </div>
+      <div class="card">
+        <h3>Real-Time Aggregation</h3>
+        <ul>
+          <li><span class="highlight">Real-time mode</span> merges materialized data with live un-materialized data</li>
+          <li>Queries always return up-to-date results</li>
+          <li>Small performance cost for latest bucket</li>
+          <li>Enabled by default in TimescaleDB 2.0+</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+-- Check real-time status
+SELECT view_name, materialized_only
+FROM timescaledb_information
+    .continuous_aggregates;
+
+-- Toggle real-time off for faster reads
+ALTER MATERIALIZED VIEW candles_5m
+SET (timescaledb.materialized_only = true);
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Compression -->
+  <div class="slide">
+    <h2 class="animate">Compression</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Columnar compression converts row-based chunks into compressed columnar format. <span class="green">90-95% space savings</span> typical.</p>
+<pre>
+-- Enable compression on ticks table
+ALTER TABLE ticks SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'symbol',       -- group by symbol
+    timescaledb.compress_orderby = 'time DESC'        -- order within segment
+);
+
+-- Compress chunks older than 7 days automatically
+SELECT add_compression_policy('ticks', INTERVAL '7 days');
+
+-- Compress chunks older than 30 days for candles
+ALTER TABLE candles SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'symbol, interval',
+    timescaledb.compress_orderby = 'time DESC'
+);
+SELECT add_compression_policy('candles', INTERVAL '30 days');
+
+-- Manual compression of specific chunk
+SELECT compress_chunk('_timescaledb_internal._hyper_1_42_chunk');
+
+-- Check compression stats
+SELECT
+    hypertable_name,
+    pg_size_pretty(before_compression_total_bytes) AS before,
+    pg_size_pretty(after_compression_total_bytes)  AS after,
+    round((1 - after_compression_total_bytes::numeric /
+           before_compression_total_bytes) * 100, 1) AS savings_pct
+FROM hypertable_compression_stats('ticks');
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 12: Retention Policies -->
+  <div class="slide">
+    <h2 class="animate">Retention Policies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>drop_chunks</h3>
+<pre style="font-size:0.85rem">
+-- Drop tick data older than 2 years
+SELECT add_retention_policy('ticks',
+    INTERVAL '2 years');
+
+-- Drop raw features older than 1 year
+SELECT add_retention_policy('features',
+    INTERVAL '1 year');
+
+-- Keep candles for 10 years
+SELECT add_retention_policy('candles',
+    INTERVAL '10 years');
+
+-- Manual drop
+SELECT drop_chunks('ticks',
+    older_than => INTERVAL '90 days');
+</pre>
+      </div>
+      <div class="card">
+        <h3>Data Lifecycle</h3>
+        <div class="diagram" style="flex-direction:column;gap:10px;margin:0">
+          <div class="box" style="min-width:90%;border-color:var(--success)">Hot: Raw ticks (0-7 days) &mdash; Uncompressed</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x27A1;</div>
+          <div class="box" style="min-width:90%">Warm: Compressed ticks (7d-2y) &mdash; 90% smaller</div>
+          <div class="arrow" style="transform:rotate(90deg)">&#x27A1;</div>
+          <div class="box" style="min-width:90%;border-color:var(--text-muted)">Cold: Dropped (>2y) &mdash; Aggregates retained</div>
+        </div>
+        <p style="margin-top:12px"><span class="highlight">Strategy:</span> Keep raw data short-term, aggregates long-term. Raw ticks compress from 500GB to 50GB.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: Indexing Strategies -->
+  <div class="slide">
+    <h2 class="animate">Indexing Strategies</h2>
+    <div class="content animate">
+<pre>
+-- TimescaleDB auto-creates a time index on the hypertable column
+-- But composite indexes are essential for trading queries
+
+-- Composite index: most queries filter by symbol + time range
+CREATE INDEX idx_ticks_symbol_time ON ticks (symbol, time DESC);
+CREATE INDEX idx_candles_symbol_interval_time
+    ON candles (symbol, interval, time DESC);
+CREATE INDEX idx_features_symbol_time ON features (symbol, time DESC);
+
+-- BRIN index: excellent for time-series (tiny size, fast range scans)
+-- TimescaleDB chunks are inherently time-ordered, making BRIN ideal
+CREATE INDEX idx_ticks_time_brin ON ticks
+    USING BRIN (time) WITH (pages_per_range = 32);
+
+-- Funding rates: query by exchange + symbol
+CREATE INDEX idx_funding_exchange_symbol_time
+    ON funding_rates (exchange, symbol, time DESC);
+</pre>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>B-tree (Default)</h3>
+          <ul>
+            <li>Best for equality + range queries</li>
+            <li>Larger index size</li>
+            <li>Use for: <code>WHERE symbol = 'X'</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>BRIN (Block Range)</h3>
+          <ul>
+            <li>1000x smaller than B-tree</li>
+            <li>Perfect for time columns</li>
+            <li>Use for: <code>WHERE time > X</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: Advanced Queries -->
+  <div class="slide">
+    <h2 class="animate">Advanced Queries</h2>
+    <div class="content animate">
+<pre>
+-- ASOF JOIN: match each tick to the nearest funding rate
+SELECT t.time, t.symbol, t.price,
+       f.rate AS funding_rate
+FROM ticks t
+ASOF JOIN funding_rates f
+    ON t.symbol = f.symbol AND t.time >= f.time
+WHERE t.symbol = 'BTC/USDT'
+  AND t.time > NOW() - INTERVAL '1 day';
+
+-- Window functions: rolling VWAP (Volume-Weighted Avg Price)
+SELECT time, symbol, price,
+    SUM(price * volume) OVER w / SUM(volume) OVER w AS vwap_20
+FROM ticks
+WHERE symbol = 'BTC/USDT'
+WINDOW w AS (
+    PARTITION BY symbol ORDER BY time
+    ROWS BETWEEN 19 PRECEDING AND CURRENT ROW
+);
+
+-- Percentile: P50/P95/P99 price distribution per hour
+SELECT
+    time_bucket('1 hour', time) AS bucket,
+    symbol,
+    percentile_cont(0.50) WITHIN GROUP (ORDER BY price) AS p50,
+    percentile_cont(0.95) WITHIN GROUP (ORDER BY price) AS p95,
+    percentile_cont(0.99) WITHIN GROUP (ORDER BY price) AS p99
+FROM ticks
+WHERE time > NOW() - INTERVAL '7 days'
+GROUP BY bucket, symbol
+ORDER BY bucket DESC;
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 15: Performance Tuning -->
+  <div class="slide">
+    <h2 class="animate">Performance Tuning</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>chunk_time_interval</h3>
+        <p>Match to your query patterns. 1 day for high-frequency ticks, 7 days for candles.</p>
+        <code>chunk_time_interval => '1 day'</code>
+      </div>
+      <div class="metric-card">
+        <h3>Memory Settings</h3>
+        <p>Set <code>shared_buffers</code> to 25% of RAM. <code>work_mem</code> to 256MB+ for aggregations.</p>
+        <code>shared_buffers = 8GB</code>
+      </div>
+      <div class="metric-card">
+        <h3>Parallel Queries</h3>
+        <p>TimescaleDB parallelizes across chunks. Set <code>max_parallel_workers_per_gather</code> to CPU cores / 2.</p>
+        <code>max_parallel_workers_per_gather = 8</code>
+      </div>
+      <div class="metric-card">
+        <h3>Chunk Exclusion</h3>
+        <p>Always include <code>WHERE time > X</code> in queries. TimescaleDB skips irrelevant chunks entirely.</p>
+        <code>WHERE time > NOW() - '7 days'</code>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+-- Check chunk sizes and plan intervals
+SELECT hypertable_name,
+       chunk_name,
+       pg_size_pretty(total_bytes) AS size,
+       range_start, range_end
+FROM timescaledb_information.chunks
+WHERE hypertable_name = 'ticks'
+ORDER BY range_start DESC LIMIT 10;
+</pre>
+  </div>
+
+  <!-- Slide 16: TimescaleDB + PostgreSQL Features -->
+  <div class="slide">
+    <h2 class="animate">TimescaleDB + PostgreSQL Features</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>JSONB &amp; CTEs</h3>
+<pre style="font-size:0.85rem">
+-- Store metadata as JSONB
+ALTER TABLE ticks ADD COLUMN
+    meta JSONB DEFAULT '{}';
+
+-- Query JSON fields
+SELECT * FROM ticks
+WHERE meta->>'source' = 'websocket';
+
+-- CTE: compute features in stages
+WITH recent AS (
+    SELECT * FROM candles_1h
+    WHERE symbol = 'BTC/USDT'
+      AND time > NOW() - '30 days'
+),
+with_sma AS (
+    SELECT *,
+      AVG(close) OVER (ORDER BY time
+        ROWS 19 PRECEDING) AS sma_20
+    FROM recent
+)
+SELECT * FROM with_sma
+WHERE close > sma_20;
+</pre>
+      </div>
+      <div class="card">
+        <h3>Triggers &amp; Foreign Keys</h3>
+<pre style="font-size:0.85rem">
+-- Regular table for instruments
+CREATE TABLE instruments (
+    symbol TEXT PRIMARY KEY,
+    name   TEXT,
+    type   TEXT  -- 'spot', 'perp'
+);
+
+-- Foreign key from hypertable
+-- (on segmentby column is efficient)
+ALTER TABLE ticks
+ADD CONSTRAINT fk_symbol
+FOREIGN KEY (symbol)
+REFERENCES instruments(symbol);
+
+-- Trigger: auto-compute features
+CREATE OR REPLACE FUNCTION
+  compute_features() RETURNS trigger AS $$
+BEGIN
+  -- Insert computed features
+  INSERT INTO features (time, symbol)
+  VALUES (NEW.time, NEW.symbol);
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Monitoring & Maintenance -->
+  <div class="slide">
+    <h2 class="animate">Monitoring &amp; Maintenance</h2>
+    <div class="content animate">
+<pre>
+-- Hypertable disk usage
+SELECT hypertable_name,
+       pg_size_pretty(hypertable_size(format('%I.%I',
+           hypertable_schema, hypertable_name)::regclass)) AS total_size,
+       num_chunks
+FROM timescaledb_information.hypertables;
+
+-- Compression ratios per hypertable
+SELECT hypertable_name,
+       pg_size_pretty(before_compression_total_bytes) AS before,
+       pg_size_pretty(after_compression_total_bytes)  AS after,
+       round(compression_ratio::numeric, 2) AS ratio
+FROM hypertable_compression_stats('ticks');
+
+-- Continuous aggregate job status
+SELECT application_name, schedule_interval,
+       last_run_status, last_run_duration, next_start
+FROM timescaledb_information.jobs
+WHERE application_name LIKE '%aggregate%';
+
+-- Chunk statistics
+SELECT chunk_name,
+       pg_size_pretty(total_bytes) AS size,
+       is_compressed,
+       range_start::date, range_end::date
+FROM timescaledb_information.chunks
+WHERE hypertable_name = 'ticks'
+ORDER BY range_start DESC LIMIT 10;
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 18: Deployment -->
+  <div class="slide">
+    <h2 class="animate">Deployment</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Timescale Cloud</h3>
+        <p>Fully managed. Auto-scaling, backups, HA. Best DX with built-in dashboards and query insights.</p>
+      </div>
+      <div class="metric-card">
+        <h3>AWS RDS Extension</h3>
+        <p>Enable via RDS parameter group. Used by the Trading Agent project. Familiar AWS ops, but fewer Timescale-specific features.</p>
+        <code>shared_preload_libraries = 'timescaledb'</code>
+      </div>
+      <div class="metric-card">
+        <h3>Docker</h3>
+        <p>Great for local dev and CI. Official <code>timescale/timescaledb</code> image with PostgreSQL included.</p>
+        <code>docker run -p 5432:5432 timescale/timescaledb:latest-pg16</code>
+      </div>
+      <div class="metric-card">
+        <h3>Self-Hosted</h3>
+        <p>Install extension on any PostgreSQL instance. Full control. You manage backups, HA, and upgrades.</p>
+        <code>CREATE EXTENSION timescaledb;</code>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Trading Agent uses AWS RDS</span> with TimescaleDB extension &mdash; leverages existing RDS backups, security groups, and multi-AZ.</p>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Always include a time predicate in queries for chunk exclusion</div>
+      <div class="bp-item"><span>2.</span> Set chunk_time_interval based on query range (1d for ticks, 7d for candles)</div>
+      <div class="bp-item"><span>3.</span> Use continuous aggregates instead of cron jobs for rollups</div>
+      <div class="bp-item"><span>4.</span> Enable compression on all hypertables after hot window passes</div>
+      <div class="bp-item"><span>5.</span> Set retention policies to auto-drop old raw data while keeping aggregates</div>
+      <div class="bp-item"><span>6.</span> Use COPY or multi-row INSERT for bulk loading, never single-row loops</div>
+      <div class="bp-item"><span>7.</span> Create composite indexes on (segmentby_col, time DESC) for filtered queries</div>
+      <div class="bp-item"><span>8.</span> Monitor chunk sizes and compression ratios weekly</div>
+      <div class="bp-item"><span>9.</span> Use real-time aggregation for dashboards, materialized-only for batch jobs</div>
+      <div class="bp-item"><span>10.</span> Test query plans with EXPLAIN ANALYZE to verify chunk exclusion works</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x23F1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered TimescaleDB:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Hypertables</span><span class="tag">Continuous Aggregates</span><span class="tag">Compression</span>
+        <span class="tag">Retention</span><span class="tag">time_bucket</span><span class="tag">ASOF Joins</span>
+        <span class="tag">Indexing</span><span class="tag">Performance Tuning</span><span class="tag">Deployment</span>
+      </div>
+      <p style="color:var(--text-muted)">TimescaleDB gives you time-series superpowers without leaving PostgreSQL. Use hypertables, compression, and continuous aggregates for every time-series workload.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

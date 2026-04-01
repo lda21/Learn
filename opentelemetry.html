@@ -1,0 +1,1123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>OpenTelemetry</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F50D;</span>
+    <h1 class="animate">OpenTelemetry</h1>
+    <p class="subtitle animate">Vendor-neutral observability for distributed systems</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">OpenTelemetry</span><span class="tag">Observability</span><span class="tag">Tracing</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is OpenTelemetry? -->
+  <div class="slide">
+    <h2 class="animate">What Is OpenTelemetry?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Vendor-neutral observability framework</li>
+          <li>CNCF incubating project (2nd most active after Kubernetes)</li>
+          <li>Merger of OpenTracing + OpenCensus</li>
+          <li>Single set of APIs, SDKs, and tools</li>
+          <li>Collects, processes, and exports telemetry data</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What It Provides</h3>
+        <ul>
+          <li><span class="highlight">APIs</span> &mdash; language-specific interfaces for instrumentation</li>
+          <li><span class="highlight">SDKs</span> &mdash; implementations with processing and export</li>
+          <li><span class="highlight">Collector</span> &mdash; vendor-agnostic proxy for telemetry</li>
+          <li><span class="highlight">OTLP</span> &mdash; standard wire protocol</li>
+          <li><span class="highlight">Conventions</span> &mdash; semantic conventions for naming</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: The Three Signals -->
+  <div class="slide">
+    <h2 class="animate">The Three Signals</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Traces</h3>
+          <p>Follow a request across service boundaries. Each trace is a tree of spans showing the full lifecycle of an operation.</p>
+          <code>TraceID: abc123 &rarr; 6 spans across 4 services</code>
+        </div>
+        <div class="metric-card">
+          <h3>Metrics</h3>
+          <p>Numeric measurements aggregated over time. Counters, histograms, and gauges for throughput, latency, and resource usage.</p>
+          <code>trade.execution.latency_ms: p99 = 12ms</code>
+        </div>
+        <div class="metric-card">
+          <h3>Logs</h3>
+          <p>Structured event records correlated with traces. Each log entry can carry a TraceID and SpanID for context.</p>
+          <code>{"traceId":"abc123","msg":"Risk gate passed"}</code>
+        </div>
+        <div class="metric-card">
+          <h3>Unified Observability</h3>
+          <p>All three signals share context. Jump from a slow metric to the trace that caused it, then to the logs within that span.</p>
+          <code>metric &rarr; trace &rarr; span &rarr; log</code>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Why OpenTelemetry? -->
+  <div class="slide">
+    <h2 class="animate">Why OpenTelemetry?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Vendor lock-in with proprietary agents (Datadog, New Relic, Dynatrace)</li>
+          <li>Different SDKs for traces, metrics, and logs</li>
+          <li>Switching backends means re-instrumenting everything</li>
+          <li>Inconsistent attribute naming across services</li>
+          <li>No standard way to propagate context across polyglot services</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The OTel Solution</h3>
+        <ul>
+          <li><span class="highlight">Single SDK</span> &mdash; instrument once, export anywhere</li>
+          <li><span class="highlight">Vendor neutral</span> &mdash; swap Tempo for Jaeger in config, not code</li>
+          <li><span class="highlight">Community standard</span> &mdash; 700+ contributors, every cloud vendor supports it</li>
+          <li><span class="highlight">Polyglot</span> &mdash; consistent APIs across .NET, Python, Java, Go, JS</li>
+          <li><span class="highlight">Future-proof</span> &mdash; CNCF backing ensures long-term support</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">App Code<br><small>API + SDK</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Processor<br><small>Batch, Filter</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Exporter<br><small>OTLP, Prom</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Collector<br><small>Receive, Process, Export</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Backend<br><small>Tempo, Prom, Loki</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>SDK Components</h3>
+        <ul>
+          <li><span class="highlight">API</span> &mdash; stable interfaces for instrumentation</li>
+          <li><span class="highlight">SDK</span> &mdash; configurable implementation (sampling, processing)</li>
+          <li><span class="highlight">Exporters</span> &mdash; OTLP, Prometheus, Zipkin, console</li>
+          <li><span class="highlight">Propagators</span> &mdash; inject/extract context across boundaries</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Collector Roles</h3>
+        <ul>
+          <li><span class="highlight">Receivers</span> &mdash; accept data (OTLP, Jaeger, Zipkin)</li>
+          <li><span class="highlight">Processors</span> &mdash; batch, filter, transform, sample</li>
+          <li><span class="highlight">Exporters</span> &mdash; send to backends (Tempo, Prometheus, Loki)</li>
+          <li><span class="highlight">Connectors</span> &mdash; bridge pipelines (traces &rarr; metrics)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: Traces & Spans -->
+  <div class="slide">
+    <h2 class="animate">Traces &amp; Spans</h2>
+    <div class="content animate">
+<pre>
+Trace: trade-decision-abc123
+|
+|-- Span: TickIngestion (root)           [12ms]
+|   |-- attribute: symbol = "BTC-USD"
+|   |-- attribute: exchange = "binance"
+|   |
+|   |-- Span: FeatureCompute             [8ms]
+|   |   |-- attribute: model = "xgboost-v3"
+|   |   |-- event: "computed 47 features"
+|   |   |
+|   |   |-- Span: SignalGeneration       [3ms]
+|   |       |-- attribute: signal = "BUY"
+|   |       |-- attribute: confidence = 0.87
+|   |
+|   |-- Span: RiskGate                   [2ms]
+|   |   |-- attribute: risk.approved = true
+|   |   |-- status: OK
+|   |
+|   |-- Span: OrderExecution             [45ms]
+|       |-- attribute: order.type = "LIMIT"
+|       |-- event: "fill received"
+|       |-- status: OK
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Key concepts:</span> Each span has a TraceID, SpanID, parent SpanID, start/end time, attributes (key-value), events (timestamped logs), and a status (OK, Error, Unset).</p>
+    </div>
+  </div>
+
+  <!-- Slide 7: Real-World Trade Tracing -->
+  <div class="slide">
+    <h2 class="animate">Tracing a Trade End-to-End</h2>
+    <p class="subtitle animate">AI Crypto Trading Agent &mdash; tick to fill in one trace</p>
+    <div class="content animate">
+      <div class="diagram" style="margin:24px 0">
+        <div class="box">Tick<br><small>.NET gRPC</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Features<br><small>Python ML</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Signal<br><small>XGBoost</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Risk Gate<br><small>.NET</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Execution<br><small>Kafka</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Fill<br><small>Exchange</small></div>
+      </div>
+<pre>
+// Each service propagates W3C TraceContext headers
+// .NET tick service starts the trace:
+using var activity = source.StartActivity("TickIngestion");
+activity?.SetTag("symbol", "BTC-USD");
+
+// Context flows via Kafka headers to Python ML service:
+# Python picks up the trace context from Kafka message headers
+with tracer.start_as_current_span("FeatureCompute") as span:
+    span.set_attribute("model.name", "xgboost-v3")
+    features = compute_features(tick)
+
+// Back in .NET for risk gate and execution:
+using var riskSpan = source.StartActivity("RiskGate");
+riskSpan?.SetTag("risk.approved", true);
+
+// Result: single trace spans .NET, Python, and Kafka
+// Visible in Grafana Tempo with 90-day retention
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 8: Auto-Instrumentation -->
+  <div class="slide">
+    <h2 class="animate">Auto-Instrumentation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>.NET Auto-Instrumentation</h3>
+<pre style="font-size:0.85rem">
+// Program.cs - add OTel with auto-instrumentation
+builder.Services.AddOpenTelemetry()
+  .WithTracing(tracing => tracing
+    .AddAspNetCoreInstrumentation()
+    .AddGrpcClientInstrumentation()
+    .AddHttpClientInstrumentation()
+    .AddSource("Confluent.Kafka")
+    .AddEntityFrameworkCoreInstrumentation()
+    .AddOtlpExporter(o =>
+      o.Endpoint = new Uri(
+        "http://otel-collector:4317"))
+  )
+  .WithMetrics(metrics => metrics
+    .AddAspNetCoreInstrumentation()
+    .AddHttpClientInstrumentation()
+    .AddRuntimeInstrumentation()
+    .AddPrometheusExporter()
+  );
+</pre>
+      </div>
+      <div class="card">
+        <h3>What You Get for Free</h3>
+        <ul>
+          <li><span class="highlight">gRPC</span> &mdash; spans for every RPC call with method, status</li>
+          <li><span class="highlight">HTTP</span> &mdash; inbound/outbound request spans with URL, status code</li>
+          <li><span class="highlight">Kafka</span> &mdash; produce/consume spans with topic, partition, offset</li>
+          <li><span class="highlight">EF Core</span> &mdash; database query spans with SQL command text</li>
+          <li><span class="highlight">Runtime</span> &mdash; GC, thread pool, heap metrics</li>
+          <li><span class="highlight">ASP.NET Core</span> &mdash; request duration, active requests</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--text-muted)">Zero code changes for 80% of your trace coverage.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Manual Instrumentation -->
+  <div class="slide">
+    <h2 class="animate">Manual Instrumentation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>.NET Custom Spans</h3>
+<pre style="font-size:0.85rem">
+// Define an ActivitySource (OTel span source)
+private static readonly ActivitySource
+  Source = new("TradingAgent.RiskGate");
+
+public async Task&lt;bool&gt; EvaluateRisk(
+  Order order)
+{
+  using var activity = Source
+    .StartActivity("EvaluateRisk");
+
+  // Add attributes
+  activity?.SetTag("order.symbol",
+    order.Symbol);
+  activity?.SetTag("order.size",
+    order.Size);
+  activity?.SetTag("order.side",
+    order.Side.ToString());
+
+  try {
+    var result = await _riskEngine
+      .Check(order);
+    activity?.SetTag("risk.approved",
+      result.Approved);
+    activity?.SetStatus(
+      ActivityStatusCode.Ok);
+    return result.Approved;
+  } catch (Exception ex) {
+    activity?.SetStatus(
+      ActivityStatusCode.Error,
+      ex.Message);
+    activity?.RecordException(ex);
+    throw;
+  }
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Python Custom Spans</h3>
+<pre style="font-size:0.85rem">
+from opentelemetry import trace
+
+tracer = trace.get_tracer(
+    "trading_agent.ml_model")
+
+def predict_signal(features: dict):
+    with tracer.start_as_current_span(
+        "predict_signal"
+    ) as span:
+        span.set_attribute(
+            "model.name", "xgboost-v3")
+        span.set_attribute(
+            "features.count", len(features))
+
+        try:
+            prediction = model.predict(
+                features)
+            span.set_attribute(
+                "prediction.signal",
+                prediction.signal)
+            span.set_attribute(
+                "prediction.confidence",
+                prediction.confidence)
+
+            # Add event for audit trail
+            span.add_event(
+                "signal_generated",
+                {"signal": prediction.signal,
+                 "confidence":
+                   prediction.confidence})
+
+            return prediction
+        except Exception as e:
+            span.set_status(
+                trace.Status(
+                  trace.StatusCode.ERROR,
+                  str(e)))
+            span.record_exception(e)
+            raise
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 10: The OTel Collector -->
+  <div class="slide">
+    <h2 class="animate">The OTel Collector</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Receives</span> &mdash; accepts telemetry over OTLP, Jaeger, Zipkin, Prometheus</li>
+          <li><span class="highlight">Processes</span> &mdash; batching, filtering, sampling, attribute enrichment</li>
+          <li><span class="highlight">Exports</span> &mdash; forwards to one or more backends simultaneously</li>
+          <li>Decouples apps from backends &mdash; change destination without redeploying apps</li>
+          <li>Handles retries, buffering, and backpressure</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Deployment Patterns</h3>
+        <ul>
+          <li><span class="highlight">Agent (DaemonSet)</span> &mdash; one per node, low latency, local collection</li>
+          <li><span class="highlight">Sidecar</span> &mdash; one per pod, isolated resource limits</li>
+          <li><span class="highlight">Gateway</span> &mdash; centralized, handles tail sampling and routing</li>
+          <li><span class="highlight">Agent + Gateway</span> &mdash; best of both: local buffering with centralized processing</li>
+        </ul>
+        <div class="diagram" style="margin-top:16px">
+          <div class="box" style="min-width:80px;padding:10px 14px">Apps</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:80px;padding:10px 14px">Agent</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:80px;padding:10px 14px">Gateway</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:80px;padding:10px 14px">Backends</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Collector Configuration -->
+  <div class="slide">
+    <h2 class="animate">Collector Configuration</h2>
+    <div class="content animate">
+<pre>
+# otel-collector-config.yaml (AI Crypto Trading Agent)
+receivers:
+  otlp:
+    protocols:
+      grpc:
+        endpoint: 0.0.0.0:4317
+      http:
+        endpoint: 0.0.0.0:4318
+
+processors:
+  batch:
+    send_batch_size: 1024
+    timeout: 5s
+  memory_limiter:
+    check_interval: 1s
+    limit_mib: 512
+  attributes:
+    actions:
+      - key: environment
+        value: production
+        action: upsert
+
+exporters:
+  otlp/tempo:                          # Traces -> Grafana Tempo (90-day retention)
+    endpoint: tempo:4317
+    tls:
+      insecure: true
+  prometheusremotewrite:               # Metrics -> Prometheus
+    endpoint: http://prometheus:9090/api/v1/write
+  loki:                                # Logs -> Loki
+    endpoint: http://loki:3100/loki/api/v1/push
+
+service:
+  pipelines:
+    traces:
+      receivers: [otlp]
+      processors: [memory_limiter, batch, attributes]
+      exporters: [otlp/tempo]
+    metrics:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [prometheusremotewrite]
+    logs:
+      receivers: [otlp]
+      processors: [memory_limiter, batch]
+      exporters: [loki]
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 12: Metrics with OTel -->
+  <div class="slide">
+    <h2 class="animate">Metrics with OTel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Metric Types</h3>
+        <ul>
+          <li><span class="highlight">Counter</span> &mdash; monotonically increasing (total trades executed)</li>
+          <li><span class="highlight">UpDownCounter</span> &mdash; can increase or decrease (active orders)</li>
+          <li><span class="highlight">Histogram</span> &mdash; distribution of values (trade latency)</li>
+          <li><span class="highlight">Gauge</span> &mdash; point-in-time value (current portfolio value)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>OTel vs Prometheus Native</h3>
+        <ul>
+          <li>OTel uses <span class="highlight">push</span> (OTLP); Prometheus uses <span class="highlight">pull</span> (scrape)</li>
+          <li>OTel SDK can export in Prometheus format</li>
+          <li>Both can coexist: use OTel SDK with Prometheus exporter</li>
+          <li>OTel adds exemplars &mdash; link a metric data point to a trace</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+<pre>
+// .NET - Custom trading metrics
+private static readonly Meter meter = new("TradingAgent.Metrics");
+
+// Counter: total trades
+private static readonly Counter&lt;long&gt; tradesExecuted =
+    meter.CreateCounter&lt;long&gt;("trades.executed.total",
+        description: "Total trades executed");
+
+// Histogram: execution latency
+private static readonly Histogram&lt;double&gt; execLatency =
+    meter.CreateHistogram&lt;double&gt;("trades.execution.latency_ms",
+        unit: "ms", description: "Trade execution latency");
+
+// Record metrics
+tradesExecuted.Add(1, new("symbol", "BTC-USD"), new("side", "BUY"));
+execLatency.Record(12.5, new("symbol", "BTC-USD"));
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 13: Logs with OTel -->
+  <div class="slide">
+    <h2 class="animate">Logs with OTel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Structured Logging</h3>
+        <ul>
+          <li>OTel Logs bridge existing log frameworks (Serilog, ILogger, Python logging)</li>
+          <li>Automatically injects <code>TraceId</code> and <code>SpanId</code> into every log entry</li>
+          <li>Logs become correlated with traces &mdash; click a log in Grafana, jump to the trace</li>
+          <li>Structured fields are exported as OTel log attributes</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Log Correlation Flow</h3>
+        <div class="diagram">
+          <div class="box" style="min-width:100px;padding:10px">App logs<br><small>ILogger/Serilog</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:100px;padding:10px">OTel SDK<br><small>+ TraceID</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:100px;padding:10px">Collector<br><small>batch + export</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="min-width:100px;padding:10px">Loki<br><small>query + link</small></div>
+        </div>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+<pre>
+// .NET - Logs automatically correlated with traces
+builder.Logging.AddOpenTelemetry(logging =>
+{
+    logging.IncludeScopes = true;
+    logging.IncludeFormattedMessage = true;
+    logging.AddOtlpExporter(o => o.Endpoint = new Uri("http://otel-collector:4317"));
+});
+
+// When logging inside an active span, TraceId is auto-injected:
+_logger.LogInformation("Risk gate passed for {Symbol}, size={Size}", order.Symbol, order.Size);
+// Output in Loki: {"traceId":"abc123","spanId":"def456","msg":"Risk gate passed for BTC-USD, size=0.5"}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 14: Context Propagation -->
+  <div class="slide">
+    <h2 class="animate">Context Propagation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Propagation Formats</h3>
+        <ul>
+          <li><span class="highlight">W3C TraceContext</span> &mdash; default standard, <code>traceparent</code> header</li>
+          <li><span class="highlight">B3</span> &mdash; Zipkin format, common in older systems</li>
+          <li><span class="highlight">Baggage</span> &mdash; key-value pairs propagated across all services</li>
+          <li>OTel supports multiple propagators simultaneously</li>
+        </ul>
+<pre style="font-size:0.85rem;margin-top:12px">
+# W3C TraceContext header
+traceparent: 00-abc123def456-span789-01
+#            ver-traceId------parentId-flags
+</pre>
+      </div>
+      <div class="card">
+        <h3>Propagation Across Kafka</h3>
+<pre style="font-size:0.85rem">
+// .NET Producer: inject context into
+// Kafka message headers
+var headers = new Headers();
+Propagators.DefaultTextMapPropagator
+  .Inject(
+    new PropagationContext(
+      Activity.Current!.Context,
+      Baggage.Current),
+    headers,
+    (h, key, val) =>
+      h.Add(key, Encoding.UTF8
+        .GetBytes(val)));
+
+producer.Produce("trade-signals",
+  new Message&lt;string, byte[]&gt; {
+    Headers = headers, ...
+  });
+
+# Python Consumer: extract context
+from opentelemetry.propagate import extract
+carrier = {
+    h.key: h.value.decode()
+    for h in msg.headers()
+}
+ctx = extract(carrier)
+with tracer.start_as_current_span(
+    "ProcessSignal", context=ctx):
+    process(msg)
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Sampling Strategies -->
+  <div class="slide">
+    <h2 class="animate">Sampling Strategies</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Head-Based Sampling</h3>
+        <p>Decision made at trace start. Fast, low overhead. Cannot consider downstream events.</p>
+        <code>TraceIdRatioBased(0.1) = 10% of traces</code>
+      </div>
+      <div class="metric-card">
+        <h3>Tail-Based Sampling</h3>
+        <p>Decision made after trace completes. Keeps errors and slow traces. Requires Collector gateway.</p>
+        <code>Keep if latency > 500ms or status = ERROR</code>
+      </div>
+      <div class="metric-card">
+        <h3>Rate Limiting</h3>
+        <p>Caps traces per second. Protects backends from burst traffic during market volatility.</p>
+        <code>rate_limiting: { spans_per_second: 500 }</code>
+      </div>
+      <div class="metric-card">
+        <h3>Always-On for Errors</h3>
+        <p>Sample 100% of error traces, 10% of success. Never miss a failed trade execution.</p>
+        <code>ParentBased(root=TraceIdRatio(0.1))</code>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+<pre>
+# Tail-based sampling in Collector config (keep errors + slow trades)
+processors:
+  tail_sampling:
+    decision_wait: 10s
+    policies:
+      - name: errors-always
+        type: status_code
+        status_code: { status_codes: [ERROR] }
+      - name: slow-trades
+        type: latency
+        latency: { threshold_ms: 500 }
+      - name: percentage-sample
+        type: probabilistic
+        probabilistic: { sampling_percentage: 10 }
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 16: OTel + Grafana Stack -->
+  <div class="slide">
+    <h2 class="animate">OTel + Grafana Stack</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">OTel Collector</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Tempo<br><small>Traces (90d)</small></div>
+      </div>
+      <div class="diagram">
+        <div class="box">OTel Collector</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Prometheus<br><small>Metrics (15d)</small></div>
+      </div>
+      <div class="diagram">
+        <div class="box">OTel Collector</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Loki<br><small>Logs (30d)</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>Grafana Integration</h3>
+        <ul>
+          <li><span class="highlight">Tempo</span> &mdash; distributed trace storage, search by TraceID or tags</li>
+          <li><span class="highlight">Prometheus</span> &mdash; metrics with PromQL, alerting rules</li>
+          <li><span class="highlight">Loki</span> &mdash; log aggregation with LogQL, label-based queries</li>
+          <li>Grafana dashboards unify all three signals</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Dashboards</h3>
+        <ul>
+          <li><span class="highlight">Trade Flow</span> &mdash; trace waterfall from tick to fill</li>
+          <li><span class="highlight">Latency</span> &mdash; p50/p95/p99 for each pipeline stage</li>
+          <li><span class="highlight">Error Rate</span> &mdash; failed risk gates, rejected orders</li>
+          <li><span class="highlight">ML Model</span> &mdash; inference latency, prediction distribution</li>
+          <li>Click any metric anomaly to jump to the correlated trace in Tempo</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: OTel in Python -->
+  <div class="slide">
+    <h2 class="animate">OTel in Python</h2>
+    <p class="subtitle animate">Instrumenting ML model serving and XGBoost inference</p>
+    <div class="content animate">
+<pre>
+# setup_otel.py - Initialize OpenTelemetry for Python ML service
+from opentelemetry import trace, metrics
+from opentelemetry.sdk.trace import TracerProvider
+from opentelemetry.sdk.trace.export import BatchSpanProcessor
+from opentelemetry.exporter.otlp.proto.grpc.trace_exporter import OTLPSpanExporter
+from opentelemetry.instrumentation.kafka import KafkaInstrumentor
+from opentelemetry.instrumentation.requests import RequestsInstrumentor
+
+# Auto-instrument Kafka consumer and HTTP requests
+KafkaInstrumentor().instrument()
+RequestsInstrumentor().instrument()
+
+# Configure tracer with OTLP export to Collector
+provider = TracerProvider()
+provider.add_span_processor(
+    BatchSpanProcessor(OTLPSpanExporter(endpoint="otel-collector:4317", insecure=True))
+)
+trace.set_tracer_provider(provider)
+
+tracer = trace.get_tracer("trading_agent.ml")
+meter = metrics.get_meter("trading_agent.ml")
+
+# Custom metrics for ML model
+inference_latency = meter.create_histogram("ml.inference.latency_ms", unit="ms")
+prediction_counter = meter.create_counter("ml.predictions.total")
+
+def run_xgboost_inference(features: dict) -> dict:
+    with tracer.start_as_current_span("xgboost_inference") as span:
+        span.set_attribute("model.version", "v3.2")
+        span.set_attribute("features.count", len(features))
+
+        start = time.perf_counter()
+        prediction = model.predict(xgb.DMatrix(features))
+        latency = (time.perf_counter() - start) * 1000
+
+        inference_latency.record(latency, {"model": "xgboost-v3"})
+        prediction_counter.add(1, {"signal": "BUY" if prediction > 0.5 else "SELL"})
+
+        span.set_attribute("prediction.value", float(prediction))
+        span.add_event("inference_complete", {"latency_ms": latency})
+        return {"signal": "BUY" if prediction > 0.5 else "SELL", "confidence": float(prediction)}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 18: OTel in Kubernetes -->
+  <div class="slide">
+    <h2 class="animate">OTel in Kubernetes</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>DaemonSet Collector</h3>
+        <p>One collector per node. Apps send to <code>localhost:4317</code>. Low network hop, good for high-throughput trading agents.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Sidecar Collector</h3>
+        <p>One collector per pod. Isolated resource limits per service. Use for services with unique processing needs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Gateway Collector</h3>
+        <p>Centralized deployment. Required for tail-based sampling. Handles cross-service trace decisions and routing.</p>
+      </div>
+      <div class="metric-card">
+        <h3>OTel Operator</h3>
+        <p>Kubernetes operator that manages Collector deployments, auto-instrumentation injection, and CRD-based config.</p>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+<pre>
+# OTel Collector deployed as DaemonSet (AI Trading Agent cluster)
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: otel-collector-agent
+spec:
+  selector:
+    matchLabels:
+      app: otel-collector
+  template:
+    spec:
+      containers:
+        - name: otel-collector
+          image: otel/opentelemetry-collector-contrib:latest
+          ports:
+            - containerPort: 4317    # OTLP gRPC
+            - containerPort: 4318    # OTLP HTTP
+          env:
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: spec.nodeName
+          volumeMounts:
+            - name: config
+              mountPath: /etc/otelcol-contrib
+      volumes:
+        - name: config
+          configMap:
+            name: otel-collector-config
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Use semantic conventions for attribute names (http.method, db.system, messaging.kafka.topic)</div>
+      <div class="bp-item"><span>2.</span> Always propagate context across async boundaries (Kafka headers, HTTP headers, gRPC metadata)</div>
+      <div class="bp-item"><span>3.</span> Use the Collector as a buffer between apps and backends &mdash; never export directly to storage</div>
+      <div class="bp-item"><span>4.</span> Implement tail-based sampling for error traces and slow operations to reduce storage costs</div>
+      <div class="bp-item"><span>5.</span> Set resource attributes (service.name, service.version, deployment.environment) on every signal</div>
+      <div class="bp-item"><span>6.</span> Record exceptions on spans with RecordException &mdash; never silently swallow errors</div>
+      <div class="bp-item"><span>7.</span> Use batch processors to reduce export overhead (batch size 512-2048, timeout 5s)</div>
+      <div class="bp-item"><span>8.</span> Add exemplars to metrics to link metric spikes to specific traces</div>
+      <div class="bp-item"><span>9.</span> Keep span names low-cardinality (use attributes for high-cardinality data like order IDs)</div>
+      <div class="bp-item"><span>10.</span> Monitor the Collector itself &mdash; track dropped spans, queue size, and export failures</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F50D;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered OpenTelemetry:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Traces</span><span class="tag">Metrics</span><span class="tag">Logs</span>
+        <span class="tag">Collector</span><span class="tag">Context Propagation</span><span class="tag">Sampling</span>
+        <span class="tag">Grafana Stack</span><span class="tag">Auto-Instrumentation</span><span class="tag">Kubernetes</span>
+      </div>
+      <p style="color:var(--text-muted)">Instrument once, observe everywhere. OpenTelemetry is the universal standard for distributed system observability.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

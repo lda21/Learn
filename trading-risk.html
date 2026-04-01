@@ -1,0 +1,988 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Trading Risk Management</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h1 class="animate">Trading Risk Management</h1>
+    <p class="subtitle animate">Protecting capital through systematic discipline</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Risk Management</span><span class="tag">Trading</span><span class="tag">Position Sizing</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: Why Risk Management? -->
+  <div class="slide">
+    <h2 class="animate">Why Risk Management?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Capital Preservation</h3>
+        <ul>
+          <li>A 50% loss requires a 100% gain to recover</li>
+          <li>Surviving drawdowns is more important than maximizing returns</li>
+          <li>Markets reward those who stay in the game longest</li>
+          <li>One catastrophic loss can wipe out years of profits</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Systematic Discipline</h3>
+        <ul>
+          <li><span class="highlight">Removes emotion</span> &mdash; rules execute regardless of fear or greed</li>
+          <li><span class="highlight">Consistent execution</span> &mdash; same rules every trade, every time</li>
+          <li><span class="highlight">Auditable</span> &mdash; every decision has a traceable reason</li>
+          <li><span class="highlight">Scalable</span> &mdash; works for $10K or $10M portfolios</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px;text-align:center"><span class="highlight">Rule #1:</span> Never lose money. <span class="highlight">Rule #2:</span> Never forget Rule #1.</p>
+  </div>
+
+  <!-- Slide 3: The Risk Gate Pattern -->
+  <div class="slide">
+    <h2 class="animate">The Risk Gate Pattern</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Signal Engine</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:var(--warning);background:var(--accent2)">Risk Gate</div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Execution</div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Deterministic, Not Advisory</h3>
+          <ul>
+            <li>100% rules-based &mdash; no ML, no discretion</li>
+            <li>Binary output: <span class="green">APPROVED</span> or <span class="highlight">REJECTED</span></li>
+            <li>Every trade MUST pass through the gate</li>
+            <li>No override mechanism in production</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Always Enforced</h3>
+          <ul>
+            <li>Runs as a separate gRPC service</li>
+            <li>Latency budget: <code>&lt;50ms</code></li>
+            <li>7 independent checks per request</li>
+            <li>Any single check failure = rejection</li>
+            <li>Rejection includes reason codes for logging</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 4: Position Sizing -->
+  <div class="slide">
+    <h2 class="animate">Position Sizing</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Percent Risk Per Trade</h3>
+          <p>Risk a fixed percentage of equity on each trade. Standard: <code>1.5% max</code> per trade.</p>
+          <p style="margin-top:8px"><code>Position Size = (Equity x Risk%) / Stop Distance</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>ATR-Based Sizing</h3>
+          <p>Use Average True Range to adapt size to volatility. High ATR = smaller position, low ATR = larger.</p>
+          <p style="margin-top:8px"><code>Size = Risk$ / (ATR x Multiplier)</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>Kelly Criterion</h3>
+          <p>Mathematically optimal bet size based on win rate and payoff ratio.</p>
+          <p style="margin-top:8px"><code>f* = (bp - q) / b</code></p>
+          <p style="font-size:0.95rem">where b=odds, p=win%, q=loss%</p>
+        </div>
+        <div class="metric-card">
+          <h3>Fractional Kelly</h3>
+          <p>Use 25-50% of full Kelly to reduce variance. Full Kelly is too aggressive for real trading.</p>
+          <p style="margin-top:8px"><code>Practical Size = 0.25 x Kelly</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Real-World: 7 Risk Gate Checks -->
+  <div class="slide">
+    <h2 class="animate">Real-World: 7 Risk Gate Checks</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>#</th><th>Check</th><th>Threshold</th><th>Action</th></tr>
+        <tr><td>1</td><td>Position Size</td><td>Max 1.5% equity per trade</td><td>Reject if exceeded</td></tr>
+        <tr><td>2</td><td>Token Concentration</td><td>Max 10% in any single token</td><td>Reject if exceeded</td></tr>
+        <tr><td>3</td><td>24h Rolling Drawdown</td><td>Max 3% from 24h peak</td><td>Halt all trading</td></tr>
+        <tr><td>4</td><td>Total Drawdown</td><td>Max 10% from all-time peak</td><td>Shutdown system</td></tr>
+        <tr><td>5</td><td>BTC Correlation</td><td>Correlation &le; 0.7</td><td>Reject correlated positions</td></tr>
+        <tr><td>6</td><td>Gross Leverage</td><td>Max 2x</td><td>Reject if exceeded</td></tr>
+        <tr><td>7</td><td>Data Freshness</td><td>Feed &lt; 30s stale</td><td>Reject on stale data</td></tr>
+      </table>
+      <p style="margin-top:14px;text-align:center">All 7 checks run in parallel via gRPC &mdash; total latency <code>&lt;50ms</code>. From <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent docs</a>.</p>
+    </div>
+  </div>
+
+  <!-- Slide 6: Drawdown Management -->
+  <div class="slide">
+    <h2 class="animate">Drawdown Management</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>24-Hour Rolling Drawdown</h3>
+        <ul>
+          <li>Track peak equity over rolling 24h window</li>
+          <li>Threshold: <code>3% max drawdown</code></li>
+          <li>Action: <span class="highlight">HALT</span> &mdash; stop opening new positions</li>
+          <li>Existing positions allowed to close normally</li>
+          <li>Auto-resume when drawdown recovers below 2%</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Total Drawdown from Peak</h3>
+        <ul>
+          <li>Track all-time high-water mark</li>
+          <li>Threshold: <code>10% max drawdown</code></li>
+          <li>Action: <span class="highlight">SHUTDOWN</span> &mdash; flatten everything</li>
+          <li>Requires manual restart and review</li>
+          <li>Signals potential strategy breakdown</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Drawdown calculation
+peak_24h = max(equity_snapshots[-24h:])
+current_dd = (peak_24h - current_equity) / peak_24h
+
+if current_dd >= 0.03:
+    risk_gate.halt("24h drawdown breached: {:.2%}".format(current_dd))
+
+hwm = max(all_time_equity_peaks)
+total_dd = (hwm - current_equity) / hwm
+
+if total_dd >= 0.10:
+    risk_gate.shutdown("Total drawdown breached: {:.2%}".format(total_dd))
+</pre>
+  </div>
+
+  <!-- Slide 7: Concentration & Correlation Limits -->
+  <div class="slide">
+    <h2 class="animate">Concentration &amp; Correlation Limits</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Token Concentration</h3>
+        <ul>
+          <li>No single token &gt; <code>10%</code> of portfolio</li>
+          <li>Prevents blowup from one asset collapse</li>
+          <li>Checked against notional value, not count</li>
+          <li>Applies to both long and short exposure</li>
+          <li>Rebalance alerts at 8% threshold</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>BTC Correlation Check</h3>
+        <ul>
+          <li>New positions must have <code>correlation &le; 0.7</code> with BTC</li>
+          <li>Crypto is highly correlated in crashes</li>
+          <li>Rolling 30-day Pearson correlation</li>
+          <li>Prevents portfolio becoming a leveraged BTC bet</li>
+          <li>Recalculated every 15 minutes</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Correlation check before new position
+btc_returns = get_returns("BTC", window=30*24*60)
+token_returns = get_returns(token, window=30*24*60)
+corr = pearson_correlation(btc_returns, token_returns)
+
+if corr > 0.7:
+    return RiskReject(
+        reason="BTC_CORRELATION_TOO_HIGH",
+        detail=f"{token} correlation with BTC: {corr:.2f} > 0.70"
+    )
+</pre>
+  </div>
+
+  <!-- Slide 8: Leverage Controls -->
+  <div class="slide">
+    <h2 class="animate">Leverage Controls</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Gross Leverage Max 2x</h3>
+          <p>Sum of absolute position values divided by equity. <code>|longs| + |shorts| &le; 2x equity</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>Margin Requirements</h3>
+          <p>Maintain 50% free margin minimum. Never let margin usage exceed exchange maintenance threshold.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Liquidation Prevention</h3>
+          <p>Pre-calculate liquidation price for every position. Auto-reduce if price within <code>5%</code> of liquidation.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Net Exposure Limit</h3>
+          <p>Net long/short exposure capped at <code>1.5x</code>. Prevents directional over-commitment.</p>
+        </div>
+      </div>
+<pre style="margin-top:14px">
+# Leverage check
+gross_exposure = sum(abs(pos.notional) for pos in positions)
+equity = account.total_equity
+gross_leverage = gross_exposure / equity
+
+if gross_leverage + new_order.notional / equity > 2.0:
+    return RiskReject(
+        reason="LEVERAGE_EXCEEDED",
+        detail=f"Gross leverage would be {gross_leverage:.2f}x > 2.0x"
+    )
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 9: Data Freshness as Risk -->
+  <div class="slide">
+    <h2 class="animate">Data Freshness as Risk</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:20px">Stale price feeds lead to wrong decisions. Progressive response based on staleness:</p>
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Fresh<br><small>&lt; 30s</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:#E8A838">Warn<br><small>30s&ndash;2min</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:var(--warning)">Reduce<br><small>2&ndash;5min</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:#C0392B">Flatten<br><small>&gt; 5min</small></div>
+      </div>
+      <table style="margin-top:20px">
+        <tr><th>Staleness</th><th>Action</th><th>Rationale</th></tr>
+        <tr><td><code>&lt; 30s</code></td><td><span class="green">Normal operation</span></td><td>Data is fresh enough for decisions</td></tr>
+        <tr><td><code>30s &ndash; 2min</code></td><td><span class="highlight">Reject new positions</span></td><td>Cannot price risk accurately</td></tr>
+        <tr><td><code>2min &ndash; 5min</code></td><td><span class="highlight">Reduce existing positions 50%</span></td><td>Market may have moved significantly</td></tr>
+        <tr><td><code>&gt; 5min</code></td><td style="color:#C0392B;font-weight:600">Flatten all positions</td><td>Flying blind &mdash; exit immediately</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 10: Funding Rate Risk -->
+  <div class="slide">
+    <h2 class="animate">Funding Rate Risk</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Are Funding Rates?</h3>
+        <ul>
+          <li>Perpetual futures have no expiry date</li>
+          <li>Funding rate keeps perp price close to spot</li>
+          <li>Paid every 8 hours (or 1h on some exchanges)</li>
+          <li>Positive rate = longs pay shorts</li>
+          <li>Negative rate = shorts pay longs</li>
+          <li>At 0.1%/8h, that is <code>~36.5%/year</code> drag</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Monitoring Thresholds</h3>
+        <ul>
+          <li><code>&gt; 0.01%/8h</code> &mdash; Normal, no action</li>
+          <li><code>&gt; 0.05%/8h</code> &mdash; Log and monitor closely</li>
+          <li><code>&gt; 0.1%/8h</code> &mdash; <span class="highlight">Alert</span>: reduce position size</li>
+          <li><code>&gt; 0.5%/8h</code> &mdash; <span class="highlight">Auto-close</span>: cost is too high</li>
+          <li>Track cumulative funding cost per position</li>
+          <li>Include funding in P&amp;L calculations</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Funding rate check
+funding_rate = exchange.get_funding_rate(token)
+
+if abs(funding_rate) > 0.005:    # 0.5% per 8h
+    kill_switch.close_position(token, reason="EXTREME_FUNDING")
+elif abs(funding_rate) > 0.001:  # 0.1% per 8h
+    alerting.send("HIGH_FUNDING", token=token, rate=funding_rate)
+    risk_gate.reduce_max_size(token, multiplier=0.5)
+</pre>
+  </div>
+
+  <!-- Slide 11: The Kill Switch -->
+  <div class="slide">
+    <h2 class="animate">The Kill Switch</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:20px;font-size:1.3rem">Emergency halt: flatten all positions in <code>&lt; 30 seconds</code></p>
+      <div class="two-col">
+        <div class="card">
+          <h3>Manual Triggers</h3>
+          <ul>
+            <li>Dashboard panic button</li>
+            <li>CLI command: <code>risk kill --confirm</code></li>
+            <li>Slack bot command</li>
+            <li>Phone call escalation to on-call</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Automatic Triggers</h3>
+          <ul>
+            <li>Total drawdown &gt; 10% from peak</li>
+            <li>Data feed stale &gt; 5 minutes</li>
+            <li>Exchange API errors &gt; 50% of requests</li>
+            <li>Reconciliation divergence &gt; 2%</li>
+            <li>System health check failure</li>
+          </ul>
+        </div>
+      </div>
+<pre style="margin-top:14px">
+# Kill switch execution flow
+async def kill_switch_activate(reason: str):
+    log.critical(f"KILL SWITCH ACTIVATED: {reason}")
+    alert.page_oncall(reason)
+
+    # 1. Cancel all open orders (parallel)
+    await asyncio.gather(*[
+        exchange.cancel_all_orders(token) for token in active_tokens
+    ])
+
+    # 2. Market-close all positions (parallel)
+    await asyncio.gather(*[
+        exchange.market_close(pos) for pos in open_positions
+    ])
+
+    # 3. Disable signal engine
+    signal_engine.disable()
+    log.critical(f"All positions flattened in {elapsed:.1f}s")
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 12: Reconciliation -->
+  <div class="slide">
+    <h2 class="animate">Reconciliation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Internal Model vs Exchange</h3>
+        <ul>
+          <li>Trading system tracks positions internally</li>
+          <li>Exchange is the source of truth</li>
+          <li>Drift can occur from partial fills, network issues, manual trades</li>
+          <li>Unreconciled positions = hidden risk</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>5-Minute Check Cycle</h3>
+        <ul>
+          <li>Every 5 minutes: fetch exchange positions</li>
+          <li>Compare against internal position model</li>
+          <li>Flag divergence &gt; <code>0.1%</code> for review</li>
+          <li>Auto-correct if divergence is small (&lt; 0.5%)</li>
+          <li>Kill switch if divergence &gt; <code>2%</code></li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Reconciliation loop (every 5 minutes)
+async def reconcile():
+    exchange_positions = await exchange.get_all_positions()
+    internal_positions = position_store.get_all()
+
+    for token in all_tokens:
+        exchange_qty = exchange_positions.get(token, 0)
+        internal_qty = internal_positions.get(token, 0)
+        divergence = abs(exchange_qty - internal_qty) / max(abs(internal_qty), 1)
+
+        if divergence > 0.02:
+            await kill_switch_activate(f"RECON_DIVERGENCE: {token} {divergence:.2%}")
+        elif divergence > 0.001:
+            position_store.correct(token, exchange_qty)
+            alert.warn(f"Recon corrected {token}: {internal_qty} -> {exchange_qty}")
+</pre>
+  </div>
+
+  <!-- Slide 13: Loss Streak & Regime Adaptation -->
+  <div class="slide">
+    <h2 class="animate">Loss Streak &amp; Regime Adaptation</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Loss Streak Tracking</h3>
+          <p>After <code>3 consecutive losses</code>, reduce position size to <code>0.5x</code> normal. Reset counter on first win.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Weekend Sizing</h3>
+          <p>Reduced liquidity on weekends. Apply <code>0.75x</code> size multiplier Friday 20:00 UTC through Monday 04:00 UTC.</p>
+        </div>
+        <div class="metric-card">
+          <h3>High Volatility Regime</h3>
+          <p>When ATR exceeds 2x its 30-day average, restrict new positions to <code>0.5x</code> max size.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Multiplier Stacking</h3>
+          <p>Multipliers compound: weekend (0.75) + loss streak (0.5) = <code>0.375x</code> normal size.</p>
+        </div>
+      </div>
+<pre style="margin-top:14px">
+# Size multiplier calculation
+def get_size_multiplier(token: str) -> float:
+    multiplier = 1.0
+
+    if consecutive_losses >= 3:
+        multiplier *= 0.5   # Loss streak reduction
+
+    if is_weekend():
+        multiplier *= 0.75  # Weekend reduction
+
+    if get_atr(token) > 2 * get_atr_avg(token, days=30):
+        multiplier *= 0.5   # High volatility reduction
+
+    return multiplier
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 14: Risk Gate Implementation -->
+  <div class="slide">
+    <h2 class="animate">Risk Gate Implementation</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Strategy<br><small>TradeRequest</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box" style="border-color:var(--warning)">gRPC<br><small>RiskGate</small></div>
+        <div class="arrow">&#x25B6;</div>
+        <div class="box">Response<br><small>Approve/Reject</small></div>
+      </div>
+<pre style="margin-top:14px">
+// risk_gate.proto
+service RiskGate {
+  rpc CheckTrade (TradeRequest) returns (TradeResponse);
+}
+
+message TradeRequest {
+  string token = 1;
+  string side = 2;           // BUY or SELL
+  double quantity = 3;
+  double price = 4;
+  double stop_loss = 5;
+  string strategy_id = 6;
+}
+
+message TradeResponse {
+  bool approved = 1;
+  repeated string rejection_reasons = 2;  // e.g. ["LEVERAGE_EXCEEDED", "STALE_DATA"]
+  double approved_quantity = 3;            // may be reduced
+  int64 latency_us = 4;                   // processing time in microseconds
+}
+</pre>
+      <p style="margin-top:10px;text-align:center">All 7 checks run concurrently. Response in <code>&lt;50ms</code>. Rejection reasons are logged for post-trade analysis.</p>
+    </div>
+  </div>
+
+  <!-- Slide 15: Slippage & Execution Risk -->
+  <div class="slide">
+    <h2 class="animate">Slippage &amp; Execution Risk</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Transaction Cost Analysis</h3>
+        <ul>
+          <li><span class="highlight">Slippage</span> = actual fill price vs expected price</li>
+          <li>Track per-trade, per-token, per-venue</li>
+          <li>Alert if slippage &gt; <code>0.1%</code> consistently</li>
+          <li>Include in backtesting assumptions</li>
+          <li>Log maker vs taker fills separately</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Spread Monitoring</h3>
+        <ul>
+          <li>Monitor bid-ask spread in real time</li>
+          <li>Wide spreads = low liquidity = higher risk</li>
+          <li>Reject trades when spread &gt; <code>0.5%</code></li>
+          <li>Compare spreads across venues</li>
+          <li>Adjust limit order offsets by spread</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate">
+      <table style="margin-top:16px">
+        <tr><th>Metric</th><th>Good</th><th>Warning</th><th>Critical</th></tr>
+        <tr><td>Slippage (avg)</td><td class="green">&lt; 0.02%</td><td style="color:var(--warning)">&lt; 0.1%</td><td style="color:#C0392B">&gt; 0.1%</td></tr>
+        <tr><td>Fill Rate</td><td class="green">&gt; 95%</td><td style="color:var(--warning)">&gt; 85%</td><td style="color:#C0392B">&lt; 85%</td></tr>
+        <tr><td>Bid-Ask Spread</td><td class="green">&lt; 0.05%</td><td style="color:var(--warning)">&lt; 0.2%</td><td style="color:#C0392B">&gt; 0.5%</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 16: Risk Monitoring Dashboards -->
+  <div class="slide">
+    <h2 class="animate">Risk Monitoring Dashboards</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Grafana panels for real-time risk visibility:</p>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Drawdown Tracker</h3>
+          <p>Time series: equity curve, 24h rolling drawdown, total drawdown. Red bands at 3% and 10% thresholds.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Leverage Gauge</h3>
+          <p>Current gross leverage as gauge chart. Green &lt;1.5x, yellow 1.5-2x, red &gt;2x. Updates every second.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Concentration Heatmap</h3>
+          <p>Token-by-token portfolio weight. Color intensity by concentration. Highlight any token &gt;8%.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Risk Gate Rejections</h3>
+          <p>Bar chart of rejections by reason code. Spot patterns: too many leverage rejections = strategy drift.</p>
+        </div>
+      </div>
+      <div class="metric-grid" style="margin-top:16px">
+        <div class="metric-card">
+          <h3>Data Freshness</h3>
+          <p>Per-feed staleness indicator. Green/yellow/red status. Alert integration with PagerDuty.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Reconciliation Status</h3>
+          <p>Last recon time, divergence per token, correction history. Flag tokens with repeated drift.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Monte Carlo & Stress Testing -->
+  <div class="slide">
+    <h2 class="animate">Monte Carlo &amp; Stress Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Monte Carlo Simulation</h3>
+        <ul>
+          <li>Simulate <code>10,000</code> trade sequences</li>
+          <li>Shuffle actual trade results randomly</li>
+          <li>Build distribution of outcomes</li>
+          <li>Find worst-case drawdown at 95th percentile</li>
+          <li>Validate that risk limits survive tail scenarios</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Stress Scenarios</h3>
+        <ul>
+          <li><span class="highlight">Flash crash:</span> -20% in 5 minutes</li>
+          <li><span class="highlight">Exchange halt:</span> no fills for 30 minutes</li>
+          <li><span class="highlight">Correlation spike:</span> all alts move with BTC</li>
+          <li><span class="highlight">Liquidity dry-up:</span> spreads widen 10x</li>
+          <li><span class="highlight">API outage:</span> cannot cancel orders</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Monte Carlo drawdown estimation
+import numpy as np
+
+def monte_carlo_max_drawdown(trade_returns, n_simulations=10000):
+    results = []
+    for _ in range(n_simulations):
+        shuffled = np.random.permutation(trade_returns)
+        equity_curve = np.cumprod(1 + shuffled)
+        running_max = np.maximum.accumulate(equity_curve)
+        drawdowns = (running_max - equity_curve) / running_max
+        results.append(drawdowns.max())
+
+    p95 = np.percentile(results, 95)
+    p99 = np.percentile(results, 99)
+    return {"p95_max_dd": p95, "p99_max_dd": p99, "worst": max(results)}
+</pre>
+  </div>
+
+  <!-- Slide 18: Risk Parameter Hot-Reload -->
+  <div class="slide">
+    <h2 class="animate">Risk Parameter Hot-Reload</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Hot-Reload?</h3>
+        <ul>
+          <li>Markets change faster than deploy cycles</li>
+          <li>Tighten limits during high volatility without restart</li>
+          <li>Loosen limits after a calm period</li>
+          <li>Zero downtime = zero missed risk events</li>
+          <li>Audit trail of every parameter change</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Implementation</h3>
+        <ul>
+          <li>Store parameters in Redis/etcd/ConfigMap</li>
+          <li>Risk gate watches for changes (pub/sub)</li>
+          <li>New values take effect on next check</li>
+          <li>Validation layer prevents invalid configs</li>
+          <li>Rollback to previous config on failure</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# risk_config.yaml (hot-reloadable)
+risk_limits:
+  max_position_pct: 0.015      # 1.5% of equity
+  max_concentration: 0.10       # 10% single token
+  max_24h_drawdown: 0.03        # 3% halt
+  max_total_drawdown: 0.10      # 10% shutdown
+  max_btc_correlation: 0.70
+  max_gross_leverage: 2.0
+  max_data_staleness_s: 30
+  weekend_multiplier: 0.75
+  loss_streak_threshold: 3
+  loss_streak_multiplier: 0.50
+  funding_alert_rate: 0.001     # 0.1% per 8h
+  funding_close_rate: 0.005     # 0.5% per 8h
+</pre>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Risk gate is deterministic &mdash; no ML, no discretion, 100% rules</div>
+      <div class="bp-item"><span>2.</span> Never risk more than 1.5% equity on a single trade</div>
+      <div class="bp-item"><span>3.</span> Monitor drawdowns at two levels: 24h rolling (3%) and total (10%)</div>
+      <div class="bp-item"><span>4.</span> Reconcile positions with exchange every 5 minutes</div>
+      <div class="bp-item"><span>5.</span> Build a kill switch that flattens everything in under 30 seconds</div>
+      <div class="bp-item"><span>6.</span> Treat stale data as a risk event &mdash; progressive response from reject to flatten</div>
+      <div class="bp-item"><span>7.</span> Track funding rates and auto-close on extreme costs (&gt;0.5%/8h)</div>
+      <div class="bp-item"><span>8.</span> Run Monte Carlo simulations to validate parameter choices</div>
+      <div class="bp-item"><span>9.</span> Make risk parameters hot-reloadable with full audit trail</div>
+      <div class="bp-item"><span>10.</span> Dashboard everything &mdash; if you cannot see it, you cannot manage it</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Trading Risk Management:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Risk Gate</span><span class="tag">Position Sizing</span><span class="tag">Drawdown</span>
+        <span class="tag">Leverage</span><span class="tag">Correlation</span><span class="tag">Kill Switch</span>
+        <span class="tag">Reconciliation</span><span class="tag">Monte Carlo</span><span class="tag">Hot-Reload</span>
+      </div>
+      <p style="color:var(--text-muted)">Risk management is the only edge that compounds. Protect capital first, profits follow.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

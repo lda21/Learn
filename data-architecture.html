@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Data Architecture &amp; Pipelines</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h1 class="animate">Data Architecture &amp; Pipelines</h1>
+    <p class="subtitle animate">Designing systems that move, store, and serve data at scale</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">TimescaleDB</span><span class="tag">Kafka Streams</span><span class="tag">Data Pipelines</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is Data Architecture? -->
+  <div class="slide">
+    <h2 class="animate">What Is Data Architecture?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Definition</h3>
+        <ul>
+          <li>The design of data systems, storage, flow, and governance</li>
+          <li>How data is collected, transformed, stored, and consumed</li>
+          <li>Rules for data quality, lineage, and access control</li>
+          <li>Alignment between data infrastructure and business needs</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Core Pillars</h3>
+        <ul>
+          <li><span class="highlight">Storage</span> &mdash; where data lives (OLTP, OLAP, object stores)</li>
+          <li><span class="highlight">Flow</span> &mdash; how data moves (batch, streaming, CDC)</li>
+          <li><span class="highlight">Governance</span> &mdash; who owns it, schema contracts, quality</li>
+          <li><span class="highlight">Serving</span> &mdash; how consumers access data (APIs, caches, views)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Data Lifecycle -->
+  <div class="slide">
+    <h2 class="animate">Data Lifecycle</h2>
+    <div class="diagram animate">
+      <div class="box">Ingestion</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Processing</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Storage</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Serving</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Archival</div>
+    </div>
+    <div class="content animate">
+      <table>
+        <tr><th>Stage</th><th>What Happens</th><th>Example Tools</th></tr>
+        <tr><td>Ingestion</td><td>Capture raw data from sources</td><td>Kafka, WebSocket, CDC</td></tr>
+        <tr><td>Processing</td><td>Transform, validate, enrich</td><td>Kafka Streams, Flink, Spark</td></tr>
+        <tr><td>Storage</td><td>Persist in appropriate tier</td><td>TimescaleDB, Redis, S3</td></tr>
+        <tr><td>Serving</td><td>Expose to consumers (APIs, dashboards)</td><td>REST, GraphQL, Feature Store</td></tr>
+        <tr><td>Archival</td><td>Move cold data to low-cost storage</td><td>S3 Glacier, lifecycle policies</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 4: Real-World: Trading Agent Data Flow -->
+  <div class="slide">
+    <h2 class="animate">Trading Agent Data Flow</h2>
+    <p class="animate" style="text-align:center;margin-bottom:16px">Real-world architecture from an <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a></p>
+    <div class="diagram animate">
+      <div class="box">Exchange WS</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Kafka Topics</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Kafka Streams</div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Feature Store</div>
+    </div>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Exchange WebSockets</span> &mdash; real-time market ticks, order book updates, funding rates</li>
+        <li><span class="highlight">Kafka</span> &mdash; durable message bus with 7-day retention, partitioned by instrument</li>
+        <li><span class="highlight">Kafka Streams</span> &mdash; computes 500+ technical indicators per instrument in real time</li>
+        <li><span class="highlight">Redis</span> &mdash; latest feature vectors for sub-ms model inference (60-120s TTL)</li>
+        <li><span class="highlight">Feast / TimescaleDB</span> &mdash; historical feature store for backtesting (2-10 year range)</li>
+        <li><span class="highlight">S3</span> &mdash; cold archive for raw tick data and audit trails</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 5: TimescaleDB Fundamentals -->
+  <div class="slide">
+    <h2 class="animate">TimescaleDB Fundamentals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is It?</h3>
+        <ul>
+          <li>PostgreSQL extension for time-series data</li>
+          <li>Full SQL support &mdash; no new query language</li>
+          <li>Automatic partitioning via <span class="highlight">hypertables</span></li>
+          <li>10-100x faster inserts vs vanilla PostgreSQL</li>
+          <li>Transparent &mdash; looks like a normal table</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Hypertables &amp; Chunks</h3>
+<pre style="font-size:0.85rem">
+-- Create a regular table
+CREATE TABLE market_ticks (
+  time        TIMESTAMPTZ NOT NULL,
+  instrument  TEXT        NOT NULL,
+  price       DOUBLE PRECISION,
+  volume      DOUBLE PRECISION
+);
+
+-- Convert to hypertable (auto-partitions by time)
+SELECT create_hypertable(
+  'market_ticks', 'time',
+  chunk_time_interval => INTERVAL '1 day'
+);
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">Each <span class="highlight">chunk</span> is an independent PostgreSQL table. Queries only scan relevant chunks via constraint exclusion.</p>
+  </div>
+
+  <!-- Slide 6: Continuous Aggregates -->
+  <div class="slide">
+    <h2 class="animate">Continuous Aggregates</h2>
+    <div class="content animate">
+      <p style="margin-bottom:14px">Automatically roll up raw ticks into candles. TimescaleDB materializes results and refreshes incrementally &mdash; no cron jobs needed.</p>
+<pre>
+-- 5-minute OHLCV candles from raw ticks
+CREATE MATERIALIZED VIEW candles_5m
+WITH (timescaledb.continuous) AS
+SELECT
+  time_bucket('5 minutes', time) AS bucket,
+  instrument,
+  first(price, time)  AS open,
+  max(price)           AS high,
+  min(price)           AS low,
+  last(price, time)    AS close,
+  sum(volume)          AS volume
+FROM market_ticks
+GROUP BY bucket, instrument;
+
+-- Auto-refresh: materialize new data every 5 minutes
+SELECT add_continuous_aggregate_policy('candles_5m',
+  start_offset  => INTERVAL '1 hour',
+  end_offset    => INTERVAL '5 minutes',
+  schedule_interval => INTERVAL '5 minutes'
+);
+</pre>
+      <p style="margin-top:12px"><span class="highlight">Cascade:</span> 1min ticks &rarr; 5m candles &rarr; 1h candles &rarr; 1d candles. Each layer is a continuous aggregate on the layer below.</p>
+    </div>
+  </div>
+
+  <!-- Slide 7: Compression & Retention -->
+  <div class="slide">
+    <h2 class="animate">Compression &amp; Retention</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Compression</h3>
+<pre style="font-size:0.85rem">
+-- Enable compression on hypertable
+ALTER TABLE market_ticks
+  SET (
+    timescaledb.compress,
+    timescaledb.compress_segmentby = 'instrument',
+    timescaledb.compress_orderby = 'time DESC'
+  );
+
+-- Auto-compress chunks older than 7 days
+SELECT add_compression_policy(
+  'market_ticks',
+  compress_after => INTERVAL '7 days'
+);
+</pre>
+        <p style="margin-top:8px">Typical compression: <span class="highlight">90-95% size reduction</span>. Compressed chunks are still queryable.</p>
+      </div>
+      <div class="card">
+        <h3>Retention</h3>
+<pre style="font-size:0.85rem">
+-- Drop raw ticks older than 2 years
+SELECT add_retention_policy(
+  'market_ticks',
+  drop_after => INTERVAL '2 years'
+);
+
+-- Keep aggregates longer (10 years)
+SELECT add_retention_policy(
+  'candles_5m',
+  drop_after => INTERVAL '10 years'
+);
+</pre>
+        <p style="margin-top:8px">Lifecycle: <span class="highlight">Hot</span> (uncompressed, &lt;7d) &rarr; <span class="highlight">Warm</span> (compressed, 7d-2yr) &rarr; <span class="highlight">Cold</span> (S3 archive)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Kafka Streams for Feature Pipelines -->
+  <div class="slide">
+    <h2 class="animate">Kafka Streams for Feature Pipelines</h2>
+    <div class="content animate">
+      <p style="margin-bottom:14px">Stateful stream processing to compute 500+ indicators per instrument in real time.</p>
+<pre>
+// Kafka Streams topology for trading features
+StreamsBuilder builder = new StreamsBuilder();
+
+KStream&lt;String, MarketTick&gt; ticks = builder.stream("market-ticks");
+
+// Windowed aggregation: 5-minute VWAP
+KTable&lt;Windowed&lt;String&gt;, VwapAccumulator&gt; vwap = ticks
+    .groupByKey()
+    .windowedBy(TimeWindows.ofSizeWithNoGrace(Duration.ofMinutes(5)))
+    .aggregate(
+        VwapAccumulator::new,
+        (key, tick, acc) -> acc.add(tick.price(), tick.volume()),
+        Materialized.with(Serdes.String(), vwapSerde)
+    );
+
+// Emit computed features to output topic
+vwap.toStream()
+    .map((windowed, acc) -> KeyValue.pair(
+        windowed.key(),
+        new Feature("vwap_5m", acc.vwap(), windowed.window().endTime())
+    ))
+    .to("computed-features");
+</pre>
+      <p style="margin-top:12px"><span class="highlight">Key design:</span> Each instrument is a Kafka partition key, ensuring all ticks for one instrument go to the same Streams task &mdash; enabling stateful windowed aggregations without shuffles.</p>
+    </div>
+  </div>
+
+  <!-- Slide 9: Schema Design with Protobuf -->
+  <div class="slide">
+    <h2 class="animate">Schema Design with Protobuf</h2>
+    <div class="content animate">
+      <p style="margin-bottom:14px">Canonical schemas define the contract between producers and consumers. Protobuf ensures backward compatibility and efficient serialization.</p>
+<pre>
+syntax = "proto3";
+package trading.v1;
+
+message MarketTick {
+  string instrument    = 1;   // e.g. "BTC-USDT-PERP"
+  int64  timestamp_ms  = 2;   // unix millis
+  double bid_price     = 3;
+  double ask_price     = 4;
+  double bid_size      = 5;
+  double ask_size      = 6;
+  string exchange      = 7;
+}
+
+message FundingRate {
+  string instrument    = 1;
+  int64  timestamp_ms  = 2;
+  double rate          = 3;   // e.g. 0.0001 = 0.01%
+  int64  next_funding  = 4;   // next settlement time
+}
+
+message OrderEvent {
+  string order_id      = 1;
+  string instrument    = 2;
+  enum Side { BUY = 0; SELL = 1; }
+  Side   side          = 3;
+  double price         = 4;
+  double quantity      = 5;
+  enum Status { NEW = 0; FILLED = 1; CANCELLED = 2; REJECTED = 3; }
+  Status status        = 6;
+  int64  timestamp_ms  = 7;
+}
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Rules:</span> Never reuse field numbers. Add new fields with new numbers. Use Schema Registry for version management.</p>
+    </div>
+  </div>
+
+  <!-- Slide 10: Hot / Warm / Cold Data Tiers -->
+  <div class="slide">
+    <h2 class="animate">Hot / Warm / Cold Data Tiers</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Tier</th><th>Store</th><th>Retention</th><th>Latency</th><th>Use Case</th></tr>
+        <tr><td><span class="highlight">Hot</span></td><td>Kafka + Redis</td><td>7d (Kafka), 60-120s (Redis)</td><td>&lt;1ms (Redis)</td><td>Live feature vectors, real-time inference</td></tr>
+        <tr><td><span class="highlight">Warm</span></td><td>TimescaleDB + Feast</td><td>2-10 years</td><td>5-50ms</td><td>Backtesting, model training, analytics</td></tr>
+        <tr><td><span class="highlight">Cold</span></td><td>S3 / Glacier</td><td>Indefinite</td><td>Seconds-hours</td><td>Audit trail, compliance, raw tick archive</td></tr>
+      </table>
+    </div>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--warning)">Hot<br><small>Kafka + Redis</small></div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box" style="border-color:var(--success)">Warm<br><small>TimescaleDB + Feast</small></div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box" style="border-color:var(--text-muted)">Cold<br><small>S3 Glacier</small></div>
+    </div>
+    <p class="animate" style="text-align:center;margin-top:12px">Data flows from hot to cold automatically via retention policies, compression, and S3 lifecycle rules.</p>
+  </div>
+
+  <!-- Slide 11: Data Quality & Validation -->
+  <div class="slide">
+    <h2 class="animate">Data Quality &amp; Validation</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Crossed Quotes</h3>
+        <p>Bid price &gt; ask price. Indicates bad data from exchange or feed handler. <span class="highlight">Action:</span> discard tick, alert on 3+ consecutive.</p>
+        <code>if tick.bid > tick.ask: reject()</code>
+      </div>
+      <div class="metric-card">
+        <h3>Stale Quotes</h3>
+        <p>No update for &gt;30 seconds on an active instrument. May indicate disconnection. <span class="highlight">Action:</span> mark stale, reduce position sizing.</p>
+        <code>if now() - last_tick > 30s: stale()</code>
+      </div>
+      <div class="metric-card">
+        <h3>Flash Moves (&gt;5&sigma;)</h3>
+        <p>Price moves more than 5 standard deviations from rolling mean. Likely a flash crash or fat-finger trade. <span class="highlight">Action:</span> filter from features, flag for review.</p>
+        <code>if abs(z_score) > 5: quarantine()</code>
+      </div>
+      <div class="metric-card">
+        <h3>Schema Validation</h3>
+        <p>Every message validated against Protobuf schema at ingestion. Malformed messages routed to dead-letter topic for investigation.</p>
+        <code>kafka: dead-letter-topic</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 12: Batch vs Streaming Architecture -->
+  <div class="slide">
+    <h2 class="animate">Batch vs Streaming Architecture</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Lambda Architecture</h3>
+        <ul>
+          <li>Separate <span class="highlight">batch layer</span> (complete, slow) and <span class="highlight">speed layer</span> (fast, approximate)</li>
+          <li>Serving layer merges both views</li>
+          <li>Dual codepaths = dual maintenance burden</li>
+          <li>Good when batch accuracy is required alongside real-time</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Kappa Architecture</h3>
+        <ul>
+          <li>Everything is a stream &mdash; single processing path</li>
+          <li>Reprocess by replaying Kafka from offset 0</li>
+          <li>Simpler: one codebase for batch and real-time</li>
+          <li><span class="highlight">Trading agent uses Kappa</span> &mdash; Kafka Streams handles both live and backfill</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <table>
+        <tr><th>Criteria</th><th>Lambda</th><th>Kappa</th></tr>
+        <tr><td>Complexity</td><td>High (two systems)</td><td>Low (one system)</td></tr>
+        <tr><td>Reprocessing</td><td>Batch job</td><td>Replay stream</td></tr>
+        <tr><td>Latency</td><td>Minutes (batch) + seconds (speed)</td><td>Seconds (stream only)</td></tr>
+        <tr><td>Best for</td><td>ML training + live scoring</td><td>Event-driven microservices</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 13: Data Partitioning Strategies -->
+  <div class="slide">
+    <h2 class="animate">Data Partitioning Strategies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Kafka: By Instrument</h3>
+<pre style="font-size:0.85rem">
+# Topic: market-ticks
+# Partition key: instrument ID
+
+BTC-USDT  -> Partition 0
+ETH-USDT  -> Partition 1
+SOL-USDT  -> Partition 2
+...
+
+# Guarantees:
+# - Ordered per instrument
+# - All ticks for one instrument
+#   on same Streams task
+# - Enables stateful processing
+</pre>
+      </div>
+      <div class="card">
+        <h3>TimescaleDB: By Time</h3>
+<pre style="font-size:0.85rem">
+-- Hypertable auto-partitions by time
+-- Each chunk = 1 day of data
+
+Chunk 1: 2025-03-28 data
+Chunk 2: 2025-03-29 data
+Chunk 3: 2025-03-30 data
+
+-- Query only scans relevant chunks
+SELECT * FROM market_ticks
+WHERE time > now() - INTERVAL '1 hour';
+-- Only reads today's chunk!
+
+-- Optional: add space partitioning
+SELECT add_dimension(
+  'market_ticks', 'instrument',
+  number_partitions => 4
+);
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: Change Data Capture (CDC) -->
+  <div class="slide">
+    <h2 class="animate">Change Data Capture (CDC)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Debezium + Outbox</h3>
+        <ul>
+          <li><span class="highlight">Debezium</span> captures row-level changes from PostgreSQL WAL</li>
+          <li>Publishes INSERT/UPDATE/DELETE events to Kafka topics</li>
+          <li><span class="highlight">Outbox pattern:</span> write events to an outbox table in the same transaction as your business data</li>
+          <li>Debezium reads the outbox table and publishes to Kafka</li>
+          <li>Guarantees atomicity: business state + event in one commit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Use Case</h3>
+<pre style="font-size:0.85rem">
+-- Outbox table in risk DB
+CREATE TABLE outbox_events (
+  id          UUID PRIMARY KEY,
+  aggregate   TEXT NOT NULL,
+  event_type  TEXT NOT NULL,
+  payload     JSONB NOT NULL,
+  created_at  TIMESTAMPTZ DEFAULT now()
+);
+
+-- In same transaction:
+BEGIN;
+  UPDATE positions
+    SET size = size - 0.5
+    WHERE instrument = 'BTC-USDT';
+  INSERT INTO outbox_events VALUES (
+    gen_random_uuid(),
+    'position', 'REDUCED',
+    '{"instrument":"BTC-USDT","delta":-0.5}'
+  );
+COMMIT;
+-- Debezium picks up the outbox row
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Data Lineage & Cataloging -->
+  <div class="slide">
+    <h2 class="animate">Data Lineage &amp; Cataloging</h2>
+    <div class="content animate">
+      <p style="margin-bottom:16px">Track where every feature comes from and what depends on it. Critical for debugging model drift and auditing trading decisions.</p>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Raw Ticks<br><small>market-ticks topic</small></div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">VWAP 5m<br><small>Kafka Streams</small></div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Feature Store<br><small>Redis + Feast</small></div>
+      <div class="arrow">&#x25B8;</div>
+      <div class="box">Model Input<br><small>inference pipeline</small></div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>Lineage Tracking</h3>
+        <ul>
+          <li>Tag every feature with its <span class="highlight">source topic</span>, <span class="highlight">transformation</span>, and <span class="highlight">version</span></li>
+          <li>Record pipeline DAG in a catalog (DataHub, OpenLineage)</li>
+          <li>Audit trail: which raw ticks produced which trading signal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Impact Analysis</h3>
+        <ul>
+          <li>Before changing a schema: what downstream consumers break?</li>
+          <li>Before deprecating a feature: which models use it?</li>
+          <li>Column-level lineage enables precise blast radius estimation</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 16: Consistency Models -->
+  <div class="slide">
+    <h2 class="animate">Consistency Models</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Eventual Consistency</h3>
+        <ul>
+          <li>Acceptable for <span class="highlight">market data</span> &mdash; ticks arrive out of order across exchanges</li>
+          <li>Feature vectors are "best effort latest" in Redis</li>
+          <li>Kafka guarantees ordering within a partition, not across</li>
+          <li>Continuous aggregates converge over the refresh window</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Strong Consistency</h3>
+        <ul>
+          <li>Required for <span class="highlight">risk state</span> &mdash; position sizes, balances, margin</li>
+          <li>PostgreSQL transactions with serializable isolation</li>
+          <li>Outbox pattern ensures event + state are atomic</li>
+          <li>Order fills must be idempotent (dedup by order_id)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <table>
+        <tr><th>Data Type</th><th>Consistency</th><th>Rationale</th></tr>
+        <tr><td>Market ticks</td><td>Eventual</td><td>Approximation OK; stale data detected by quality checks</td></tr>
+        <tr><td>Computed features</td><td>Eventual</td><td>Kafka Streams provides at-least-once; dedup downstream</td></tr>
+        <tr><td>Position state</td><td>Strong</td><td>Financial correctness &mdash; must never double-count fills</td></tr>
+        <tr><td>Risk limits</td><td>Strong</td><td>Safety critical &mdash; incorrect limits can cause liquidation</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 17: Data Freshness Budgets -->
+  <div class="slide">
+    <h2 class="animate">Data Freshness Budgets</h2>
+    <div class="content animate">
+      <p style="margin-bottom:16px">Every component has a maximum acceptable data age. Exceeding the budget triggers defensive actions.</p>
+    </div>
+    <div class="content animate">
+      <table>
+        <tr><th>Component</th><th>Max Age</th><th>Staleness Action</th></tr>
+        <tr><td>Redis feature vectors</td><td>120 seconds</td><td>Reduce position sizing by 50%</td></tr>
+        <tr><td>Market tick stream</td><td>30 seconds</td><td>Mark instrument stale, halt new orders</td></tr>
+        <tr><td>Funding rate</td><td>5 minutes</td><td>Use last known rate, log warning</td></tr>
+        <tr><td>Risk state (positions)</td><td>1 second</td><td>Reject new trades until synced</td></tr>
+        <tr><td>Continuous aggregates</td><td>10 minutes</td><td>Alert on-call; backfill on recovery</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center"><span class="highlight">Key principle:</span> stale data is worse than no data. When in doubt, reduce exposure and alert.</p>
+  </div>
+
+  <!-- Slide 18: Backup & Disaster Recovery -->
+  <div class="slide">
+    <h2 class="animate">Backup &amp; Disaster Recovery</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>TimescaleDB / RDS</h3>
+        <p>Multi-AZ deployment with automated failover. Daily snapshots with 35-day retention. Point-in-time recovery via WAL archiving.</p>
+        <code>RPO: ~5 min | RTO: ~5 min</code>
+      </div>
+      <div class="metric-card">
+        <h3>Kafka</h3>
+        <p>Replication factor 3 across availability zones. MirrorMaker 2 for cross-region replication. 7-day retention enables replay-based recovery.</p>
+        <code>RPO: 0 (sync repl) | RTO: ~2 min</code>
+      </div>
+      <div class="metric-card">
+        <h3>Redis</h3>
+        <p>Ephemeral by design &mdash; rebuilt from Kafka on restart. ElastiCache Multi-AZ for availability. No backup needed if reconstructible.</p>
+        <code>RPO: N/A | RTO: ~60s (warm-up)</code>
+      </div>
+      <div class="metric-card">
+        <h3>S3 Cold Archive</h3>
+        <p>Versioning enabled. Cross-region replication for critical audit data. Lifecycle rules: Standard &rarr; IA (30d) &rarr; Glacier (90d).</p>
+        <code>11 nines durability</code>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Define canonical schemas (Protobuf/Avro) before writing any pipeline code</div>
+      <div class="bp-item"><span>2.</span> Partition Kafka by entity key, TimescaleDB by time &mdash; match access patterns</div>
+      <div class="bp-item"><span>3.</span> Use continuous aggregates instead of scheduled batch rollup jobs</div>
+      <div class="bp-item"><span>4.</span> Validate data quality at ingestion &mdash; never trust upstream sources</div>
+      <div class="bp-item"><span>5.</span> Set explicit freshness budgets and automate staleness responses</div>
+      <div class="bp-item"><span>6.</span> Use the outbox pattern for atomic state + event publishing</div>
+      <div class="bp-item"><span>7.</span> Compress aggressively &mdash; TimescaleDB achieves 90-95% reduction</div>
+      <div class="bp-item"><span>8.</span> Track data lineage from raw source to model input</div>
+      <div class="bp-item"><span>9.</span> Choose consistency model per data type: eventual for market data, strong for risk</div>
+      <div class="bp-item"><span>10.</span> Design for replay: Kappa architecture lets you reprocess by resetting Kafka offsets</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Data Architecture &amp; Pipelines:</p>
+      <div style="margin:20px 0">
+        <span class="tag">TimescaleDB</span><span class="tag">Kafka Streams</span><span class="tag">Protobuf</span>
+        <span class="tag">Continuous Aggregates</span><span class="tag">Data Tiers</span><span class="tag">CDC</span>
+        <span class="tag">Data Quality</span><span class="tag">Lineage</span><span class="tag">Freshness Budgets</span>
+      </div>
+      <p style="color:var(--text-muted)">Good data architecture is invisible when it works and catastrophic when it doesn't. Design for the failure modes.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

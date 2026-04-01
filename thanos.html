@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Thanos</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4BE;</span>
+    <h1 class="animate">Thanos</h1>
+    <p class="subtitle animate">Long-term storage for Prometheus metrics</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Thanos</span><span class="tag">Prometheus</span><span class="tag">Long-Term Storage</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: The Problem -->
+  <div class="slide">
+    <h2 class="animate">The Problem: Prometheus at Scale</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Local Retention Limits</h3>
+        <ul>
+          <li>Prometheus stores data on local disk only</li>
+          <li>Typical retention: 2 weeks (disk cost grows fast)</li>
+          <li>No native long-term storage support</li>
+          <li>Losing months of historical data for capacity planning</li>
+          <li>Disk failure = total metric loss</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Single Instance Pain</h3>
+        <ul>
+          <li>No <span class="highlight">global query view</span> across clusters</li>
+          <li>HA pairs produce duplicate data</li>
+          <li>Each Prometheus is an isolated silo</li>
+          <li>Federation is fragile and limited</li>
+          <li>Cannot correlate metrics across regions</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: What Is Thanos? -->
+  <div class="slide">
+    <h2 class="animate">What Is Thanos?</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Highly Available Prometheus</span> with unlimited metric retention</li>
+        <li>CNCF Incubating project &mdash; production-grade, battle-tested</li>
+        <li>Seamlessly extends Prometheus without replacing it</li>
+        <li>Uses cheap object storage (S3, GCS, Azure Blob) as backend</li>
+        <li>Global query view across all Prometheus instances</li>
+        <li>Automatic deduplication of HA replica data</li>
+        <li>Downsampling for cost-efficient long-term queries</li>
+        <li>100% PromQL compatible &mdash; Grafana works with zero changes</li>
+      </ul>
+      <p style="margin-top:16px;text-align:center"><span class="highlight">Key idea:</span> Prometheus handles the last 2 weeks. Thanos handles the rest &mdash; months or years.</p>
+    </div>
+  </div>
+
+  <!-- Slide 4: Architecture Overview -->
+  <div class="slide">
+    <h2 class="animate">Thanos Architecture Overview</h2>
+    <div class="diagram animate">
+      <div class="box">Prometheus<br>+ Sidecar</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Object Storage<br>(S3 / GCS)</div>
+      <div class="arrow">&#x2190;</div>
+      <div class="box">Store Gateway</div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Thanos Query</div>
+      <div class="arrow">&#x2190;</div>
+      <div class="box">Sidecar + Store</div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Compactor</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Downsample &amp; Deduplicate</div>
+    </div>
+    <div class="content animate" style="margin-top:14px">
+      <table>
+        <tr><th>Component</th><th>Role</th></tr>
+        <tr><td><span class="highlight">Sidecar</span></td><td>Uploads TSDB blocks to object storage, proxies live queries</td></tr>
+        <tr><td><span class="highlight">Store Gateway</span></td><td>Serves historical blocks from object storage</td></tr>
+        <tr><td><span class="highlight">Query</span></td><td>Global PromQL endpoint, fans out to sidecars + stores</td></tr>
+        <tr><td><span class="highlight">Compactor</span></td><td>Merges, deduplicates, and downsamples blocks</td></tr>
+        <tr><td><span class="highlight">Ruler</span></td><td>Evaluates recording rules and alerts against global view</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 5: Thanos Sidecar -->
+  <div class="slide">
+    <h2 class="animate">Thanos Sidecar</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Runs alongside each Prometheus instance</li>
+          <li>Uploads completed TSDB blocks to object storage</li>
+          <li>Proxies real-time queries from Thanos Query</li>
+          <li>Exposes StoreAPI gRPC for Thanos Query to discover</li>
+          <li>Zero impact on Prometheus performance</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How Blocks Flow</h3>
+        <ul>
+          <li>Prometheus writes 2-hour TSDB blocks to disk</li>
+          <li>Sidecar detects completed blocks</li>
+          <li>Uploads to S3 bucket with external labels</li>
+          <li>Labels identify cluster, replica, environment</li>
+          <li>Prometheus can now safely delete old blocks</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Sidecar container in Prometheus Pod
+- name: thanos-sidecar
+  image: quay.io/thanos/thanos:v0.37.2
+  args:
+    - sidecar
+    - --tsdb.path=/prometheus
+    - --prometheus.url=http://localhost:9090
+    - --objstore.config-file=/etc/thanos/bucket.yaml
+    - --grpc-address=0.0.0.0:10901
+</pre>
+  </div>
+
+  <!-- Slide 6: Store Gateway -->
+  <div class="slide">
+    <h2 class="animate">Thanos Store Gateway</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Purpose</h3>
+        <ul>
+          <li>Serves historical metric data from object storage</li>
+          <li>Acts as a "virtual Prometheus" for old data</li>
+          <li>Implements the same StoreAPI gRPC interface</li>
+          <li>Thanos Query treats it like any other data source</li>
+          <li>Stateless &mdash; can be scaled horizontally</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Performance</h3>
+        <ul>
+          <li>Caches block metadata and index in memory</li>
+          <li>Lazy-loads only requested chunks from S3</li>
+          <li>Supports bucket caching with memcached/Redis</li>
+          <li>Time-based partitioning for sharding across replicas</li>
+          <li>Queries 1-year data as fast as querying Prometheus</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Thanos Store Gateway deployment
+args:
+  - store
+  - --data-dir=/var/thanos/store
+  - --objstore.config-file=/etc/thanos/bucket.yaml
+  - --index-cache-size=1GB
+  - --chunk-pool-size=4GB
+  - --grpc-address=0.0.0.0:10901
+</pre>
+  </div>
+
+  <!-- Slide 7: Thanos Query -->
+  <div class="slide">
+    <h2 class="animate">Thanos Query</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Global PromQL endpoint</span> &mdash; single pane of glass for all metrics</li>
+        <li>Fans out queries to all Sidecars and Store Gateways</li>
+        <li>Automatic <span class="highlight">deduplication</span> of HA Prometheus replicas</li>
+        <li>Merges results transparently &mdash; Grafana sees one unified source</li>
+        <li>Supports partial response mode for degraded environments</li>
+        <li>Horizontal scaling: add more Query replicas behind a load balancer</li>
+      </ul>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Thanos Query discovering data sources
+args:
+  - query
+  - --http-address=0.0.0.0:9090
+  - --grpc-address=0.0.0.0:10901
+  - --store=dnssrv+_grpc._tcp.thanos-sidecar.monitoring.svc
+  - --store=dnssrv+_grpc._tcp.thanos-store.monitoring.svc
+  - --query.replica-label=replica
+  - --query.auto-downsampling
+</pre>
+    <div class="diagram animate">
+      <div class="box">Grafana</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Thanos Query<br>:9090</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Sidecar (live)<br>+ Store (historical)</div>
+    </div>
+  </div>
+
+  <!-- Slide 8: Real-World Trading Agent -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent Metrics</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">The <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a> uses Thanos for 1-year metric retention.</p>
+    </div>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Prometheus (Hot)</h3>
+        <p>Retains last <span class="highlight">2 weeks</span> on local SSD. Sub-second queries for live dashboards, alerts, and trading signals.</p>
+        <code>--storage.tsdb.retention.time=14d</code>
+      </div>
+      <div class="metric-card">
+        <h3>Thanos S3 (Warm)</h3>
+        <p>Extends retention to <span class="highlight">1 year</span> on S3. Historical analysis of PnL trends, model accuracy, market patterns.</p>
+        <code>--retention.resolution-raw=365d</code>
+      </div>
+      <div class="metric-card">
+        <h3>Key Metrics Stored</h3>
+        <p>Trade execution latency, order fill rates, portfolio value, strategy signals, exchange API errors, model inference time.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Why 1 Year?</h3>
+        <p>Crypto markets are cyclical. Comparing current strategy performance against last year's bull/bear data is essential for backtesting.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Object Storage Configuration -->
+  <div class="slide">
+    <h2 class="animate">Object Storage Configuration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Supported Backends</h3>
+        <ul>
+          <li><span class="highlight">AWS S3</span> &mdash; most common, cheapest at scale</li>
+          <li><span class="highlight">Google GCS</span> &mdash; native for GKE clusters</li>
+          <li><span class="highlight">Azure Blob</span> &mdash; for Azure environments</li>
+          <li><span class="highlight">MinIO</span> &mdash; S3-compatible self-hosted</li>
+          <li>OpenStack Swift, Tencent COS, Alibaba OSS</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Setup</h3>
+        <ul>
+          <li>S3 bucket: <code>trading-agent-thanos</code></li>
+          <li>Region: <code>us-east-1</code> (same as EKS)</li>
+          <li>IRSA for pod-level IAM authentication</li>
+          <li>Server-side encryption (SSE-S3)</li>
+          <li>Versioning disabled (Thanos manages blocks)</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# bucket.yaml - Thanos object storage config
+type: S3
+config:
+  bucket: "trading-agent-thanos"
+  endpoint: "s3.us-east-1.amazonaws.com"
+  region: "us-east-1"
+  access_key: ""          # Using IRSA, no static keys
+  secret_key: ""
+  insecure: false
+  signature_version2: false
+  encrypt_sse: true
+  put_user_metadata: {}
+</pre>
+  </div>
+
+  <!-- Slide 10: Thanos Compactor -->
+  <div class="slide">
+    <h2 class="animate">Thanos Compactor</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Merges</span> small 2h blocks into larger ones</li>
+          <li><span class="highlight">Deduplicates</span> HA replica data</li>
+          <li><span class="highlight">Downsamples</span> old data (5m, 1h aggregates)</li>
+          <li>Applies retention policies per resolution</li>
+          <li>Runs as a singleton &mdash; only one instance allowed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Compaction Levels</h3>
+        <ul>
+          <li>Level 1: 2h blocks (raw from Prometheus)</li>
+          <li>Level 2: merged into larger blocks</li>
+          <li>Level 3: further compacted for efficiency</li>
+          <li>Reduces S3 object count by 10-50x</li>
+          <li>Faster queries on compacted data</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Thanos Compactor configuration
+args:
+  - compact
+  - --data-dir=/var/thanos/compact
+  - --objstore.config-file=/etc/thanos/bucket.yaml
+  - --retention.resolution-raw=365d       # Keep raw data 1 year
+  - --retention.resolution-5m=365d        # Keep 5m downsampled 1 year
+  - --retention.resolution-1h=365d        # Keep 1h downsampled 1 year
+  - --compact.concurrency=4
+  - --downsample.concurrency=4
+  - --wait                                # Run continuously
+</pre>
+  </div>
+
+  <!-- Slide 11: Downsampling -->
+  <div class="slide">
+    <h2 class="animate">Downsampling</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Thanos automatically creates lower-resolution aggregates for older data, dramatically reducing storage and query time.</p>
+    </div>
+    <div class="content animate">
+      <table>
+        <tr><th>Resolution</th><th>Created After</th><th>Aggregates Stored</th><th>Use Case</th></tr>
+        <tr><td><span class="highlight">Raw</span></td><td>Immediately</td><td>All original samples</td><td>Last 2 weeks, real-time alerting</td></tr>
+        <tr><td><span class="highlight">5 minutes</span></td><td>40 hours</td><td>min, max, sum, count, counter</td><td>Last few months, daily dashboards</td></tr>
+        <tr><td><span class="highlight">1 hour</span></td><td>10 days</td><td>min, max, sum, count, counter</td><td>6-12 month trends, capacity planning</td></tr>
+      </table>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Storage Savings</h3>
+        <ul>
+          <li>Raw: ~15 second scrape interval</li>
+          <li>5m: 20x fewer samples than raw</li>
+          <li>1h: 240x fewer samples than raw</li>
+          <li>1 year of trading metrics: ~50GB (vs ~2TB raw)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Auto-Downsampling in Queries</h3>
+        <ul>
+          <li>Thanos Query selects resolution automatically</li>
+          <li>Short ranges use raw data</li>
+          <li>Long ranges use 5m or 1h data</li>
+          <li><code>--query.auto-downsampling</code> enables this</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 12: Thanos Ruler -->
+  <div class="slide">
+    <h2 class="animate">Thanos Ruler</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Purpose</h3>
+        <ul>
+          <li>Evaluates recording rules against <span class="highlight">global view</span></li>
+          <li>Alerts based on cross-cluster aggregated data</li>
+          <li>Uploads rule results as TSDB blocks to S3</li>
+          <li>Works like Prometheus ruler but queries Thanos Query</li>
+          <li>Essential for multi-cluster alerting</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Rules</h3>
+        <ul>
+          <li>Record: hourly PnL aggregations across all strategies</li>
+          <li>Alert: portfolio drawdown exceeds 5% in 24h</li>
+          <li>Alert: trade execution latency p99 > 500ms</li>
+          <li>Record: daily exchange error rates</li>
+          <li>Alert: model inference time degradation</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Thanos Ruler configuration
+args:
+  - rule
+  - --data-dir=/var/thanos/ruler
+  - --objstore.config-file=/etc/thanos/bucket.yaml
+  - --rule-file=/etc/thanos/rules/*.yaml
+  - --query=dnssrv+_http._tcp.thanos-query.monitoring.svc
+  - --alert.query-url=http://thanos-query.monitoring.svc:9090
+  - --alertmanagers.url=http://alertmanager.monitoring.svc:9093
+  - --label=ruler_cluster="trading-prod"
+</pre>
+  </div>
+
+  <!-- Slide 13: Deployment on Kubernetes -->
+  <div class="slide">
+    <h2 class="animate">Deployment on Kubernetes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Helm Chart (Bitnami)</h3>
+<pre style="font-size:0.85rem">
+# values.yaml
+# Bitnami Thanos Helm chart
+objstoreConfig: |-
+  type: S3
+  config:
+    bucket: trading-agent-thanos
+    endpoint: s3.us-east-1.amazonaws.com
+    region: us-east-1
+
+query:
+  replicaCount: 2
+  dnsDiscovery:
+    sidecarsService: prometheus-thanos
+    sidecarsNamespace: monitoring
+
+storegateway:
+  replicaCount: 2
+  persistence:
+    size: 20Gi
+
+compactor:
+  persistence:
+    size: 50Gi
+  retentionResolutionRaw: 365d
+  retentionResolution5m: 365d
+  retentionResolution1h: 365d
+</pre>
+      </div>
+      <div class="card">
+        <h3>Deployment Topology</h3>
+        <ul>
+          <li><span class="highlight">Sidecar</span> &mdash; injected into Prometheus Pod</li>
+          <li><span class="highlight">Query</span> &mdash; Deployment (2+ replicas, behind LB)</li>
+          <li><span class="highlight">Store</span> &mdash; StatefulSet (persistent cache)</li>
+          <li><span class="highlight">Compactor</span> &mdash; StatefulSet (singleton, needs disk)</li>
+          <li><span class="highlight">Ruler</span> &mdash; StatefulSet (stores WAL on disk)</li>
+        </ul>
+        <p style="margin-top:12px"><span class="highlight">Install:</span></p>
+<pre style="font-size:0.85rem">
+helm repo add bitnami \
+  https://charts.bitnami.com/bitnami
+
+helm install thanos bitnami/thanos \
+  -n monitoring \
+  -f values.yaml
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: PromQL Across Time -->
+  <div class="slide">
+    <h2 class="animate">PromQL Across Time</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:16px">Thanos Query is a drop-in Prometheus replacement. All PromQL works seamlessly across local and historical data.</p>
+    </div>
+<pre class="animate">
+# Query last 30 days of trade execution latency (uses raw + 5m downsampled)
+histogram_quantile(0.99,
+  sum(rate(trade_execution_duration_seconds_bucket[30d])) by (le, strategy)
+)
+
+# Compare this week's PnL vs same week last year (uses 1h downsampled)
+sum(increase(portfolio_pnl_total[7d]))
+  -
+sum(increase(portfolio_pnl_total[7d] offset 365d))
+
+# Average order fill rate over 6 months (1h resolution, fast query)
+avg_over_time(order_fill_rate[180d])
+
+# Model accuracy trend over 1 year (auto-downsampled to 1h)
+avg_over_time(model_prediction_accuracy[365d])
+</pre>
+    <div class="content animate" style="margin-top:14px">
+      <ul>
+        <li>Grafana datasource: just point to Thanos Query <code>:9090</code> instead of Prometheus</li>
+        <li>Auto-downsampling selects the right resolution for the time range</li>
+        <li><code>offset 365d</code> queries seamlessly pull from S3-backed historical data</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 15: Multi-Cluster Federation -->
+  <div class="slide">
+    <h2 class="animate">Multi-Cluster Federation</h2>
+    <div class="diagram animate">
+      <div class="box">EKS Cluster A<br>Prometheus + Sidecar</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:var(--success)">S3 Bucket<br>(shared)</div>
+      <div class="arrow">&#x2190;</div>
+      <div class="box">EKS Cluster B<br>Prometheus + Sidecar</div>
+    </div>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--success)">Thanos Query<br>(global view)</div>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>How It Works</h3>
+        <ul>
+          <li>Each cluster runs Prometheus + Thanos Sidecar</li>
+          <li>All sidecars upload to the <span class="highlight">same S3 bucket</span></li>
+          <li>External labels distinguish clusters: <code>cluster="prod-us"</code></li>
+          <li>One central Thanos Query fans out to all sidecars</li>
+          <li>Store Gateway serves historical data from any cluster</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Trading Agent Example</h3>
+        <ul>
+          <li>Prod cluster: live trading, order execution metrics</li>
+          <li>Staging cluster: backtesting, model training metrics</li>
+          <li>Single dashboard compares prod vs staging performance</li>
+          <li>Alerts fire on aggregated cross-cluster data</li>
+          <li>One Grafana instance, one Thanos Query endpoint</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 16: Retention & Cost Management -->
+  <div class="slide">
+    <h2 class="animate">Retention &amp; Cost Management</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Resolution</th><th>Retention</th><th>Storage Tier</th><th>Monthly Cost (est.)</th></tr>
+        <tr><td>Raw (15s)</td><td>365 days</td><td>S3 Standard</td><td>~$45/TB</td></tr>
+        <tr><td>5-minute</td><td>365 days</td><td>S3 Standard</td><td>~$2/TB</td></tr>
+        <tr><td>1-hour</td><td>365 days</td><td>S3 Standard</td><td>~$0.10/TB</td></tr>
+      </table>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Thanos Retention Policies</h3>
+        <ul>
+          <li><code>--retention.resolution-raw=365d</code></li>
+          <li><code>--retention.resolution-5m=365d</code></li>
+          <li><code>--retention.resolution-1h=365d</code></li>
+          <li>Compactor enforces deletion of expired blocks</li>
+          <li>Can keep 1h data forever while deleting raw after 90d</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>S3 Lifecycle Policies</h3>
+        <ul>
+          <li>Transition blocks older than 90 days to S3 Glacier</li>
+          <li>Use S3 Intelligent-Tiering for automatic optimization</li>
+          <li>Enable S3 analytics to track access patterns</li>
+          <li>Tag blocks by resolution for fine-grained policies</li>
+          <li>Trading agent: ~$15/month for 1 year of metrics</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Thanos vs Alternatives -->
+  <div class="slide">
+    <h2 class="animate">Thanos vs Alternatives</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>Thanos</th><th>Cortex / Mimir</th><th>VictoriaMetrics</th></tr>
+        <tr><td>Architecture</td><td>Sidecar + object storage</td><td>Write-path microservices</td><td>Monolithic or cluster</td></tr>
+        <tr><td>PromQL Compat</td><td>100%</td><td>100%</td><td>99% + MetricsQL</td></tr>
+        <tr><td>Multi-Tenancy</td><td>Basic (labels)</td><td>Native (per-tenant)</td><td>Native</td></tr>
+        <tr><td>Complexity</td><td><span class="green">Low-Medium</span></td><td>High (many services)</td><td><span class="green">Low</span></td></tr>
+        <tr><td>Deduplication</td><td>Query-time + Compactor</td><td>Write-time (HA tracker)</td><td>Write-time</td></tr>
+        <tr><td>Backend</td><td>Object storage only</td><td>Object storage only</td><td>Local disk or S3</td></tr>
+        <tr><td>Best For</td><td>Extending existing Prometheus</td><td>Large multi-tenant platforms</td><td>High cardinality, simple ops</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Choose Thanos</span> when you already run Prometheus and want to add long-term storage with minimal changes.</p>
+  </div>
+
+  <!-- Slide 18: Monitoring Thanos Itself -->
+  <div class="slide">
+    <h2 class="animate">Monitoring Thanos Itself</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Block Upload Success</h3>
+        <p>Sidecar must upload every 2h block. Alert on missing uploads.</p>
+        <code>thanos_shipper_upload_failures_total</code>
+      </div>
+      <div class="metric-card">
+        <h3>Compaction Lag</h3>
+        <p>If compactor falls behind, queries slow down and storage bloats.</p>
+        <code>thanos_compact_group_compactions_failures_total</code>
+      </div>
+      <div class="metric-card">
+        <h3>Query Latency</h3>
+        <p>Track p99 query duration. Should stay under 10s for dashboards.</p>
+        <code>http_request_duration_seconds_bucket{handler="query"}</code>
+      </div>
+      <div class="metric-card">
+        <h3>Store Gateway Cache Hit</h3>
+        <p>Low cache hit ratio means excessive S3 API calls and higher cost.</p>
+        <code>thanos_store_index_cache_hits_total</code>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Alert: Sidecar upload failures
+- alert: ThanosSidecarUploadFailures
+  expr: rate(thanos_shipper_upload_failures_total[5m]) > 0
+  for: 15m
+  labels:
+    severity: critical
+  annotations:
+    summary: "Thanos Sidecar failing to upload blocks to S3"
+
+# Alert: Compactor not running
+- alert: ThanosCompactHalted
+  expr: thanos_compact_halted == 1
+  for: 5m
+  labels:
+    severity: critical
+</pre>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Always set external labels on Prometheus (cluster, replica, env)</div>
+      <div class="bp-item"><span>2.</span> Use IRSA/Workload Identity for S3 auth &mdash; never static credentials</div>
+      <div class="bp-item"><span>3.</span> Run Compactor as a singleton with persistent volume (50GB+)</div>
+      <div class="bp-item"><span>4.</span> Enable auto-downsampling on Thanos Query for long-range queries</div>
+      <div class="bp-item"><span>5.</span> Set Prometheus retention to 2 weeks &mdash; let Thanos handle the rest</div>
+      <div class="bp-item"><span>6.</span> Monitor Thanos with Thanos &mdash; use dedicated alerts for upload/compaction failures</div>
+      <div class="bp-item"><span>7.</span> Use memcached for Store Gateway index and chunk caching</div>
+      <div class="bp-item"><span>8.</span> Separate S3 buckets per environment (prod, staging, dev)</div>
+      <div class="bp-item"><span>9.</span> Enable S3 server-side encryption and bucket versioning policies</div>
+      <div class="bp-item"><span>10.</span> Test disaster recovery: delete Store Gateway cache and verify it rebuilds</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4BE;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Thanos:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Sidecar</span><span class="tag">Store Gateway</span><span class="tag">Query</span>
+        <span class="tag">Compactor</span><span class="tag">Ruler</span><span class="tag">Downsampling</span>
+        <span class="tag">Multi-Cluster</span><span class="tag">S3 Backend</span><span class="tag">Long-Term Storage</span>
+      </div>
+      <p style="color:var(--text-muted)">Thanos turns Prometheus into an unlimited, highly available metric store. Keep Prometheus simple, let Thanos handle scale.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

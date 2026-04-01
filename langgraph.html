@@ -1,0 +1,950 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>LangGraph &amp; LLM Agents</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h1 class="animate">LangGraph &amp; LLM Agents</h1>
+    <p class="subtitle animate">Building stateful, multi-agent AI systems</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">LangGraph</span><span class="tag">LLM Agents</span><span class="tag">MCP</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: What Is LangGraph? -->
+  <div class="slide">
+    <h2 class="animate">What Is LangGraph?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Framework by LangChain for building <span class="highlight">stateful, multi-step</span> agent applications</li>
+          <li>Models agent workflows as <span class="highlight">directed graphs</span></li>
+          <li>Nodes = functions, Edges = transitions</li>
+          <li>Built-in state management, persistence, and streaming</li>
+          <li>First-class support for cycles (loops, retries, human-in-the-loop)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Differentiator</h3>
+        <ul>
+          <li>Unlike linear chains, graphs can <span class="highlight">branch, loop, and converge</span></li>
+          <li>State is explicit and typed &mdash; not hidden in prompts</li>
+          <li>Controllable: you decide routing logic, not the LLM</li>
+          <li>Production-ready: checkpointing, error recovery, observability</li>
+          <li>Python and JavaScript/TypeScript SDKs</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Why LangGraph? -->
+  <div class="slide">
+    <h2 class="animate">Why LangGraph?</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Approach</th><th>Strengths</th><th>Limitations</th></tr>
+        <tr><td><span class="highlight">Simple Chains</span></td><td>Easy to build, linear flow</td><td>No branching, no loops, no state</td></tr>
+        <tr><td><span class="highlight">CrewAI</span></td><td>Role-based agents, quick setup</td><td>Less control over routing, opinionated</td></tr>
+        <tr><td><span class="highlight">AutoGen</span></td><td>Multi-agent conversations</td><td>Chat-centric, hard to control flow</td></tr>
+        <tr><td><span class="highlight">Raw Function Calling</span></td><td>Full control, no framework</td><td>You build everything: state, loops, persistence</td></tr>
+        <tr><td><span class="green highlight">LangGraph</span></td><td>Graph execution, typed state, checkpoints, streaming</td><td>Steeper learning curve, LangChain ecosystem</td></tr>
+      </table>
+      <p style="margin-top:18px;text-align:center"><span class="highlight">Choose LangGraph when</span> you need stateful, controllable agent workflows with cycles, human-in-the-loop, or multi-agent coordination.</p>
+    </div>
+  </div>
+
+  <!-- Slide 4: Core Concepts -->
+  <div class="slide">
+    <h2 class="animate">Core Concepts</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>StateGraph</h3>
+        <p>The main class. Define a graph with typed state, add nodes and edges, compile it into a runnable.</p>
+        <code>StateGraph(AgentState)</code>
+      </div>
+      <div class="metric-card">
+        <h3>Nodes</h3>
+        <p>Functions that receive state and return state updates. Each node performs one step of your workflow.</p>
+        <code>graph.add_node("research", research_fn)</code>
+      </div>
+      <div class="metric-card">
+        <h3>Edges</h3>
+        <p>Connections between nodes. Normal edges always transition; conditional edges choose the next node dynamically.</p>
+        <code>graph.add_edge("research", "analyze")</code>
+      </div>
+      <div class="metric-card">
+        <h3>Conditional Routing</h3>
+        <p>A function inspects state and returns the name of the next node. This is how supervisors route to specialists.</p>
+        <code>graph.add_conditional_edges(...)</code>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:20px">
+      <div class="box">START</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Supervisor</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Agent Node</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">END</div>
+    </div>
+  </div>
+
+  <!-- Slide 5: Building Your First Graph -->
+  <div class="slide">
+    <h2 class="animate">Building Your First Graph</h2>
+    <div class="content animate">
+<pre>
+from langgraph.graph import StateGraph, START, END
+from typing import TypedDict, Annotated
+from operator import add
+
+class AgentState(TypedDict):
+    messages: Annotated[list, add]   # reducer appends new messages
+
+def call_model(state: AgentState) -> dict:
+    response = llm.invoke(state["messages"])
+    return {"messages": [response]}
+
+def call_tools(state: AgentState) -> dict:
+    last_msg = state["messages"][-1]
+    results = execute_tools(last_msg.tool_calls)
+    return {"messages": results}
+
+def should_continue(state: AgentState) -> str:
+    if state["messages"][-1].tool_calls:
+        return "tools"
+    return END
+
+# Build the graph
+graph = StateGraph(AgentState)
+graph.add_node("agent", call_model)
+graph.add_node("tools", call_tools)
+graph.add_edge(START, "agent")
+graph.add_conditional_edges("agent", should_continue, ["tools", END])
+graph.add_edge("tools", "agent")  # loop back after tool execution
+
+app = graph.compile()
+result = app.invoke({"messages": [("user", "What is AAPL price?")]})
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 6: State Management -->
+  <div class="slide">
+    <h2 class="animate">State Management</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypedDict State</h3>
+<pre style="font-size:0.85rem">
+class TradingAgentState(TypedDict):
+    messages: Annotated[list, add]
+    current_agent: str
+    research_output: str
+    sentiment_score: float
+    positions: list[dict]
+    requires_approval: bool
+</pre>
+        <p style="margin-top:8px">State is a typed dictionary. Every node reads from and writes to this shared state.</p>
+      </div>
+      <div class="card">
+        <h3>Reducers</h3>
+<pre style="font-size:0.85rem">
+# Append reducer (most common)
+messages: Annotated[list, add]
+# Each node returns {"messages": [new_msg]}
+# Reducer appends, never overwrites
+
+# Overwrite (default for non-annotated)
+current_agent: str
+# Returns {"current_agent": "research"}
+# Overwrites previous value
+
+# Custom reducer
+def merge_dicts(a, b):
+    return {**a, **b}
+metadata: Annotated[dict, merge_dicts]
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Conditional Edges & Routing -->
+  <div class="slide">
+    <h2 class="animate">Conditional Edges &amp; Routing</h2>
+    <div class="content animate">
+<pre>
+def supervisor_router(state: TradingAgentState) -> str:
+    """Supervisor decides which specialist agent to call next."""
+    last_message = state["messages"][-1].content.lower()
+
+    if "research" in last_message or "briefing" in last_message:
+        return "research_agent"
+    elif "sentiment" in last_message:
+        return "sentiment_agent"
+    elif "post-mortem" in last_message or "review" in last_message:
+        return "postmortem_agent"
+    else:
+        return "research_agent"  # default
+
+graph.add_node("supervisor", supervisor_node)
+graph.add_node("research_agent", research_node)
+graph.add_node("sentiment_agent", sentiment_node)
+graph.add_node("postmortem_agent", postmortem_node)
+
+graph.add_conditional_edges(
+    "supervisor",
+    supervisor_router,
+    ["research_agent", "sentiment_agent", "postmortem_agent"]
+)
+</pre>
+      <p style="margin-top:12px;text-align:center"><span class="highlight">The supervisor inspects state</span> and routes to the correct specialist &mdash; the LLM does not decide the control flow.</p>
+    </div>
+  </div>
+
+  <!-- Slide 8: Real-World Trading Agent AI Layer -->
+  <div class="slide">
+    <h2 class="animate">Real-World: Trading Agent AI Layer</h2>
+    <p class="subtitle animate" style="margin-bottom:16px">Architecture from the <a href="https://lda21.github.io/docs" style="color:var(--accent)">AI Crypto Trading Agent</a></p>
+    <div class="diagram animate">
+      <div class="box">User Request</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:var(--success)">Supervisor<br><small>Claude Sonnet</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Specialist Agent</div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:20px">
+      <div class="metric-card">
+        <h3>Research Agent</h3>
+        <p>Daily briefings via Claude Opus. Pulls market data from Alpha Vantage &amp; TradingView MCP tools. Output is <span class="highlight">advisory only</span>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Sentiment Agent</h3>
+        <p>On-demand market sentiment analysis. Uses Claude Sonnet for speed. Reads news, social signals, and price action.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Post-Mortem Agent</h3>
+        <p>Reviews closed trades. Pulls positions and PnL from internal MCP server. Identifies patterns in wins and losses.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Key Principle</h3>
+        <p>LLM outputs are <span class="highlight">never in the execution hot path</span>. All trading decisions are made by the core system. AI provides analysis only.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: Tool Integration -->
+  <div class="slide">
+    <h2 class="animate">Tool Integration</h2>
+    <div class="content animate">
+<pre>
+from langchain_core.tools import tool
+from langchain_anthropic import ChatAnthropic
+
+@tool
+def get_positions() -> list[dict]:
+    """Get current open trading positions from the MCP server."""
+    return mcp_client.call("trading/positions")
+
+@tool
+def get_pnl(timeframe: str = "24h") -> dict:
+    """Get profit and loss for the given timeframe."""
+    return mcp_client.call("trading/pnl", {"timeframe": timeframe})
+
+@tool
+def get_market_data(symbol: str) -> dict:
+    """Fetch market data from Alpha Vantage."""
+    return mcp_client.call("alphavantage/quote", {"symbol": symbol})
+
+# Bind tools to the LLM
+llm = ChatAnthropic(model="claude-sonnet-4-20250514")
+llm_with_tools = llm.bind_tools([get_positions, get_pnl, get_market_data])
+
+# In a graph node, the LLM decides which tools to call
+def research_node(state: AgentState) -> dict:
+    response = llm_with_tools.invoke(state["messages"])
+    return {"messages": [response]}
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 10: MCP: Model Context Protocol -->
+  <div class="slide">
+    <h2 class="animate">MCP: Model Context Protocol</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is MCP?</h3>
+        <ul>
+          <li>Open protocol by Anthropic for connecting LLMs to external data &amp; tools</li>
+          <li>Standardized interface &mdash; like USB-C for AI</li>
+          <li>Server exposes <span class="highlight">tools</span>, <span class="highlight">resources</span>, and <span class="highlight">prompts</span></li>
+          <li>Client (LLM app) discovers and calls them</li>
+          <li>Transport: stdio, SSE, or HTTP streaming</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>MCP in the Trading Agent</h3>
+        <ul>
+          <li><span class="highlight">Internal MCP Server</span> exposes trading data to LLM agents</li>
+          <li>Tools: <code>positions</code>, <code>pnl</code>, <code>features</code></li>
+          <li>External MCP: Alpha Vantage for market data</li>
+          <li>External MCP: TradingView for charts and indicators</li>
+          <li>LLM agents call MCP tools via standard protocol</li>
+        </ul>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:16px">
+      <div class="box">LLM Agent</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box" style="border-color:var(--success)">MCP Client</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">MCP Server</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Data Sources</div>
+    </div>
+  </div>
+
+  <!-- Slide 11: Building an MCP Server -->
+  <div class="slide">
+    <h2 class="animate">Building an MCP Server</h2>
+    <div class="content animate">
+<pre>
+from mcp.server import Server
+from mcp.types import Tool, TextContent
+
+server = Server("trading-data")
+
+@server.list_tools()
+async def list_tools() -> list[Tool]:
+    return [
+        Tool(name="get_positions",
+             description="Get current open trading positions",
+             inputSchema={"type": "object", "properties": {}}),
+        Tool(name="get_pnl",
+             description="Get PnL for a timeframe",
+             inputSchema={"type": "object", "properties": {
+                 "timeframe": {"type": "string", "default": "24h"}
+             }}),
+        Tool(name="get_features",
+             description="Get computed trading features and signals",
+             inputSchema={"type": "object", "properties": {
+                 "symbol": {"type": "string"}
+             }}),
+    ]
+
+@server.call_tool()
+async def call_tool(name: str, arguments: dict) -> list[TextContent]:
+    if name == "get_positions":
+        positions = await db.fetch_open_positions()
+        return [TextContent(type="text", text=json.dumps(positions))]
+    elif name == "get_pnl":
+        pnl = await db.fetch_pnl(arguments.get("timeframe", "24h"))
+        return [TextContent(type="text", text=json.dumps(pnl))]
+    # ... handle other tools
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 12: Human-in-the-Loop -->
+  <div class="slide">
+    <h2 class="animate">Human-in-the-Loop</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Interrupt &amp; Approve</h3>
+<pre style="font-size:0.85rem">
+# Compile with interrupt points
+app = graph.compile(
+    checkpointer=checkpointer,
+    interrupt_before=["execute_trade"]
+)
+
+# Run until interrupt
+result = app.invoke(
+    {"messages": [("user", "Analyze BTC")]},
+    config={"configurable": {"thread_id": "1"}}
+)
+# Graph pauses before execute_trade
+
+# Human reviews, then resumes
+app.invoke(None, config={"configurable":
+    {"thread_id": "1"}})
+</pre>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><span class="highlight">Safety gate</span> before any consequential action</li>
+          <li>In the trading agent: LLM output is advisory &mdash; human always approves</li>
+          <li><code>interrupt_before</code> pauses the graph at a named node</li>
+          <li><code>interrupt_after</code> pauses after a node completes</li>
+          <li>State is persisted via checkpointer &mdash; resume anytime</li>
+          <li>Critical for financial, medical, and high-stakes applications</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: Streaming & Real-Time Output -->
+  <div class="slide">
+    <h2 class="animate">Streaming &amp; Real-Time Output</h2>
+    <div class="content animate">
+<pre>
+# Stream events as the graph executes
+async for event in app.astream_events(
+    {"messages": [("user", "Daily market briefing")]},
+    config={"configurable": {"thread_id": "1"}},
+    version="v2"
+):
+    kind = event["event"]
+
+    if kind == "on_chat_model_stream":
+        # Token-by-token streaming from the LLM
+        token = event["data"]["chunk"].content
+        print(token, end="", flush=True)
+
+    elif kind == "on_tool_start":
+        # A tool is being called
+        print(f"\n[Calling tool: {event['name']}]")
+
+    elif kind == "on_chain_end":
+        # A node finished execution
+        print(f"\n[Node complete: {event['name']}]")
+</pre>
+      <p style="margin-top:12px"><span class="highlight">Three streaming modes:</span> <code>stream()</code> for node outputs, <code>astream_events()</code> for fine-grained events, <code>astream_log()</code> for JSON patches.</p>
+    </div>
+  </div>
+
+  <!-- Slide 14: Memory & Persistence -->
+  <div class="slide">
+    <h2 class="animate">Memory &amp; Persistence</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Checkpointing</h3>
+<pre style="font-size:0.85rem">
+from langgraph.checkpoint.sqlite import \
+    SqliteSaver
+from langgraph.checkpoint.postgres import \
+    PostgresSaver
+
+# SQLite for development
+checkpointer = SqliteSaver.from_conn_string(
+    "checkpoints.db"
+)
+
+# Postgres for production
+checkpointer = PostgresSaver.from_conn_string(
+    "postgresql://localhost/agents"
+)
+
+app = graph.compile(
+    checkpointer=checkpointer
+)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Thread-Based Memory</h3>
+<pre style="font-size:0.85rem">
+# Each thread maintains its own state
+config = {"configurable": {
+    "thread_id": "user-alice-session-1"
+}}
+
+# First invocation
+app.invoke(
+    {"messages": [("user", "BTC analysis")]},
+    config=config
+)
+
+# Later: continues the conversation
+app.invoke(
+    {"messages": [("user", "Now check ETH")]},
+    config=config
+)
+# Agent remembers the BTC context
+
+# Get state history
+states = app.get_state_history(config)
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: Multi-Agent Patterns -->
+  <div class="slide">
+    <h2 class="animate">Multi-Agent Patterns</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Supervisor</h3>
+        <p>One coordinator routes tasks to specialist agents. Used in the trading agent: supervisor dispatches to research, sentiment, post-mortem.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Hierarchical</h3>
+        <p>Supervisors managing supervisors. Top-level routes to team leads, who route to specialists. For complex orgs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Swarm</h3>
+        <p>Agents hand off to each other based on context. No central coordinator. Each agent decides who goes next.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Debate / Critique</h3>
+        <p>Multiple agents review the same input. One proposes, another critiques. Converge on higher-quality output.</p>
+      </div>
+    </div>
+    <div class="diagram animate" style="margin-top:16px">
+      <div class="box" style="border-color:var(--success)">Supervisor</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Research</div>
+      <div class="arrow" style="margin-left:-140px">&#x2192;</div>
+      <div class="box">Sentiment</div>
+      <div class="arrow" style="margin-left:-140px">&#x2192;</div>
+      <div class="box">Post-Mortem</div>
+    </div>
+  </div>
+
+  <!-- Slide 16: Hallucination Control -->
+  <div class="slide">
+    <h2 class="animate">Hallucination Control</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>LLMs can confidently state false information</li>
+          <li>In trading: a hallucinated price or position is <span class="highlight">dangerous</span></li>
+          <li>LLMs may invent trades, misreport PnL, or fabricate market data</li>
+          <li>Advisory output must be verified before any human acts on it</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Verification Strategy</h3>
+        <ul>
+          <li><span class="highlight">Ground truth comparison:</span> validate LLM output against the data store</li>
+          <li>Every claimed position checked against DB</li>
+          <li>Every PnL figure cross-referenced with actual records</li>
+          <li>Market data verified against MCP tool responses</li>
+          <li>Flag discrepancies before presenting to user</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+def verify_output(state: AgentState) -> dict:
+    """Fact-check LLM claims against ground truth data."""
+    llm_output = state["messages"][-1].content
+    actual_positions = mcp_client.call("trading/positions")
+    actual_pnl = mcp_client.call("trading/pnl")
+
+    discrepancies = compare_claims(llm_output, actual_positions, actual_pnl)
+    if discrepancies:
+        return {"messages": [f"WARNING: {len(discrepancies)} claims unverified"],
+                "verified": False}
+    return {"verified": True}
+</pre>
+  </div>
+
+  <!-- Slide 17: LLM Safety in Production -->
+  <div class="slide">
+    <h2 class="animate">LLM Safety in Production</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Advisory Only</h3>
+        <p>LLM outputs are <span class="highlight">never in the execution hot path</span>. The trading engine makes all decisions. AI provides research and analysis for human review.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Rate Limiting</h3>
+        <p>Cap API calls per minute/hour. Prevent runaway agents from burning budget. Use exponential backoff on 429 errors.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Token Budgets</h3>
+        <p>Set <code>max_tokens</code> per request and per session. Track cumulative usage. Alert when approaching budget limits.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cost Tracking</h3>
+        <p>Log every API call with model, tokens, and cost. Dashboard for daily spend. Per-agent cost attribution.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Model routing by task complexity (cost optimization)
+MODELS = {
+    "research":    "claude-opus-4-20250514",     # Deep analysis, daily briefings
+    "sentiment":   "claude-sonnet-4-20250514",   # Fast, frequent calls
+    "postmortem":  "claude-opus-4-20250514",     # Detailed review
+    "routing":     "claude-sonnet-4-20250514",   # Supervisor decisions
+}
+</pre>
+  </div>
+
+  <!-- Slide 18: LangGraph vs Alternatives -->
+  <div class="slide">
+    <h2 class="animate">LangGraph vs Alternatives</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>LangGraph</th><th>CrewAI</th><th>AutoGen</th><th>Raw Calls</th></tr>
+        <tr><td>State Management</td><td><span class="green">Typed, explicit</span></td><td>Implicit</td><td>Chat history</td><td>DIY</td></tr>
+        <tr><td>Control Flow</td><td><span class="green">Graph + conditional</span></td><td>Sequential/hierarchy</td><td>Chat-based</td><td>Full control</td></tr>
+        <tr><td>Cycles &amp; Loops</td><td><span class="green">Native</span></td><td>Limited</td><td>Conversation loops</td><td>DIY</td></tr>
+        <tr><td>Human-in-the-Loop</td><td><span class="green">interrupt_before/after</span></td><td>Manual</td><td>Manual</td><td>DIY</td></tr>
+        <tr><td>Persistence</td><td><span class="green">Checkpointers</span></td><td>Memory plugin</td><td>Basic</td><td>DIY</td></tr>
+        <tr><td>Streaming</td><td><span class="green">Events, tokens, logs</span></td><td>Basic</td><td>Basic</td><td>SDK streaming</td></tr>
+        <tr><td>Learning Curve</td><td>Medium</td><td><span class="green">Low</span></td><td>Medium</td><td>High</td></tr>
+        <tr><td>Flexibility</td><td><span class="green">High</span></td><td>Medium</td><td>Medium</td><td><span class="green">Unlimited</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Keep nodes small and focused &mdash; one responsibility per node</div>
+      <div class="bp-item"><span>2.</span> Use TypedDict state with explicit reducers, never untyped dicts</div>
+      <div class="bp-item"><span>3.</span> Route with code, not LLM &mdash; supervisor logic should be deterministic where possible</div>
+      <div class="bp-item"><span>4.</span> Always add a verification node after LLM output to catch hallucinations</div>
+      <div class="bp-item"><span>5.</span> Use checkpointers in production for crash recovery and audit trails</div>
+      <div class="bp-item"><span>6.</span> Set token budgets and rate limits per agent to control costs</div>
+      <div class="bp-item"><span>7.</span> Keep LLM outputs advisory &mdash; never let AI directly execute critical actions</div>
+      <div class="bp-item"><span>8.</span> Use MCP for clean tool interfaces &mdash; decouple data access from agent logic</div>
+      <div class="bp-item"><span>9.</span> Stream responses for better UX &mdash; users should see progress, not wait</div>
+      <div class="bp-item"><span>10.</span> Route models by task: Opus for deep analysis, Sonnet for fast routing</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered LangGraph &amp; LLM Agents:</p>
+      <div style="margin:20px 0">
+        <span class="tag">StateGraph</span><span class="tag">Nodes &amp; Edges</span><span class="tag">Conditional Routing</span>
+        <span class="tag">MCP</span><span class="tag">Tool Integration</span><span class="tag">Human-in-the-Loop</span>
+        <span class="tag">Multi-Agent</span><span class="tag">Hallucination Control</span><span class="tag">Streaming</span>
+      </div>
+      <p style="color:var(--text-muted)">Build stateful agent systems with LangGraph. Keep LLM outputs advisory. Verify everything against ground truth.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

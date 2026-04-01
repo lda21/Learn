@@ -1,0 +1,941 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Crypto Trading Fundamentals</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4B0;</span>
+    <h1 class="animate">Crypto Trading Fundamentals</h1>
+    <p class="subtitle animate">From market mechanics to AI-driven execution</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Crypto</span><span class="tag">Trading</span><span class="tag">Exchanges</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: Crypto Markets Overview -->
+  <div class="slide">
+    <h2 class="animate">Crypto Markets Overview</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Always-On Markets</h3>
+        <ul>
+          <li><span class="highlight">24/7/365</span> &mdash; no market close, no holidays</li>
+          <li>Global participation across every timezone</li>
+          <li>Fragmented liquidity across 500+ exchanges</li>
+          <li>Price discrepancies create arbitrage opportunities</li>
+          <li>Weekend volatility spikes are common</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Market Characteristics</h3>
+        <ul>
+          <li><span class="highlight">High volatility</span> &mdash; 5-10% daily swings are normal</li>
+          <li>BTC dominance drives altcoin correlation</li>
+          <li>Macro events (Fed, regulations) cause rapid moves</li>
+          <li>Thin liquidity in altcoins = large slippage</li>
+          <li>Market cap: ~$2-3T (vs $50T+ equities)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: Exchanges & Trading Pairs -->
+  <div class="slide">
+    <h2 class="animate">Exchanges &amp; Trading Pairs</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>CEX (Centralized)</h3>
+        <ul>
+          <li>Binance, Bybit, OKX, Coinbase</li>
+          <li>Custodial &mdash; exchange holds your funds</li>
+          <li>High liquidity, fast execution</li>
+          <li>KYC/AML requirements</li>
+          <li>Maker fees: 0.01-0.1%, Taker: 0.02-0.1%</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>DEX (Decentralized)</h3>
+        <ul>
+          <li>Uniswap, dYdX, Jupiter, Raydium</li>
+          <li>Non-custodial &mdash; you hold your keys</li>
+          <li>AMM-based or order book (dYdX)</li>
+          <li>No KYC, permissionless access</li>
+          <li>Gas fees + swap fees (0.3% typical)</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <p style="text-align:center"><span class="highlight">Pair notation:</span> <code>BTC/USDT</code> = buy/sell BTC priced in USDT. Base asset / Quote asset.</p>
+    </div>
+  </div>
+
+  <!-- Slide 4: Spot Trading -->
+  <div class="slide">
+    <h2 class="animate">Spot Trading</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Direct ownership</span> &mdash; buy and sell the actual cryptocurrency</li>
+        <li>Settlement is immediate (or T+0 on most exchanges)</li>
+        <li>Spot price = current market price for instant delivery</li>
+        <li>No leverage, no liquidation risk &mdash; you own the asset</li>
+        <li>Can withdraw to personal wallet for self-custody</li>
+        <li>Profit only when price goes up (no native shorting)</li>
+      </ul>
+<pre style="margin-top:18px">
+# Spot buy example with ccxt
+import ccxt
+
+exchange = ccxt.binance({'apiKey': '...', 'secret': '...'})
+
+# Buy 0.1 BTC at market price
+order = exchange.create_market_buy_order('BTC/USDT', 0.1)
+# {'id': '12345', 'symbol': 'BTC/USDT', 'side': 'buy',
+#  'amount': 0.1, 'price': 64250.00, 'cost': 6425.00}
+
+# Check your balance
+balance = exchange.fetch_balance()
+print(balance['BTC']['free'])  # 0.1
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 5: Perpetual Futures -->
+  <div class="slide">
+    <h2 class="animate">Perpetual Futures</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How They Work</h3>
+        <ul>
+          <li><span class="highlight">No expiry date</span> &mdash; hold indefinitely</li>
+          <li>Trade with leverage (1x to 125x)</li>
+          <li>Long (profit from up) or Short (profit from down)</li>
+          <li>Mark price vs Last price for liquidation</li>
+          <li>Funding rate anchors perp price to spot</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Margin &amp; Liquidation</h3>
+        <ul>
+          <li><span class="highlight">Initial margin</span> = collateral to open position</li>
+          <li><span class="highlight">Maintenance margin</span> = minimum to stay open</li>
+          <li>Cross margin: shares balance across positions</li>
+          <li>Isolated margin: limits loss to position margin</li>
+          <li>Liquidation = forced closure when margin exhausted</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# 10x Long: $1,000 margin controls $10,000 position
+# BTC at $64,000 → buy 0.15625 BTC worth of contracts
+# If BTC rises 5% → profit = $500 (50% return on margin)
+# If BTC falls 10% → liquidated (100% loss of margin)
+# Liquidation price ≈ entry * (1 - 1/leverage) = $64,000 * 0.9 = $57,600
+</pre>
+  </div>
+
+  <!-- Slide 6: Funding Rates -->
+  <div class="slide">
+    <h2 class="animate">Funding Rates</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">Purpose:</span> keep perpetual futures price aligned with spot price</li>
+        <li>Payments exchanged between longs and shorts every <span class="highlight">8 hours</span></li>
+        <li>Settlement times: 00:00, 08:00, 16:00 UTC (most exchanges)</li>
+        <li><span class="green">Positive rate</span> &mdash; longs pay shorts (market is bullish)</li>
+        <li><span class="highlight">Negative rate</span> &mdash; shorts pay longs (market is bearish)</li>
+        <li>Typical range: -0.01% to +0.03% per 8h period</li>
+      </ul>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>Calculation</h3>
+        <p>Funding = Position Size &times; Funding Rate</p>
+        <p style="margin-top:4px"><code>$10,000 &times; 0.01% = $1 per 8h</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Annualized Cost</h3>
+        <p>0.01% &times; 3/day &times; 365 = <span class="highlight">10.95%/year</span></p>
+        <p style="margin-top:4px">Can exceed lending rates significantly</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cash-and-Carry Arbitrage</h3>
+        <p>Long spot + short perp = collect funding while delta-neutral. Low risk, steady yield.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Sentiment Signal</h3>
+        <p>Extreme positive funding = over-leveraged longs. Often precedes liquidation cascades.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: Order Types -->
+  <div class="slide">
+    <h2 class="animate">Order Types</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Order Type</th><th>Description</th><th>Use Case</th></tr>
+        <tr><td><span class="highlight">Market</span></td><td>Execute immediately at best available price</td><td>Urgent entries/exits</td></tr>
+        <tr><td><span class="highlight">Limit</span></td><td>Execute at specified price or better</td><td>Precise entry, maker rebates</td></tr>
+        <tr><td><span class="highlight">Stop-Loss</span></td><td>Trigger market/limit sell when price hits level</td><td>Risk management</td></tr>
+        <tr><td><span class="highlight">Take-Profit</span></td><td>Close position at target profit level</td><td>Lock in gains</td></tr>
+        <tr><td><span class="highlight">Trailing Stop</span></td><td>Stop follows price by fixed offset</td><td>Ride trends, protect profits</td></tr>
+        <tr><td><span class="highlight">IOC</span></td><td>Immediate-or-Cancel: fill what you can, cancel rest</td><td>Partial fills OK</td></tr>
+        <tr><td><span class="highlight">GTC</span></td><td>Good-Til-Cancelled: stays open until filled</td><td>Patient limit orders</td></tr>
+      </table>
+<pre style="margin-top:14px">
+# Place a limit buy with stop-loss and take-profit (ccxt)
+entry = exchange.create_limit_buy_order('BTC/USDT', 0.1, 62000)
+stop  = exchange.create_order('BTC/USDT', 'stop_market', 'sell', 0.1,
+            params={'stopPrice': 60000})
+tp    = exchange.create_limit_sell_order('BTC/USDT', 0.1, 68000)
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 8: Technical Indicators -->
+  <div class="slide">
+    <h2 class="animate">Technical Indicators</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>RSI (Relative Strength Index)</h3>
+        <p>Momentum oscillator (0-100). Overbought &gt;70, oversold &lt;30. Period: 14 candles typical.</p>
+      </div>
+      <div class="metric-card">
+        <h3>MACD</h3>
+        <p>Trend-following: EMA(12) - EMA(26) vs signal line EMA(9). Crossovers signal momentum shifts.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Bollinger Bands</h3>
+        <p>SMA(20) &plusmn; 2&sigma;. Price touching upper/lower band signals potential reversal or breakout.</p>
+      </div>
+      <div class="metric-card">
+        <h3>ATR (Average True Range)</h3>
+        <p>Volatility measure. Use for dynamic stop-loss sizing: stop = entry - 2&times;ATR. Period: 14.</p>
+      </div>
+      <div class="metric-card">
+        <h3>EMA (Exponential Moving Average)</h3>
+        <p>Weighted toward recent prices. EMA(9)/EMA(21) crossover for trend direction. Faster than SMA.</p>
+      </div>
+      <div class="metric-card">
+        <h3>VWAP (Volume-Weighted Avg Price)</h3>
+        <p>Fair value benchmark. Price above VWAP = bullish bias. Institutional execution benchmark.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Calculate RSI with pandas
+import pandas as pd
+delta = df['close'].diff()
+gain = delta.where(delta > 0, 0).rolling(14).mean()
+loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+rs = gain / loss
+df['rsi'] = 100 - (100 / (1 + rs))
+</pre>
+  </div>
+
+  <!-- Slide 9: On-Chain Analysis -->
+  <div class="slide">
+    <h2 class="animate">On-Chain Analysis</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Whale Tracking</h3>
+        <ul>
+          <li>Monitor wallets holding &gt;1,000 BTC</li>
+          <li>Large transfers to exchanges = potential selling pressure</li>
+          <li>Accumulation patterns signal conviction</li>
+          <li>Tools: Whale Alert, Arkham Intelligence, Nansen</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>DEX/CEX Volume Ratios</h3>
+        <ul>
+          <li>Rising DEX volume = growing DeFi activity</li>
+          <li>CEX outflows = users moving to self-custody (bullish)</li>
+          <li>CEX inflows = potential sell pressure</li>
+          <li>Stablecoin flows indicate capital rotation</li>
+        </ul>
+      </div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>NVT Ratio (Network Value to Transactions)</h3>
+        <p>Market cap / daily transaction volume. High NVT = overvalued network. Crypto's P/E ratio.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Exchange Reserves</h3>
+        <p>Total BTC held on exchanges. Declining reserves = supply shock potential. Track via CryptoQuant.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 10: Market Microstructure -->
+  <div class="slide">
+    <h2 class="animate">Market Microstructure</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Bids (Buyers)</div>
+        <div class="arrow">&#x2194;</div>
+        <div class="box">Spread</div>
+        <div class="arrow">&#x2194;</div>
+        <div class="box">Asks (Sellers)</div>
+      </div>
+      <ul>
+        <li><span class="highlight">Order book</span> &mdash; list of all open buy/sell orders at each price level</li>
+        <li><span class="highlight">Bid-ask spread</span> &mdash; difference between best bid and best ask (tighter = more liquid)</li>
+        <li><span class="highlight">Depth</span> &mdash; total volume at each price level; thin depth = easy to move price</li>
+        <li><span class="highlight">Slippage</span> &mdash; difference between expected and actual fill price</li>
+        <li><span class="highlight">Market impact</span> &mdash; how your order moves the price; larger orders = more impact</li>
+        <li><span class="highlight">Iceberg orders</span> &mdash; large orders hidden in small visible chunks</li>
+      </ul>
+<pre style="margin-top:14px">
+# Fetch order book depth with ccxt
+orderbook = exchange.fetch_order_book('BTC/USDT', limit=20)
+best_bid = orderbook['bids'][0][0]   # e.g., 64,248.50
+best_ask = orderbook['asks'][0][0]   # e.g., 64,249.00
+spread = best_ask - best_bid         # $0.50 (0.0008%)
+bid_depth = sum([b[1] for b in orderbook['bids'][:10]])  # BTC within 10 levels
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 11: Position Sizing & Risk Management -->
+  <div class="slide">
+    <h2 class="animate">Position Sizing &amp; Risk Management</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Percent Risk Per Trade</h3>
+        <ul>
+          <li>Risk 1-2% of total portfolio per trade</li>
+          <li><code>Position = (Portfolio &times; Risk%) / (Entry - StopLoss)</code></li>
+          <li>Example: $100K portfolio, 1% risk, $200 stop</li>
+          <li>Position = $1,000 / $200 = 5 units</li>
+          <li>Survive 10+ consecutive losers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Advanced Controls</h3>
+        <ul>
+          <li><span class="highlight">Kelly Criterion</span> &mdash; optimal bet sizing: f* = (bp - q) / b</li>
+          <li><span class="highlight">Max drawdown limit</span> &mdash; halt trading at -15% to -20%</li>
+          <li><span class="highlight">Daily loss limit</span> &mdash; stop after -3% in a single day</li>
+          <li><span class="highlight">Correlation check</span> &mdash; avoid 5 correlated BTC longs</li>
+          <li><span class="highlight">Half-Kelly</span> &mdash; use 50% of Kelly for safety margin</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Position sizing with ATR-based stop
+atr = df['atr_14'].iloc[-1]          # e.g., $1,200
+stop_distance = 2 * atr               # $2,400
+risk_amount = portfolio * 0.01         # $1,000 on $100K portfolio
+position_size = risk_amount / stop_distance  # 0.4167 BTC
+</pre>
+  </div>
+
+  <!-- Slide 12: Exchange Connectivity with ccxt -->
+  <div class="slide">
+    <h2 class="animate">Exchange Connectivity with ccxt</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">ccxt</span> &mdash; unified API for 100+ cryptocurrency exchanges</li>
+        <li>Python, JavaScript, PHP &mdash; same interface everywhere</li>
+        <li>REST (polling) + WebSocket (real-time) support</li>
+        <li>Handles authentication, rate limiting, error normalization</li>
+        <li>One codebase, swap exchanges by changing one line</li>
+      </ul>
+<pre style="margin-top:14px">
+import ccxt
+
+# Switch exchanges by changing one line
+exchange = ccxt.bybit({
+    'apiKey': os.environ['BYBIT_KEY'],
+    'secret': os.environ['BYBIT_SECRET'],
+    'options': {'defaultType': 'swap'},  # perpetual futures
+})
+
+# Unified API works across all exchanges
+markets  = exchange.load_markets()
+ticker   = exchange.fetch_ticker('BTC/USDT:USDT')
+ohlcv    = exchange.fetch_ohlcv('BTC/USDT:USDT', '1h', limit=100)
+balance  = exchange.fetch_balance()
+order    = exchange.create_limit_buy_order('BTC/USDT:USDT', 0.01, 62000)
+
+# WebSocket for real-time data (ccxt.pro)
+async for ticker in exchange.watch_ticker('BTC/USDT:USDT'):
+    print(f"Price: {ticker['last']}, Volume: {ticker['baseVolume']}")
+</pre>
+    </div>
+  </div>
+
+  <!-- Slide 13: AI Trading Agent Architecture -->
+  <div class="slide">
+    <h2 class="animate">AI Trading Agent Architecture</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">Reference: <a href="https://lda21.github.io/docs" style="color:var(--accent)">lda21.github.io/docs</a> &mdash; 8-layer system from signal to execution</p>
+      <div class="diagram">
+        <div class="box">Market Data</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Signal Engine</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Risk Manager</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Execution</div>
+      </div>
+      <table style="margin-top:12px">
+        <tr><th>Layer</th><th>Responsibility</th></tr>
+        <tr><td>1. Data Ingestion</td><td>OHLCV, order book, funding rates, on-chain via ccxt + APIs</td></tr>
+        <tr><td>2. Feature Engineering</td><td>RSI, MACD, Bollinger Bands, ATR, VWAP, NVT calculations</td></tr>
+        <tr><td>3. Signal Generation</td><td>AI/ML models produce directional signals with confidence</td></tr>
+        <tr><td>4. Portfolio Allocation</td><td>Size positions across assets based on signals + correlation</td></tr>
+        <tr><td>5. Risk Management</td><td>Enforce limits: max leverage, drawdown, concentration</td></tr>
+        <tr><td>6. Order Management</td><td>Convert decisions into limit/market orders with stops</td></tr>
+        <tr><td>7. Execution</td><td>Smart routing, slippage control, venue selection</td></tr>
+        <tr><td>8. Monitoring</td><td>PnL tracking, alerts, performance attribution</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- Slide 14: Backtesting & Walk-Forward Testing -->
+  <div class="slide">
+    <h2 class="animate">Backtesting &amp; Walk-Forward Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Backtesting Essentials</h3>
+        <ul>
+          <li>Simulate strategy on historical data</li>
+          <li><span class="highlight">Look-ahead bias</span> &mdash; never use future data in signals</li>
+          <li><span class="highlight">Survivorship bias</span> &mdash; include delisted tokens</li>
+          <li>Model realistic fees, slippage, funding costs</li>
+          <li>Test across bull, bear, and sideways markets</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Walk-Forward Validation</h3>
+        <ul>
+          <li>Train on window 1, test on window 2</li>
+          <li>Slide window forward, repeat</li>
+          <li>Prevents overfitting to a single period</li>
+          <li>Out-of-sample Sharpe &gt; 1.5 is promising</li>
+          <li>Paper trade for 2-4 weeks before going live</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Walk-forward backtest structure
+for train_start, train_end, test_start, test_end in windows:
+    model.fit(data[train_start:train_end])
+    signals = model.predict(data[test_start:test_end])
+    pnl = simulate_trades(signals, fees=0.0006, slippage=0.0002)
+    results.append({'sharpe': pnl.sharpe(), 'max_dd': pnl.max_drawdown()})
+
+avg_sharpe = np.mean([r['sharpe'] for r in results])  # Must be > 1.0
+</pre>
+  </div>
+
+  <!-- Slide 15: Execution Quality & Slippage -->
+  <div class="slide">
+    <h2 class="animate">Execution Quality &amp; Slippage</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Transaction Cost Analysis (TCA)</h3>
+        <ul>
+          <li><span class="highlight">Slippage</span> = actual fill - expected price</li>
+          <li>Exchange fees: 0.01% (maker) to 0.06% (taker)</li>
+          <li>Funding costs on perps (annualized 5-15%)</li>
+          <li>Track implementation shortfall per trade</li>
+          <li>Total cost = fees + slippage + market impact</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Reducing Slippage</h3>
+        <ul>
+          <li>Use <span class="highlight">limit orders</span> instead of market orders</li>
+          <li>Split large orders into smaller chunks (TWAP/VWAP)</li>
+          <li>Trade on high-liquidity venues (Binance, Bybit)</li>
+          <li>Avoid execution during low-volume hours</li>
+          <li>Compare fills across venues for best execution</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# TWAP execution: split $50K order into 10 slices over 5 minutes
+total_qty = 0.8  # BTC
+slices = 10
+for i in range(slices):
+    exchange.create_limit_buy_order('BTC/USDT', total_qty / slices, best_ask)
+    await asyncio.sleep(30)  # 30 seconds between slices
+</pre>
+  </div>
+
+  <!-- Slide 16: Portfolio Risk: Correlation & Leverage -->
+  <div class="slide">
+    <h2 class="animate">Portfolio Risk: Correlation &amp; Leverage</h2>
+    <div class="content animate">
+      <ul>
+        <li><span class="highlight">BTC correlation</span> &mdash; most altcoins correlate 0.6-0.9 with BTC during sell-offs</li>
+        <li>Diversification is limited in crypto vs traditional markets</li>
+        <li><span class="highlight">Gross leverage</span> = total position value / portfolio equity</li>
+        <li>Keep gross leverage under 3x for sustainable operation</li>
+        <li><span class="highlight">Concentration limit</span> &mdash; no single position &gt; 20% of portfolio</li>
+        <li>Correlation spikes to ~1.0 during liquidation cascades</li>
+      </ul>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>Gross Leverage</h3>
+        <p>Sum of all |position values| / equity</p>
+        <p><code>($30K long + $20K short) / $25K = 2.0x</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Net Exposure</h3>
+        <p>Longs - Shorts / equity</p>
+        <p><code>($30K - $20K) / $25K = 0.4x net long</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>Value at Risk (VaR)</h3>
+        <p>Max expected loss at 95% confidence over 24h. Crypto VaR is 3-5x higher than equities.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Stress Testing</h3>
+        <p>Simulate -30% BTC crash, exchange outage, or funding rate spike. Ensure survival in all scenarios.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Sentiment Analysis for Crypto -->
+  <div class="slide">
+    <h2 class="animate">Sentiment Analysis for Crypto</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Data Sources</h3>
+        <ul>
+          <li><span class="highlight">News feeds</span> &mdash; CoinDesk, The Block, CoinTelegraph</li>
+          <li><span class="highlight">Social media</span> &mdash; Crypto Twitter/X, Reddit, Telegram</li>
+          <li><span class="highlight">Fear &amp; Greed Index</span> &mdash; composite sentiment (0-100)</li>
+          <li><span class="highlight">Funding rates</span> &mdash; market positioning sentiment</li>
+          <li><span class="highlight">Google Trends</span> &mdash; retail interest proxy</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Signal Integration</h3>
+        <ul>
+          <li>NLP on news headlines for directional bias</li>
+          <li>Social volume spikes precede volatile moves</li>
+          <li>Extreme fear = contrarian buy signal</li>
+          <li>Extreme greed = reduce exposure</li>
+          <li>Combine sentiment with technical signals for confluence</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Sentiment scoring pipeline
+sentiment_signals = {
+    'fear_greed': 25,         # Extreme Fear (0-100 scale)
+    'social_volume': 'spike', # 3x above 7-day average
+    'funding_rate': -0.02,    # Negative = shorts paying longs
+    'news_sentiment': -0.6,   # NLP score (-1 to +1)
+}
+# Extreme Fear + Negative Funding = contrarian long signal
+if sentiment_signals['fear_greed'] < 30 and sentiment_signals['funding_rate'] < 0:
+    signal = 'LONG'  # Market is overly bearish
+</pre>
+  </div>
+
+  <!-- Slide 18: Regulatory & Security Considerations -->
+  <div class="slide">
+    <h2 class="animate">Regulatory &amp; Security</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>API Key Security</h3>
+        <ul>
+          <li><span class="highlight">IP whitelisting</span> &mdash; restrict API keys to known IPs</li>
+          <li><span class="highlight">No withdrawal permissions</span> &mdash; trade-only API keys</li>
+          <li>Store keys in environment variables or secret managers</li>
+          <li>Rotate keys on a regular schedule (90 days)</li>
+          <li>Use subaccounts to isolate strategy risk</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Regulatory Awareness</h3>
+        <ul>
+          <li>Jurisdiction matters: US, EU, Asia have different rules</li>
+          <li>Tax reporting: track cost basis for every trade</li>
+          <li>Futures may be restricted (US: no Binance futures)</li>
+          <li>MiCA (EU), MAS (Singapore), SEC/CFTC (US)</li>
+          <li>Keep detailed trade logs for compliance</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Secure API key configuration
+import os
+
+exchange = ccxt.binance({
+    'apiKey': os.environ['BINANCE_API_KEY'],     # Never hardcode
+    'secret': os.environ['BINANCE_API_SECRET'],   # Never hardcode
+    'options': {
+        'defaultType': 'swap',
+        'adjustForTimeDifference': True,
+    },
+})
+# API key permissions: Enable Trade, Disable Withdraw
+# IP whitelist: Only your server's static IP
+</pre>
+  </div>
+
+  <!-- Slide 19: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Never risk more than 1-2% of portfolio on a single trade</div>
+      <div class="bp-item"><span>2.</span> Always use stop-losses &mdash; no exceptions, no mental stops</div>
+      <div class="bp-item"><span>3.</span> Paper trade every strategy for 2-4 weeks before going live</div>
+      <div class="bp-item"><span>4.</span> Account for fees, slippage, and funding in all backtests</div>
+      <div class="bp-item"><span>5.</span> Use API keys with trade-only permissions and IP whitelisting</div>
+      <div class="bp-item"><span>6.</span> Monitor correlation &mdash; five "diversified" alts may all be BTC bets</div>
+      <div class="bp-item"><span>7.</span> Keep gross leverage under 3x for long-term survival</div>
+      <div class="bp-item"><span>8.</span> Log every trade with entry reason, exit reason, and PnL</div>
+      <div class="bp-item"><span>9.</span> Use walk-forward testing, not just in-sample backtests</div>
+      <div class="bp-item"><span>10.</span> Build kill switches: auto-halt on max drawdown or API errors</div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4B0;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Crypto Trading Fundamentals:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Spot Trading</span><span class="tag">Perpetual Futures</span><span class="tag">Funding Rates</span>
+        <span class="tag">Order Types</span><span class="tag">Technical Indicators</span><span class="tag">On-Chain Analysis</span>
+        <span class="tag">Risk Management</span><span class="tag">ccxt</span><span class="tag">AI Agent Architecture</span>
+      </div>
+      <p style="color:var(--text-muted)">Markets are 24/7 but your edge comes from discipline, risk management, and systematic execution.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
