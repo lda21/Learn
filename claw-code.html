@@ -1,0 +1,2767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Claw Code &mdash; Agent Harness Deep Dive</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .three-col { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 24px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.3rem; cursor: pointer; z-index: 200; display: flex; align-items: center;
+      justify-content: center; transition: background 0.3s, border-color 0.3s; box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.4rem; cursor: pointer; z-index: 200; display: flex; align-items: center;
+      justify-content: center; transition: background 0.3s, border-color 0.3s; box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px; background: var(--accent);
+      color: #fff; text-decoration: none; border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .three-col { grid-template-columns: 1fr; gap: 14px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: none; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide-counter { display: block; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.2rem; cursor: pointer; z-index: 200; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow); color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+<!-- ============================================================ -->
+<!-- SLIDE 1: TITLE -->
+<!-- ============================================================ -->
+<div class="slide active">
+  <span class="logo-icon animate">&#x1F9BE;</span>
+  <h1 class="animate">Claw Code</h1>
+  <p class="subtitle animate">Deep Dive into an AI Agent Harness Architecture</p>
+  <p class="subtitle animate" style="margin-top:8px; font-size:1.15rem;">A dual Python + Rust reimplementation of Claude Code's harness framework</p>
+  <div class="animate" style="margin-top:20px">
+    <span class="tag">Python</span><span class="tag">Rust</span><span class="tag">Agent Harness</span><span class="tag">MCP</span><span class="tag">Permissions</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 2: WHAT IS CLAW CODE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">What Is Claw Code?</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>Origin Story</h3>
+      <ul>
+        <li>Clean-room <strong>reimplementation</strong> of Claude Code's agent harness</li>
+        <li>Created after TS source exposure on <strong>March 31, 2026</strong></li>
+        <li>Captures <strong>architectural patterns</strong> without copying proprietary code</li>
+        <li>Built using <strong>oh-my-codex (OmX)</strong> orchestration</li>
+        <li>Repository: <code>instructkr/claw-code</code></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Key Numbers</h3>
+      <ul>
+        <li><strong>207</strong> command entries mirrored</li>
+        <li><strong>184</strong> tool entries mirrored</li>
+        <li><strong>~20K</strong> lines of Rust across 6 crates</li>
+        <li><strong>100+</strong> Python source files</li>
+        <li>Original TS: <strong>1,902 files</strong> across 35+ subsystems</li>
+        <li><strong>32</strong> test cases in the verification suite</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 3: WHY STUDY THIS REPO -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Why Study This Repo?</h2>
+  <div class="content animate">
+    <ul>
+      <li><strong>Agent Harness Engineering</strong> &mdash; Learn how production AI agent loops are built from scratch</li>
+      <li><strong>Dual-Stack Architecture</strong> &mdash; Compare Python (porting fidelity) vs Rust (production performance) approaches</li>
+      <li><strong>Permission Systems</strong> &mdash; Three-tier security model gating every tool execution</li>
+      <li><strong>MCP Protocol</strong> &mdash; Model Context Protocol client implementation across 6 transport types</li>
+      <li><strong>Streaming APIs</strong> &mdash; Server-Sent Events parsing for real-time AI responses</li>
+      <li><strong>Session Management</strong> &mdash; Persistence, compaction, replay, and resume patterns</li>
+      <li><strong>Config Hierarchies</strong> &mdash; Multi-layer configuration resolution (user &rarr; project &rarr; local)</li>
+      <li><strong>CLI Design</strong> &mdash; Both Python argparse and Rust Clap approaches to rich CLI interfaces</li>
+      <li><strong>Trait-based Abstraction</strong> &mdash; Rust generics over <code>ApiClient</code> and <code>ToolExecutor</code> traits</li>
+      <li><strong>Parity Auditing</strong> &mdash; Systematic comparison against a reference codebase</li>
+    </ul>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 4: HIGH-LEVEL ARCHITECTURE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">High-Level Architecture</h2>
+  <div class="content animate">
+    <div class="diagram">
+      <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">User Input<br><small>CLI / REPL</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Permission<br>Gate</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Conversation<br>Runtime</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Anthropic<br>API</div>
+    </div>
+    <div class="diagram" style="margin-top: 30px;">
+      <div class="box">Tool<br>Executor</div>
+      <div class="arrow">&larr;</div>
+      <div class="box">Hook<br>System</div>
+      <div class="arrow">&larr;</div>
+      <div class="box">Session<br>Store</div>
+      <div class="arrow">&larr;</div>
+      <div class="box" style="border-color:var(--success);">MCP<br>Servers</div>
+    </div>
+  </div>
+  <div class="content animate" style="margin-top:24px;">
+    <p style="text-align:center; color:var(--text-muted);">Both Python and Rust implement this same core loop: <strong>prompt &rarr; API &rarr; parse response &rarr; check permissions &rarr; execute tools &rarr; return results &rarr; continue</strong></p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 5: REPOSITORY STRUCTURE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Repository Structure</h2>
+  <div class="content animate">
+<pre>
+claw-code/
+&#x251C;&#x2500;&#x2500; src/                          # Python porting workspace
+&#x2502;   &#x251C;&#x2500;&#x2500; main.py                   # CLI entrypoint (30+ subcommands)
+&#x2502;   &#x251C;&#x2500;&#x2500; query_engine.py           # QueryEnginePort: session orchestration
+&#x2502;   &#x251C;&#x2500;&#x2500; runtime.py                # PortRuntime: prompt routing + turn loop
+&#x2502;   &#x251C;&#x2500;&#x2500; models.py                 # Shared dataclasses
+&#x2502;   &#x251C;&#x2500;&#x2500; commands.py               # 207 command entries from snapshot
+&#x2502;   &#x251C;&#x2500;&#x2500; tools.py                  # 184 tool entries from snapshot
+&#x2502;   &#x251C;&#x2500;&#x2500; permissions.py            # Permission filtering
+&#x2502;   &#x251C;&#x2500;&#x2500; session_store.py          # JSON session persistence
+&#x2502;   &#x251C;&#x2500;&#x2500; transcript.py             # Message history management
+&#x2502;   &#x251C;&#x2500;&#x2500; context.py                # Workspace introspection
+&#x2502;   &#x251C;&#x2500;&#x2500; parity_audit.py           # TS archive comparison
+&#x2502;   &#x251C;&#x2500;&#x2500; reference_data/           # JSON snapshots
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; commands_snapshot.json
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; tools_snapshot.json
+&#x2502;   &#x2502;   &#x2514;&#x2500;&#x2500; subsystems/       # Per-module metadata
+&#x2502;   &#x2514;&#x2500;&#x2500; ... (35+ more modules)
+&#x251C;&#x2500;&#x2500; rust/                         # Production Rust CLI
+&#x2502;   &#x251C;&#x2500;&#x2500; crates/
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; rusty-claude-cli/     # Binary: REPL + one-shot
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; runtime/              # Agentic loop, session, config
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; api/                  # Anthropic API + SSE client
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; tools/                # Tool specs + execution
+&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; commands/             # Slash command registry
+&#x2502;   &#x2502;   &#x2514;&#x2500;&#x2500; compat-harness/       # TS manifest extraction
+&#x2502;   &#x2514;&#x2500;&#x2500; Cargo.toml                # Workspace config
+&#x251C;&#x2500;&#x2500; tests/                        # Python test suite
+&#x251C;&#x2500;&#x2500; assets/                       # OmX workflow docs
+&#x251C;&#x2500;&#x2500; README.md
+&#x2514;&#x2500;&#x2500; PARITY.md                     # Feature parity analysis
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 6: DUAL-STACK STRATEGY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Dual-Stack Strategy</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>Python Stack</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Porting fidelity &amp; introspection</li>
+        <li>Zero external dependencies (stdlib only)</li>
+        <li>30+ CLI subcommands via <code>argparse</code></li>
+        <li>JSON snapshot-based registries</li>
+        <li>Parity auditing against TS archive</li>
+        <li>Workspace manifest generation</li>
+        <li>Session simulation &amp; replay</li>
+        <li>Ideal for <strong>understanding architecture</strong></li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Rust Stack</h3>
+      <ul>
+        <li><strong>Purpose:</strong> Production-grade performance</li>
+        <li>6-crate workspace architecture</li>
+        <li>Real Anthropic API integration</li>
+        <li>OAuth 2.0 with PKCE authentication</li>
+        <li>SSE streaming response handling</li>
+        <li>MCP client with multiple transports</li>
+        <li>Interactive REPL via <code>rustyline</code></li>
+        <li>Forbids <code>unsafe</code> code entirely</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PART I: PYTHON DEEP DIVE -->
+<!-- ============================================================ -->
+
+<!-- ============================================================ -->
+<!-- SLIDE 7: PYTHON OVERVIEW -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Part I: Python Implementation</h2>
+  <p class="subtitle animate">The porting workspace &mdash; 35+ modules for introspection and validation</p>
+  <div class="metric-grid animate" style="margin-top:30px">
+    <div class="metric-card">
+      <h3>Core Engine</h3>
+      <p><code>query_engine.py</code> &mdash; Session orchestration with token budgeting, compaction, and structured output</p>
+    </div>
+    <div class="metric-card">
+      <h3>Routing Layer</h3>
+      <p><code>runtime.py</code> &mdash; Token-based prompt matching against command and tool registries</p>
+    </div>
+    <div class="metric-card">
+      <h3>Data Models</h3>
+      <p><code>models.py</code> &mdash; Immutable dataclasses for Subsystem, PortingModule, UsageSummary</p>
+    </div>
+    <div class="metric-card">
+      <h3>CLI Interface</h3>
+      <p><code>main.py</code> &mdash; 30+ subcommands covering every aspect of the harness</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 8: main.py CLI ENTRY POINT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">main.py &mdash; CLI Entry Point</h2>
+  <div class="content animate">
+<pre>
+# src/main.py - The orchestrator of the Python workspace
+# Functions: build_parser(), main(argv)
+
+# 30+ subcommands via argparse:
+subcommands = [
+    "summary",           # Porting workspace overview
+    "manifest",          # Python file manifest
+    "parity-audit",      # Compare against TS archive
+    "commands",          # List 207 mirrored commands
+    "tools",             # List 184 mirrored tools
+    "route",             # Prompt-based command/tool matching
+    "bootstrap",         # Session startup simulation
+    "turn-loop",         # Multi-turn conversation simulation
+    "load-session",      # Resume from persisted state
+    "remote-mode",       # Remote connection mode
+    "ssh-mode",          # SSH tunnel mode
+    "teleport-mode",     # Teleport connection mode
+    "direct-connect-mode",  # Direct connection
+    "deep-link-mode",    # Deep link handling
+    "show-command",      # Inspect single command
+    "show-tool",         # Inspect single tool
+    "exec-command",      # Execute a mirrored command
+    "exec-tool",         # Execute a mirrored tool
+    "flush-transcript",  # Dump message history
+]
+</pre>
+  </div>
+  <p class="animate" style="color:var(--text-muted); margin-top:12px;">Each subcommand routes to specialized modules &mdash; <code>query_engine</code>, <code>runtime</code>, <code>commands</code>, <code>tools</code>, <code>session_store</code></p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 9: MODELS AND DATA STRUCTURES -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">models.py &mdash; Core Data Structures</h2>
+  <div class="content animate">
+<pre>
+from dataclasses import dataclass
+
+@dataclass(frozen=True)
+class Subsystem:
+    name: str           # e.g., "hooks", "plugins"
+    path: str           # e.g., "src/hooks/"
+    file_count: int     # Python files in subsystem
+    notes: str          # Human-readable description
+
+@dataclass(frozen=True)
+class PortingModule:
+    name: str           # Module identifier
+    responsibility: str # What it does
+    source_hint: str    # Original TS file path
+    status: str = 'planned'  # planned | ported | verified
+
+@dataclass(frozen=True)
+class PermissionDenial:
+    tool_name: str      # Which tool was denied
+    reason: str         # Why it was denied
+
+@dataclass
+class UsageSummary:
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+    def add_turn(self, inp: int, out: int):
+        self.input_tokens += inp
+        self.output_tokens += out
+
+@dataclass(frozen=True)
+class PortingBacklog:
+    title: str
+    modules: tuple      # Tuple of PortingModule
+
+    def summary_lines(self) -> list[str]:
+        return [f"  {m.name}: {m.status}" for m in self.modules]
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 10: QUERY ENGINE PORT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">QueryEnginePort &mdash; Session Orchestration</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>Configuration</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class QueryEngineConfig:
+    max_turns: int = 8
+    max_budget_tokens: int = 2000
+    compact_after_turns: int = 12
+    structured_output: bool = False
+    structured_retry_limit: int = 2
+</pre>
+      <ul style="margin-top:12px">
+        <li>Token budgeting per turn</li>
+        <li>Auto-compaction after N turns</li>
+        <li>Structured JSON output mode</li>
+        <li>Retry limits for parsing failures</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Core Methods</h3>
+      <ul>
+        <li><code>from_workspace()</code> &mdash; Factory from current workspace</li>
+        <li><code>from_saved_session()</code> &mdash; Resume from disk</li>
+        <li><code>submit_message()</code> &mdash; Process a single turn</li>
+        <li><code>stream_submit_message()</code> &mdash; Streaming variant</li>
+        <li><code>compact_messages_if_needed()</code> &mdash; Reduce context</li>
+        <li><code>replay_user_messages()</code> &mdash; Re-run history</li>
+        <li><code>flush_transcript()</code> &mdash; Dump to disk</li>
+        <li><code>persist_session()</code> &mdash; Save full state</li>
+        <li><code>render_summary()</code> &mdash; Human-readable output</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 11: TURN RESULT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">TurnResult &mdash; What a Turn Produces</h2>
+  <div class="content animate">
+<pre>
+@dataclass(frozen=True)
+class TurnResult:
+    prompt: str              # The user's input
+    output: str              # The model's response
+    matched_commands: tuple  # Commands matched by routing
+    matched_tools: tuple     # Tools matched by routing
+    permission_denials: tuple  # Tools blocked by permissions
+    usage: UsageSummary      # Token counts for this turn
+    stop_reason: str         # "end_turn" | "max_tokens" | "budget"
+</pre>
+  </div>
+  <div class="two-col animate" style="margin-top:24px">
+    <div class="card">
+      <h3>Stop Reasons</h3>
+      <ul>
+        <li><code>end_turn</code> &mdash; Model finished naturally</li>
+        <li><code>max_tokens</code> &mdash; Hit model token limit</li>
+        <li><code>budget</code> &mdash; Exceeded configured budget</li>
+        <li><code>max_turns</code> &mdash; Turn count exceeded</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>Routing Integration</h3>
+      <ul>
+        <li>Every turn records which commands/tools were matched</li>
+        <li>Permission denials logged for audit</li>
+        <li>Usage accumulates across turns</li>
+        <li>Results feed back into session state</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 12: RUNTIME AND ROUTING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">runtime.py &mdash; Prompt Routing Engine</h2>
+  <div class="content animate">
+<pre>
+class PortRuntime:
+    """Routes prompts to matching commands/tools via token scoring."""
+
+    def route_prompt(self, prompt: str) -> list[RoutedMatch]:
+        """Tokenize prompt, score against all registries."""
+        tokens = prompt.lower().split()
+        matches = []
+        for cmd in PORTED_COMMANDS:
+            score = self._score(tokens, cmd.name)
+            if score > 0:
+                matches.append(RoutedMatch('command', cmd.name,
+                                           cmd.source_hint, score))
+        for tool in PORTED_TOOLS:
+            score = self._score(tokens, tool.name)
+            if score > 0:
+                matches.append(RoutedMatch('tool', tool.name,
+                                           tool.source_hint, score))
+        return sorted(matches, key=lambda m: m.score, reverse=True)
+
+    def bootstrap_session(self, prompt: str) -> RuntimeSession:
+        """Create a full session context from a prompt."""
+        ...
+
+    def run_turn_loop(self, prompts: list[str]) -> list[TurnResult]:
+        """Execute multiple turns sequentially."""
+        ...
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 13: ROUTED MATCH AND RUNTIME SESSION -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">RoutedMatch &amp; RuntimeSession</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>RoutedMatch</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class RoutedMatch:
+    kind: str        # 'command' | 'tool'
+    name: str        # e.g., 'agents'
+    source_hint: str # TS origin path
+    score: float     # Match confidence
+</pre>
+      <ul style="margin-top:12px">
+        <li>Token overlap scoring</li>
+        <li>Case-insensitive matching</li>
+        <li>Sorted by score descending</li>
+        <li>Source hint traces to original TS</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>RuntimeSession</h3>
+<pre style="font-size:0.85rem">
+@dataclass
+class RuntimeSession:
+    prompt: str
+    context: PortContext
+    setup: WorkspaceSetup
+    setup_report: SetupReport
+    system_init_message: str
+    history: HistoryLog
+    routed_matches: list
+    turn_result: TurnResult | None
+    command_execution_messages: list
+    tool_execution_messages: list
+    stream_events: list
+    persisted_session_path: str | None
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 14: COMMAND REGISTRY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">commands.py &mdash; Command Registry</h2>
+  <div class="content animate">
+<pre>
+# Loaded from reference_data/commands_snapshot.json
+# 207 entries with: name, source_hint, responsibility
+
+PORTED_COMMANDS = load_command_snapshot()  # Tuple of dicts
+
+# Key functions:
+def command_names() -> list[str]:
+    """All 207 command names."""
+
+def get_command(name: str) -> dict | None:
+    """Case-insensitive lookup."""
+
+def find_commands(query: str) -> list[dict]:
+    """Substring search across name and responsibility."""
+
+def execute_command(name: str, prompt: str) -> CommandExecution:
+    """Dispatch to mirrored command handler."""
+
+def build_command_backlog() -> PortingBacklog:
+    """Generate backlog from unported commands."""
+
+def render_command_index() -> str:
+    """Markdown-formatted command listing."""
+
+# Command categorization via command_graph.py:
+class CommandGraph:
+    builtins: tuple     # Built-in slash commands
+    plugin_like: tuple  # Plugin-originated commands
+    skill_like: tuple   # Skill-originated commands
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 15: TOOL REGISTRY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">tools.py &mdash; Tool Registry</h2>
+  <div class="content animate">
+<pre>
+# Loaded from reference_data/tools_snapshot.json
+# 184 entries with: name, source_hint, responsibility
+
+PORTED_TOOLS = load_tool_snapshot()
+
+# Key functions:
+def get_tools(simple_mode=False, include_mcp=True) -> list:
+    """Filter tools by mode. Simple mode = bash/read/edit only."""
+
+def find_tools(query: str) -> list[dict]:
+    """Search tools by name or responsibility."""
+
+def filter_tools_by_permission_context(
+    tools: list, ctx: ToolPermissionContext
+) -> list:
+    """Remove tools blocked by permission context."""
+
+def execute_tool(name: str, payload: dict) -> ToolExecution:
+    """Dispatch to mirrored tool handler."""
+
+# Tool pool assembly:
+class ToolPool:
+    tools: tuple
+    simple_mode: bool
+    include_mcp: bool
+
+    def as_markdown(self) -> str:
+        """Render tool listing as Markdown."""
+
+def assemble_tool_pool(simple_mode=False, include_mcp=True) -> ToolPool:
+    """Factory combining filtering + wrapping."""
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 16: PERMISSION SYSTEM (PYTHON) -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">permissions.py &mdash; Access Control</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>ToolPermissionContext</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class ToolPermissionContext:
+    deny_names: frozenset  # Exact names
+    deny_prefixes: tuple   # Name prefixes
+
+    @classmethod
+    def from_iterables(cls, names, prefixes):
+        return cls(
+            frozenset(n.lower() for n in names),
+            tuple(p.lower() for p in prefixes)
+        )
+
+    def blocks(self, tool_name: str) -> bool:
+        """Check if tool is denied."""
+        lower = tool_name.lower()
+        if lower in self.deny_names:
+            return True
+        return any(
+            lower.startswith(p)
+            for p in self.deny_prefixes
+        )
+</pre>
+    </div>
+    <div class="card">
+      <h3>How It Works</h3>
+      <ul>
+        <li><strong>Exact name matching</strong> &mdash; deny specific tools</li>
+        <li><strong>Prefix matching</strong> &mdash; deny tool families</li>
+        <li>All comparisons <strong>case-insensitive</strong></li>
+        <li>Uses <code>frozenset</code> for immutable deny lists</li>
+        <li>Integrated into <code>filter_tools_by_permission_context()</code></li>
+        <li>Denials tracked as <code>PermissionDenial</code> objects</li>
+      </ul>
+      <h3 style="margin-top:18px">Permission Denials</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class PermissionDenial:
+    tool_name: str
+    reason: str
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 17: SESSION PERSISTENCE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Session Store &amp; Transcript</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>session_store.py</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class StoredSession:
+    session_id: str
+    messages: tuple     # Conversation turns
+    input_tokens: int
+    output_tokens: int
+
+DEFAULT_SESSION_DIR = Path('.port_sessions')
+
+def save_session(session: StoredSession):
+    """Serialize to JSON in DEFAULT_SESSION_DIR."""
+    path = DEFAULT_SESSION_DIR / f"{session.session_id}.json"
+    path.write_text(json.dumps({
+        'session_id': session.session_id,
+        'messages': list(session.messages),
+        'input_tokens': session.input_tokens,
+        'output_tokens': session.output_tokens,
+    }))
+
+def load_session(session_id: str) -> StoredSession:
+    """Deserialize from JSON."""
+</pre>
+    </div>
+    <div class="card">
+      <h3>transcript.py</h3>
+<pre style="font-size:0.85rem">
+class TranscriptStore:
+    entries: list     # All messages
+    flushed: bool     # Whether dumped to disk
+
+    def append(self, entry):
+        """Add a message to history."""
+        self.entries.append(entry)
+
+    def compact(self, keep_last=10):
+        """Keep only last N entries.
+        Reduces context window usage."""
+        self.entries = self.entries[-keep_last:]
+
+    def replay(self) -> list:
+        """Return all entries for re-submission."""
+        return list(self.entries)
+
+    def flush(self):
+        """Mark as flushed to disk."""
+        self.flushed = True
+</pre>
+      <p style="font-size:0.95rem; color:var(--text-muted); margin-top:8px;">Compaction is key &mdash; prevents context window overflow in long sessions</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 18: CONTEXT AND MANIFEST -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Context &amp; Manifest Generation</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>context.py &mdash; Workspace Introspection</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class PortContext:
+    source_root: Path
+    tests_root: Path
+    assets_root: Path
+    archive_root: Path | None
+    python_file_count: int
+    test_file_count: int
+    asset_file_count: int
+    archive_available: bool
+
+def build_port_context() -> PortContext:
+    """Counts Python files, detects
+    archive availability."""
+
+def render_context(ctx: PortContext) -> str:
+    """Human-readable context summary."""
+</pre>
+    </div>
+    <div class="card">
+      <h3>port_manifest.py &mdash; Structure Analysis</h3>
+<pre style="font-size:0.85rem">
+@dataclass(frozen=True)
+class PortManifest:
+    src_root: Path
+    total_python_files: int
+    top_level_modules: tuple
+
+    def to_markdown(self) -> str:
+        """Formatted manifest listing."""
+
+def build_port_manifest() -> PortManifest:
+    """Aggregates Python modules by
+    directory with note annotations.
+    Uses Counter for frequency
+    detection."""
+</pre>
+      <ul style="margin-top:12px">
+        <li>Counts files per subsystem</li>
+        <li>Annotates special modules</li>
+        <li>Produces Markdown reports</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 19: BOOTSTRAP AND SETUP -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Bootstrap Pipeline</h2>
+  <div class="content animate">
+    <div class="diagram" style="flex-direction: column; gap: 10px;">
+      <div class="box" style="background:var(--accent); color:#fff; min-width:60%;">Phase 1: Workspace Setup<br><small>Python version, platform, test command</small></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:60%;">Phase 2: Prefetch<br><small>MDM read, keychain, project scan</small></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:60%;">Phase 3: Deferred Init (Trust-Gated)<br><small>Plugins, skills, MCP, session hooks</small></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:60%;">Phase 4: Command/Tool Registry Load<br><small>207 commands + 184 tools from snapshots</small></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:60%;">Phase 5: System Init Message<br><small>Aggregated context for model prompt</small></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:60%; border-color:var(--success);">Phase 6: Session Ready<br><small>Runtime bootstrapped, ready for turns</small></div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 20: DEFERRED INIT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Deferred Initialization &amp; Trust</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>deferred_init.py</h3>
+<pre style="font-size:0.85rem">
+@dataclass
+class DeferredInitResult:
+    trusted: bool       # Trust gate
+    plugin_init: bool   # Plugins loaded?
+    skill_init: bool    # Skills loaded?
+    mcp_prefetch: bool  # MCP servers started?
+    session_hooks: bool # Hooks registered?
+
+def run_deferred_init(trusted: bool):
+    """Only init features when trusted=True.
+    Untrusted workspaces get read-only mode."""
+    if not trusted:
+        return DeferredInitResult(
+            trusted=False,
+            plugin_init=False,
+            skill_init=False,
+            mcp_prefetch=False,
+            session_hooks=False
+        )
+    # Full initialization...
+</pre>
+    </div>
+    <div class="card">
+      <h3>Trust Model</h3>
+      <ul>
+        <li><strong>Trusted workspace:</strong> Full feature set &mdash; plugins, skills, MCP servers, hooks all initialize</li>
+        <li><strong>Untrusted workspace:</strong> Minimal mode &mdash; only core tools available, no side effects</li>
+        <li>Trust determined by configuration and project state</li>
+        <li>Prevents <strong>malicious CLAUDE.md</strong> files from executing harmful hooks</li>
+      </ul>
+      <h3 style="margin-top:18px">Prefetch Operations</h3>
+      <ul>
+        <li><code>start_mdm_raw_read()</code></li>
+        <li><code>start_keychain_prefetch()</code></li>
+        <li><code>start_project_scan()</code></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 21: PARITY AUDIT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Parity Audit System</h2>
+  <div class="content animate">
+<pre>
+# parity_audit.py - Compare Python port against TypeScript archive
+
+ARCHIVE_ROOT_FILES = {       # 32 TS files mapped to Python equivalents
+    "QueryEngine.ts": "QueryEngine.py",
+    "Task.ts": "task.py",
+    "commands.ts": "commands.py",
+    "context.ts": "context.py",
+    "cost-tracker.ts": "cost_tracker.py",
+    "setup.ts": "setup.py",
+    "tasks.ts": "tasks.py",
+    "tools.ts": "tools.py",
+    # ... 24 more mappings
+}
+
+ARCHIVE_DIR_MAPPINGS = {     # 33 directory-level mappings
+    "assistant/": "assistant/",
+    "bootstrap/": "bootstrap/",
+    "cli/": "cli/",
+    "hooks/": "hooks/",
+    "plugins/": "plugins/",
+    "services/": "services/",
+    # ... 27 more directories
+}
+
+@dataclass
+class ParityAuditResult:
+    archive_present: bool
+    root_file_coverage: float     # e.g., 32/32 = 100%
+    directory_coverage: float     # e.g., 28/33 = 85%
+    total_file_ratio: float
+    command_entry_ratio: float    # 207/207 = 100%
+    tool_entry_ratio: float       # 184/184 = 100%
+    missing_root_targets: list
+    missing_directory_targets: list
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 22: EXECUTION REGISTRY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Execution Registry &amp; Dispatch</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>execution_registry.py</h3>
+<pre style="font-size:0.85rem">
+@dataclass
+class MirroredCommand:
+    name: str
+    source_hint: str
+    responsibility: str
+
+    def execute(self) -> str:
+        return f"[{self.name}] executed"
+
+@dataclass
+class MirroredTool:
+    name: str
+    source_hint: str
+    responsibility: str
+
+    def execute(self) -> str:
+        return f"[{self.name}] executed"
+
+class ExecutionRegistry:
+    def command(self, name: str):
+        """Case-insensitive lookup."""
+
+    def tool(self, name: str):
+        """Case-insensitive lookup."""
+
+def build_execution_registry():
+    """Create registry from
+    PORTED_COMMANDS + PORTED_TOOLS."""
+</pre>
+    </div>
+    <div class="card">
+      <h3>Dispatch Flow</h3>
+      <div class="diagram" style="flex-direction:column; gap:8px; margin:12px 0">
+        <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent); min-width:90%;">User Prompt</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%;">PortRuntime.route_prompt()</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%;">RoutedMatch (scored)</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%;">ExecutionRegistry.command() / .tool()</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="border-color:var(--success); min-width:90%;">MirroredCommand.execute()</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 23: COST TRACKING & HISTORY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Cost Tracking &amp; History</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>cost_tracker.py</h3>
+<pre style="font-size:0.85rem">
+class CostTracker:
+    total_units: float
+    events: list  # (label, units) tuples
+
+    def record(self, label: str, units: float):
+        """Track a cost event."""
+        self.total_units += units
+        self.events.append((label, units))
+
+# costHook.py - Integration point
+def apply_cost_hook(tracker, label, units):
+    """Record cost and return tracker.
+    Hook pattern for pluggable accounting."""
+    tracker.record(label, units)
+    return tracker
+</pre>
+    </div>
+    <div class="card">
+      <h3>history.py</h3>
+<pre style="font-size:0.85rem">
+@dataclass
+class HistoryEvent:
+    title: str
+    detail: str
+
+class HistoryLog:
+    events: list  # List of HistoryEvent
+
+    def add(self, title, detail):
+        self.events.append(
+            HistoryEvent(title, detail))
+
+    def as_markdown(self) -> str:
+        lines = []
+        for e in self.events:
+            lines.append(f"### {e.title}")
+            lines.append(e.detail)
+        return "\n".join(lines)
+</pre>
+      <ul style="margin-top:12px">
+        <li>Event-sourced session history</li>
+        <li>Markdown rendering for reports</li>
+        <li>Feeds into RuntimeSession</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 24: REMOTE MODES -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Connection Modes</h2>
+  <div class="metric-grid animate">
+    <div class="metric-card">
+      <h3>Remote Mode</h3>
+      <p>Standard remote connection to a hosted agent instance. Reports connection status and details.</p>
+      <code>run_remote_mode() &rarr; RuntimeModeReport</code>
+    </div>
+    <div class="metric-card">
+      <h3>SSH Mode</h3>
+      <p>Tunneled connection via SSH for secure access to remote workspaces.</p>
+      <code>run_ssh_mode() &rarr; RuntimeModeReport</code>
+    </div>
+    <div class="metric-card">
+      <h3>Teleport Mode</h3>
+      <p>Connection via Teleport for identity-based zero-trust access.</p>
+      <code>run_teleport_mode() &rarr; RuntimeModeReport</code>
+    </div>
+    <div class="metric-card">
+      <h3>Direct Connect / Deep Link</h3>
+      <p>Direct connections and deep link handling for IDE and URL integration.</p>
+      <code>run_direct_connect() / run_deep_link()</code>
+    </div>
+  </div>
+  <div class="content animate" style="margin-top:20px">
+<pre>
+@dataclass
+class RuntimeModeReport:
+    mode: str        # "remote" | "ssh" | "teleport"
+    connected: bool
+    detail: str
+
+@dataclass
+class DirectModeReport:
+    mode: str        # "direct-connect" | "deep-link"
+    target: str
+    active: bool
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 25: REFERENCE DATA -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Reference Data &amp; Snapshots</h2>
+  <div class="content animate">
+<pre>
+# reference_data/commands_snapshot.json
+# Array of 207 objects:
+[
+  {"name": "add-dir", "source_hint": "commands/add-dir.ts",
+   "responsibility": "Add directory to workspace"},
+  {"name": "agents", "source_hint": "commands/agents.ts",
+   "responsibility": "List and manage agent definitions"},
+  {"name": "autofix-pr", "source_hint": "commands/autofix-pr.ts",
+   "responsibility": "Auto-fix PR issues"},
+  ...
+]
+
+# reference_data/tools_snapshot.json
+# Array of 184 objects:
+[
+  {"name": "AgentTool", "source_hint": "tools/agent/",
+   "responsibility": "Execute agent as subprocess"},
+  {"name": "bash", "source_hint": "tools/bash.ts",
+   "responsibility": "Execute shell commands"},
+  ...
+]
+
+# reference_data/subsystems/ - 28 JSON files:
+# assistant.json, bootstrap.json, cli.json, coordinator.json,
+# hooks.json, plugins.json, services.json, skills.json,
+# state.json, types.json, voice.json, vim.json, ...
+</pre>
+  </div>
+  <p class="animate" style="color:var(--text-muted);">Snapshots capture the TS archive surface area without including proprietary source code</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- PART II: RUST DEEP DIVE -->
+<!-- ============================================================ -->
+
+<!-- ============================================================ -->
+<!-- SLIDE 26: RUST OVERVIEW -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Part II: Rust Implementation</h2>
+  <p class="subtitle animate">Production-grade CLI &mdash; ~20K lines, 6 crates, zero unsafe</p>
+  <div class="metric-grid animate" style="margin-top:30px">
+    <div class="metric-card">
+      <h3>rusty-claude-cli</h3>
+      <p>Main binary: REPL, one-shot prompts, argument parsing, terminal rendering</p>
+    </div>
+    <div class="metric-card">
+      <h3>runtime</h3>
+      <p>Agentic conversation loop, session management, config, permissions, hooks, MCP</p>
+    </div>
+    <div class="metric-card">
+      <h3>api</h3>
+      <p>Anthropic HTTP client with SSE streaming, OAuth, and error handling</p>
+    </div>
+    <div class="metric-card">
+      <h3>tools</h3>
+      <p>15 built-in tools with JSON schemas and permission gates</p>
+    </div>
+    <div class="metric-card">
+      <h3>commands</h3>
+      <p>20+ slash commands with resume support tracking</p>
+    </div>
+    <div class="metric-card">
+      <h3>compat-harness</h3>
+      <p>Bridge between TS archive metadata and Rust implementation</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 27: CARGO WORKSPACE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Cargo Workspace Configuration</h2>
+  <div class="content animate">
+<pre>
+# rust/Cargo.toml
+[workspace]
+members = ["crates/*"]
+resolver = "2"
+
+[workspace.lints.rust]
+unsafe_code = "forbid"          # No unsafe anywhere
+
+[workspace.lints.clippy]
+all = "warn"
+pedantic = "warn"
+# Allowed exceptions:
+module_name_repetitions = "allow"
+missing_errors_doc = "allow"
+missing_panics_doc = "allow"
+
+# Key dependencies across crates:
+# reqwest     - HTTP client
+# serde       - Serialization
+# serde_json  - JSON handling
+# tokio       - Async runtime
+# rustyline   - REPL input
+# clap        - CLI parsing
+# rand        - PKCE generation
+# sha2        - OAuth hashing
+</pre>
+  </div>
+  <div class="bp-grid animate" style="margin-top:16px">
+    <div class="bp-item"><span>1</span>Resolver 2 for improved dependency resolution</div>
+    <div class="bp-item"><span>2</span><code>unsafe_code = "forbid"</code> enforced workspace-wide</div>
+    <div class="bp-item"><span>3</span>Clippy pedantic for maximum code quality</div>
+    <div class="bp-item"><span>4</span>Modular crate separation for clean boundaries</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 28: CLI MAIN.RS -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">main.rs &mdash; CLI Entry Point</h2>
+  <div class="content animate">
+<pre>
+// Constants
+const DEFAULT_MODEL: &str = "claude-opus-4-6";
+const DEFAULT_DATE: &str = "2026-03-31";
+const DEFAULT_OAUTH_CALLBACK_PORT: u16 = 4545;
+
+// 11 CLI actions
+enum CliAction {
+    DumpManifests,       // Extract TS manifests
+    BootstrapPlan,       // Show startup plan
+    PrintSystemPrompt,   // Display system prompt
+    Version,             // Show version info
+    ResumeSession(id),   // Resume from session ID
+    Prompt(text, model), // One-shot prompt
+    Login,               // OAuth login flow
+    Logout,              // Clear credentials
+    Init,                // Initialize workspace
+    Repl(model),         // Interactive REPL
+    Help,                // Show help text
+}
+
+fn max_tokens_for_model(model: &str) -> u32 {
+    if model.contains("opus") { 32_000 }
+    else { 64_000 }  // sonnet/haiku get 64K
+}
+
+fn resolve_model_alias(alias: &str) -> &str {
+    match alias {
+        "opus"   => "claude-opus-4-6",
+        "sonnet" => "claude-sonnet-4-6",
+        "haiku"  => "claude-haiku-4-5-20251001",
+        other    => other,
+    }
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 29: ARG PARSING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Argument Parsing &mdash; Two Approaches</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>Manual Parsing (main.rs)</h3>
+<pre style="font-size:0.85rem">
+fn parse_args() -> Result&lt;CliAction&gt; {
+    let args: Vec&lt;String&gt; = env::args()
+        .skip(1).collect();
+
+    // 150+ lines of manual parsing
+    // Supports:
+    //   --version
+    //   --model &lt;name&gt;
+    //   --output-format text|json
+    //   --permission-mode &lt;mode&gt;
+    //   -p "prompt text"
+    //   --print (system prompt)
+    //   --allowedTools tool1,tool2
+    //   --resume &lt;session-id&gt;
+    //   dump-manifests
+    //   bootstrap-plan
+    //   login / logout / init
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>Clap Derive (args.rs)</h3>
+<pre style="font-size:0.85rem">
+#[derive(Parser)]
+struct Cli {
+    #[arg(long)]
+    model: Option&lt;String&gt;,
+
+    #[arg(long)]
+    permission_mode: Option&lt;PermissionMode&gt;,
+
+    #[arg(long)]
+    config: Option&lt;PathBuf&gt;,
+
+    #[arg(long)]
+    output_format: Option&lt;OutputFormat&gt;,
+
+    #[command(subcommand)]
+    command: Option&lt;Command&gt;,
+}
+
+#[derive(Subcommand)]
+enum Command {
+    DumpManifests,
+    BootstrapPlan,
+    Login,
+    Logout,
+    Prompt { prompt: Vec&lt;String&gt; },
+}
+</pre>
+    </div>
+  </div>
+  <p class="animate" style="color:var(--text-muted); margin-top:12px;">The repo has <strong>both</strong> approaches &mdash; manual parsing gives maximum control, Clap gives type safety</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 30: APP STATE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">app.rs &mdash; Application State</h2>
+  <div class="content animate">
+<pre>
+struct SessionConfig {
+    model: String,
+    permission_mode: PermissionMode,
+    config_path: Option&lt;PathBuf&gt;,
+    output_format: OutputFormat,
+}
+
+struct SessionState {
+    turns: usize,
+    compacted_messages: usize,
+    last_model: Option&lt;String&gt;,
+    last_usage: Option&lt;TokenUsage&gt;,
+}
+
+enum SlashCommand {
+    Help,
+    Status,
+    Compact,
+    Unknown(String),
+}
+
+impl SlashCommand {
+    fn parse(input: &str) -> Option&lt;Self&gt; {
+        if !input.starts_with('/') { return None; }
+        match input.trim() {
+            "/help"    => Some(Self::Help),
+            "/status"  => Some(Self::Status),
+            "/compact" => Some(Self::Compact),
+            other      => Some(Self::Unknown(other.into())),
+        }
+    }
+}
+
+struct CliApp {
+    config: SessionConfig,
+    renderer: Renderer,       // Terminal output
+    state: SessionState,
+    conversation_client: ConversationRuntime,
+    conversation_history: Vec&lt;ConversationMessage&gt;,
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 31: CONVERSATION RUNTIME -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">ConversationRuntime &mdash; The Agentic Loop</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/conversation.rs
+const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u64 = 200_000;
+
+// Two core traits for pluggable behavior:
+trait ApiClient {
+    fn stream(&self, request: ApiRequest) -> Result&lt;Vec&lt;AssistantEvent&gt;&gt;;
+}
+
+trait ToolExecutor {
+    fn execute(&self, name: &str, input: Value) -> Result&lt;String, ToolError&gt;;
+}
+
+// Generic runtime parameterized over both:
+struct ConversationRuntime&lt;C: ApiClient, T: ToolExecutor&gt; {
+    session: Session,
+    api_client: C,
+    tool_executor: T,
+    permission_policy: PermissionPolicy,
+    system_prompt: Vec&lt;String&gt;,
+    max_iterations: usize,
+    usage_tracker: UsageTracker,
+    hook_runner: Option&lt;HookRunner&gt;,
+    auto_compaction_input_tokens_threshold: u64,
+}
+
+enum AssistantEvent {
+    TextDelta(String),               // Streaming text chunk
+    ToolUse { id, name, input },     // Tool call request
+    Usage(TokenUsage),               // Token accounting
+    MessageStop,                     // End of response
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 32: TURN LOOP FLOW -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">The Turn Loop &mdash; Step by Step</h2>
+  <div class="content animate">
+    <div class="diagram" style="flex-direction: column; gap: 8px;">
+      <div class="box" style="background:var(--accent); color:#fff; min-width:70%;">1. User Input &rarr; Add to session messages</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">2. Build ApiRequest (system_prompt + messages)</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">3. Stream response via ApiClient.stream()</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">4. Parse AssistantEvents (TextDelta, ToolUse, Usage)</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">5. For each ToolUse: check PermissionPolicy</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">6. Execute tool via ToolExecutor.execute()</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:70%;">7. Append tool results to messages</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="border-color:var(--success); min-width:70%;">8. Loop until MessageStop OR max_iterations (50)</div>
+    </div>
+  </div>
+  <p class="animate" style="color:var(--text-muted); margin-top:12px;">Auto-compaction triggers when input tokens exceed 200K &mdash; configurable via <code>CLAUDE_CODE_AUTO_COMPACT_INPUT_TOKENS</code></p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 33: TURN SUMMARY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">TurnSummary &amp; Auto-Compaction</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>TurnSummary</h3>
+<pre style="font-size:0.85rem">
+struct TurnSummary {
+    assistant_messages: Vec&lt;ConversationMessage&gt;,
+    tool_results: Vec&lt;ToolResult&gt;,
+    iterations: usize,
+    usage: TokenUsage,
+    auto_compaction: Option&lt;AutoCompactionEvent&gt;,
+}
+
+struct AutoCompactionEvent {
+    removed_message_count: usize,
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>Compaction Logic</h3>
+<pre style="font-size:0.85rem">
+// compact.rs
+struct CompactionConfig {
+    threshold: u64,       // Default: 200K
+    keep_system: bool,    // Always keep system
+    keep_last_n: usize,   // Recent messages
+}
+
+struct CompactionResult {
+    removed: usize,
+    remaining: usize,
+    tokens_freed: u64,
+}
+
+fn should_compact(
+    session: &Session,
+    config: &CompactionConfig
+) -> bool {
+    session.total_input_tokens()
+        > config.threshold
+}
+
+fn compact_session(
+    session: &mut Session,
+    config: &CompactionConfig
+) -> CompactionResult { ... }
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 34: PERMISSION SYSTEM (RUST) -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Three-Tier Permission Model (Rust)</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/permissions.rs
+enum PermissionMode {
+    ReadOnly,           // File reads, searches, web operations only
+    WorkspaceWrite,     // + File writes, edits, todo updates
+    DangerFullAccess,   // + Bash execution, agents, notebooks
+}
+
+struct PermissionPolicy {
+    mode: PermissionMode,
+    allowed_tools: Option&lt;BTreeSet&lt;String&gt;&gt;,  // Explicit allowlist
+}
+
+trait PermissionPrompter {
+    fn prompt_user(&self, tool_name: &str) -> PermissionDecision;
+}
+
+enum PermissionDecision {
+    Allow,
+    Deny(String),    // With reason
+    AllowOnce,
+    AllowAlways,
+}
+</pre>
+  </div>
+  <div class="metric-grid animate" style="margin-top:16px">
+    <div class="metric-card">
+      <h3>ReadOnly</h3>
+      <p>read_file, glob_search, grep_search, web_search, web_fetch, skill</p>
+    </div>
+    <div class="metric-card">
+      <h3>WorkspaceWrite</h3>
+      <p>+ write_file, edit_file, todo_write, config</p>
+    </div>
+    <div class="metric-card">
+      <h3>DangerFullAccess</h3>
+      <p>+ bash, agent, notebook, powershell, repl</p>
+    </div>
+    <div class="metric-card">
+      <h3>AllowedTools Override</h3>
+      <p>Optional explicit allowlist via <code>--allowedTools</code> flag</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 35: TOOL SPECS -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Tool Specifications (Rust)</h2>
+  <div class="content animate">
+<pre>
+// tools/src/lib.rs
+struct ToolSpec {
+    name: String,
+    description: String,
+    input_schema: serde_json::Value,    // JSON Schema for validation
+    required_permission: PermissionMode,
+}
+
+fn mvp_tool_specs() -> Vec&lt;ToolSpec&gt; {
+    vec![
+        // ReadOnly tools:
+        ToolSpec { name: "read_file",    required_permission: ReadOnly, .. },
+        ToolSpec { name: "glob_search",  required_permission: ReadOnly, .. },
+        ToolSpec { name: "grep_search",  required_permission: ReadOnly, .. },
+        ToolSpec { name: "web_search",   required_permission: ReadOnly, .. },
+        ToolSpec { name: "web_fetch",    required_permission: ReadOnly, .. },
+        ToolSpec { name: "skill",        required_permission: ReadOnly, .. },
+
+        // WorkspaceWrite tools:
+        ToolSpec { name: "write_file",   required_permission: WorkspaceWrite, .. },
+        ToolSpec { name: "edit_file",    required_permission: WorkspaceWrite, .. },
+        ToolSpec { name: "todo_write",   required_permission: WorkspaceWrite, .. },
+        ToolSpec { name: "config",       required_permission: WorkspaceWrite, .. },
+
+        // DangerFullAccess tools:
+        ToolSpec { name: "bash",         required_permission: DangerFullAccess, .. },
+        ToolSpec { name: "agent",        required_permission: DangerFullAccess, .. },
+        ToolSpec { name: "notebook",     required_permission: DangerFullAccess, .. },
+        ToolSpec { name: "powershell",   required_permission: DangerFullAccess, .. },
+        ToolSpec { name: "repl",         required_permission: DangerFullAccess, .. },
+    ]
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 36: TOOL EXECUTION -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Tool Execution &mdash; Bash &amp; File Ops</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>bash.rs</h3>
+<pre style="font-size:0.85rem">
+struct BashCommandInput {
+    command: String,
+    timeout_ms: Option&lt;u64&gt;,
+    working_dir: Option&lt;PathBuf&gt;,
+}
+
+struct BashCommandOutput {
+    stdout: String,
+    stderr: String,
+    exit_code: i32,
+    timed_out: bool,
+}
+
+fn execute_bash(
+    input: BashCommandInput
+) -> Result&lt;BashCommandOutput&gt; {
+    // Spawn child process
+    // Handle timeout
+    // Capture stdout/stderr
+    // Return structured result
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>file_ops.rs</h3>
+<pre style="font-size:0.85rem">
+fn read_file(
+    path: &Path,
+    offset: Option&lt;usize&gt;,
+    limit: Option&lt;usize&gt;
+) -> Result&lt;String&gt; { ... }
+
+fn write_file(
+    path: &Path,
+    content: &str
+) -> Result&lt;String&gt; { ... }
+
+fn edit_file(
+    path: &Path,
+    old_string: &str,
+    new_string: &str
+) -> Result&lt;String&gt; { ... }
+
+fn glob_search(
+    pattern: &str,
+    path: Option&lt;&Path&gt;
+) -> Result&lt;Vec&lt;PathBuf&gt;&gt; { ... }
+
+fn grep_search(
+    pattern: &str,
+    path: Option&lt;&Path&gt;,
+    include: Option&lt;&str&gt;
+) -> Result&lt;String&gt; { ... }
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 37: ANTHROPIC API CLIENT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">API Crate &mdash; Anthropic Client</h2>
+  <div class="content animate">
+<pre>
+// api/src/client.rs
+struct AnthropicClient {
+    http_client: reqwest::Client,
+    auth_source: AuthSource,
+    base_url: String,
+}
+
+enum AuthSource {
+    ApiKey(String),              // ANTHROPIC_API_KEY
+    OAuth { access_token, refresh_token, expires_at },
+}
+
+impl AnthropicClient {
+    fn stream(&self, request: &MessageRequest) -> Result&lt;MessageStream&gt; {
+        // POST /v1/messages with stream=true
+        // Returns SSE event stream
+    }
+}
+
+fn resolve_startup_auth_source() -> Result&lt;AuthSource&gt; {
+    // 1. Check ANTHROPIC_API_KEY env var
+    // 2. Check stored OAuth token
+    // 3. Prompt for login if neither found
+}
+
+fn oauth_token_is_expired(token: &OAuthToken) -> bool {
+    // Check expiry timestamp against current time
+}
+</pre>
+  </div>
+  <p class="animate" style="color:var(--text-muted);">Supports both API key and OAuth authentication with automatic token refresh</p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 38: SSE STREAMING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Server-Sent Events (SSE) Parsing</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>api/src/sse.rs</h3>
+<pre style="font-size:0.85rem">
+struct SseParser {
+    buffer: String,
+    event_type: Option&lt;String&gt;,
+}
+
+fn parse_frame(line: &str) -> SseFrame {
+    if line.starts_with("event: ") {
+        SseFrame::Event(line[7..].into())
+    } else if line.starts_with("data: ") {
+        SseFrame::Data(line[6..].into())
+    } else if line.is_empty() {
+        SseFrame::EndOfEvent
+    } else {
+        SseFrame::Comment
+    }
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>api/src/types.rs &mdash; Event Types</h3>
+<pre style="font-size:0.85rem">
+// Stream event types from Anthropic API:
+enum StreamEvent {
+    MessageStart { message: Message },
+    ContentBlockStart { index, content_block },
+    ContentBlockDelta { index, delta },
+    ContentBlockStop { index },
+    MessageDelta { delta, usage },
+    MessageStop,
+    Ping,
+    Error { error: ApiError },
+}
+
+struct ContentBlock {
+    block_type: String, // "text" | "tool_use"
+    text: Option&lt;String&gt;,
+    id: Option&lt;String&gt;,
+    name: Option&lt;String&gt;,
+    input: Option&lt;Value&gt;,
+}
+
+struct Usage {
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_input_tokens: Option&lt;u64&gt;,
+    cache_creation_input_tokens: Option&lt;u64&gt;,
+}
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 39: OAUTH FLOW -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">OAuth 2.0 with PKCE</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/oauth.rs
+struct OAuthConfig {
+    client_id: String,
+    auth_url: String,
+    token_url: String,
+    redirect_uri: String,
+    scopes: Vec&lt;String&gt;,
+}
+
+enum PkceChallengeMethod {
+    S256,    // SHA-256 hash of code_verifier
+    Plain,   // code_verifier sent as-is
+}
+
+fn generate_pkce_pair() -> (String, String, PkceChallengeMethod) {
+    // 1. Generate random code_verifier (43-128 chars)
+    // 2. Compute code_challenge = BASE64URL(SHA256(code_verifier))
+    // 3. Return (verifier, challenge, S256)
+}
+</pre>
+  </div>
+  <div class="diagram animate" style="margin-top:20px">
+    <div class="box">Generate<br>PKCE Pair</div>
+    <div class="arrow">&rarr;</div>
+    <div class="box">Open Browser<br>Auth URL</div>
+    <div class="arrow">&rarr;</div>
+    <div class="box">Callback on<br>:4545</div>
+    <div class="arrow">&rarr;</div>
+    <div class="box">Exchange Code<br>+ Verifier</div>
+    <div class="arrow">&rarr;</div>
+    <div class="box" style="border-color:var(--success);">Access<br>Token</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 40: CONFIG SYSTEM -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Configuration Hierarchy</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/config.rs
+enum ConfigSource {
+    User,     // ~/.claude.json              (global defaults)
+    Project,  // ./.claude.json              (project overrides)
+    Local,    // ./.claude/settings.local.json (machine-specific)
+}
+
+struct ConfigEntry {
+    source: ConfigSource,
+    path: PathBuf,
+}
+
+struct RuntimeConfig {
+    merged: BTreeMap&lt;String, Value&gt;,  // Merged from all sources
+    loaded_entries: Vec&lt;ConfigEntry&gt;,
+    feature_config: RuntimeFeatureConfig,
+}
+
+struct RuntimeFeatureConfig {
+    hooks: RuntimeHookConfig,
+    mcp: McpConfigCollection,
+    oauth: Option&lt;OAuthConfig&gt;,
+    model: Option&lt;String&gt;,
+    permission_mode: Option&lt;ResolvedPermissionMode&gt;,
+    sandbox: bool,
+}
+</pre>
+  </div>
+  <div class="diagram animate" style="margin-top:16px">
+    <div class="box">~/.claude.json<br><small>User (lowest priority)</small></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box">./.claude.json<br><small>Project (overrides user)</small></div>
+    <div class="arrow">&rarr;</div>
+    <div class="box" style="border-color:var(--success);">settings.local.json<br><small>Local (highest priority)</small></div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 41: MCP CLIENT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">MCP &mdash; Model Context Protocol</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/mcp.rs
+enum McpTransport {
+    Stdio,         // Spawn process, communicate via stdin/stdout
+    Sse,           // Server-Sent Events over HTTP
+    Http,          // Standard HTTP request/response
+    Ws,            // WebSocket bidirectional
+    Sdk,           // Native SDK integration
+    ClaudeAiProxy, // Proxied through Claude.ai
+}
+
+// Per-transport configs:
+struct McpStdioServerConfig {
+    command: String,            // e.g., "npx"
+    args: Vec&lt;String&gt;,          // e.g., ["-y", "@modelcontextprotocol/server-filesystem"]
+    env: HashMap&lt;String, String&gt;, // Environment variables
+}
+
+struct McpRemoteServerConfig {
+    url: String,
+    headers: HashMap&lt;String, String&gt;,
+    headers_helper: Option&lt;String&gt;,   // Script to generate auth headers
+    oauth: Option&lt;McpOAuthConfig&gt;,
+}
+
+struct McpServerManager {
+    servers: BTreeMap&lt;String, ScopedMcpServerConfig&gt;,
+}
+
+fn mcp_server_signature(name: &str, config: &McpServerConfig) -> String { ... }
+fn mcp_tool_name(server: &str, tool: &str) -> String { ... }
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 42: MCP STDIO CLIENT -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">MCP Stdio Client Implementation</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>mcp_client.rs</h3>
+      <ul>
+        <li>Manages lifecycle of MCP server processes</li>
+        <li>JSON-RPC message framing over stdin/stdout</li>
+        <li>Tool discovery via <code>tools/list</code> method</li>
+        <li>Resource access via <code>resources/read</code></li>
+        <li>Prompt templates via <code>prompts/get</code></li>
+        <li>Health checking and reconnection</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>mcp_stdio.rs</h3>
+      <ul>
+        <li>Process spawning with <code>Command::new()</code></li>
+        <li>Stdin/stdout piping for message exchange</li>
+        <li>Line-delimited JSON protocol</li>
+        <li>Graceful shutdown on drop</li>
+        <li>Error propagation from child process</li>
+        <li>Environment variable injection</li>
+      </ul>
+    </div>
+  </div>
+  <div class="diagram animate" style="margin-top:20px">
+    <div class="box" style="background:var(--accent); color:#fff;">Claw Runtime</div>
+    <div class="arrow">&rarr; stdin</div>
+    <div class="box">MCP Server<br>Process</div>
+    <div class="arrow">stdout &rarr;</div>
+    <div class="box" style="border-color:var(--success);">Tool Results</div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 43: HOOK SYSTEM -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Hook System</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>hooks.rs</h3>
+<pre style="font-size:0.85rem">
+enum HookEvent {
+    PreToolUse {
+        tool_name: String,
+        input: Value,
+    },
+    PostToolUse {
+        tool_name: String,
+        output: String,
+    },
+}
+
+struct HookRunner {
+    pre_tool_use: Vec&lt;String&gt;,   // Shell commands
+    post_tool_use: Vec&lt;String&gt;,  // Shell commands
+}
+
+impl HookRunner {
+    fn run(&self, event: HookEvent) -> HookResult {
+        // Currently: parsed but NOT executed
+        // Planned: shell command execution
+    }
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>Hook Lifecycle</h3>
+      <div class="diagram" style="flex-direction:column; gap:8px; margin:12px 0">
+        <div class="box" style="min-width:90%;">Tool Call Requested</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%; border-color:var(--warning);">PreToolUse Hook</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%;">Permission Check</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%;">Tool Execution</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%; border-color:var(--warning);">PostToolUse Hook</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:90%; border-color:var(--success);">Return Result</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 44: SESSION AND MESSAGES -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Session &amp; Message Types</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/session.rs
+struct Session {
+    id: String,
+    messages: Vec&lt;ConversationMessage&gt;,
+    created_at: SystemTime,
+    total_input_tokens: u64,
+    total_output_tokens: u64,
+}
+
+struct ConversationMessage {
+    role: Role,                    // User | Assistant
+    content: Vec&lt;ContentBlock&gt;,
+    timestamp: SystemTime,
+}
+
+enum ContentBlock {
+    Text { text: String },
+    ToolUse { id: String, name: String, input: Value },
+    ToolResult { tool_use_id: String, content: String, is_error: bool },
+    Image { source: ImageSource },
+}
+
+enum Role {
+    User,
+    Assistant,
+}
+</pre>
+  </div>
+  <p class="animate" style="color:var(--text-muted);">Sessions persist as JSON files for resume capability &mdash; same pattern as the Python <code>StoredSession</code></p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 45: SYSTEM PROMPT BUILDER -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">System Prompt Assembly</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/prompt.rs
+struct SystemPromptBuilder {
+    sections: Vec&lt;PromptSection&gt;,
+}
+
+struct ProjectContext {
+    project_root: PathBuf,
+    claude_md_content: Option&lt;String&gt;,  // From CLAUDE.md
+    git_info: Option&lt;GitInfo&gt;,
+}
+
+fn load_system_prompt(context: &ProjectContext) -> Vec&lt;String&gt; {
+    let mut sections = vec![];
+
+    // 1. Base system instructions
+    sections.push(BASE_SYSTEM_PROMPT.into());
+
+    // 2. CLAUDE.md from project root (if present)
+    if let Some(claude_md) = &context.claude_md_content {
+        sections.push(format!("# Project Instructions\n{}", claude_md));
+    }
+
+    // 3. Environment context
+    sections.push(format!(
+        "# Environment\n- Platform: {}\n- Shell: {}\n- CWD: {}",
+        env::consts::OS, detect_shell(), context.project_root.display()
+    ));
+
+    // 4. Available tools description
+    sections.push(format_tool_descriptions(&available_tools));
+
+    // 5. Date and model info
+    sections.push(format!("Current date: {}", chrono::Local::now()));
+
+    sections
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 46: USAGE TRACKING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Usage Tracking &amp; Pricing</h2>
+  <div class="content animate">
+<pre>
+// runtime/src/usage.rs
+struct TokenUsage {
+    input_tokens: u64,
+    output_tokens: u64,
+    cache_read_input_tokens: u64,
+    cache_creation_input_tokens: u64,
+}
+
+struct UsageTracker {
+    turns: Vec&lt;TokenUsage&gt;,
+    model: String,
+}
+
+impl UsageTracker {
+    fn total_input_tokens(&self) -> u64 { ... }
+    fn total_output_tokens(&self) -> u64 { ... }
+    fn total_cost_usd(&self) -> f64 {
+        let pricing = pricing_for_model(&self.model);
+        self.turns.iter().map(|u| {
+            u.input_tokens as f64 * pricing.input_per_token
+            + u.output_tokens as f64 * pricing.output_per_token
+        }).sum()
+    }
+}
+
+fn pricing_for_model(model: &str) -> ModelPricing {
+    // Returns per-token rates for input, output, cache
+    // Different rates for opus, sonnet, haiku
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 47: SLASH COMMANDS -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Slash Command Registry</h2>
+  <div class="content animate">
+<pre>
+// commands/src/lib.rs
+struct SlashCommandSpec {
+    name: &'static str,
+    summary: &'static str,
+    argument_hint: Option&lt;&'static str&gt;,
+    resume_supported: bool,
+}
+
+const SLASH_COMMAND_SPECS: &[SlashCommandSpec] = &[
+    SlashCommandSpec { name: "help",        summary: "Show available commands",     resume_supported: true },
+    SlashCommandSpec { name: "status",      summary: "Show session status",         resume_supported: true },
+    SlashCommandSpec { name: "compact",     summary: "Compact conversation history", resume_supported: true },
+    SlashCommandSpec { name: "model",       summary: "Switch model",                resume_supported: true },
+    SlashCommandSpec { name: "permissions", summary: "View/change permission mode", resume_supported: true },
+    SlashCommandSpec { name: "clear",       summary: "Clear conversation",          resume_supported: false },
+    SlashCommandSpec { name: "cost",        summary: "Show token usage and cost",   resume_supported: true },
+    SlashCommandSpec { name: "resume",      summary: "Resume a previous session",   resume_supported: false },
+    SlashCommandSpec { name: "config",      summary: "View configuration",          resume_supported: true },
+    SlashCommandSpec { name: "memory",      summary: "View memory files",           resume_supported: true },
+    SlashCommandSpec { name: "init",        summary: "Initialize CLAUDE.md",        resume_supported: false },
+    SlashCommandSpec { name: "diff",        summary: "Show git diff",               resume_supported: true },
+    SlashCommandSpec { name: "version",     summary: "Show version info",           resume_supported: true },
+    SlashCommandSpec { name: "commit",      summary: "Create git commit",           resume_supported: true },
+    SlashCommandSpec { name: "pr",          summary: "Create pull request",         resume_supported: true },
+    SlashCommandSpec { name: "issue",       summary: "Create GitHub issue",         resume_supported: true },
+    SlashCommandSpec { name: "bughunter",   summary: "Automated bug detection",     resume_supported: false },
+    SlashCommandSpec { name: "ultraplan",   summary: "Deep planning mode",          resume_supported: false },
+];
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 48: SANDBOX AND REMOTE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Sandbox &amp; Remote Execution</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>sandbox.rs</h3>
+      <ul>
+        <li>Isolated execution environment for untrusted tools</li>
+        <li>Configurable via <code>RuntimeFeatureConfig.sandbox</code></li>
+        <li>Restricts filesystem access to project directory</li>
+        <li>Network isolation for dangerous operations</li>
+        <li>Process sandboxing via OS-level mechanisms</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>remote.rs</h3>
+<pre style="font-size:0.85rem">
+struct RemoteSessionContext {
+    session_id: String,
+    remote_url: String,
+    auth_token: String,
+}
+
+struct UpstreamProxyBootstrap {
+    proxy_url: String,
+    target_model: String,
+    headers: HashMap&lt;String, String&gt;,
+}
+</pre>
+      <ul style="margin-top:12px">
+        <li>Remote session management</li>
+        <li>Upstream proxy configuration</li>
+        <li>Multi-hop routing support</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 49: REPL AND RENDERING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">REPL &amp; Terminal Rendering</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>input.rs &mdash; Interactive Input</h3>
+      <ul>
+        <li>Built on <code>rustyline</code> crate</li>
+        <li>Readline-style line editing</li>
+        <li>History across sessions</li>
+        <li>Slash command detection (<code>/</code> prefix)</li>
+        <li>Multi-line input support</li>
+        <li>Ctrl+C / Ctrl+D handling</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>render.rs &mdash; Terminal Output</h3>
+      <ul>
+        <li>ANSI color styling for responses</li>
+        <li>Streaming text display (char by char)</li>
+        <li>Tool call formatting with borders</li>
+        <li>Code block syntax highlighting</li>
+        <li>JSON output mode for piping</li>
+        <li>Error rendering with color codes</li>
+      </ul>
+    </div>
+  </div>
+  <div class="content animate" style="margin-top:20px">
+<pre>
+// LiveCli struct manages the REPL lifecycle:
+struct LiveCli {
+    model: String,
+    tools: Vec&lt;ToolSpec&gt;,
+    permission_mode: PermissionMode,
+    output_format: CliOutputFormat,
+}
+
+// Output formats:
+enum CliOutputFormat {
+    Text,     // Human-readable terminal output
+    Json,     // Structured JSON for automation
+}
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- PART III: TESTING & PARITY -->
+<!-- ============================================================ -->
+
+<!-- ============================================================ -->
+<!-- SLIDE 50: TEST SUITE -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Part III: Testing &amp; Verification</h2>
+  <div class="content animate">
+<pre>
+# tests/test_porting_workspace.py - 32 test cases
+
+class TestPortManifest:
+    test_manifest_builds           # File counting works
+    test_manifest_markdown         # Markdown generation
+    test_manifest_total            # Total matches actual
+
+class TestQueryEngine:
+    test_summary_renders           # Summary output valid
+    test_cli_summary               # CLI integration
+    test_parity_audit              # Archive comparison
+    test_commands_load             # 150+ commands load
+    test_tools_load                # 100+ tools load
+    test_route_prompt              # Routing returns matches
+    test_bootstrap_session         # Session creation
+    test_session_persistence       # Save and load
+    test_permission_filtering      # Denials work
+    test_tool_pool_assembly        # Pool filtering
+    test_turn_loop                 # Multi-turn execution
+    test_remote_modes              # All 5 connection modes
+    test_setup_report              # Workspace setup
+    test_deferred_init_trusted     # Trust=True init
+    test_deferred_init_untrusted   # Trust=False init
+    test_transcript_flush          # History dump
+    test_execution_registry        # Command/tool dispatch
+    test_cost_tracker              # Usage accounting
+    test_history_log               # Event logging
+    test_bootstrap_graph           # Startup phases
+    test_command_graph             # Command categorization
+    test_tool_pool_simple_mode     # Simple mode filtering
+    test_tool_pool_mcp_exclusion   # MCP filtering
+    # ... and more
+</pre>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 51: RUST TESTS -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Rust Integration Tests</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>args.rs Tests</h3>
+<pre style="font-size:0.85rem">
+#[test]
+fn test_parse_flags() {
+    let cli = Cli::parse_from([
+        "claw",
+        "--model", "opus",
+        "--permission-mode", "workspace-write",
+    ]);
+    assert_eq!(cli.model, Some("opus".into()));
+    assert_eq!(
+        cli.permission_mode,
+        Some(PermissionMode::WorkspaceWrite)
+    );
+}
+
+#[test]
+fn test_login_command() {
+    let cli = Cli::parse_from(["claw", "login"]);
+    assert!(matches!(cli.command, Some(Command::Login)));
+}
+</pre>
+    </div>
+    <div class="card">
+      <h3>API Integration Tests</h3>
+<pre style="font-size:0.85rem">
+// api/tests/client_integration.rs
+// Tests require ANTHROPIC_API_KEY
+
+#[tokio::test]
+async fn test_streaming_response() {
+    let client = AnthropicClient::new(
+        AuthSource::from_env()
+    );
+    let events = client.stream(&request).await?;
+    assert!(events.iter().any(|e|
+        matches!(e, AssistantEvent::TextDelta(_))
+    ));
+}
+
+#[test]
+fn test_sse_parsing() {
+    let frame = parse_frame("data: {\"type\":\"message_start\"}");
+    assert!(matches!(frame, SseFrame::Data(_)));
+}
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 52: PARITY STATUS -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Feature Parity Analysis</h2>
+  <div class="content animate">
+    <table>
+      <thead>
+        <tr><th>Feature</th><th>Python</th><th>Rust</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Anthropic API / OAuth</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>Core Tool Loop</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>MCP Client</td><td>Partial</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>Config Hierarchy</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>Permission System</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>Session Persistence</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
+        <tr><td>CLAUDE.md Discovery</td><td class="green">Complete</td><td>Read-only</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
+        <tr><td>Hooks (Pre/Post)</td><td>Stub</td><td>Config-only</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
+        <tr><td>Skills Registry</td><td>Snapshot</td><td>Local-only</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
+        <tr><td>Plugin System</td><td>Stub</td><td>Absent</td><td><span class="tag" style="background:#f8d7da; color:#721c24;">Missing</span></td></tr>
+        <tr><td>Advanced CLI Commands</td><td class="green">30+</td><td>15+</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
+        <tr><td>Services Layer</td><td>Stub</td><td>Absent</td><td><span class="tag" style="background:#f8d7da; color:#721c24;">Missing</span></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 53: DESIGN PATTERNS SUMMARY -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Key Design Patterns</h2>
+  <div class="metric-grid animate">
+    <div class="metric-card">
+      <h3>Registry Pattern</h3>
+      <p>Commands and tools loaded from JSON snapshots into typed registries with lookup, search, and filtering.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Trait-based Generics</h3>
+      <p><code>ConversationRuntime&lt;C, T&gt;</code> parameterized over <code>ApiClient</code> and <code>ToolExecutor</code> for testability.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Immutable Dataclasses</h3>
+      <p>Python uses <code>@dataclass(frozen=True)</code> everywhere; Rust enforces ownership semantics.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Permission-First</h3>
+      <p>Every tool execution gated by three-tier model. No tool runs without permission check.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Session-Centric State</h3>
+      <p>All conversation state organized around a persistent session with compaction and resume.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Hook Pipeline</h3>
+      <p>Pre/Post tool use hooks for extensibility &mdash; validation, mutation, logging, and denial.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Config Layering</h3>
+      <p>User &rarr; Project &rarr; Local precedence with merged output for maximum flexibility.</p>
+    </div>
+    <div class="metric-card">
+      <h3>Parity Auditing</h3>
+      <p>Systematic comparison against reference implementation with coverage metrics.</p>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 54: PYTHON vs RUST COMPARISON -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Python vs Rust &mdash; Side by Side</h2>
+  <div class="content animate">
+    <table>
+      <thead>
+        <tr><th>Aspect</th><th>Python</th><th>Rust</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Purpose</td><td>Porting fidelity, introspection</td><td>Production runtime</td></tr>
+        <tr><td>Dependencies</td><td>Zero (stdlib only)</td><td>reqwest, serde, tokio, rustyline, clap</td></tr>
+        <tr><td>CLI parsing</td><td>argparse (30+ subcommands)</td><td>Manual + Clap derive</td></tr>
+        <tr><td>Immutability</td><td><code>@dataclass(frozen=True)</code></td><td>Ownership + borrowing</td></tr>
+        <tr><td>Async</td><td>Not used (synchronous)</td><td>tokio async runtime</td></tr>
+        <tr><td>Error handling</td><td>Exceptions</td><td><code>Result&lt;T, E&gt;</code> everywhere</td></tr>
+        <tr><td>API calls</td><td>Simulated (no real API)</td><td>Real Anthropic API + SSE</td></tr>
+        <tr><td>Testing</td><td>32 unit tests</td><td>Integration tests + unit tests</td></tr>
+        <tr><td>Safety</td><td>Runtime type checks</td><td>Compile-time + <code>forbid(unsafe)</code></td></tr>
+        <tr><td>Best for</td><td>Learning the architecture</td><td>Running the agent</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 55: DATA FLOW -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Complete Data Flow</h2>
+  <div class="content animate">
+    <div class="diagram" style="flex-direction: column; gap: 6px;">
+      <div class="box" style="background:var(--accent); color:#fff; min-width:80%;">User types prompt in REPL or passes via <code>-p</code></div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">Slash command check &mdash; if <code>/status</code>, handle locally</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">SystemPromptBuilder assembles CLAUDE.md + env + tools</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">ConversationRuntime builds ApiRequest (system + messages)</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">AnthropicClient.stream() &rarr; SSE events over HTTP</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">Parse TextDelta (render) + ToolUse (dispatch)</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">PermissionPolicy.check() &rarr; Allow / Deny / Prompt</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">ToolExecutor.execute() &rarr; bash / file_ops / MCP</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="min-width:80%;">Tool result appended to messages &rarr; loop or stop</div>
+      <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+      <div class="box" style="border-color:var(--success); min-width:80%;">UsageTracker records tokens &rarr; Session persisted</div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 56: SUBSYSTEM MAP -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Python Subsystem Map (28 Modules)</h2>
+  <div class="content animate" style="max-width:950px">
+    <div style="display:grid; grid-template-columns:1fr 1fr 1fr 1fr; gap:8px;">
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>1</span>assistant</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>2</span>bootstrap</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>3</span>bridge</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>4</span>buddy</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>5</span>cli</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>6</span>components</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>7</span>constants</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>8</span>coordinator</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>9</span>entrypoints</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>10</span>hooks</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>11</span>keybindings</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>12</span>memdir</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>13</span>migrations</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>14</span>moreright</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>15</span>native_ts</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>16</span>outputStyles</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>17</span>plugins</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>18</span>remote</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>19</span>schemas</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>20</span>screens</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>21</span>server</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>22</span>services</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>23</span>skills</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>24</span>state</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>25</span>types</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>26</span>utils</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>27</span>vim</div>
+      <div class="bp-item" style="padding:10px 14px; font-size:0.95rem;"><span>28</span>voice</div>
+    </div>
+  </div>
+  <p class="animate" style="color:var(--text-muted); margin-top:16px;">Each subsystem has an <code>__init__.py</code> stub and corresponding metadata in <code>reference_data/subsystems/</code></p>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 57: BUILDING AND RUNNING -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Building &amp; Running</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>Python</h3>
+<pre style="font-size:0.85rem">
+# No install needed - stdlib only
+python3 -m src.main summary
+python3 -m src.main manifest
+python3 -m src.main commands
+python3 -m src.main tools
+python3 -m src.main route "fix the bug"
+python3 -m src.main bootstrap "add tests"
+python3 -m src.main turn-loop
+python3 -m src.main parity-audit
+python3 -m src.main show-command agents
+python3 -m src.main show-tool bash
+python3 -m src.main exec-command agents
+python3 -m src.main remote-mode
+
+# Run tests
+python3 -m pytest tests/ -v
+</pre>
+    </div>
+    <div class="card">
+      <h3>Rust</h3>
+<pre style="font-size:0.85rem">
+# Build
+cd rust
+cargo build --release
+
+# Run REPL
+./target/release/claw
+
+# One-shot prompt
+./target/release/claw -p "explain this code"
+
+# With specific model
+./target/release/claw --model sonnet
+
+# Permission modes
+./target/release/claw \
+  --permission-mode workspace-write
+
+# OAuth login
+./target/release/claw login
+
+# Dump manifests
+./target/release/claw dump-manifests
+
+# JSON output
+./target/release/claw \
+  --output-format json -p "query"
+</pre>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 58: OmX ORCHESTRATION -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">OmX Orchestration &mdash; How It Was Built</h2>
+  <div class="two-col animate">
+    <div class="card">
+      <h3>$team Mode</h3>
+      <ul>
+        <li>Parallel code review with multiple agents</li>
+        <li>Split-role analysis: security, performance, correctness</li>
+        <li>Automated PR review and feedback</li>
+        <li>Merge conflict resolution assistance</li>
+        <li>Multi-perspective architectural review</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h3>$ralph Mode</h3>
+      <ul>
+        <li>Persistent execution loops</li>
+        <li>Verification at each step</li>
+        <li>Progress tracking across sessions</li>
+        <li>Quality gates before advancing</li>
+        <li>Codex-driven workflow transformation</li>
+      </ul>
+    </div>
+  </div>
+  <div class="content animate" style="margin-top:20px">
+    <p style="text-align:center; color:var(--text-muted);">The <strong>oh-my-codex (OmX)</strong> framework orchestrated the entire claw-code development &mdash; demonstrating how AI agent harnesses can be used to build AI agent harnesses.</p>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 59: LEARNING ROADMAP -->
+<!-- ============================================================ -->
+<div class="slide">
+  <h2 class="animate">Learning Roadmap</h2>
+  <div class="content animate">
+    <table>
+      <thead>
+        <tr><th>Phase</th><th>Focus</th><th>Files to Study</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>1. Foundation</strong></td><td>Data models and registries</td><td><code>models.py</code>, <code>commands.py</code>, <code>tools.py</code></td></tr>
+        <tr><td><strong>2. Engine</strong></td><td>Query engine and routing</td><td><code>query_engine.py</code>, <code>runtime.py</code></td></tr>
+        <tr><td><strong>3. Session</strong></td><td>Persistence and history</td><td><code>session_store.py</code>, <code>transcript.py</code></td></tr>
+        <tr><td><strong>4. Bootstrap</strong></td><td>Startup pipeline</td><td><code>setup.py</code>, <code>bootstrap_graph.py</code>, <code>deferred_init.py</code></td></tr>
+        <tr><td><strong>5. Permissions</strong></td><td>Access control</td><td><code>permissions.py</code>, Rust <code>permissions.rs</code></td></tr>
+        <tr><td><strong>6. Rust Core</strong></td><td>Conversation loop</td><td><code>conversation.rs</code>, <code>session.rs</code></td></tr>
+        <tr><td><strong>7. API Layer</strong></td><td>HTTP client and SSE</td><td><code>client.rs</code>, <code>sse.rs</code>, <code>types.rs</code></td></tr>
+        <tr><td><strong>8. Tools</strong></td><td>Tool specs and execution</td><td><code>tools/lib.rs</code>, <code>bash.rs</code>, <code>file_ops.rs</code></td></tr>
+        <tr><td><strong>9. MCP</strong></td><td>External tool servers</td><td><code>mcp.rs</code>, <code>mcp_client.rs</code>, <code>mcp_stdio.rs</code></td></tr>
+        <tr><td><strong>10. Config</strong></td><td>Layered configuration</td><td><code>config.rs</code>, <code>prompt.rs</code>, <code>oauth.rs</code></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- SLIDE 60: FINAL -->
+<!-- ============================================================ -->
+<div class="slide">
+  <span class="logo-icon animate">&#x1F9BE;</span>
+  <h1 class="animate">Course Complete</h1>
+  <p class="subtitle animate">You now understand the Claw Code agent harness from top to bottom</p>
+  <div class="animate" style="margin-top:24px">
+    <span class="tag">Python Porting Workspace</span>
+    <span class="tag">Rust Production CLI</span>
+    <span class="tag">Conversation Runtime</span>
+    <span class="tag">Permission System</span>
+    <span class="tag">MCP Protocol</span>
+    <span class="tag">SSE Streaming</span>
+    <span class="tag">Session Management</span>
+    <span class="tag">Config Hierarchy</span>
+    <span class="tag">Hook Pipeline</span>
+    <span class="tag">Parity Auditing</span>
+  </div>
+  <a href="index.html" class="back-link animate">&larr; Back to All Courses</a>
+</div>
+
+</div><!-- end .deck -->
+
+<div class="slide-counter" id="slideCounter"></div>
+<div class="nav">
+  <button onclick="go(-1)">&#x2190; Prev</button>
+  <button onclick="go(1)">Next &#x2192;</button>
+</div>
+
+<script>
+  let cur = 0;
+  const slides = document.querySelectorAll('.slide');
+  const total = slides.length;
+
+  function show(n) {
+    slides[cur].classList.remove('active');
+    cur = Math.max(0, Math.min(n, total - 1));
+    slides[cur].classList.add('active');
+    document.getElementById('progress').style.width = ((cur / (total - 1)) * 100) + '%';
+    document.getElementById('slideCounter').textContent = (cur + 1) + ' / ' + total;
+  }
+
+  function go(d) { show(cur + d); }
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); go(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); go(-1); }
+    if (e.key === 'Home') { e.preventDefault(); show(0); }
+    if (e.key === 'End') { e.preventDefault(); show(total - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  document.addEventListener('touchend', e => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) go(diff < 0 ? 1 : -1);
+  }, { passive: true });
+
+  function toggleTheme() {
+    const html = document.documentElement;
+    const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    document.getElementById('themeToggle').innerHTML = next === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  function toggleNav() {
+    const body = document.body;
+    const current = body.getAttribute('data-nav');
+    body.setAttribute('data-nav', current === 'visible' ? '' : 'visible');
+  }
+
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    document.getElementById('themeToggle').innerHTML = saved === 'dark' ? '&#x2600;' : '&#x263E;';
+    show(0);
+  })();
+</script>
+
+</body>
+</html>
