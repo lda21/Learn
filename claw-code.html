@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link rel="icon" type="image/svg+xml" href="favicon.svg">
-  <title>Claw Code - Agent Harness Architecture</title>
+  <title>Claw Code &mdash; Python Agent Harness Architecture</title>
   <style>
     :root {
       --bg: #FAF9F7;
@@ -239,10 +239,10 @@
   <div class="slide active">
     <span class="logo-icon animate">&#x1F9BE;</span>
     <h1 class="animate title-fire">Claw Code</h1>
-    <p class="subtitle animate">Deep Dive into an AI Agent Harness Architecture</p>
-    <p class="subtitle animate" style="margin-top:8px; font-size:1rem;">A dual Python + Rust reimplementation of Claude Code's harness framework</p>
+    <p class="subtitle animate">Python Agent Harness Architecture Deep Dive</p>
+    <p class="subtitle animate" style="margin-top:8px; font-size:1rem;">A clean-room Python reimplementation of Claude Code's harness framework</p>
     <div class="animate" style="margin-top:20px">
-      <span class="tag">Python</span><span class="tag">Rust</span><span class="tag">Agent Harness</span><span class="tag">MCP</span><span class="tag">Permissions</span>
+      <span class="tag">Python</span><span class="tag">Agent Harness</span><span class="tag">Architecture</span><span class="tag">MCP</span><span class="tag">Permissions</span>
     </div>
     <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
       Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
@@ -256,10 +256,11 @@
       <div class="card">
         <h3>Origin Story</h3>
         <ul>
-          <li>Clean-room <strong>reimplementation</strong> of Claude Code's agent harness</li>
+          <li>Clean-room <strong>reimplementation</strong> of Claude Code's agent harness in Python</li>
           <li>Captures <strong>architectural patterns</strong> without copying proprietary code</li>
           <li>Built using <strong>oh-my-codex (OmX)</strong> orchestration</li>
           <li>Repository: <code>instructkr/claw-code</code></li>
+          <li>Focuses on <strong>harness engineering</strong> &mdash; how agent systems orchestrate tools</li>
         </ul>
       </div>
       <div class="card">
@@ -267,8 +268,9 @@
         <ul>
           <li><strong>207</strong> command entries mirrored</li>
           <li><strong>184</strong> tool entries mirrored</li>
-          <li><strong>~20K</strong> lines of Rust across 6 crates</li>
-          <li><strong>100+</strong> Python source files</li>
+          <li><strong>20+</strong> Python source modules</li>
+          <li><strong>Zero</strong> external dependencies (stdlib only)</li>
+          <li><strong>30+</strong> CLI subcommands via argparse</li>
           <li>Original TS: <strong>1,902 files</strong> across 35+ subsystems</li>
         </ul>
       </div>
@@ -278,17 +280,31 @@
   <!-- SLIDE 3: Why Study This Repo -->
   <div class="slide">
     <h2 class="animate">Why Study This Repo?</h2>
-    <div class="content animate">
-      <ul>
-        <li><strong>Agent Harness Engineering</strong> &mdash; Learn how production AI agent loops are built from scratch</li>
-        <li><strong>Dual-Stack Architecture</strong> &mdash; Compare Python (porting fidelity) vs Rust (production performance)</li>
-        <li><strong>Permission Systems</strong> &mdash; Three-tier security model gating every tool execution</li>
-        <li><strong>MCP Protocol</strong> &mdash; Model Context Protocol client with 6 transport types</li>
-        <li><strong>Streaming APIs</strong> &mdash; Server-Sent Events parsing for real-time AI responses</li>
-        <li><strong>Session Management</strong> &mdash; Persistence, compaction, replay, and resume patterns</li>
-        <li><strong>Config Hierarchies</strong> &mdash; Multi-layer resolution (user &rarr; project &rarr; local)</li>
-        <li><strong>Trait-based Abstraction</strong> &mdash; Rust generics over <code>ApiClient</code> and <code>ToolExecutor</code></li>
-      </ul>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Agent Loop Patterns</h3>
+        <p>Learn how production AI agent loops are built: prompt routing, turn management, budget tracking, and stop conditions</p>
+      </div>
+      <div class="metric-card">
+        <h3>Permission Architecture</h3>
+        <p>Three-tier security model gating every tool execution with deny-by-name, deny-by-prefix, and context-aware filtering</p>
+      </div>
+      <div class="metric-card">
+        <h3>Session Management</h3>
+        <p>JSON-based persistence, transcript compaction, session replay, and token usage tracking across turns</p>
+      </div>
+      <div class="metric-card">
+        <h3>Registry Design</h3>
+        <p>Snapshot-driven registries with LRU caching, case-insensitive lookup, substring search, and immutable entries</p>
+      </div>
+      <div class="metric-card">
+        <h3>MCP Protocol</h3>
+        <p>Model Context Protocol client supporting multiple transport types: stdio, SSE, HTTP, WebSocket, SDK, proxy</p>
+      </div>
+      <div class="metric-card">
+        <h3>Config Hierarchies</h3>
+        <p>Multi-layer resolution (User &rarr; Project &rarr; Local) with merged output for maximum flexibility</p>
+      </div>
     </div>
   </div>
 
@@ -299,24 +315,24 @@
       <div class="diagram">
         <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">User Input<br><small>CLI / REPL</small></div>
         <div class="arrow">&rarr;</div>
-        <div class="box">Permission<br>Gate</div>
+        <div class="box">PortRuntime<br><small>Routing</small></div>
         <div class="arrow">&rarr;</div>
-        <div class="box">Conversation<br>Runtime</div>
+        <div class="box">QueryEngine<br><small>Orchestration</small></div>
         <div class="arrow">&rarr;</div>
-        <div class="box" style="border-color:var(--success);">Anthropic<br>API</div>
+        <div class="box" style="border-color:var(--success);">API<br><small>(simulated)</small></div>
       </div>
       <div class="diagram" style="margin-top: 30px;">
         <div class="box">Tool<br>Executor</div>
         <div class="arrow">&larr;</div>
-        <div class="box">Hook<br>System</div>
+        <div class="box">Permission<br>Gate</div>
         <div class="arrow">&larr;</div>
         <div class="box">Session<br>Store</div>
         <div class="arrow">&larr;</div>
-        <div class="box" style="border-color:var(--success);">MCP<br>Servers</div>
+        <div class="box" style="border-color:var(--success);">Transcript<br>Manager</div>
       </div>
     </div>
     <div class="content animate" style="margin-top:24px;">
-      <p style="text-align:center; color:var(--text-muted);">Core loop: <strong>prompt &rarr; API &rarr; parse response &rarr; check permissions &rarr; execute tools &rarr; return results &rarr; continue</strong></p>
+      <p style="text-align:center; color:var(--text-muted);">Core loop: <strong>prompt &rarr; route &rarr; check permissions &rarr; execute tools &rarr; track usage &rarr; append transcript &rarr; return TurnResult</strong></p>
     </div>
   </div>
 
@@ -325,97 +341,74 @@
     <h2 class="animate">Repository Structure</h2>
     <div class="content animate">
 <pre>
-claw-code/
-&#x251C;&#x2500;&#x2500; src/                          # Python porting workspace
-&#x2502;   &#x251C;&#x2500;&#x2500; main.py                   # CLI entrypoint (30+ subcommands)
-&#x2502;   &#x251C;&#x2500;&#x2500; query_engine.py           # Session orchestration
-&#x2502;   &#x251C;&#x2500;&#x2500; runtime.py                # Prompt routing + turn loop
-&#x2502;   &#x251C;&#x2500;&#x2500; models.py                 # Shared dataclasses
-&#x2502;   &#x251C;&#x2500;&#x2500; commands.py               # 207 command entries
-&#x2502;   &#x251C;&#x2500;&#x2500; tools.py                  # 184 tool entries
-&#x2502;   &#x251C;&#x2500;&#x2500; permissions.py            # Permission filtering
-&#x2502;   &#x251C;&#x2500;&#x2500; session_store.py          # JSON session persistence
-&#x2502;   &#x2514;&#x2500;&#x2500; reference_data/           # JSON snapshots
-&#x251C;&#x2500;&#x2500; rust/                         # Production Rust CLI
-&#x2502;   &#x251C;&#x2500;&#x2500; crates/
-&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; rusty-claude-cli/     # Binary: REPL + one-shot
-&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; runtime/              # Agentic loop, session, config
-&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; api/                  # Anthropic API + SSE client
-&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; tools/                # Tool specs + execution
-&#x2502;   &#x2502;   &#x251C;&#x2500;&#x2500; commands/             # Slash command registry
-&#x2502;   &#x2502;   &#x2514;&#x2500;&#x2500; compat-harness/       # TS manifest extraction
-&#x2502;   &#x2514;&#x2500;&#x2500; Cargo.toml                # Workspace config
-&#x251C;&#x2500;&#x2500; tests/                        # Python test suite
-&#x2514;&#x2500;&#x2500; PARITY.md                     # Feature parity analysis
+claw-code/src/
+&#x251C;&#x2500;&#x2500; __init__.py               # Package init
+&#x251C;&#x2500;&#x2500; main.py                   # CLI entrypoint (30+ subcommands)
+&#x251C;&#x2500;&#x2500; query_engine.py           # Session orchestration, turn loop
+&#x251C;&#x2500;&#x2500; runtime.py                # Prompt routing, bootstrap, turn execution
+&#x251C;&#x2500;&#x2500; models.py                 # Frozen dataclasses (Subsystem, PortingModule, etc.)
+&#x251C;&#x2500;&#x2500; commands.py               # 207 command entries from JSON snapshot
+&#x251C;&#x2500;&#x2500; tools.py                  # 184 tool entries with permission filtering
+&#x251C;&#x2500;&#x2500; permissions.py            # ToolPermissionContext (deny names/prefixes)
+&#x251C;&#x2500;&#x2500; session_store.py          # JSON session persistence (save/load)
+&#x251C;&#x2500;&#x2500; port_manifest.py          # Workspace manifest generation
+&#x251C;&#x2500;&#x2500; context.py                # PortContext for workspace metadata
+&#x251C;&#x2500;&#x2500; setup.py                  # Bootstrap setup report
+&#x251C;&#x2500;&#x2500; history.py                # HistoryLog for runtime events
+&#x251C;&#x2500;&#x2500; system_init.py            # System init message builder
+&#x251C;&#x2500;&#x2500; execution_registry.py     # Unified command/tool execution dispatch
+&#x251C;&#x2500;&#x2500; bootstrap_graph.py        # Bootstrap pipeline stages
+&#x251C;&#x2500;&#x2500; command_graph.py          # Command graph segmentation
+&#x251C;&#x2500;&#x2500; tool_pool.py              # Tool pool assembly
+&#x251C;&#x2500;&#x2500; parity_audit.py           # TS archive comparison
+&#x251C;&#x2500;&#x2500; direct_modes.py           # Deep-link, direct-connect modes
+&#x251C;&#x2500;&#x2500; remote_runtime.py         # Remote, SSH, teleport modes
+&#x2514;&#x2500;&#x2500; reference_data/           # JSON snapshots (commands, tools)
 </pre>
     </div>
   </div>
 
-  <!-- SLIDE 6: Dual-Stack Strategy -->
+  <!-- SLIDE 6: Module Dependency Diagram -->
   <div class="slide">
-    <h2 class="animate">Dual-Stack Strategy</h2>
-    <div class="two-col animate">
-      <div class="card">
-        <h3>Python Stack</h3>
-        <ul>
-          <li><strong>Purpose:</strong> Porting fidelity &amp; introspection</li>
-          <li>Zero external dependencies (stdlib only)</li>
-          <li>30+ CLI subcommands via <code>argparse</code></li>
-          <li>JSON snapshot-based registries</li>
-          <li>Parity auditing against TS archive</li>
-          <li>Ideal for <strong>understanding architecture</strong></li>
-        </ul>
-      </div>
-      <div class="card">
-        <h3>Rust Stack</h3>
-        <ul>
-          <li><strong>Purpose:</strong> Production-grade performance</li>
-          <li>6-crate workspace architecture</li>
-          <li>Real Anthropic API integration</li>
-          <li>OAuth 2.0 with PKCE authentication</li>
-          <li>SSE streaming response handling</li>
-          <li>MCP client with multiple transports</li>
-          <li>Forbids <code>unsafe</code> code entirely</li>
-        </ul>
+    <h2 class="animate">Module Dependency Diagram</h2>
+    <div class="content animate">
+      <div class="diagram" style="flex-direction: column; gap: 10px;">
+        <div class="box" style="background:var(--accent); color:#fff; min-width:40%;">main.py<br><small>CLI entrypoint</small></div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="diagram" style="margin:0;">
+          <div class="box">query_engine.py<br><small>Orchestration</small></div>
+          <div class="box">runtime.py<br><small>Routing</small></div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="diagram" style="margin:0;">
+          <div class="box" style="font-size:0.9rem;">commands.py</div>
+          <div class="box" style="font-size:0.9rem;">tools.py</div>
+          <div class="box" style="font-size:0.9rem;">permissions.py</div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="diagram" style="margin:0;">
+          <div class="box" style="font-size:0.85rem;">session_store.py</div>
+          <div class="box" style="font-size:0.85rem;">context.py</div>
+          <div class="box" style="font-size:0.85rem;">setup.py</div>
+          <div class="box" style="font-size:0.85rem;">history.py</div>
+        </div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="border-color:var(--success); min-width:40%;">models.py<br><small>Shared frozen dataclasses</small></div>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 7: Python Core Engine -->
-  <div class="slide">
-    <h2 class="animate">Python Core Engine</h2>
-    <div class="metric-grid animate">
-      <div class="metric-card">
-        <h3>QueryEnginePort</h3>
-        <p><code>query_engine.py</code> &mdash; Session orchestration with token budgeting, compaction, and structured output</p>
-      </div>
-      <div class="metric-card">
-        <h3>PortRuntime</h3>
-        <p><code>runtime.py</code> &mdash; Token-based prompt matching against command and tool registries</p>
-      </div>
-      <div class="metric-card">
-        <h3>Data Models</h3>
-        <p><code>models.py</code> &mdash; Immutable dataclasses for Subsystem, PortingModule, UsageSummary</p>
-      </div>
-      <div class="metric-card">
-        <h3>CLI Interface</h3>
-        <p><code>main.py</code> &mdash; 30+ subcommands covering every aspect of the harness</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- SLIDE 8: Data Models -->
+  <!-- SLIDE 7: Core Data Structures -->
   <div class="slide">
     <h2 class="animate">Core Data Structures</h2>
-    <div class="content animate">
-<pre>
-# models.py - Immutable dataclasses throughout
-from dataclasses import dataclass
-
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Domain Models</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
 @dataclass(frozen=True)
 class Subsystem:
-    name: str           # e.g., "hooks", "plugins"
-    path: str           # e.g., "src/hooks/"
+    name: str
+    path: str
     file_count: int
     notes: str
 
@@ -423,153 +416,328 @@ class Subsystem:
 class PortingModule:
     name: str
     responsibility: str
-    source_hint: str    # Original TS file path
-    status: str = 'planned'  # planned | ported | verified
+    source_hint: str
+    status: str = 'planned'
 
 @dataclass(frozen=True)
 class PermissionDenial:
     tool_name: str
     reason: str
-
-@dataclass(frozen=True)
-class TurnResult:
-    prompt: str              # User's input
-    output: str              # Model's response
-    matched_commands: tuple   # Commands matched by routing
-    matched_tools: tuple      # Tools matched by routing
-    permission_denials: tuple # Tools blocked by permissions
-    usage: UsageSummary       # Token counts for this turn
-    stop_reason: str          # "end_turn" | "max_tokens" | "budget"
 </pre>
+      </div>
+      <div class="card">
+        <h3>Runtime Models</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+@dataclass(frozen=True)
+class UsageSummary:
+    input_tokens: int = 0
+    output_tokens: int = 0
+
+    def add_turn(self, prompt, output):
+        return UsageSummary(
+            input_tokens=self.input_tokens
+                + len(prompt.split()),
+            output_tokens=self.output_tokens
+                + len(output.split()),
+        )
+
+@dataclass
+class PortingBacklog:
+    title: str
+    modules: list[PortingModule]
+</pre>
+        <p style="font-size:0.95rem; color:var(--text-muted); margin-top:8px;"><code>UsageSummary.add_turn()</code> returns a new instance &mdash; immutable pattern</p>
+      </div>
     </div>
   </div>
 
-  <!-- SLIDE 9: QueryEngine & Routing -->
+  <!-- SLIDE 8: The Agent Turn Loop -->
   <div class="slide">
-    <h2 class="animate">QueryEngine &amp; Routing</h2>
+    <h2 class="animate">The Agent Turn Loop</h2>
+    <div class="content animate">
+      <div class="diagram" style="flex-direction: column; gap: 8px;">
+        <div class="box" style="background:var(--accent); color:#fff; min-width:70%;">1. Route prompt &rarr; tokenize &amp; score against registries</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:70%;">2. Check permissions via ToolPermissionContext</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:70%;">3. Execute matched commands &amp; tools</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:70%;">4. Track usage (input/output tokens)</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:70%;">5. Append to transcript &amp; stream events</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:70%;">6. Check compaction threshold</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="border-color:var(--success); min-width:70%;">7. Return TurnResult (output, stop_reason, usage)</div>
+      </div>
+    </div>
+    <p class="animate" style="color:var(--text-muted); margin-top:12px;">Loop continues until <code>stop_reason != 'completed'</code> or <code>max_turns</code> reached</p>
+  </div>
+
+  <!-- SLIDE 9: QueryEngine -- Session Orchestration -->
+  <div class="slide">
+    <h2 class="animate">QueryEngine &mdash; Session Orchestration</h2>
     <div class="two-col animate">
       <div class="card">
         <h3>QueryEngineConfig</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-max_turns: int = 8
-max_budget_tokens: int = 2000
-compact_after_turns: int = 12
-structured_output: bool = False
-structured_retry_limit: int = 2
+@dataclass(frozen=True)
+class QueryEngineConfig:
+    max_turns: int = 8
+    max_budget_tokens: int = 2000
+    compact_after_turns: int = 12
+    structured_output: bool = False
+    structured_retry_limit: int = 2
 </pre>
         <ul style="margin-top:12px">
-          <li>Token budgeting per turn</li>
+          <li>Token budgeting per session</li>
           <li>Auto-compaction after N turns</li>
-          <li>Structured JSON output mode</li>
+          <li>Structured JSON output mode with retry</li>
         </ul>
       </div>
       <div class="card">
-        <h3>PortRuntime Routing</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-class PortRuntime:
-    def route_prompt(self, prompt):
-        """Tokenize prompt, score
-        against all registries."""
-        tokens = prompt.lower().split()
-        # Score against 207 commands
-        # Score against 184 tools
-        # Return sorted matches
-</pre>
-        <ul style="margin-top:12px">
-          <li>Token overlap scoring</li>
-          <li>Case-insensitive matching</li>
-          <li>Source hint traces to original TS</li>
-        </ul>
+        <h3>Orchestration Flow</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px; margin:12px 0">
+          <div class="box" style="min-width:90%; font-size:0.9rem;">submit_message(prompt)</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Check turn limit &amp; budget</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Route + execute + track</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">compact_messages_if_needed()</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--success);">Return TurnResult</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 10: Command & Tool Registries -->
+  <!-- SLIDE 10: PortRuntime -- Prompt Routing -->
   <div class="slide">
-    <h2 class="animate">Command &amp; Tool Registries</h2>
+    <h2 class="animate">PortRuntime &mdash; Prompt Routing</h2>
+    <div class="content animate">
+<pre>
+# runtime.py - Actual routing implementation
+
+class PortRuntime:
+    def route_prompt(self, prompt: str, limit: int = 5) -> list[RoutedMatch]:
+        tokens = {
+            token.lower()
+            for token in prompt.replace('/', ' ').replace('-', ' ').split()
+            if token
+        }
+        by_kind = {
+            'command': self._collect_matches(tokens, PORTED_COMMANDS, 'command'),
+            'tool':    self._collect_matches(tokens, PORTED_TOOLS,    'tool'),
+        }
+
+        # Guarantee at least one of each kind (if available)
+        selected: list[RoutedMatch] = []
+        for kind in ('command', 'tool'):
+            if by_kind[kind]:
+                selected.append(by_kind[kind].pop(0))
+
+        # Fill remaining slots from leftovers sorted by score
+        leftovers = sorted(
+            [m for matches in by_kind.values() for m in matches],
+            key=lambda item: (-item.score, item.kind, item.name),
+        )
+        selected.extend(leftovers[: max(0, limit - len(selected))])
+        return selected[:limit]
+</pre>
+    </div>
+  </div>
+
+  <!-- SLIDE 11: Command Registry (207 entries) -->
+  <div class="slide">
+    <h2 class="animate">Command Registry (207 entries)</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>commands.py (207 entries)</h3>
+        <h3>commands.py API</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-# Loaded from commands_snapshot.json
+SNAPSHOT_PATH = Path(__file__).resolve().parent \
+    / 'reference_data' \
+    / 'commands_snapshot.json'
+
+@lru_cache(maxsize=1)
+def load_command_snapshot():
+    raw = json.loads(
+        SNAPSHOT_PATH.read_text()
+    )
+    return tuple(
+        PortingModule(
+            name=e['name'],
+            responsibility=e['responsibility'],
+            source_hint=e['source_hint'],
+            status='mirrored',
+        )
+        for e in raw
+    )
+
 PORTED_COMMANDS = load_command_snapshot()
-
-def command_names() -> list[str]:
-    """All 207 command names."""
-
-def get_command(name: str) -> dict | None:
-    """Case-insensitive lookup."""
-
-def find_commands(query: str) -> list[dict]:
-    """Substring search across
-    name and responsibility."""
-
-def execute_command(name, prompt):
-    """Dispatch to mirrored handler."""
 </pre>
       </div>
       <div class="card">
-        <h3>tools.py (184 entries)</h3>
+        <h3>Snapshot Entry Format</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-# Loaded from tools_snapshot.json
-PORTED_TOOLS = load_tool_snapshot()
-
-def get_tools(simple_mode=False,
-              include_mcp=True) -> list:
-    """Filter tools by mode.
-    Simple = bash/read/edit only."""
-
-def filter_tools_by_permission_context(
-    tools, ctx):
-    """Remove tools blocked by
-    permission context."""
-
-def execute_tool(name, payload):
-    """Dispatch to mirrored handler."""
+# Each entry in commands_snapshot.json:
+{
+  "name": "/help",
+  "responsibility": "Display help info",
+  "source_hint": "src/commands/help.ts"
+}
 </pre>
+        <h3 style="margin-top:18px;">Query Functions</h3>
+        <ul>
+          <li><code>command_names()</code> &mdash; all 207 names</li>
+          <li><code>get_command(name)</code> &mdash; case-insensitive lookup</li>
+          <li><code>find_commands(query)</code> &mdash; substring search</li>
+          <li><code>execute_command(name, prompt)</code> &mdash; dispatch</li>
+          <li><code>get_commands(include_plugin_commands, include_skill_commands)</code></li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 11: Permission System (Python) -->
+  <!-- SLIDE 12: Tool Registry (184 entries) -->
   <div class="slide">
-    <h2 class="animate">Permission System (Python)</h2>
+    <h2 class="animate">Tool Registry (184 entries)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>tools.py API</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+def get_tools(
+    simple_mode: bool = False,
+    include_mcp: bool = True,
+    permission_context:
+        ToolPermissionContext | None = None,
+) -> tuple[PortingModule, ...]:
+    tools = list(PORTED_TOOLS)
+    if simple_mode:
+        tools = [m for m in tools
+            if m.name in {
+                'BashTool',
+                'FileReadTool',
+                'FileEditTool'}]
+    if not include_mcp:
+        tools = [m for m in tools
+            if 'mcp' not in m.name.lower()]
+    return filter_tools_by_permission_context(
+        tuple(tools), permission_context
+    )
+</pre>
+      </div>
+      <div class="card">
+        <h3>Tool Categories</h3>
+        <ul>
+          <li><strong>ReadOnly</strong> &mdash; read_file, glob_search, grep_search, web_search, web_fetch, skill</li>
+          <li><strong>WorkspaceWrite</strong> &mdash; write_file, edit_file, todo_write, config</li>
+          <li><strong>DangerFullAccess</strong> &mdash; bash, agent, notebook, powershell, repl</li>
+        </ul>
+        <h3 style="margin-top:18px;">Simple Mode</h3>
+        <p style="font-size:1rem; color:var(--text-muted);">Restricts to just <code>BashTool</code>, <code>FileReadTool</code>, <code>FileEditTool</code> &mdash; minimal surface for untrusted contexts</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 13: Permission System -->
+  <div class="slide">
+    <h2 class="animate">Permission System</h2>
     <div class="two-col animate">
       <div class="card">
         <h3>ToolPermissionContext</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
+# permissions.py
 @dataclass(frozen=True)
 class ToolPermissionContext:
-    deny_names: frozenset   # Exact names
-    deny_prefixes: tuple    # Name prefixes
+    deny_names: frozenset[str] = \
+        field(default_factory=frozenset)
+    deny_prefixes: tuple[str, ...] = ()
+
+    @classmethod
+    def from_iterables(cls,
+        deny_names=None,
+        deny_prefixes=None):
+        return cls(
+            deny_names=frozenset(
+                n.lower()
+                for n in (deny_names or [])),
+            deny_prefixes=tuple(
+                p.lower()
+                for p in (deny_prefixes or [])),
+        )
 
     def blocks(self, tool_name: str) -> bool:
-        lower = tool_name.lower()
-        if lower in self.deny_names:
-            return True
-        return any(
-            lower.startswith(p)
-            for p in self.deny_prefixes
+        lowered = tool_name.lower()
+        return (
+            lowered in self.deny_names
+            or any(lowered.startswith(p)
+                   for p in self.deny_prefixes)
         )
 </pre>
       </div>
       <div class="card">
-        <h3>How It Works</h3>
-        <ul>
-          <li><strong>Exact name matching</strong> &mdash; deny specific tools</li>
-          <li><strong>Prefix matching</strong> &mdash; deny tool families</li>
+        <h3>Permission Flow</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px; margin:12px 0">
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Tool requested by routing</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">ToolPermissionContext.blocks(name)?</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">filter_tools_by_permission_context()</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--success);">Allowed &rarr; execute | Denied &rarr; PermissionDenial</div>
+        </div>
+        <ul style="margin-top:10px;">
+          <li><strong>Exact name</strong> deny via <code>frozenset</code></li>
+          <li><strong>Prefix</strong> deny for tool families</li>
           <li>All comparisons <strong>case-insensitive</strong></li>
-          <li>Uses <code>frozenset</code> for immutable deny lists</li>
-          <li>Integrated into <code>filter_tools_by_permission_context()</code></li>
           <li>Denials tracked as <code>PermissionDenial</code> objects</li>
         </ul>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 12: Session & Transcript -->
+  <!-- SLIDE 14: Three-Tier Permission Model -->
   <div class="slide">
-    <h2 class="animate">Session Store &amp; Transcript</h2>
+    <h2 class="animate">Three-Tier Permission Model</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success); min-width:200px;">
+          <strong>ReadOnly</strong><br><small>Safest tier</small>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--warning); min-width:200px;">
+          <strong>WorkspaceWrite</strong><br><small>Modifies files</small>
+        </div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="background:var(--accent); color:#fff; min-width:200px;">
+          <strong>DangerFullAccess</strong><br><small>Shell + agents</small>
+        </div>
+      </div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:20px">
+      <div class="metric-card">
+        <h3>ReadOnly</h3>
+        <p><code>read_file</code>, <code>glob_search</code>, <code>grep_search</code>, <code>web_search</code>, <code>web_fetch</code>, <code>skill</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>WorkspaceWrite</h3>
+        <p><code>write_file</code>, <code>edit_file</code>, <code>todo_write</code>, <code>config</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>DangerFullAccess</h3>
+        <p><code>bash</code>, <code>agent</code>, <code>notebook</code>, <code>powershell</code>, <code>repl</code></p>
+      </div>
+      <div class="metric-card">
+        <h3>AllowedTools Override</h3>
+        <p>Optional explicit allowlist via <code>--allowedTools</code> flag or CLI <code>--deny-tool</code> / <code>--deny-prefix</code></p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 15: Session Store & Persistence -->
+  <div class="slide">
+    <h2 class="animate">Session Store &amp; Persistence</h2>
     <div class="two-col animate">
       <div class="card">
         <h3>session_store.py</h3>
@@ -577,303 +745,244 @@ class ToolPermissionContext:
 @dataclass(frozen=True)
 class StoredSession:
     session_id: str
-    messages: tuple
+    messages: tuple[str, ...]
     input_tokens: int
     output_tokens: int
 
 DEFAULT_SESSION_DIR = Path('.port_sessions')
 
-def save_session(session):
-    """Serialize to JSON."""
+def save_session(session, directory=None):
+    target_dir = directory or DEFAULT_SESSION_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    path = target_dir / f'{session.session_id}.json'
+    path.write_text(
+        json.dumps(asdict(session), indent=2)
+    )
+    return path
 
-def load_session(session_id):
-    """Deserialize from JSON."""
+def load_session(session_id, directory=None):
+    target_dir = directory or DEFAULT_SESSION_DIR
+    data = json.loads(
+        (target_dir / f'{session_id}.json')
+            .read_text()
+    )
+    return StoredSession(
+        session_id=data['session_id'],
+        messages=tuple(data['messages']),
+        input_tokens=data['input_tokens'],
+        output_tokens=data['output_tokens'],
+    )
 </pre>
       </div>
       <div class="card">
-        <h3>transcript.py</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-class TranscriptStore:
-    entries: list
-    flushed: bool
-
-    def append(self, entry):
-        """Add a message to history."""
-
-    def compact(self, keep_last=10):
-        """Keep only last N entries.
-        Reduces context window usage."""
-
-    def replay(self) -> list:
-        """Return all for re-submission."""
-</pre>
-        <p style="font-size:0.95rem; color:var(--text-muted); margin-top:8px;">Compaction prevents context window overflow in long sessions</p>
+        <h3>Session Lifecycle</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px; margin:12px 0">
+          <div class="box" style="min-width:90%; font-size:0.9rem;">QueryEngine.from_workspace()</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">submit_message() &times; N turns</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">persist_session() &rarr; JSON file</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--success);">load_session(id) &rarr; resume</div>
+        </div>
+        <ul style="margin-top:10px;">
+          <li>Sessions stored as <strong>JSON</strong> in <code>.port_sessions/</code></li>
+          <li>Each session tracks <strong>messages + token counts</strong></li>
+          <li>Frozen dataclass ensures <strong>immutability</strong> after load</li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 13: Bootstrap Pipeline -->
+  <!-- SLIDE 16: Transcript & Compaction -->
+  <div class="slide">
+    <h2 class="animate">Transcript &amp; Compaction</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TranscriptStore</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+class TranscriptStore:
+    entries: list
+    flushed: bool = False
+
+    def append(self, entry: str):
+        """Add a message to history."""
+        self.entries.append(entry)
+
+    def compact(self, keep_last: int = 10):
+        """Keep only last N entries.
+        Reduces context window usage."""
+        if len(self.entries) > keep_last:
+            self.entries = \
+                self.entries[-keep_last:]
+
+    def replay(self) -> list[str]:
+        """Return all for re-submission."""
+        return list(self.entries)
+
+    def flush(self):
+        """Mark as flushed to disk."""
+        self.flushed = True
+</pre>
+      </div>
+      <div class="card">
+        <h3>Why Compaction Matters</h3>
+        <div class="diagram" style="flex-direction:column; gap:8px; margin:12px 0">
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Turn 1: 500 tokens</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Turn 5: 2,500 tokens</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Turn 12: 6,000 tokens</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">compact_after_turns = 12 triggers!</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--success);">After compaction: ~1,500 tokens</div>
+        </div>
+        <p style="font-size:0.95rem; color:var(--text-muted); margin-top:8px;">Without compaction, token growth is <strong>linear per turn</strong>. Long sessions would exhaust the context window. Compaction keeps only the most recent entries.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 17: Bootstrap Pipeline -->
   <div class="slide">
     <h2 class="animate">Bootstrap Pipeline</h2>
     <div class="content animate">
       <div class="diagram" style="flex-direction: column; gap: 10px;">
-        <div class="box" style="background:var(--accent); color:#fff; min-width:60%;">Phase 1: Workspace Setup<br><small>Python version, platform, test command</small></div>
+        <div class="box" style="background:var(--accent); color:#fff; min-width:60%;">Phase 1: Workspace Setup<br><small>Python version, platform, test command detection</small></div>
         <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:60%;">Phase 2: Prefetch<br><small>MDM read, keychain, project scan</small></div>
+        <div class="box" style="min-width:60%;">Phase 2: Prefetch<br><small>Context building: file counts, archive availability</small></div>
         <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:60%;">Phase 3: Deferred Init (Trust-Gated)<br><small>Plugins, skills, MCP, session hooks</small></div>
+        <div class="box" style="min-width:60%;">Phase 3: Trust Gate<br><small>Trusted = full features; untrusted = read-only mode</small></div>
         <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:60%;">Phase 4: Registry Load<br><small>207 commands + 184 tools from snapshots</small></div>
+        <div class="box" style="min-width:60%;">Phase 4: Registry Load<br><small>207 commands + 184 tools from JSON snapshots via lru_cache</small></div>
         <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:60%; border-color:var(--success);">Phase 5: Session Ready<br><small>Runtime bootstrapped, ready for turns</small></div>
+        <div class="box" style="min-width:60%;">Phase 5: Deferred Init<br><small>System init message, execution registry, history log</small></div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:60%; border-color:var(--success);">Phase 6: Session Ready<br><small>Runtime bootstrapped, ready for turns</small></div>
       </div>
     </div>
     <div class="content animate" style="margin-top:20px;">
-      <p style="text-align:center; color:var(--text-muted);"><strong>Trust model:</strong> Trusted workspaces get full features; untrusted get read-only mode to prevent malicious CLAUDE.md execution</p>
+      <p style="text-align:center; color:var(--text-muted);"><strong>Trust model:</strong> Trusted workspaces get full features; untrusted get read-only to prevent malicious CLAUDE.md execution</p>
     </div>
   </div>
 
-  <!-- SLIDE 14: Rust Overview -->
+  <!-- SLIDE 18: Configuration Hierarchy -->
   <div class="slide">
-    <h2 class="animate">Rust Implementation</h2>
-    <p class="subtitle animate">Production-grade CLI &mdash; ~20K lines, 6 crates, zero unsafe</p>
-    <div class="metric-grid animate" style="margin-top:30px">
-      <div class="metric-card">
-        <h3>rusty-claude-cli</h3>
-        <p>Main binary: REPL, one-shot prompts, argument parsing, terminal rendering</p>
-      </div>
-      <div class="metric-card">
-        <h3>runtime</h3>
-        <p>Agentic conversation loop, session management, config, permissions, hooks, MCP</p>
-      </div>
-      <div class="metric-card">
-        <h3>api</h3>
-        <p>Anthropic HTTP client with SSE streaming, OAuth, and error handling</p>
-      </div>
-      <div class="metric-card">
-        <h3>tools + commands</h3>
-        <p>15 built-in tools with JSON schemas, 20+ slash commands with resume support</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- SLIDE 15: ConversationRuntime -->
-  <div class="slide">
-    <h2 class="animate">ConversationRuntime &mdash; The Agentic Loop</h2>
-    <div class="content animate">
-<pre>
-// runtime/src/conversation.rs
-const DEFAULT_AUTO_COMPACTION_INPUT_TOKENS_THRESHOLD: u64 = 200_000;
-
-// Two core traits for pluggable behavior:
-trait ApiClient {
-    fn stream(&self, request: ApiRequest) -> Result&lt;Vec&lt;AssistantEvent&gt;&gt;;
-}
-
-trait ToolExecutor {
-    fn execute(&self, name: &str, input: Value) -> Result&lt;String, ToolError&gt;;
-}
-
-// Generic runtime parameterized over both:
-struct ConversationRuntime&lt;C: ApiClient, T: ToolExecutor&gt; {
-    session: Session,
-    api_client: C,
-    tool_executor: T,
-    permission_policy: PermissionPolicy,
-    system_prompt: Vec&lt;String&gt;,
-    max_iterations: usize,           // Default: 50
-    usage_tracker: UsageTracker,
-    hook_runner: Option&lt;HookRunner&gt;,
-    auto_compaction_input_tokens_threshold: u64,
-}
-</pre>
-    </div>
-  </div>
-
-  <!-- SLIDE 16: Turn Loop Flow -->
-  <div class="slide">
-    <h2 class="animate">The Turn Loop</h2>
-    <div class="content animate">
-      <div class="diagram" style="flex-direction: column; gap: 8px;">
-        <div class="box" style="background:var(--accent); color:#fff; min-width:70%;">1. User Input &rarr; Add to session messages</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:70%;">2. Build ApiRequest (system_prompt + messages)</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:70%;">3. Stream response via ApiClient.stream()</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:70%;">4. Parse AssistantEvents (TextDelta, ToolUse, Usage)</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:70%;">5. For each ToolUse: check PermissionPolicy</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="min-width:70%;">6. Execute tool &rarr; Append results to messages</div>
-        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
-        <div class="box" style="border-color:var(--success); min-width:70%;">7. Loop until MessageStop OR max_iterations (50)</div>
-      </div>
-    </div>
-    <p class="animate" style="color:var(--text-muted); margin-top:12px;">Auto-compaction triggers when input tokens exceed 200K</p>
-  </div>
-
-  <!-- SLIDE 17: Three-Tier Permission Model -->
-  <div class="slide">
-    <h2 class="animate">Three-Tier Permission Model (Rust)</h2>
-    <div class="content animate">
-<pre>
-// runtime/src/permissions.rs
-enum PermissionMode {
-    ReadOnly,           // File reads, searches, web operations only
-    WorkspaceWrite,     // + File writes, edits, todo updates
-    DangerFullAccess,   // + Bash execution, agents, notebooks
-}
-
-struct PermissionPolicy {
-    mode: PermissionMode,
-    allowed_tools: Option&lt;BTreeSet&lt;String&gt;&gt;,  // Explicit allowlist
-}
-
-enum PermissionDecision {
-    Allow,
-    Deny(String),    // With reason
-    AllowOnce,
-    AllowAlways,
-}
-</pre>
-    </div>
-    <div class="metric-grid animate" style="margin-top:16px">
-      <div class="metric-card">
-        <h3>ReadOnly</h3>
-        <p>read_file, glob_search, grep_search, web_search, web_fetch, skill</p>
-      </div>
-      <div class="metric-card">
-        <h3>WorkspaceWrite</h3>
-        <p>+ write_file, edit_file, todo_write, config</p>
-      </div>
-      <div class="metric-card">
-        <h3>DangerFullAccess</h3>
-        <p>+ bash, agent, notebook, powershell, repl</p>
-      </div>
-      <div class="metric-card">
-        <h3>AllowedTools Override</h3>
-        <p>Optional explicit allowlist via <code>--allowedTools</code> flag</p>
-      </div>
-    </div>
-  </div>
-
-  <!-- SLIDE 18: Tool Specs & Execution -->
-  <div class="slide">
-    <h2 class="animate">Tool Specs &amp; Execution</h2>
+    <h2 class="animate">Configuration Hierarchy</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>15 Built-in Tools</h3>
+        <h3>Config Sources</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-struct ToolSpec {
-    name: String,
-    description: String,
-    input_schema: serde_json::Value,
-    required_permission: PermissionMode,
-}
+# Three-layer config resolution
 
-// ReadOnly: read_file, glob_search,
-//   grep_search, web_search, web_fetch, skill
-// WorkspaceWrite: write_file, edit_file,
-//   todo_write, config
-// DangerFullAccess: bash, agent,
-//   notebook, powershell, repl
+class ConfigSource:
+    USER    = "~/.claude.json"    # Global
+    PROJECT = "./.claude.json"    # Project
+    LOCAL   = "settings.local.json"  # Machine
+
+# Precedence: Local > Project > User
+# Each layer can override the previous
+
+# Features controlled by config:
+# - hooks (PreToolUse / PostToolUse)
+# - MCP server definitions
+# - OAuth credentials
+# - model selection
+# - permission mode
+# - sandbox mode
 </pre>
       </div>
       <div class="card">
-        <h3>Bash &amp; File Ops</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-struct BashCommandInput {
-    command: String,
-    timeout_ms: Option&lt;u64&gt;,
-    working_dir: Option&lt;PathBuf&gt;,
-}
-
-struct BashCommandOutput {
-    stdout: String,
-    stderr: String,
-    exit_code: i32,
-    timed_out: bool,
-}
-
-// File operations: read_file, write_file,
-// edit_file, glob_search, grep_search
-</pre>
+        <h3>Precedence Diagram</h3>
+        <div class="diagram" style="margin:20px 0;">
+          <div class="box" style="font-size:0.9rem; padding:12px 16px;">User<br><small>~/.claude.json</small><br><small>lowest priority</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="font-size:0.9rem; padding:12px 16px;">Project<br><small>./.claude.json</small></div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="font-size:0.9rem; padding:12px 16px; border-color:var(--success);">Local<br><small>settings.local.json</small><br><small>highest priority</small></div>
+        </div>
+        <ul style="margin-top:14px;">
+          <li>Each layer <strong>merges</strong> into the previous</li>
+          <li>More specific settings <strong>override</strong> general ones</li>
+          <li>Hooks, MCP servers, and permissions are <strong>composable</strong></li>
+          <li>Local config is <strong>gitignored</strong> for machine-specific settings</li>
+        </ul>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 19: API & SSE Streaming -->
+  <!-- SLIDE 19: Hook System -->
   <div class="slide">
-    <h2 class="animate">Anthropic API &amp; SSE Streaming</h2>
+    <h2 class="animate">Hook System</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>AnthropicClient</h3>
+        <h3>Hook Types</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-struct AnthropicClient {
-    http_client: reqwest::Client,
-    auth_source: AuthSource,
-}
+# Two hook events gate every tool call:
 
-enum AuthSource {
-    ApiKey(String),
-    OAuth { access_token,
-            refresh_token,
-            expires_at },
-}
+class HookEvent:
+    PRE_TOOL_USE = "PreToolUse"
+    POST_TOOL_USE = "PostToolUse"
 
-// POST /v1/messages with stream=true
-// Returns SSE event stream
+# Hook definition in config:
+# {
+#   "hooks": {
+#     "PreToolUse": [
+#       {"command": "lint-check.sh",
+#        "tools": ["write_file"]}
+#     ],
+#     "PostToolUse": [
+#       {"command": "format.sh",
+#        "tools": ["edit_file"]}
+#     ]
+#   }
+# }
 </pre>
       </div>
       <div class="card">
-        <h3>SSE Event Types</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-enum StreamEvent {
-    MessageStart { message },
-    ContentBlockStart { index, block },
-    ContentBlockDelta { index, delta },
-    ContentBlockStop { index },
-    MessageDelta { delta, usage },
-    MessageStop,
-    Ping,
-    Error { error: ApiError },
-}
-
-struct Usage {
-    input_tokens: u64,
-    output_tokens: u64,
-    cache_read_input_tokens: Option&lt;u64&gt;,
-}
-</pre>
+        <h3>Hook Execution Flow</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px; margin:12px 0">
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Tool Call Requested</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">PreToolUse Hook(s)</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Permission Check</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem;">Execute Tool</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">PostToolUse Hook(s)</div>
+          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
+          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--success);">Return Result</div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 20: MCP Protocol -->
+  <!-- SLIDE 20: MCP Integration -->
   <div class="slide">
     <h2 class="animate">MCP &mdash; Model Context Protocol</h2>
     <div class="content animate">
 <pre>
-// runtime/src/mcp.rs
-enum McpTransport {
-    Stdio,         // Spawn process, communicate via stdin/stdout
-    Sse,           // Server-Sent Events over HTTP
-    Http,          // Standard HTTP request/response
-    Ws,            // WebSocket bidirectional
-    Sdk,           // Native SDK integration
-    ClaudeAiProxy, // Proxied through Claude.ai
+# MCP server config (settings.json)
+
+{
+  "mcpServers": {
+    "filesystem": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-filesystem", "/home/user"],
+      "env": {"NODE_ENV": "production"}
+    },
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"],
+      "env": {"GITHUB_TOKEN": "${GITHUB_TOKEN}"}
+    }
+  }
 }
 
-struct McpStdioServerConfig {
-    command: String,              // e.g., "npx"
-    args: Vec&lt;String&gt;,            // e.g., ["-y", "@modelcontextprotocol/server-filesystem"]
-    env: HashMap&lt;String, String&gt;, // Environment variables
-}
-
-struct McpServerManager {
-    servers: BTreeMap&lt;String, ScopedMcpServerConfig&gt;,
-}
+# Transport types:
+# - Stdio:          spawn process, communicate via stdin/stdout
+# - SSE:            Server-Sent Events over HTTP
+# - HTTP:           Standard HTTP request/response
+# - WebSocket:      Bidirectional communication
+# - SDK:            Native SDK integration
+# - ClaudeAiProxy:  Proxied through Claude.ai
 </pre>
     </div>
     <div class="diagram animate" style="margin-top:20px">
@@ -885,230 +994,172 @@ struct McpServerManager {
     </div>
   </div>
 
-  <!-- SLIDE 21: Config & Hooks -->
-  <div class="slide">
-    <h2 class="animate">Configuration &amp; Hooks</h2>
-    <div class="two-col animate">
-      <div class="card">
-        <h3>Config Hierarchy</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-enum ConfigSource {
-    User,    // ~/.claude.json (global)
-    Project, // ./.claude.json (project)
-    Local,   // settings.local.json (machine)
-}
-
-struct RuntimeFeatureConfig {
-    hooks: RuntimeHookConfig,
-    mcp: McpConfigCollection,
-    oauth: Option&lt;OAuthConfig&gt;,
-    model: Option&lt;String&gt;,
-    permission_mode: Option&lt;...&gt;,
-    sandbox: bool,
-}
-</pre>
-        <div class="diagram" style="margin-top:12px; gap:8px;">
-          <div class="box" style="font-size:0.85rem; padding:8px 12px;">User<br><small>lowest</small></div>
-          <div class="arrow">&rarr;</div>
-          <div class="box" style="font-size:0.85rem; padding:8px 12px;">Project</div>
-          <div class="arrow">&rarr;</div>
-          <div class="box" style="font-size:0.85rem; padding:8px 12px; border-color:var(--success);">Local<br><small>highest</small></div>
-        </div>
-      </div>
-      <div class="card">
-        <h3>Hook System</h3>
-<pre style="border:none; padding:12px; font-size:0.85rem;">
-enum HookEvent {
-    PreToolUse { tool_name, input },
-    PostToolUse { tool_name, output },
-}
-
-struct HookRunner {
-    pre_tool_use: Vec&lt;String&gt;,
-    post_tool_use: Vec&lt;String&gt;,
-}
-</pre>
-        <div class="diagram" style="flex-direction:column; gap:6px; margin:12px 0">
-          <div class="box" style="min-width:90%; font-size:0.9rem;">Tool Call Requested</div>
-          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
-          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">PreToolUse Hook</div>
-          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
-          <div class="box" style="min-width:90%; font-size:0.9rem;">Permission + Execute</div>
-          <div class="arrow" style="transform:rotate(90deg); font-size:1.2rem;">&#x2193;</div>
-          <div class="box" style="min-width:90%; font-size:0.9rem; border-color:var(--warning);">PostToolUse Hook</div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- SLIDE 22: Session & Messages (Rust) -->
-  <div class="slide">
-    <h2 class="animate">Session &amp; Message Types (Rust)</h2>
-    <div class="content animate">
-<pre>
-// runtime/src/session.rs
-struct Session {
-    id: String,
-    messages: Vec&lt;ConversationMessage&gt;,
-    created_at: SystemTime,
-    total_input_tokens: u64,
-    total_output_tokens: u64,
-}
-
-struct ConversationMessage {
-    role: Role,                    // User | Assistant
-    content: Vec&lt;ContentBlock&gt;,
-    timestamp: SystemTime,
-}
-
-enum ContentBlock {
-    Text { text: String },
-    ToolUse { id: String, name: String, input: Value },
-    ToolResult { tool_use_id: String, content: String, is_error: bool },
-    Image { source: ImageSource },
-}
-
-// Compaction: removes old messages when input tokens exceed 200K
-// Keeps system prompt and last N messages
-</pre>
-    </div>
-  </div>
-
-  <!-- SLIDE 23: Feature Parity -->
-  <div class="slide">
-    <h2 class="animate">Feature Parity Analysis</h2>
-    <div class="content animate">
-      <table>
-        <thead>
-          <tr><th>Feature</th><th>Python</th><th>Rust</th><th>Status</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Anthropic API / OAuth</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
-          <tr><td>Core Tool Loop</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
-          <tr><td>MCP Client</td><td>Partial</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
-          <tr><td>Config &amp; Permissions</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
-          <tr><td>Session Persistence</td><td class="green">Complete</td><td class="green">Complete</td><td><span class="tag" style="background:#d4edda; color:#155724;">Done</span></td></tr>
-          <tr><td>Hooks (Pre/Post)</td><td>Stub</td><td>Config-only</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
-          <tr><td>Skills Registry</td><td>Snapshot</td><td>Local-only</td><td><span class="tag" style="background:#fff3cd; color:#856404;">Partial</span></td></tr>
-          <tr><td>Plugin System</td><td>Stub</td><td>Absent</td><td><span class="tag" style="background:#f8d7da; color:#721c24;">Missing</span></td></tr>
-          <tr><td>Services Layer</td><td>Stub</td><td>Absent</td><td><span class="tag" style="background:#f8d7da; color:#721c24;">Missing</span></td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SLIDE 24: Key Design Patterns -->
+  <!-- SLIDE 21: Key Design Patterns -->
   <div class="slide">
     <h2 class="animate">Key Design Patterns</h2>
     <div class="metric-grid animate">
       <div class="metric-card">
-        <h3>Registry Pattern</h3>
-        <p>Commands and tools loaded from JSON snapshots into typed registries with lookup, search, and filtering.</p>
+        <h3>Immutability Everywhere</h3>
+        <p><code>@dataclass(frozen=True)</code> on every model. <code>UsageSummary.add_turn()</code> returns a new instance instead of mutating.</p>
       </div>
       <div class="metric-card">
-        <h3>Trait-based Generics</h3>
-        <p><code>ConversationRuntime&lt;C, T&gt;</code> parameterized over <code>ApiClient</code> and <code>ToolExecutor</code> for testability.</p>
+        <h3>Registry Pattern</h3>
+        <p>Commands and tools loaded from JSON snapshots via <code>@lru_cache</code> into typed <code>tuple[PortingModule, ...]</code> registries.</p>
       </div>
       <div class="metric-card">
         <h3>Permission-First</h3>
-        <p>Every tool execution gated by three-tier model. No tool runs without permission check.</p>
+        <p>Every tool filtered through <code>ToolPermissionContext</code> before execution. No tool runs without a permission check.</p>
       </div>
       <div class="metric-card">
         <h3>Session-Centric State</h3>
-        <p>All conversation state organized around a persistent session with compaction and resume.</p>
+        <p>All conversation state organized around a persistent <code>StoredSession</code> with compaction and resume.</p>
       </div>
       <div class="metric-card">
         <h3>Config Layering</h3>
-        <p>User &rarr; Project &rarr; Local precedence with merged output for maximum flexibility.</p>
+        <p>User &rarr; Project &rarr; Local precedence with merged output. More specific overrides less specific.</p>
       </div>
       <div class="metric-card">
-        <h3>Parity Auditing</h3>
-        <p>Systematic comparison against reference implementation with coverage metrics.</p>
+        <h3>Zero Dependencies</h3>
+        <p>Entire Python stack uses only <code>stdlib</code>: json, dataclasses, pathlib, argparse, functools. No pip install needed.</p>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 25: Python vs Rust -->
+  <!-- SLIDE 22: CLI Interface -->
   <div class="slide">
-    <h2 class="animate">Python vs Rust &mdash; Side by Side</h2>
-    <div class="content animate">
-      <table>
-        <thead>
-          <tr><th>Aspect</th><th>Python</th><th>Rust</th></tr>
-        </thead>
-        <tbody>
-          <tr><td>Purpose</td><td>Porting fidelity, introspection</td><td>Production runtime</td></tr>
-          <tr><td>Dependencies</td><td>Zero (stdlib only)</td><td>reqwest, serde, tokio, rustyline, clap</td></tr>
-          <tr><td>CLI parsing</td><td>argparse (30+ subcommands)</td><td>Manual + Clap derive</td></tr>
-          <tr><td>Immutability</td><td><code>@dataclass(frozen=True)</code></td><td>Ownership + borrowing</td></tr>
-          <tr><td>Async</td><td>Not used (synchronous)</td><td>tokio async runtime</td></tr>
-          <tr><td>API calls</td><td>Simulated (no real API)</td><td>Real Anthropic API + SSE</td></tr>
-          <tr><td>Safety</td><td>Runtime type checks</td><td>Compile-time + <code>forbid(unsafe)</code></td></tr>
-          <tr><td>Best for</td><td>Learning the architecture</td><td>Running the agent</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-
-  <!-- SLIDE 26: Building & Running -->
-  <div class="slide">
-    <h2 class="animate">Building &amp; Running</h2>
+    <h2 class="animate">CLI Interface</h2>
     <div class="two-col animate">
       <div class="card">
-        <h3>Python</h3>
+        <h3>Core Commands</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-# No install needed - stdlib only
+# Workspace inspection
 python3 -m src.main summary
 python3 -m src.main manifest
-python3 -m src.main commands
-python3 -m src.main tools
+python3 -m src.main subsystems --limit 10
+
+# Registry queries
+python3 -m src.main commands --query "help"
+python3 -m src.main tools --simple-mode
+python3 -m src.main show-command /help
+python3 -m src.main show-tool BashTool
+
+# Routing & execution
 python3 -m src.main route "fix the bug"
 python3 -m src.main bootstrap "add tests"
-python3 -m src.main parity-audit
+python3 -m src.main turn-loop "refactor" \
+    --max-turns 5
 
-# Run tests
-python3 -m pytest tests/ -v
+# Session management
+python3 -m src.main flush-transcript "msg"
+python3 -m src.main load-session abc123
+
+# Parity auditing
+python3 -m src.main parity-audit
 </pre>
       </div>
       <div class="card">
-        <h3>Rust</h3>
+        <h3>Example Output</h3>
 <pre style="border:none; padding:12px; font-size:0.85rem;">
-# Build
-cd rust && cargo build --release
+$ python3 -m src.main route "fix bash tool"
+command  /fix     2  src/commands/fix.ts
+tool     BashTool 2  src/tools/bash.ts
+command  /help    1  src/commands/help.ts
+tool     FileEdit 1  src/tools/edit.ts
 
-# Run REPL
-./target/release/claw
+$ python3 -m src.main commands --limit 3
+Command entries: 207
 
-# One-shot prompt
-./target/release/claw -p "explain this code"
+- /help    &mdash; src/commands/help.ts
+- /init    &mdash; src/commands/init.ts
+- /compact &mdash; src/commands/compact.ts
 
-# With specific model
-./target/release/claw --model sonnet
-
-# Permission modes
-./target/release/claw \
-  --permission-mode workspace-write
-
-# OAuth login
-./target/release/claw login
+$ python3 -m src.main tools \
+    --deny-tool BashTool
+Tool entries: 183
 </pre>
       </div>
     </div>
   </div>
 
-  <!-- SLIDE 27: Summary -->
+  <!-- SLIDE 23: Full Request Flow Diagram -->
+  <div class="slide">
+    <h2 class="animate">Full Request Flow</h2>
+    <div class="content animate">
+      <div class="diagram" style="flex-direction: column; gap: 6px;">
+        <div class="box" style="background:var(--accent); color:#fff; min-width:75%;">User: <code style="color:#fff; background:none;">"fix the bug in auth"</code></div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">main.py &rarr; argparse routes to <code>route</code> or <code>bootstrap</code></div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">PortRuntime.route_prompt() &rarr; tokenize, score against 207 commands + 184 tools</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">ToolPermissionContext.blocks() &rarr; filter denied tools, record PermissionDenials</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">QueryEnginePort.submit_message() &rarr; execute, track usage, append transcript</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">compact_messages_if_needed() &rarr; trim transcript if threshold exceeded</div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="min-width:75%;">persist_session() &rarr; save to <code>.port_sessions/{id}.json</code></div>
+        <div class="arrow" style="transform:rotate(90deg);">&#x2193;</div>
+        <div class="box" style="border-color:var(--success); min-width:75%;">Return TurnResult(output, stop_reason, usage, denials)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 24: Testing -->
+  <div class="slide">
+    <h2 class="animate">Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Running Tests</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+# Run the full test suite
+python3 -m unittest discover -s tests
+
+# Or with pytest (if available)
+python3 -m pytest tests/ -v
+
+# Test individual modules
+python3 -m pytest tests/test_permissions.py
+python3 -m pytest tests/test_routing.py
+python3 -m pytest tests/test_sessions.py
+</pre>
+        <ul style="margin-top:12px;">
+          <li>Tests use <strong>stdlib unittest</strong> (zero deps)</li>
+          <li>Compatible with <strong>pytest</strong> runner</li>
+          <li>No mocking libraries needed &mdash; pure functions</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What to Test</h3>
+        <ul>
+          <li><strong>Permissions</strong> &mdash; verify <code>blocks()</code> with exact names, prefixes, case variations</li>
+          <li><strong>Routing</strong> &mdash; verify token scoring, match ordering, limit enforcement</li>
+          <li><strong>Sessions</strong> &mdash; round-trip save/load, message tuple integrity, token counts</li>
+          <li><strong>Compaction</strong> &mdash; verify keep_last behavior, entry count after compact</li>
+          <li><strong>Registries</strong> &mdash; verify snapshot loading, search filtering, simple mode</li>
+          <li><strong>Immutability</strong> &mdash; verify frozen dataclasses reject mutation</li>
+          <li><strong>CLI</strong> &mdash; verify argparse subcommand dispatch and exit codes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- SLIDE 25: Course Complete -->
   <div class="slide">
     <span class="logo-icon animate">&#x1F9BE;</span>
-    <h2 class="animate">Key Takeaways</h2>
+    <h2 class="animate">Course Complete</h2>
     <div class="content" style="text-align:center;">
       <ul style="display:inline-block; text-align:left;">
-        <li class="animate">Agent harnesses follow a <span class="highlight">prompt &rarr; API &rarr; tool &rarr; loop</span> pattern</li>
-        <li class="animate">Master the core: <span class="tag">permissions</span> <span class="tag">sessions</span> <span class="tag">tools</span> <span class="tag">MCP</span></li>
-        <li class="animate"><strong>Three-tier permissions</strong> gate every tool execution for safety</li>
-        <li class="animate"><strong>Trait-based generics</strong> in Rust enable pluggable API clients and tool executors</li>
+        <li class="animate">Agent harnesses follow a <span class="highlight">prompt &rarr; route &rarr; permission &rarr; tool &rarr; loop</span> pattern</li>
+        <li class="animate">Master the core: <span class="tag">permissions</span> <span class="tag">sessions</span> <span class="tag">tools</span> <span class="tag">registries</span> <span class="tag">MCP</span></li>
+        <li class="animate"><strong>Permission-first</strong> architecture gates every tool execution for safety</li>
+        <li class="animate"><strong>Immutable dataclasses</strong> prevent hidden side effects throughout the codebase</li>
         <li class="animate"><strong>Session compaction</strong> prevents context window overflow in long conversations</li>
-        <li class="animate">Python stack for <strong>learning</strong>, Rust stack for <strong>production</strong></li>
+        <li class="animate"><strong>Zero dependencies</strong> &mdash; entire Python stack runs on stdlib alone</li>
       </ul>
+      <div class="animate" style="margin-top:24px;">
+        <span class="tag">Python</span><span class="tag">Agent Harness</span><span class="tag">Architecture</span><span class="tag">MCP</span><span class="tag">Permissions</span><span class="tag">Sessions</span><span class="tag">Registries</span>
+      </div>
       <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
         Thank you! &nbsp; Questions?
       </p>
@@ -1118,7 +1169,7 @@ cd rust && cargo build --release
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 27</div>
+<div class="slide-counter" id="counter">1 / 25</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
