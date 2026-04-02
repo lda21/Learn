@@ -1,0 +1,1305 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Security Scanning - DevSecOps &amp; Vulnerability Detection</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h1 class="animate title-fire">Security Scanning</h1>
+    <p class="subtitle animate">Securing Pipelines, Containers, Cloud &amp; Code</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">DevSecOps</span>
+      <span class="tag">Containers</span>
+      <span class="tag">Cloud</span>
+      <span class="tag">SAST</span>
+      <span class="tag">DAST</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: The Security Scanning Landscape -->
+  <div class="slide">
+    <h2 class="animate">The Security Scanning Landscape</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Category</th><th>What It Scans</th><th>Key Tools</th></tr>
+        <tr><td><strong>Container Images (SCA)</strong></td><td>OS packages, libraries in images</td><td>Trivy, Snyk, Grype</td></tr>
+        <tr><td><strong>Dependency Scanning (SCA)</strong></td><td>App dependencies (npm, pip, Go)</td><td>Snyk, npm audit, pip-audit</td></tr>
+        <tr><td><strong>IaC Misconfiguration</strong></td><td>Terraform, K8s, CloudFormation</td><td>Checkov, Trivy, tfsec</td></tr>
+        <tr><td><strong>Cloud Posture (CSPM)</strong></td><td>AWS/Azure/GCP misconfigs</td><td>Prowler, ScoutSuite</td></tr>
+        <tr><td><strong>Secrets Detection</strong></td><td>API keys, tokens in git history</td><td>Gitleaks, TruffleHog</td></tr>
+        <tr><td><strong>SAST</strong></td><td>Source code vulnerabilities</td><td>Semgrep, CodeQL, SonarQube</td></tr>
+        <tr><td><strong>DAST</strong></td><td>Running applications (HTTP)</td><td>OWASP ZAP, Burp Suite</td></tr>
+        <tr><td><strong>License Compliance</strong></td><td>OSS license risks</td><td>FOSSA, Snyk</td></tr>
+        <tr><td><strong>Runtime Protection</strong></td><td>Container behavior at runtime</td><td>Falco, Sysdig</td></tr>
+        <tr><td><strong>K8s Security</strong></td><td>Cluster config, CIS benchmarks</td><td>Kubescape, kube-bench</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px; text-align:center; font-weight:600; color:var(--accent);">No single tool covers everything &mdash; you need a stack.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Trivy - The Swiss Army Knife -->
+  <div class="slide">
+    <h2 class="animate">Trivy &mdash; The Swiss Army Knife</h2>
+    <div class="content">
+      <p class="animate">Open-source by <strong>Aqua Security</strong>. Scans container images, filesystems, git repos, and IaC (Terraform, K8s, Helm, CloudFormation).</p>
+      <pre class="animate">
+# Scan a container image for vulnerabilities
+trivy image nginx:latest
+
+# Scan only HIGH and CRITICAL
+trivy image --severity HIGH,CRITICAL python:3.12
+
+# Scan local filesystem (project dependencies)
+trivy fs --severity HIGH,CRITICAL .
+
+# Scan IaC files (Terraform, K8s manifests, Dockerfiles)
+trivy config ./terraform/
+trivy config ./k8s-manifests/
+
+# Scan a remote git repository
+trivy repo https://github.com/org/app
+
+# Exit code 1 if vulnerabilities found (for CI/CD)
+trivy image --exit-code 1 --severity CRITICAL myapp:latest
+      </pre>
+      <p class="animate" style="margin-top:12px; color:var(--text-muted);">Severity levels: <code>UNKNOWN</code> <code>LOW</code> <code>MEDIUM</code> <code>HIGH</code> <code>CRITICAL</code>. The most versatile free tool available.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Trivy in CI/CD -->
+  <div class="slide">
+    <h2 class="animate">Trivy in CI/CD</h2>
+    <div class="content">
+      <h3 class="animate">GitHub Actions Workflow</h3>
+      <pre class="animate">
+# .github/workflows/trivy-scan.yml
+name: Trivy Security Scan
+on: [pull_request]
+
+jobs:
+  trivy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build Docker image
+        run: docker build -t myapp:${{ github.sha }} .
+
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'myapp:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+
+      - name: Upload to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy-results.sarif'
+      </pre>
+      <h3 class="animate" style="margin-top:16px;">GitLab CI</h3>
+      <pre class="animate">
+# .gitlab-ci.yml
+trivy-scan:
+  image: aquasec/trivy:latest
+  script:
+    - trivy image --exit-code 1 --severity HIGH,CRITICAL $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Snyk -->
+  <div class="slide">
+    <h2 class="animate">Snyk &mdash; Developer-First Security</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What Snyk Scans</h3>
+        <ul>
+          <li>Dependencies: npm, pip, NuGet, Maven, Go</li>
+          <li>Container images</li>
+          <li>IaC (Terraform, K8s, CloudFormation)</li>
+          <li>Source code (SAST via Snyk Code)</li>
+        </ul>
+        <pre style="border:none; padding:12px; font-size:0.85rem; margin-top:12px;">
+# Test project dependencies
+snyk test
+
+# Auto-fix vulnerabilities
+snyk fix
+
+# Monitor for new vulns over time
+snyk monitor
+
+# Test a container image
+snyk container test node:20-slim
+
+# Test IaC files
+snyk iac test ./terraform/
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>Snyk vs Trivy</h3>
+        <table style="max-width:100%;">
+          <tr><th>Feature</th><th>Snyk</th><th>Trivy</th></tr>
+          <tr><td>Cost</td><td>Free tier + paid</td><td>Free / OSS</td></tr>
+          <tr><td>Auto-fix PRs</td><td class="green">Yes</td><td>No</td></tr>
+          <tr><td>IDE plugins</td><td class="green">VS Code, IntelliJ</td><td>Limited</td></tr>
+          <tr><td>PR comments</td><td class="green">Built-in</td><td>Manual</td></tr>
+          <tr><td>SAST</td><td class="green">Snyk Code</td><td>No</td></tr>
+          <tr><td>IaC scan</td><td class="green">Yes</td><td class="green">Yes</td></tr>
+          <tr><td>Offline</td><td>No</td><td class="green">Yes</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Prowler -->
+  <div class="slide">
+    <h2 class="animate">Prowler &mdash; Cloud Security Posture</h2>
+    <div class="content">
+      <p class="animate">Open-source. Audits <strong>AWS, Azure, GCP</strong> for misconfigurations. 300+ checks across compliance frameworks.</p>
+      <pre class="animate">
+# Scan AWS account (all checks)
+prowler aws
+
+# Scan against CIS Benchmarks 2.0
+prowler aws --compliance cis_2.0_aws
+
+# Scan specific services only
+prowler aws --service s3 iam ec2
+
+# Scan Azure
+prowler azure
+
+# Scan GCP
+prowler gcp
+
+# Output formats
+prowler aws --output-formats csv json html
+
+# Example findings:
+# FAIL  S3 bucket "prod-logs" has public access enabled
+# FAIL  IAM root account has no MFA configured
+# FAIL  CloudTrail logging is disabled in us-west-2
+# PASS  RDS instances are encrypted at rest
+      </pre>
+      <div class="animate" style="margin-top:12px;">
+        <span class="tag">CIS Benchmarks</span>
+        <span class="tag">PCI-DSS</span>
+        <span class="tag">HIPAA</span>
+        <span class="tag">SOC2</span>
+        <span class="tag">GDPR</span>
+        <span class="tag">NIST 800-53</span>
+      </div>
+      <p class="animate" style="margin-top:8px; color:var(--text-muted);">Schedule weekly runs and export dashboard reports for compliance audits.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Secrets Detection -->
+  <div class="slide">
+    <h2 class="animate">Secrets Detection &mdash; Gitleaks &amp; TruffleHog</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Gitleaks (Regex-based, Fast)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+# Scan current directory
+gitleaks detect --source .
+
+# Scan git history
+gitleaks detect --source . --log-opts="--all"
+
+# Pre-commit hook (prevent leaks!)
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.18.0
+    hooks:
+      - id: gitleaks
+
+# Example output:
+# Finding: AWS Access Key
+# Secret:  AKIA...EXAMPLE
+# File:    src/config.js
+# Line:    42
+# Commit:  a1b2c3d
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>TruffleHog (Entropy + Regex)</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+# Scan git repo (entire history)
+trufflehog git file://. --only-verified
+
+# Scan a GitHub org
+trufflehog github --org=mycompany
+
+# Scan filesystem
+trufflehog filesystem --directory=./src
+
+# What they catch:
+# - AWS Access Keys (AKIA...)
+# - GitHub tokens (ghp_...)
+# - Database passwords
+# - Private keys (RSA/EC)
+# - Slack webhooks
+# - Stripe API keys
+# - SendGrid tokens
+        </pre>
+        <p style="margin-top:8px; font-size:1rem; color:var(--text-muted);">TruffleHog verifies secrets are active. Deeper but slower than Gitleaks.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: SAST - Semgrep -->
+  <div class="slide">
+    <h2 class="animate">SAST &mdash; Semgrep</h2>
+    <div class="content">
+      <p class="animate"><strong>Static Application Security Testing.</strong> Scans YOUR source code for vulnerabilities. Pattern-based, supports 30+ languages, custom rules.</p>
+      <pre class="animate">
+# Run with auto-detected rules
+semgrep scan --config auto
+
+# Run OWASP Top 10 rules
+semgrep scan --config p/owasp-top-ten
+
+# Scan specific language
+semgrep scan --config p/python .
+
+# CI mode (machine-readable output)
+semgrep ci --config auto
+      </pre>
+      <h3 class="animate">What Semgrep Catches</h3>
+      <pre class="animate">
+# SQL Injection (Python example)
+# VULNERABLE:
+cursor.execute("SELECT * FROM users WHERE id = " + user_id)
+# Semgrep flags: "Detected string concatenation in SQL query"
+
+# XSS (JavaScript example)
+# VULNERABLE:
+document.innerHTML = userInput;
+# Semgrep flags: "User-controlled data in innerHTML"
+
+# Hardcoded secrets
+# VULNERABLE:
+API_KEY = "sk-live-abc123def456"
+# Semgrep flags: "Hardcoded secret detected"
+
+# Insecure crypto
+# VULNERABLE:
+hashlib.md5(password.encode())
+# Semgrep flags: "Use of weak hash function MD5"
+      </pre>
+      <p class="animate" style="margin-top:8px; color:var(--text-muted);">Compare: <strong>CodeQL</strong> (deeper analysis, slower) vs <strong>Semgrep</strong> (pattern-based, faster, easier custom rules).</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: SAST - CodeQL -->
+  <div class="slide">
+    <h2 class="animate">SAST &mdash; CodeQL (GitHub)</h2>
+    <div class="content">
+      <p class="animate">GitHub's built-in code analysis. Treats code as a <strong>database</strong> and runs semantic queries. Free for public repos, included in GitHub Advanced Security.</p>
+      <pre class="animate">
+# .github/workflows/codeql.yml
+name: CodeQL Analysis
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '0 6 * * 1'    # Weekly Monday 6AM
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+    strategy:
+      matrix:
+        language: ['javascript', 'python']
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          queries: +security-extended
+
+      - name: Autobuild
+        uses: github/codeql-action/autobuild@v3
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+      </pre>
+      <p class="animate" style="margin-top:10px; color:var(--text-muted);">Catches: injection, auth bypass, insecure deserialization, path traversal, SSRF. Results appear in the GitHub Security tab.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: DAST - OWASP ZAP -->
+  <div class="slide">
+    <h2 class="animate">DAST &mdash; OWASP ZAP</h2>
+    <div class="content">
+      <p class="animate"><strong>Dynamic Application Security Testing.</strong> Tests a RUNNING application by sending actual HTTP requests. Free, open-source.</p>
+      <pre class="animate">
+# Quick scan with Docker
+docker run --rm -t owasp/zap2docker-stable zap-baseline.py \
+  -t http://host.docker.internal:3000
+
+# Full active scan (more thorough, more intrusive)
+docker run --rm -t owasp/zap2docker-stable zap-full-scan.py \
+  -t http://host.docker.internal:3000
+
+# API scan (OpenAPI/Swagger)
+docker run --rm -t owasp/zap2docker-stable zap-api-scan.py \
+  -t http://host.docker.internal:3000/openapi.json \
+  -f openapi
+
+# Generate HTML report
+docker run --rm -v $(pwd):/zap/wrk owasp/zap2docker-stable \
+  zap-baseline.py -t http://target:3000 \
+  -r report.html
+      </pre>
+      <div class="two-col animate" style="margin-top:16px;">
+        <div class="card">
+          <h3>Passive Scan</h3>
+          <p style="font-size:1rem;">Observes traffic without modifying requests. Safe for production. Finds: missing headers, cookie flags, info leaks.</p>
+        </div>
+        <div class="card">
+          <h3>Active Scan</h3>
+          <p style="font-size:1rem;">Sends attack payloads (SQLi, XSS, etc). <strong>Never run on production.</strong> Finds: injection, CSRF, auth bypass.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:10px; color:var(--text-muted);">Compare: <strong>Burp Suite</strong> (commercial, more powerful, manual testing) vs <strong>ZAP</strong> (free, automation-friendly).</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Checkov - IaC Security -->
+  <div class="slide">
+    <h2 class="animate">Checkov &mdash; IaC Security</h2>
+    <div class="content">
+      <p class="animate">By Bridgecrew/Palo Alto. Scans <strong>Terraform, CloudFormation, K8s manifests, Helm charts, Dockerfiles</strong>. 1000+ built-in policies.</p>
+      <pre class="animate">
+# Scan Terraform directory
+checkov -d ./terraform/
+
+# Scan specific file
+checkov -f main.tf
+
+# Scan Kubernetes manifests
+checkov -d ./k8s/ --framework kubernetes
+
+# Scan Dockerfile
+checkov --dockerfile-path ./Dockerfile
+
+# Output in JSON for CI
+checkov -d ./terraform/ -o json
+
+# Skip specific checks
+checkov -d . --skip-check CKV_AWS_18,CKV_AWS_21
+      </pre>
+      <h3 class="animate">What Checkov Catches</h3>
+      <pre class="animate">
+# FAIL: S3 bucket without encryption
+# CKV_AWS_19: "Ensure S3 bucket has server-side encryption"
+
+# FAIL: RDS without encryption at rest
+# CKV_AWS_16: "Ensure RDS instance has encryption enabled"
+
+# FAIL: Security group allows 0.0.0.0/0 on port 22
+# CKV_AWS_24: "Ensure no security group allows SSH from 0.0.0.0/0"
+
+# FAIL: IAM policy with wildcard actions
+# CKV_AWS_1: "Ensure IAM policy does not have * action"
+      </pre>
+      <p class="animate" style="color:var(--text-muted);">Checkov has 1000+ policies vs Trivy config (fewer but growing). Use both for maximum coverage.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Kubescape & kube-bench -->
+  <div class="slide">
+    <h2 class="animate">Kubescape &amp; kube-bench &mdash; K8s Security</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Kubescape</h3>
+        <p style="font-size:1rem; margin-bottom:8px;">Scans K8s clusters against NSA/CISA hardening guide, CIS benchmarks, MITRE ATT&amp;CK.</p>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+# Scan cluster (all frameworks)
+kubescape scan
+
+# Scan against CIS benchmark
+kubescape scan framework cis-v1.23-t1.0.1
+
+# Scan against NSA hardening
+kubescape scan framework nsa
+
+# Scan specific namespace
+kubescape scan --include-namespaces prod
+
+# Scan YAML before deploying
+kubescape scan *.yaml
+
+# Example findings:
+# FAIL: Containers running as root
+# FAIL: No network policies defined
+# FAIL: Missing resource limits
+# FAIL: Writable root filesystem
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3>kube-bench</h3>
+        <p style="font-size:1rem; margin-bottom:8px;">Checks K8s <strong>node configuration</strong> against CIS benchmarks. Runs on each node.</p>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+# Run on a node
+kube-bench run
+
+# Run as a Kubernetes Job
+kubectl apply -f https://raw.githubusercontent.com/
+  aquasecurity/kube-bench/main/job.yaml
+
+# Check specific section
+kube-bench run --targets master
+kube-bench run --targets node
+
+# Example output:
+# [FAIL] 1.2.6 Ensure --kubelet-certificate
+#        -authority argument is set
+# [PASS] 1.2.7 Ensure --authorization-mode
+#        includes Node
+# [WARN] 1.2.8 Ensure --audit-log-path is set
+
+# Summary:
+# 42 checks PASS
+# 12 checks FAIL
+# 5  checks WARN
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Falco - Runtime Security -->
+  <div class="slide">
+    <h2 class="animate">Falco &mdash; Runtime Security</h2>
+    <div class="content">
+      <p class="animate">Detects anomalous behavior in <strong>running containers</strong>. Watches syscalls via eBPF in real-time. Low overhead. Deployed as a DaemonSet on K8s.</p>
+      <pre class="animate">
+# Install Falco on Kubernetes via Helm
+helm repo add falcosecurity https://falcosecurity.github.io/charts
+helm install falco falcosecurity/falco \
+  --set driver.kind=ebpf \
+  --set falcosidekick.enabled=true
+
+# Example Falco rules:
+- rule: Terminal shell in container
+  desc: A shell was spawned in a container
+  condition: >
+    spawned_process and container and
+    proc.name in (bash, sh, zsh)
+  output: >
+    Shell spawned in container
+    (user=%user.name container=%container.name
+     shell=%proc.name parent=%proc.pname)
+  priority: WARNING
+      </pre>
+      <h3 class="animate">What Falco Detects</h3>
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>Shell Access</h3>
+          <p>Interactive shell spawned inside a container (kubectl exec, docker exec)</p>
+        </div>
+        <div class="metric-card">
+          <h3>Network Anomalies</h3>
+          <p>Unexpected outbound connections, reverse shells, DNS exfiltration</p>
+        </div>
+        <div class="metric-card">
+          <h3>File Tampering</h3>
+          <p>Writes to /etc/shadow, /etc/passwd, sensitive config files</p>
+        </div>
+        <div class="metric-card">
+          <h3>Privilege Escalation</h3>
+          <p>setuid calls, namespace escapes, capability abuse</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: FOSSA & License Compliance -->
+  <div class="slide">
+    <h2 class="animate">FOSSA &amp; License Compliance</h2>
+    <div class="content">
+      <p class="animate">Scan open-source dependencies for <strong>license risks</strong>. GPL in a commercial product? FOSSA flags it before legal trouble.</p>
+      <pre class="animate">
+# Analyze project dependencies and licenses
+fossa analyze
+
+# Check license compliance status
+fossa test    # exits non-zero if policy violations found
+
+# List all detected licenses
+fossa report attribution --format text
+      </pre>
+      <h3 class="animate">License Types You Need to Know</h3>
+      <table class="animate">
+        <tr><th>License</th><th>Type</th><th>Risk</th><th>Can Use in Commercial?</th></tr>
+        <tr><td><strong>MIT</strong></td><td>Permissive</td><td class="green">Low</td><td class="green">Yes</td></tr>
+        <tr><td><strong>Apache 2.0</strong></td><td>Permissive</td><td class="green">Low</td><td class="green">Yes (with notice)</td></tr>
+        <tr><td><strong>BSD</strong></td><td>Permissive</td><td class="green">Low</td><td class="green">Yes</td></tr>
+        <tr><td><strong>LGPL</strong></td><td>Weak copyleft</td><td style="color:var(--warning);">Medium</td><td>Yes (if dynamically linked)</td></tr>
+        <tr><td><strong>GPL v2/v3</strong></td><td>Copyleft (viral)</td><td style="color:red;">High</td><td>Must open-source your code</td></tr>
+        <tr><td><strong>AGPL</strong></td><td>Network copyleft</td><td style="color:red;">High</td><td>Even SaaS must share source</td></tr>
+      </table>
+      <p class="animate" style="margin-top:10px; color:var(--text-muted);">Why it matters: legal liability, acquisition due diligence (buyers audit your licenses), compliance requirements.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: SBOM -->
+  <div class="slide">
+    <h2 class="animate">SBOM &mdash; Software Bill of Materials</h2>
+    <div class="content">
+      <p class="animate">A complete inventory of every component in your software. Required by <strong>US Executive Order 14028</strong> for government software.</p>
+      <pre class="animate">
+# Generate SBOM with Trivy (CycloneDX format)
+trivy image --format cyclonedx --output sbom.json myapp:latest
+
+# Generate SBOM with Syft (SPDX format)
+syft myapp:latest -o spdx-json > sbom-spdx.json
+
+# Generate SBOM from a directory
+syft dir:./my-project -o cyclonedx-json > sbom.json
+
+# Scan an existing SBOM for vulnerabilities
+grype sbom:./sbom.json
+
+# Combine: generate + scan in CI
+syft myapp:latest -o cyclonedx-json | grype
+      </pre>
+      <div class="two-col animate" style="margin-top:16px;">
+        <div class="card">
+          <h3>Formats</h3>
+          <ul>
+            <li><strong>SPDX</strong> &mdash; Linux Foundation standard, ISO/IEC 5962</li>
+            <li><strong>CycloneDX</strong> &mdash; OWASP standard, richer vulnerability data</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Why SBOMs Matter</h3>
+          <ul>
+            <li><strong>Log4Shell</strong> &mdash; "Do we use Log4j?" answered instantly</li>
+            <li><strong>SolarWinds</strong> &mdash; supply chain visibility</li>
+            <li>Customer/compliance transparency</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Dependency Scanning Deep Dive -->
+  <div class="slide">
+    <h2 class="animate">Dependency Scanning Deep Dive</h2>
+    <div class="content">
+      <pre class="animate">
+# Node.js / npm
+npm audit                        # List known vulnerabilities
+npm audit fix                    # Auto-fix where possible
+npm audit --json                 # Machine-readable output
+
+# Python
+pip-audit                        # Scan installed packages
+pip-audit -r requirements.txt    # Scan from requirements file
+pip-audit --fix                  # Auto-upgrade vulnerable deps
+
+# .NET
+dotnet list package --vulnerable          # Show vulnerable packages
+dotnet list package --vulnerable --include-transitive
+
+# Go
+govulncheck ./...                # Official Go vulnerability checker
+
+# Rust
+cargo audit                      # Scan Cargo.lock for advisories
+      </pre>
+      <h3 class="animate">Automated Updates</h3>
+      <div class="two-col animate">
+        <div class="card">
+          <h3>Dependabot (GitHub)</h3>
+          <pre style="border:none; padding:10px; font-size:0.82rem;">
+# .github/dependabot.yml
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 10
+          </pre>
+        </div>
+        <div class="card">
+          <h3>Renovate</h3>
+          <pre style="border:none; padding:10px; font-size:0.82rem;">
+# renovate.json
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended"],
+  "packageRules": [
+    { "matchUpdateTypes": ["patch"],
+      "automerge": true }
+  ]
+}
+          </pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:10px; color:var(--text-muted);"><strong>Lock files matter:</strong> package-lock.json, poetry.lock, go.sum pin exact versions. Always commit them.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Container Image Hardening -->
+  <div class="slide">
+    <h2 class="animate">Container Image Hardening</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 style="color:red;">Before (150+ CVEs)</h3>
+        <pre style="border:none; padding:12px; font-size:0.82rem;">
+FROM node:20
+
+WORKDIR /app
+COPY . .
+RUN npm install
+EXPOSE 3000
+CMD ["node", "server.js"]
+
+# trivy image myapp:before
+# Total: 158 vulnerabilities
+#   CRITICAL: 12
+#   HIGH:     34
+#   MEDIUM:   67
+#   LOW:      45
+        </pre>
+      </div>
+      <div class="card animate">
+        <h3 class="green">After (0 CVEs)</h3>
+        <pre style="border:none; padding:12px; font-size:0.82rem;">
+# Stage 1: Build
+FROM node:20-slim AS build
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci --only=production
+COPY . .
+
+# Stage 2: Runtime (distroless)
+FROM gcr.io/distroless/nodejs20
+WORKDIR /app
+COPY --from=build /app .
+USER nonroot:nonroot
+EXPOSE 3000
+CMD ["server.js"]
+
+# trivy image myapp:after
+# Total: 0 vulnerabilities
+        </pre>
+      </div>
+    </div>
+    <div class="bp-grid animate" style="margin-top:20px;">
+      <div class="bp-item"><span>1</span> Use <strong>distroless</strong> or <strong>Alpine</strong> base images</div>
+      <div class="bp-item"><span>2</span> <strong>Multi-stage builds</strong> &mdash; separate build from runtime</div>
+      <div class="bp-item"><span>3</span> Run as <strong>non-root</strong> user (USER nonroot)</div>
+      <div class="bp-item"><span>4</span> Use <code>npm ci</code> not <code>npm install</code> for reproducibility</div>
+      <div class="bp-item"><span>5</span> Set <strong>read-only</strong> root filesystem in K8s</div>
+      <div class="bp-item"><span>6</span> Pin image digests: <code>node:20@sha256:abc...</code></div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Shift Left -->
+  <div class="slide">
+    <h2 class="animate">Shift Left &mdash; Scanning in the Developer Workflow</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">IDE<br><small>Snyk, Semgrep</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Pre-commit<br><small>Gitleaks, lint</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">PR Check<br><small>Trivy, CodeQL</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">CI Build<br><small>Full scan suite</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Staging<br><small>DAST (ZAP)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Production<br><small>Falco runtime</small></div>
+      </div>
+      <table class="animate" style="margin-top:20px;">
+        <tr><th>Stage</th><th>Tools</th><th>Cost to Fix</th></tr>
+        <tr><td><strong>IDE / Local</strong></td><td>Snyk plugin, Semgrep CLI</td><td class="green">$1 (cheapest)</td></tr>
+        <tr><td><strong>Pre-commit</strong></td><td>Gitleaks, linters, formatters</td><td class="green">$1</td></tr>
+        <tr><td><strong>Pull Request</strong></td><td>Trivy, CodeQL, Checkov</td><td>$10</td></tr>
+        <tr><td><strong>CI/CD Build</strong></td><td>Full scan pipeline</td><td>$100</td></tr>
+        <tr><td><strong>Staging / QA</strong></td><td>OWASP ZAP (DAST)</td><td style="color:var(--warning);">$1,000</td></tr>
+        <tr><td><strong>Production</strong></td><td>Falco, incident response</td><td style="color:red;">$10,000+</td></tr>
+      </table>
+      <p class="animate" style="margin-top:12px; text-align:center; font-weight:600; color:var(--accent);">Catch issues earliest = cheapest to fix.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Building a Security Pipeline -->
+  <div class="slide">
+    <h2 class="animate">Building a Security Pipeline</h2>
+    <div class="content">
+      <p class="animate">Complete GitHub Actions workflow combining multiple scanners with SARIF upload.</p>
+      <pre class="animate">
+# .github/workflows/security-pipeline.yml
+name: Security Pipeline
+on: [pull_request]
+
+jobs:
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: gitleaks/gitleaks-action@v2
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  sast:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: returntocorp/semgrep-action@v1
+        with:
+          config: >-
+            p/owasp-top-ten
+            p/security-audit
+
+  iac:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Checkov IaC scan
+        uses: bridgecrewio/checkov-action@master
+        with:
+          directory: ./terraform/
+          soft_fail: false
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t app:${{ github.sha }} .
+      - name: Trivy scan
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: 'app:${{ github.sha }}'
+          format: 'sarif'
+          output: 'trivy.sarif'
+          severity: 'HIGH,CRITICAL'
+          exit-code: '1'
+      - uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: 'trivy.sarif'
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: OWASP Top 10 -->
+  <div class="slide">
+    <h2 class="animate">OWASP Top 10 (2021)</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>#</th><th>Risk</th><th>Tool to Catch</th><th>Fix</th></tr>
+        <tr><td><strong>A01</strong></td><td>Broken Access Control</td><td>CodeQL, ZAP</td><td>RBAC, least privilege</td></tr>
+        <tr><td><strong>A02</strong></td><td>Cryptographic Failures</td><td>Semgrep, Snyk</td><td>TLS, strong hashing</td></tr>
+        <tr><td><strong>A03</strong></td><td>Injection (SQLi, XSS)</td><td>Semgrep, CodeQL, ZAP</td><td>Parameterized queries</td></tr>
+        <tr><td><strong>A04</strong></td><td>Insecure Design</td><td>Code review</td><td>Threat modeling</td></tr>
+        <tr><td><strong>A05</strong></td><td>Security Misconfiguration</td><td>Checkov, Prowler</td><td>IaC hardening</td></tr>
+        <tr><td><strong>A06</strong></td><td>Vulnerable Components</td><td>Trivy, Snyk, npm audit</td><td>Patch, update deps</td></tr>
+        <tr><td><strong>A07</strong></td><td>Auth &amp; Identity Failures</td><td>CodeQL, ZAP</td><td>MFA, session mgmt</td></tr>
+        <tr><td><strong>A08</strong></td><td>Software Integrity Failures</td><td>SBOM, Sigstore</td><td>Sign artifacts</td></tr>
+        <tr><td><strong>A09</strong></td><td>Logging &amp; Monitoring</td><td>Prowler, Falco</td><td>Centralized logging</td></tr>
+        <tr><td><strong>A10</strong></td><td>SSRF</td><td>Semgrep, CodeQL</td><td>Allow-list URLs</td></tr>
+      </table>
+      <p class="animate" style="margin-top:12px; color:var(--text-muted);">Every scanner maps to at least one OWASP Top 10 category. Your security stack should cover all ten.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Vulnerability Management -->
+  <div class="slide">
+    <h2 class="animate">Vulnerability Management</h2>
+    <div class="content">
+      <p class="animate">Finding vulnerabilities is step 1. <strong>Managing them</strong> is where real security happens.</p>
+      <div class="diagram animate">
+        <div class="box">Find</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Triage</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Prioritize</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Fix</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Verify</div>
+      </div>
+      <h3 class="animate">Remediation SLAs</h3>
+      <table class="animate">
+        <tr><th>Severity</th><th>CVSS Score</th><th>SLA</th><th>Example</th></tr>
+        <tr><td style="color:red;"><strong>CRITICAL</strong></td><td>9.0 &ndash; 10.0</td><td><strong>24 hours</strong></td><td>Remote code execution, auth bypass</td></tr>
+        <tr><td style="color:var(--warning);"><strong>HIGH</strong></td><td>7.0 &ndash; 8.9</td><td><strong>7 days</strong></td><td>SQL injection, privilege escalation</td></tr>
+        <tr><td><strong>MEDIUM</strong></td><td>4.0 &ndash; 6.9</td><td><strong>30 days</strong></td><td>XSS, info disclosure</td></tr>
+        <tr><td class="green"><strong>LOW</strong></td><td>0.1 &ndash; 3.9</td><td><strong>90 days</strong></td><td>Minor info leak, debug endpoints</td></tr>
+      </table>
+      <pre class="animate">
+# Vulnerability databases
+# NVD  - National Vulnerability Database (nist.gov)
+# OSV  - Open Source Vulnerabilities (osv.dev)
+# GHSA - GitHub Security Advisories
+
+# Check if a specific CVE affects you
+trivy image --vuln-type os,library myapp:latest | grep CVE-2024-1234
+
+# False positive handling: create .trivyignore
+echo "CVE-2024-9999" >> .trivyignore   # Document why!
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Tool Comparison Matrix -->
+  <div class="slide">
+    <h2 class="animate">Tool Comparison Matrix</h2>
+    <div class="content">
+      <table class="animate" style="font-size:0.95rem;">
+        <tr><th>Tool</th><th>Scans</th><th>Cost</th><th>CI/CD</th><th>Languages / Platforms</th></tr>
+        <tr><td><strong>Trivy</strong></td><td>Images, FS, IaC, SBOM</td><td class="green">Free</td><td>GHA, GitLab, Jenkins</td><td>All major languages</td></tr>
+        <tr><td><strong>Snyk</strong></td><td>Deps, images, IaC, code</td><td>Free tier + paid</td><td>GHA, GitLab, Jenkins</td><td>npm, pip, Go, Java, .NET</td></tr>
+        <tr><td><strong>Semgrep</strong></td><td>Source code (SAST)</td><td class="green">Free (OSS)</td><td>GHA, GitLab</td><td>30+ languages</td></tr>
+        <tr><td><strong>CodeQL</strong></td><td>Source code (SAST)</td><td>Free (public repos)</td><td>GitHub native</td><td>JS, Python, Java, C++, Go, Ruby</td></tr>
+        <tr><td><strong>OWASP ZAP</strong></td><td>Running apps (DAST)</td><td class="green">Free</td><td>Docker, GHA</td><td>Any web application</td></tr>
+        <tr><td><strong>Checkov</strong></td><td>IaC, Dockerfiles</td><td class="green">Free (OSS)</td><td>GHA, GitLab</td><td>Terraform, K8s, CFN, Helm</td></tr>
+        <tr><td><strong>Prowler</strong></td><td>Cloud accounts (CSPM)</td><td class="green">Free (OSS)</td><td>CLI, scheduled</td><td>AWS, Azure, GCP</td></tr>
+        <tr><td><strong>Gitleaks</strong></td><td>Secrets in git</td><td class="green">Free</td><td>GHA, pre-commit</td><td>Any repo</td></tr>
+        <tr><td><strong>TruffleHog</strong></td><td>Secrets (verified)</td><td class="green">Free (OSS)</td><td>GHA, CLI</td><td>Any repo</td></tr>
+        <tr><td><strong>Kubescape</strong></td><td>K8s clusters, YAML</td><td class="green">Free (OSS)</td><td>CLI, operator</td><td>Kubernetes</td></tr>
+        <tr><td><strong>Falco</strong></td><td>Runtime behavior</td><td class="green">Free (OSS)</td><td>DaemonSet</td><td>Containers, K8s</td></tr>
+        <tr><td><strong>FOSSA</strong></td><td>License compliance</td><td>Free tier + paid</td><td>CLI, GHA</td><td>All major ecosystems</td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Recommended Stacks -->
+  <div class="slide">
+    <h2 class="animate">Recommended Stacks</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3 class="green">Startup (Free Tools Only)</h3>
+          <p><strong>Cost:</strong> $0/month</p>
+          <ul style="margin-top:8px;">
+            <li><strong>Trivy</strong> &mdash; image + IaC scanning</li>
+            <li><strong>Gitleaks</strong> &mdash; secrets detection</li>
+            <li><strong>Semgrep</strong> &mdash; SAST</li>
+            <li><strong>kube-bench</strong> &mdash; K8s node security</li>
+            <li><strong>npm audit / pip-audit</strong> &mdash; deps</li>
+          </ul>
+        </div>
+        <div class="metric-card">
+          <h3 style="color:var(--warning);">Growth Stage</h3>
+          <p><strong>Cost:</strong> ~$500-2,000/month</p>
+          <ul style="margin-top:8px;">
+            <li>Everything from Startup, plus:</li>
+            <li><strong>Snyk</strong> &mdash; developer-friendly scanning</li>
+            <li><strong>Prowler</strong> &mdash; cloud posture (CSPM)</li>
+            <li><strong>Checkov</strong> &mdash; deep IaC policies</li>
+            <li><strong>CodeQL</strong> &mdash; GitHub Advanced Security</li>
+            <li><strong>Kubescape</strong> &mdash; cluster scanning</li>
+          </ul>
+        </div>
+        <div class="metric-card">
+          <h3 style="color:var(--accent);">Enterprise</h3>
+          <p><strong>Cost:</strong> $5,000+/month</p>
+          <ul style="margin-top:8px;">
+            <li>Everything from Growth, plus:</li>
+            <li><strong>Burp Suite Enterprise</strong> &mdash; DAST</li>
+            <li><strong>Falco</strong> &mdash; runtime protection</li>
+            <li><strong>FOSSA</strong> &mdash; license compliance</li>
+            <li><strong>SBOM</strong> generation &amp; tracking</li>
+            <li><strong>SonarQube</strong> &mdash; code quality + security</li>
+          </ul>
+        </div>
+        <div class="metric-card">
+          <h3>Quick Decision Guide</h3>
+          <p style="margin-top:8px;">Start with <strong>Trivy + Gitleaks + Semgrep</strong>. These three free tools cover 80% of security scanning needs. Add tools as your team, compliance requirements, and attack surface grow.</p>
+          <p style="margin-top:8px;"><strong>Rule of thumb:</strong> One tool per category. Overlap is OK for defense in depth, but avoid tool fatigue.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6E1;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate"><span class="highlight">No single tool covers everything</span> &mdash; build a layered stack</li>
+        <li class="animate"><strong>Shift left:</strong> catch issues in IDE and pre-commit, not production</li>
+        <li class="animate">Start free: <span class="tag">Trivy</span> <span class="tag">Gitleaks</span> <span class="tag">Semgrep</span></li>
+        <li class="animate">Automate scanning in <strong>CI/CD pipelines</strong> &mdash; never rely on manual checks</li>
+        <li class="animate"><strong>Manage</strong> vulnerabilities: triage, prioritize, fix with SLAs</li>
+        <li class="animate">Generate <strong>SBOMs</strong> for supply chain transparency</li>
+        <li class="animate">Add <strong>runtime protection</strong> (Falco) for defense in depth</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Security is a journey, not a destination. Scan continuously.
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 24</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
