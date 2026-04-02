@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>From Code to CPU - How Your Code Becomes Electricity</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    .diagram-vertical { display: flex; flex-direction: column; align-items: center; gap: 6px; margin: 20px 0; }
+    .diagram-vertical .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 12px 32px; text-align: center; font-weight: 600; min-width: 260px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram-vertical .arrow { font-size: 1.4rem; color: var(--accent); }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      .diagram-vertical .box { min-width: 80%; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate title-fire">From Code to CPU</h1>
+    <p class="subtitle animate">How your code becomes electricity</p>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+    <div class="animate" style="margin-top: 24px;">
+      <span class="tag">Binary</span>
+      <span class="tag">Assembly</span>
+      <span class="tag">CPU</span>
+      <span class="tag">Architecture</span>
+      <span class="tag">Machine Code</span>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 2: The Full Picture -->
+  <div class="slide">
+    <h2 class="animate">The Full Picture</h2>
+    <div class="content" style="text-align:center;">
+      <p class="animate" style="margin-bottom: 20px;">Every program you write passes through this chain before anything happens:</p>
+      <div class="diagram-vertical animate">
+        <div class="box">C Source Code</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Compiler</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Assembly (x86-64)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Assembler</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Machine Code (hex bytes)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Binary (1s and 0s in RAM)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">CPU (transistors &amp; logic gates)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box" style="border-color: var(--success);">Result on screen</div>
+      </div>
+      <p class="animate" style="margin-top: 16px; color: var(--text-muted); font-style: italic;">We'll trace a simple calculator through every single layer.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: The Calculator (C Code) -->
+  <div class="slide">
+    <h2 class="animate">The Calculator</h2>
+    <div class="content">
+      <pre class="animate">
+int main() {
+    int a = 3;
+    int b = 5;
+    int result = a + b;
+    printf("%d\n", result);
+    return 0;
+}</pre>
+      <div style="margin-top: 24px;">
+        <p class="animate">This is <span class="highlight">human-readable</span> source code. You can read it. Your colleagues can read it.</p>
+        <p class="animate" style="margin-top: 12px;">The CPU <strong>cannot understand any of this</strong>. It doesn't know what <code>int</code> means, what <code>+</code> does, or what <code>printf</code> is.</p>
+        <p class="animate" style="margin-top: 12px;">The CPU only understands one thing: <span class="highlight">specific patterns of 1s and 0s</span>. Everything between your code and those bit patterns is what this course is about.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Number Systems -->
+  <div class="slide">
+    <h2 class="animate">Why Computers Use Binary</h2>
+    <div class="content">
+      <p class="animate">Computers are made of <span class="highlight">electrical switches</span>. A switch is either <strong>ON</strong> (1) or <strong>OFF</strong> (0). That's it. Every number, letter, instruction, and pixel is built from these two states.</p>
+      <div style="margin-top: 16px;">
+        <table class="animate">
+          <tr><th>Decimal (base 10)</th><th>Binary (base 2)</th><th>Hex (base 16)</th></tr>
+          <tr><td>0</td><td>0000</td><td>0</td></tr>
+          <tr><td>1</td><td>0001</td><td>1</td></tr>
+          <tr><td>2</td><td>0010</td><td>2</td></tr>
+          <tr><td>3</td><td>0011</td><td>3</td></tr>
+          <tr><td>4</td><td>0100</td><td>4</td></tr>
+          <tr><td>5</td><td>0101</td><td>5</td></tr>
+          <tr><td>8</td><td>1000</td><td>8</td></tr>
+          <tr><td>10</td><td>1010</td><td>A</td></tr>
+          <tr><td>15</td><td>1111</td><td>F</td></tr>
+          <tr><td>16</td><td>10000</td><td>10</td></tr>
+        </table>
+      </div>
+      <p class="animate" style="margin-top: 12px;"><strong>Hex</strong> is shorthand for binary. Each hex digit = exactly 4 bits. Programmers use hex because <code>C7 45 FC</code> is easier to read than <code>11000111 01000101 11111100</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Converting Between Bases -->
+  <div class="slide">
+    <h2 class="animate">Converting Between Bases</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Decimal 65 &rarr; Binary</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+65 &divide; 2 = 32  remainder 1
+32 &divide; 2 = 16  remainder 0
+16 &divide; 2 =  8  remainder 0
+ 8 &divide; 2 =  4  remainder 0
+ 4 &divide; 2 =  2  remainder 0
+ 2 &divide; 2 =  1  remainder 0
+ 1 &divide; 2 =  0  remainder 1
+
+Read remainders bottom-up:
+= 01000001</pre>
+        </div>
+        <div class="card animate">
+          <h3>Binary &harr; Hex</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+Binary to Hex:
+  0100  0001
+    4     1
+= 0x41
+
+Hex to Decimal:
+  4 x 16 + 1 x 1
+= 64 + 1
+= 65
+
+Full circle:
+65 (dec) = 01000001 (bin) = 0x41 (hex)</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top: 16px; text-align: center;">These are the <strong>same number</strong> in three different notations. The computer only stores the binary form.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: ASCII -->
+  <div class="slide">
+    <h2 class="animate">ASCII &mdash; How Text Becomes Numbers</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Character</th><th>Decimal</th><th>Hex</th><th>Binary</th></tr>
+        <tr><td><strong>A</strong></td><td>65</td><td>0x41</td><td>01000001</td></tr>
+        <tr><td><strong>B</strong></td><td>66</td><td>0x42</td><td>01000010</td></tr>
+        <tr><td><strong>a</strong></td><td>97</td><td>0x61</td><td>01100001</td></tr>
+        <tr><td><strong>0</strong></td><td>48</td><td>0x30</td><td>00110000</td></tr>
+        <tr><td><strong>space</strong></td><td>32</td><td>0x20</td><td>00100000</td></tr>
+      </table>
+      <div class="card animate" style="margin-top: 20px; max-width: 900px;">
+        <h3>The word "Hi" in memory</h3>
+        <pre style="border:none; padding:12px; font-size:0.9rem;">
+H = 72  = 0x48 = 01001000
+i = 105 = 0x69 = 01101001
+
+In RAM: 01001000 01101001</pre>
+      </div>
+      <p class="animate" style="margin-top: 16px;">In memory, text is just numbers. Numbers are just binary. <span class="highlight">Binary is just voltage levels.</span></p>
+      <p class="animate" style="margin-top: 8px;">The same byte <code>0x48</code>: a CPU sees "REX prefix" (instruction), a text editor sees "H". <strong>Context decides meaning.</strong></p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: How Numbers Are Stored -->
+  <div class="slide">
+    <h2 class="animate">How Numbers Are Stored</h2>
+    <div class="content">
+      <p class="animate">An <code>int</code> in C is <strong>4 bytes</strong> (32 bits). Here's how our calculator's values look in memory:</p>
+      <pre class="animate">
+The number 3:
+  00000000 00000000 00000000 00000011
+
+The number 5:
+  00000000 00000000 00000000 00000101
+
+32 bits to store a single integer &mdash; lots of leading zeros.</pre>
+      <div class="two-col" style="margin-top: 20px;">
+        <div class="card animate">
+          <h3>Little-Endian (x86)</h3>
+          <p>Least significant byte stored first in memory:</p>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+The number 3 in RAM:
+Address: 00  01  02  03
+Bytes:   03  00  00  00
+
+NOT:     00  00  00  03</pre>
+          <p style="margin-top:8px; font-size: 1rem; color: var(--text-muted);">Intel chose this in 1978. We're stuck with it.</p>
+        </div>
+        <div class="card animate">
+          <h3>Two's Complement (negatives)</h3>
+          <p>How the CPU represents -4:</p>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+Start with 4:  00000100
+Flip all bits: 11111011
+Add 1:         11111100
+
+-4 = 0xFC = 11111100
+
+This is why 0xFF = -1, not 255
+(when interpreted as signed)</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Compiler -->
+  <div class="slide">
+    <h2 class="animate">Step 1 &mdash; Compiler (C &rarr; Assembly)</h2>
+    <div class="content">
+      <p class="animate">The compiler translates your C code into <span class="highlight">assembly language</span> &mdash; one step above machine code:</p>
+      <pre class="animate">
+; C: int a = 3;
+mov  DWORD [rbp-4], 3       ; store 3 at stack position rbp-4
+
+; C: int b = 5;
+mov  DWORD [rbp-8], 5       ; store 5 at stack position rbp-8
+
+; C: int result = a + b;
+mov  eax, [rbp-4]           ; load a into register eax  (eax = 3)
+add  eax, [rbp-8]           ; add b to eax              (eax = 3+5 = 8)
+mov  [rbp-12], eax          ; store result on the stack  (result = 8)</pre>
+      <div style="margin-top: 20px;">
+        <p class="animate">The compiler makes <strong>all the decisions</strong>: which registers to use, where to put variables on the stack, how to optimize. A good compiler like GCC or Clang with <code>-O2</code> can produce faster assembly than most humans.</p>
+        <p class="animate" style="margin-top: 8px;">Each assembly instruction maps to <strong>exactly one</strong> CPU operation. No ambiguity. No interpretation.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Registers -->
+  <div class="slide">
+    <h2 class="animate">Registers &mdash; The CPU's Workspace</h2>
+    <div class="content">
+      <p class="animate">Registers are <span class="highlight">tiny storage slots inside the CPU itself</span>. Access time: ~0.3 nanoseconds (vs ~100ns for RAM).</p>
+      <table class="animate">
+        <tr><th>64-bit</th><th>32-bit</th><th>16-bit</th><th>8-bit</th><th>Common Use</th></tr>
+        <tr><td><strong>rax</strong></td><td>eax</td><td>ax</td><td>al</td><td>Return value, arithmetic</td></tr>
+        <tr><td><strong>rbx</strong></td><td>ebx</td><td>bx</td><td>bl</td><td>General purpose (callee-saved)</td></tr>
+        <tr><td><strong>rcx</strong></td><td>ecx</td><td>cx</td><td>cl</td><td>Counter, 4th argument</td></tr>
+        <tr><td><strong>rdx</strong></td><td>edx</td><td>dx</td><td>dl</td><td>3rd argument, I/O</td></tr>
+        <tr><td><strong>rdi</strong></td><td>edi</td><td>di</td><td>dil</td><td>1st function argument</td></tr>
+        <tr><td><strong>rsi</strong></td><td>esi</td><td>si</td><td>sil</td><td>2nd function argument</td></tr>
+        <tr><td><strong>rsp</strong></td><td>esp</td><td>sp</td><td>spl</td><td>Stack pointer (top of stack)</td></tr>
+        <tr><td><strong>rbp</strong></td><td>ebp</td><td>bp</td><td>bpl</td><td>Base/frame pointer</td></tr>
+        <tr><td><strong>r8-r15</strong></td><td>r8d-r15d</td><td>r8w-r15w</td><td>r8b-r15b</td><td>Extra general purpose</td></tr>
+      </table>
+      <p class="animate" style="margin-top: 12px;">x86-64 has <strong>16 general-purpose registers</strong>. When you write <code>eax</code>, you're using the lower 32 bits of <code>rax</code>. Same register, different window.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: The 20 Instructions That Matter -->
+  <div class="slide">
+    <h2 class="animate">The 20 Instructions That Matter</h2>
+    <div class="content">
+      <p class="animate">These cover <span class="highlight">~90% of all compiled code</span>:</p>
+      <table class="animate">
+        <tr><th>Instruction</th><th>What It Does</th><th>Example</th></tr>
+        <tr><td><strong>mov</strong></td><td>Copy data</td><td><code>mov eax, 5</code></td></tr>
+        <tr><td><strong>add</strong></td><td>Add</td><td><code>add eax, ebx</code></td></tr>
+        <tr><td><strong>sub</strong></td><td>Subtract</td><td><code>sub eax, 1</code></td></tr>
+        <tr><td><strong>mul / imul</strong></td><td>Multiply</td><td><code>imul eax, ebx</code></td></tr>
+        <tr><td><strong>div / idiv</strong></td><td>Divide</td><td><code>div ebx</code></td></tr>
+        <tr><td><strong>cmp</strong></td><td>Compare (sets flags)</td><td><code>cmp eax, 10</code></td></tr>
+        <tr><td><strong>jmp</strong></td><td>Unconditional jump</td><td><code>jmp label</code></td></tr>
+        <tr><td><strong>je / jne</strong></td><td>Jump if equal / not equal</td><td><code>je done</code></td></tr>
+        <tr><td><strong>jg / jl</strong></td><td>Jump if greater / less</td><td><code>jg loop</code></td></tr>
+        <tr><td><strong>call</strong></td><td>Call function</td><td><code>call printf</code></td></tr>
+        <tr><td><strong>ret</strong></td><td>Return from function</td><td><code>ret</code></td></tr>
+        <tr><td><strong>push / pop</strong></td><td>Stack operations</td><td><code>push rbp</code></td></tr>
+        <tr><td><strong>lea</strong></td><td>Load effective address</td><td><code>lea rax, [rbx+8]</code></td></tr>
+        <tr><td><strong>xor</strong></td><td>Bitwise XOR</td><td><code>xor eax, eax</code> (= 0)</td></tr>
+        <tr><td><strong>and / or</strong></td><td>Bitwise AND / OR</td><td><code>and eax, 0xFF</code></td></tr>
+        <tr><td><strong>nop</strong></td><td>Do nothing</td><td><code>nop</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Assembler -->
+  <div class="slide">
+    <h2 class="animate">Step 2 &mdash; Assembler (Assembly &rarr; Machine Code)</h2>
+    <div class="content">
+      <p class="animate">The assembler performs a <span class="highlight">mechanical lookup</span> &mdash; each instruction maps to specific bytes defined in Intel's manual:</p>
+      <pre class="animate">
+Assembly                        Hex Bytes           Size
+--------------------------------------------------------------
+push rbp                     &rarr; 55                   1 byte
+mov rbp, rsp                 &rarr; 48 89 E5             3 bytes
+mov DWORD [rbp-4], 3         &rarr; C7 45 FC 03 00 00 00 7 bytes
+mov DWORD [rbp-8], 5         &rarr; C7 45 F8 05 00 00 00 7 bytes
+mov eax, [rbp-4]             &rarr; 8B 45 FC             3 bytes
+add eax, [rbp-8]             &rarr; 03 45 F8             3 bytes
+mov [rbp-12], eax            &rarr; 89 45 F4             3 bytes
+ret                          &rarr; C3                   1 byte</pre>
+      <p class="animate" style="margin-top: 16px;">No optimization happens here. The assembler just looks up each instruction in Intel's encoding table and writes the bytes. It's a <strong>dictionary translation</strong>.</p>
+      <p class="animate" style="margin-top: 8px;">These hex bytes are the <strong>actual content</strong> of your compiled binary file.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Decoding an Instruction -->
+  <div class="slide">
+    <h2 class="animate">Decoding an Instruction &mdash; Byte by Byte</h2>
+    <div class="content">
+      <p class="animate">Let's decode <code>mov DWORD [rbp-4], 3</code> = <strong>C7 45 FC 03 00 00 00</strong></p>
+      <pre class="animate">
+Byte   Hex  Binary      Role
+-----  ---  --------    ----------------------------------
+  1    C7   11000111    Opcode: "mov r/m32, imm32"
+                        (move a 32-bit immediate into memory)
+
+  2    45   01000101    ModR/M byte:
+                          mod = 01   (register + 8-bit displacement)
+                          reg = 000  (opcode extension)
+                          r/m = 101  (rbp)
+
+  3    FC   11111100    Displacement: -4 (two's complement)
+                          FC = 252 unsigned = -4 signed
+
+  4-7  03 00 00 00      Immediate value: 3 (little-endian)
+                          = 0x00000003</pre>
+      <p class="animate" style="margin-top: 16px;">Every single byte has a defined purpose. The CPU's decoder circuit reads these bytes and <span class="highlight">knows exactly what to do</span> based purely on the bit patterns &mdash; no interpretation, no lookup table in software. It's hardwired.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Hex to Binary -->
+  <div class="slide">
+    <h2 class="animate">Hex &rarr; Binary &mdash; What's Actually in Memory</h2>
+    <div class="content">
+      <p class="animate">Take the <code>add eax, [rbp-8]</code> instruction: <strong>03 45 F8</strong></p>
+      <pre class="animate">
+Hex:     0    3       4    5       F    8
+         -----.       -----.       -----.
+Binary:  0000 0011   0100 0101   1111 1000
+
+Three bytes = 24 bits = 24 voltage levels in RAM:
+
+ 0  0  0  0  0  0  1  1  0  1  0  0  0  1  0  1  1  1  1  1  1  0  0  0
+ _  _  _  _  _  _  -  -  _  -  _  _  _  -  _  -  -  -  -  -  -  _  _  _
+Lo Lo Lo Lo Lo Lo Hi Hi Lo Hi Lo Lo Lo Hi Lo Hi Hi Hi Hi Hi Hi Lo Lo Lo</pre>
+      <p class="animate" style="margin-top: 16px;">2 hex digits = 1 byte = 8 bits. This is what's physically stored in RAM as <span class="highlight">electrical charges in capacitors</span> (DRAM) or flip-flop circuits (SRAM/registers).</p>
+      <p class="animate" style="margin-top: 8px;">The CPU reads these bit patterns and its <strong>circuits are hardwired to respond</strong> &mdash; the opcode bits activate specific pathways through the silicon.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: The Stack -->
+  <div class="slide">
+    <h2 class="animate">The Stack &mdash; Where Your Variables Live</h2>
+    <div class="content">
+      <p class="animate">Our calculator's local variables are stored on the <span class="highlight">stack</span> &mdash; a region of memory that grows downward:</p>
+      <pre class="animate">
+      High address (e.g., 0x7FFF1000)
+     +========================+
+     |     return address     |    (where to go after main() ends)
+     +------------------------+
+     |     old rbp            |  &larr; rbp points here (frame pointer)
+     +------------------------+
+     |     a = 3              |  [rbp-4]    04 bytes
+     +------------------------+
+     |     b = 5              |  [rbp-8]    04 bytes
+     +------------------------+
+     |     result = 8         |  [rbp-12]   04 bytes
+     +========================+
+                                 &larr; rsp points here (stack pointer)
+      Low address (e.g., 0x7FFF0FEC)</pre>
+      <p class="animate" style="margin-top: 16px;">The stack grows <strong>downward</strong> (toward lower addresses). Each function call creates a new <strong>stack frame</strong> with its own variables. When the function returns, the frame is destroyed.</p>
+      <p class="animate" style="margin-top: 8px;">That's why <code>[rbp-4]</code> means "4 bytes below the frame pointer" &mdash; it's variable <code>a</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Memory Segments -->
+  <div class="slide">
+    <h2 class="animate">Memory Segments</h2>
+    <div class="content">
+      <p class="animate">Your program's memory is divided into distinct regions:</p>
+      <pre class="animate">
+High address: 0xFFFFFFFF...
++========================================+
+|            STACK                        |  Local variables, function calls
+|            &darr; grows downward            |  (our a, b, result live here)
+|                                        |
+|                                        |
+|            &uarr; grows upward              |
+|            HEAP                         |  malloc(), new, dynamic allocation
++----------------------------------------+
+|            BSS                          |  Uninitialized global variables
++----------------------------------------+
+|            DATA                         |  Initialized globals &amp; static vars
++----------------------------------------+
+|            TEXT (code)                   |  Your machine code lives here!
+|                                        |  (C7 45 FC 03 00 00 00 ...)
++========================================+
+Low address: 0x00000000...</pre>
+      <p class="animate" style="margin-top: 16px;">Your compiled instructions (<code>C7 45 FC 03 00 00 00</code>) live in the <span class="highlight">text segment</span>. Your local variables live on the <span class="highlight">stack</span>. The text segment is <strong>read-only</strong> &mdash; your program can't modify its own code.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: CPU Fetch-Decode-Execute -->
+  <div class="slide">
+    <h2 class="animate">Step 3 &mdash; CPU Fetch-Decode-Execute</h2>
+    <div class="content">
+      <p class="animate">The CPU runs an infinite loop for every instruction. Here's what happens for <code>add eax, [rbp-8]</code> (bytes: 03 45 F8):</p>
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>1. FETCH</h3>
+          <p>Read bytes <code>03 45 F8</code> from memory at the address stored in the <strong>RIP</strong> register (instruction pointer). Advance RIP by 3.</p>
+        </div>
+        <div class="metric-card">
+          <h3>2. DECODE</h3>
+          <p><code>03</code> = ADD opcode. <code>45</code> = ModR/M says "eax + [rbp + displacement]". <code>F8</code> = offset -8. Decoded: <strong>ADD eax, [rbp-8]</strong>.</p>
+        </div>
+        <div class="metric-card">
+          <h3>3. LOAD</h3>
+          <p>Read <code>eax</code> from register file (value: <strong>3</strong>). Read memory at address <code>rbp-8</code> (value: <strong>5</strong>). Feed both to the ALU.</p>
+        </div>
+        <div class="metric-card">
+          <h3>4. EXECUTE</h3>
+          <p>The ALU (Arithmetic Logic Unit) adds <strong>3 + 5 = 8</strong> using logic gates &mdash; XOR gates for sum, AND gates for carry.</p>
+        </div>
+        <div class="metric-card">
+          <h3>5. WRITEBACK</h3>
+          <p>Store result <strong>8</strong> back into <code>eax</code>. Update the flags register (zero flag = 0, carry flag = 0, sign flag = 0).</p>
+        </div>
+        <div class="metric-card">
+          <h3>6. REPEAT</h3>
+          <p>Go back to step 1. Fetch next instruction at new RIP. This cycle runs <strong>billions of times per second</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: The ALU -->
+  <div class="slide">
+    <h2 class="animate">The ALU &mdash; How Addition Actually Works</h2>
+    <div class="content">
+      <p class="animate">Binary addition of 3 + 5, bit by bit:</p>
+      <pre class="animate">
+    Carry:    0 0 0 0 1 1 1 0
+              -----------------
+              0 0 0 0 0 0 1 1   (3)
+            + 0 0 0 0 0 1 0 1   (5)
+              =================
+              0 0 0 0 1 0 0 0   (8)
+
+Bit 0: 1+1 = 10 &rarr; write 0, carry 1
+Bit 1: 1+0+carry(1) = 10 &rarr; write 0, carry 1
+Bit 2: 0+1+carry(1) = 10 &rarr; write 0, carry 1
+Bit 3: 0+0+carry(1) = 01 &rarr; write 1, carry 0
+Bits 4-7: 0+0+0 = 0</pre>
+      <div class="card animate" style="margin-top: 20px; max-width: 900px;">
+        <h3>The Full Adder Circuit</h3>
+        <p style="margin-top: 8px;">Each bit position uses a <strong>full adder</strong> built from basic logic gates:</p>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+Inputs: A, B, Carry_in
+
+Sum      = A XOR B XOR Carry_in
+Carry_out = (A AND B) OR (Carry_in AND (A XOR B))
+
+Just 2 XOR gates, 2 AND gates, 1 OR gate per bit.
+Chain 32 of these together = 32-bit addition.
+Total time: ~0.3 nanoseconds.</pre>
+      </div>
+      <p class="animate" style="margin-top: 12px;">This is the <strong>bottom of the stack</strong>. Transistors implementing logic gates, implementing adders, implementing the ADD instruction, implementing your <code>a + b</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: printf -->
+  <div class="slide">
+    <h2 class="animate">From Result to Screen &mdash; printf</h2>
+    <div class="content">
+      <p class="animate">The result is integer <code>8</code> stored in <code>eax</code>. How does it become the character "8" on your screen?</p>
+      <div class="diagram-vertical animate">
+        <div class="box">eax = 8 (integer, binary 00001000)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">printf converts: 8 + 48 = 56</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">56 = ASCII '8' = 0x38</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Byte 0x38 written to stdout (fd 1)</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Terminal receives 0x38</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box">Font renderer draws glyph "8"</div>
+        <div class="arrow">&#x2193;</div>
+        <div class="box" style="border-color: var(--success);">Pixels light up on your screen</div>
+      </div>
+      <p class="animate" style="margin-top: 16px; text-align: center;"><strong>Full circle:</strong> number &rarr; binary &rarr; computation &rarr; binary &rarr; ASCII &rarr; pixels. The character '0' is ASCII 48. So any single digit <code>n</code> becomes character <code>n + 48</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: CPU Pipelining -->
+  <div class="slide">
+    <h2 class="animate">CPU Pipelining</h2>
+    <div class="content">
+      <p class="animate">Modern CPUs don't wait for one instruction to finish before starting the next. They <span class="highlight">overlap stages</span>:</p>
+      <pre class="animate">
+Time:     T1       T2       T3       T4       T5       T6
+
+Inst 1:  FETCH    DECODE   EXEC     WRITE
+Inst 2:           FETCH    DECODE   EXEC     WRITE
+Inst 3:                    FETCH    DECODE   EXEC     WRITE
+
+Without pipelining: 3 instructions = 12 cycles
+With pipelining:    3 instructions = 6 cycles (2x faster)</pre>
+      <div class="two-col" style="margin-top: 20px;">
+        <div class="card animate">
+          <h3>Pipeline Hazards</h3>
+          <ul>
+            <li><strong>Data hazard:</strong> instruction needs a result that isn't ready yet</li>
+            <li><strong>Branch hazard:</strong> a <code>jmp</code> or <code>je</code> changes where to fetch next</li>
+            <li><strong>Solution:</strong> branch prediction, out-of-order execution</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Modern CPUs</h3>
+          <ul>
+            <li>14-20 pipeline stages (Intel)</li>
+            <li>Execute 4-6 instructions per cycle (superscalar)</li>
+            <li>Branch prediction accuracy: <span class="green">~97%</span></li>
+            <li>When wrong: pipeline flush (20+ cycle penalty)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: x86-64 vs ARM64 -->
+  <div class="slide">
+    <h2 class="animate">x86-64 vs ARM64 &mdash; Two Architectures</h2>
+    <div class="content">
+      <p class="animate">The same C code compiles to <strong>completely different bytes</strong> on each architecture:</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>x86-64 (Intel/AMD)</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+mov  DWORD [rbp-4], 3
+mov  DWORD [rbp-8], 5
+mov  eax, [rbp-4]
+add  eax, [rbp-8]
+mov  [rbp-12], eax
+
+Variable-length instructions
+  (1 to 15 bytes each)
+CISC: Complex Instruction Set
+16 general-purpose registers
+Used by: desktops, servers</pre>
+        </div>
+        <div class="card animate">
+          <h3>ARM64 (Apple/Qualcomm/AWS)</h3>
+          <pre style="border:none; padding:12px; font-size:0.85rem;">
+mov  w8, #3
+str  w8, [sp, #12]
+mov  w8, #5
+str  w8, [sp, #8]
+ldr  w8, [sp, #12]
+ldr  w9, [sp, #8]
+add  w8, w8, w9
+
+Fixed 4-byte instructions (always)
+RISC: Reduced Instruction Set
+31 general-purpose registers
+Used by: phones, Apple M-series</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top: 16px; text-align: center;">Different instructions. Different bytes. Different CPU wiring. <span class="highlight">Same result: 8.</span></p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Portability -->
+  <div class="slide">
+    <h2 class="animate">How Code Runs on Both Architectures</h2>
+    <div class="content">
+      <pre class="animate">
+              Source code (identical .c file)
+                         |
+                 +-------+-------+
+                 |               |
+            gcc -target      gcc -target
+              x86-64           arm64
+                 |               |
+           x86-64 binary    ARM64 binary
+           (ELF/PE file)    (ELF/Mach-O file)
+                 |               |
+            Intel/AMD        Apple M4
+              CPU              CPU
+                 |               |
+            prints "8"      prints "8"</pre>
+      <p class="animate" style="margin-top: 20px; font-size: 1.3rem; text-align: center;">The binary is <span class="highlight">NOT portable</span>. The source code is.</p>
+      <div class="card animate" style="margin-top: 20px; max-width: 900px;">
+        <h3>How Other Languages Handle This</h3>
+        <table style="margin: 0;">
+          <tr><th>Strategy</th><th>Languages</th><th>How</th></tr>
+          <tr><td><strong>Compile twice</strong></td><td>C, C++, Rust, Go</td><td>Separate binary per architecture</td></tr>
+          <tr><td><strong>Bytecode + JIT</strong></td><td>C#, Java, Kotlin</td><td>Compile to IL/bytecode, JIT compiles to native at runtime</td></tr>
+          <tr><td><strong>Interpreter</strong></td><td>Python, JS, Ruby</td><td>Interpreter reads source/bytecode line by line</td></tr>
+        </table>
+        <p style="margin-top: 8px; color: var(--text-muted);">All roads lead to machine code. The question is <strong>when</strong> that translation happens.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Intel's Instruction Manual -->
+  <div class="slide">
+    <h2 class="animate">Intel's Instruction Manual</h2>
+    <div class="content">
+      <div class="metric-grid animate">
+        <div class="metric-card">
+          <h3>~1,500 Unique Instructions</h3>
+          <p>With ~3,800 encoding variants when you count all operand combinations. The full manual is <strong>5,000+ pages</strong>.</p>
+        </div>
+        <div class="metric-card">
+          <h3>~95 Cover 99% of Code</h3>
+          <p>The 20 instructions we saw plus their variants (different operand sizes, addressing modes) cover virtually all compiled output.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Growth Over Time</h3>
+          <p>8086 (1978): ~100 instructions. MMX, SSE, AVX added ~500 more each. AVX-512: 512-bit vector operations.</p>
+        </div>
+        <div class="metric-card">
+          <h3>ARM: ~300 Instructions</h3>
+          <p>Simpler, cleaner, more regular encoding. Fixed-width instructions make decoding faster and the chip smaller.</p>
+        </div>
+      </div>
+      <div class="card animate" style="margin-top: 24px; max-width: 950px;">
+        <h3>Backward Compatibility</h3>
+        <p>A binary compiled for the 8086 in <strong>1978</strong> still runs on a 2026 Intel Core i9. Every new CPU adds instructions but never removes old ones. This is why x86 is complex &mdash; it carries 48 years of history in its silicon.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Why This Matters -->
+  <div class="slide">
+    <h2 class="animate">Why This Matters</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Debugging</h3>
+        <p>Segfaults, buffer overflows, and memory corruption <strong>make sense</strong> when you understand the stack. A segfault means you accessed memory outside your segment. A buffer overflow means you wrote past your stack frame into the return address.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Performance</h3>
+        <p>Cache lines (64 bytes), branch prediction (~97% accuracy), SIMD instructions &mdash; these are all <strong>hardware concepts</strong>. You can't optimize what you don't understand. Knowing the CPU pipeline explains why sorted data processes faster.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Security</h3>
+        <p>Buffer overflow exploits, ROP chains (Return-Oriented Programming), stack canaries, ASLR &mdash; every major vulnerability class requires understanding how <strong>code and data coexist in memory</strong>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Understanding VMs &amp; Runtimes</h3>
+        <p>JIT compilation, bytecode, interpreters &mdash; they all produce the <strong>same machine code</strong> we just traced. The .NET CLR, JVM, and V8 are all sophisticated programs that ultimately emit <code>add eax, [rbp-8]</code>.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: The Complete Journey -->
+  <div class="slide">
+    <h2 class="animate">The Complete Journey &mdash; One Diagram</h2>
+    <div class="content">
+      <p class="animate" style="margin-bottom: 16px;">The full path of <code>int result = a + b;</code> from your editor to your screen:</p>
+      <pre class="animate">
+Layer          What Happens                                    Form
+----------     -------------------------------------------     ----------------
+You write:     int result = a + b;                             C source code
+
+Compiler:      add eax, [rbp-8]                                Assembly
+
+Assembler:     03 45 F8                                        Hex (machine code)
+
+In memory:     00000011 01000101 11111000                      Binary (voltage)
+
+CPU fetch:     Reads 3 bytes from RAM at address in RIP
+
+CPU decode:    "ADD eax with value at [rbp-8]"                 Control signals
+
+CPU load:      eax = 3, memory[rbp-8] = 5                     Register + RAM
+
+CPU execute:   00000011 + 00000101 = 00001000                  ALU (logic gates)
+
+CPU write:     eax = 8                                         Register update
+
+printf:        8 + 48 = 56 = ASCII '8' = 0x38                 Number &rarr; character
+
+Terminal:      Draws glyph "8" on your screen                  Pixels</pre>
+      <p class="animate" style="margin-top: 16px; text-align: center; font-size: 1.2rem;">From human thought to <span class="highlight">electrons moving through transistors</span> and back to photons hitting your eyes.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <div class="animate" style="margin-bottom: 24px;">
+        <span class="tag">Binary</span>
+        <span class="tag">Hex</span>
+        <span class="tag">ASCII</span>
+        <span class="tag">Assembly</span>
+        <span class="tag">Machine Code</span>
+        <span class="tag">CPU</span>
+        <span class="tag">x86-64</span>
+        <span class="tag">ARM64</span>
+        <span class="tag">ALU</span>
+        <span class="tag">Pipeline</span>
+      </div>
+      <p class="animate" style="font-size: 1.4rem; margin-bottom: 12px;">Every program you've ever run follows this exact path.</p>
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Your <strong>C#</strong> code &rarr; IL bytecode &rarr; JIT &rarr; machine code &rarr; CPU</li>
+        <li class="animate">Your <strong>Python</strong> code &rarr; interpreter &rarr; CPython opcodes &rarr; machine code &rarr; CPU</li>
+        <li class="animate">Your <strong>JavaScript</strong> code &rarr; V8 parser &rarr; TurboFan JIT &rarr; machine code &rarr; CPU</li>
+        <li class="animate">Your <strong>Rust</strong> code &rarr; LLVM IR &rarr; machine code &rarr; CPU</li>
+      </ul>
+      <p class="animate" style="margin-top:24px; color:var(--text-muted); font-size:1.1rem;">
+        No magic. Just layers of translation, all the way down to electrons.
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 25</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
