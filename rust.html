@@ -1,0 +1,1169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Rust for C# Developers</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F980;</span>
+    <h1 class="animate title-fire">Rust for C# Developers</h1>
+    <p class="subtitle animate">Memory Safety Without Garbage Collection</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">Rust</span>
+      <span class="tag">Ownership</span>
+      <span class="tag">Memory Safety</span>
+      <span class="tag">Zero-Cost</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: C# vs Rust Mental Model -->
+  <div class="slide">
+    <h2 class="animate">C# vs Rust Mental Model</h2>
+    <p class="animate" style="text-align:center; margin-bottom:20px;">Both are strongly typed with generics. But Rust has <span class="highlight">no GC, no runtime, no null</span>. The compiler enforces memory safety at compile time.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">What's Familiar</h3>
+        <ul>
+          <li>Enums &amp; pattern matching</li>
+          <li>Generics with constraints</li>
+          <li>Traits (like interfaces)</li>
+          <li>Async / await syntax</li>
+          <li>Strong static typing</li>
+          <li>Closures / lambdas</li>
+          <li>Iterator chains (like LINQ)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">What's New</h3>
+        <ul>
+          <li><strong>Ownership</strong> &mdash; replaces GC</li>
+          <li><strong>Borrowing</strong> &mdash; compiler-checked references</li>
+          <li><strong>Lifetimes</strong> &mdash; reference validity proofs</li>
+          <li><strong>No inheritance</strong> &mdash; composition only</li>
+          <li><strong>No null</strong> &mdash; Option&lt;T&gt; instead</li>
+          <li><strong>No exceptions</strong> &mdash; Result&lt;T,E&gt; instead</li>
+          <li><strong>No runtime</strong> &mdash; compiles to native code</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: No Garbage Collector -->
+  <div class="slide">
+    <h2 class="animate">No Garbage Collector &mdash; How?</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">In C#, the GC tracks references and frees memory when nothing points to it. In Rust, <span class="highlight">every value has exactly one owner</span>. When the owner goes out of scope, the value is dropped (freed). No GC pauses, deterministic cleanup.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Garbage Collector</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - GC handles cleanup
+void Process() {
+    var data = new List&lt;int&gt; { 1, 2, 3 };
+    DoWork(data);
+    // data still accessible here
+    // GC frees it... eventually
+    // You don't know WHEN
+}
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust &mdash; Ownership</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - deterministic cleanup
+fn process() {
+    let data = vec![1, 2, 3];
+    do_work(data);
+    // data MOVED into do_work
+    // dropped when do_work ends
+    // freed EXACTLY when scope ends
+}
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:16px; color:var(--text-muted);">Result: zero GC pauses, predictable memory usage, no "stop the world" collections.</p>
+  </div>
+
+
+  <!-- SLIDE 4: Ownership -->
+  <div class="slide">
+    <h2 class="animate">Ownership &mdash; The Core Concept</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">In C#, <code>var b = a;</code> copies the reference &mdash; both point to the same object. In Rust, <code>let b = a;</code> <span class="highlight">moves</span> the value &mdash; <code>a</code> is gone.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Reference Copy</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - both variables point to same object
+var a = new List&lt;int&gt; { 1, 2, 3 };
+var b = a;  // copies the REFERENCE
+a.Add(4);   // works fine!
+// a and b both see [1, 2, 3, 4]
+// Two aliases to same memory = bugs
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust &mdash; Move Semantics</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - ownership MOVES
+let a = vec![1, 2, 3];
+let b = a;  // a is MOVED to b
+// println!("{:?}", a);  // COMPILE ERROR!
+// "value used after move"
+println!("{:?}", b);  // works: [1, 2, 3]
+// One owner = no aliasing bugs
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:16px;">This prevents use-after-free, double-free, and data races <strong>at compile time</strong>. Types that implement <code>Copy</code> (integers, bools) are copied instead of moved.</p>
+  </div>
+
+
+  <!-- SLIDE 5: Borrowing & References -->
+  <div class="slide">
+    <h2 class="animate">Borrowing &amp; References</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">What if you need to read data without taking ownership? <span class="highlight">Borrow</span> it. The rule: many readers OR one writer, never both at the same time.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; ref / in Parameters</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - anyone can read/write anytime
+void PrintLen(List&lt;int&gt; data) {
+    Console.WriteLine(data.Count);
+}
+void AddItem(List&lt;int&gt; data) {
+    data.Add(42); // mutates original!
+}
+// Both can run with same List
+// No compile-time protection
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust &mdash; &amp;T and &amp;mut T</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+fn print_len(data: &amp;Vec&lt;i32&gt;) {
+    println!("{}", data.len()); // read only
+}
+fn add_item(data: &amp;mut Vec&lt;i32&gt;) {
+    data.push(42); // exclusive access
+}
+
+let mut v = vec![1, 2, 3];
+print_len(&amp;v);       // shared borrow OK
+print_len(&amp;v);       // multiple readers OK
+add_item(&amp;mut v);    // exclusive borrow OK
+// Can't mix &amp; and &amp;mut at same time!
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Lifetimes -->
+  <div class="slide">
+    <h2 class="animate">Lifetimes</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Lifetimes prevent dangling references. The <code>'a</code> annotation tells the compiler "this reference lives at least as long as <code>'a</code>". Usually inferred &mdash; you only write them when the compiler asks.</p>
+    <div class="content">
+<pre class="animate">
+// This won't compile - dangling reference!
+fn bad() -&gt; &amp;str {
+    let s = String::from("hello");
+    &amp;s  // ERROR: s is dropped here, reference would dangle
+}
+
+// Lifetime annotations: "output lives as long as input"
+fn longest&lt;'a&gt;(x: &amp;'a str, y: &amp;'a str) -&gt; &amp;'a str {
+    if x.len() &gt; y.len() { x } else { y }
+}
+
+// The compiler needs 'a to know: does the return value
+// come from x or y? Both must outlive the result.
+
+// In C#, the GC keeps objects alive as long as any reference
+// exists. In Rust, YOU prove it to the compiler.
+// 90% of the time, lifetime elision handles it automatically.
+</pre>
+      <p class="animate" style="text-align:center; margin-top:16px; color:var(--text-muted);">The scariest syntax in Rust, but the compiler usually figures it out. When it asks for annotations, it is telling you to prove your references are valid.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Structs & Enums -->
+  <div class="slide">
+    <h2 class="animate">Structs &amp; Enums &mdash; Better Than C# Classes</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Structs with Methods</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Like C# class but no inheritance
+struct User {
+    name: String,
+    age: u32,
+}
+
+impl User {
+    // Constructor (no "new" keyword)
+    fn new(name: &amp;str, age: u32) -&gt; Self {
+        User {
+            name: name.to_string(),
+            age,
+        }
+    }
+
+    // Method (like C# instance method)
+    fn greet(&amp;self) -&gt; String {
+        format!("Hi, I'm {}", self.name)
+    }
+}
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Enums with Data</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# has nothing like this!
+// Each variant can hold different data
+enum Shape {
+    Circle(f64),           // radius
+    Rectangle(f64, f64),   // w, h
+    Triangle { a: f64, b: f64, c: f64 },
+}
+
+// Exhaustive pattern matching
+fn area(s: &amp;Shape) -&gt; f64 {
+    match s {
+        Shape::Circle(r) =&gt;
+            std::f64::consts::PI * r * r,
+        Shape::Rectangle(w, h) =&gt; w * h,
+        Shape::Triangle { .. } =&gt; todo!(),
+    } // miss a variant = COMPILE ERROR
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: No Null, No Exceptions -->
+  <div class="slide">
+    <h2 class="animate">No Null, No Exceptions</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">C# has <code>null</code> and exceptions. Rust replaces them with <code>Option&lt;T&gt;</code> and <code>Result&lt;T,E&gt;</code>. The compiler <span class="highlight">forces you to handle every error path</span>.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# &mdash; Null + Exceptions</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - runtime surprises
+string? name = GetName();
+int len = name.Length;
+// NullReferenceException!
+
+try {
+    var data = File.ReadAllText("f.txt");
+} catch (IOException e) {
+    // Easy to forget this
+}
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust &mdash; Option + Result</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - compiler enforces handling
+let name: Option&lt;&amp;str&gt; = get_name();
+// name.len() won't compile!
+match name {
+    Some(n) =&gt; println!("{}", n.len()),
+    None =&gt; println!("no name"),
+}
+
+// ? operator propagates errors
+fn read_file() -&gt; Result&lt;String, io::Error&gt; {
+    let data = fs::read_to_string("f.txt")?;
+    Ok(data) // must be explicit
+}
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px;">The <code>?</code> operator is Rust's equivalent of try/catch &mdash; it returns early on error. You cannot forget to handle an error.</p>
+  </div>
+
+
+  <!-- SLIDE 9: Traits -->
+  <div class="slide">
+    <h2 class="animate">Traits &mdash; Like Interfaces But More</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Traits are interfaces + default methods + can be implemented for types you did not write. No inheritance in Rust &mdash; <span class="highlight">composition via traits</span>.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Interface</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - interface on your own types only
+interface ISummable {
+    string Summarize();
+}
+
+class Article : ISummable {
+    public string Title { get; set; }
+    public string Summarize()
+        =&gt; $"Article: {Title}";
+}
+
+// Can't implement ISummable for
+// System.String (not your type)
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust Trait</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+trait Summary {
+    fn summarize(&amp;self) -&gt; String;
+
+    // Default implementation!
+    fn preview(&amp;self) -&gt; String {
+        format!("{}...", &amp;self.summarize()[..20])
+    }
+}
+
+struct Article { title: String }
+
+impl Summary for Article {
+    fn summarize(&amp;self) -&gt; String {
+        format!("Article: {}", self.title)
+    }
+}
+
+// CAN implement for external types!
+impl Summary for String {
+    fn summarize(&amp;self) -&gt; String {
+        self.clone()
+    }
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Generics & Trait Bounds -->
+  <div class="slide">
+    <h2 class="animate">Generics &amp; Trait Bounds</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Same concept as C# generic constraints but with a critical difference: <span class="highlight">monomorphization</span>. Rust generates specialized code for each type at compile time. Zero overhead.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Generic Constraints</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - runtime generic dispatch
+void Process&lt;T&gt;(T item)
+    where T : IDisplay, ICloneable
+{
+    Console.WriteLine(item.Display());
+    var copy = item.Clone();
+}
+
+// Uses vtable at RUNTIME
+// JIT may or may not specialize
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust Trait Bounds</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - compile-time specialization
+fn process&lt;T: Display + Clone&gt;(item: T) {
+    println!("{}", item);
+    let copy = item.clone();
+}
+
+// Alternative "where" syntax:
+fn process2&lt;T&gt;(item: T)
+where
+    T: Display + Clone,
+{
+    println!("{}", item);
+}
+
+// Compiler generates a SPECIFIC version
+// for each type used. Zero-cost.
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px; color:var(--text-muted);">Monomorphization means generics are as fast as hand-written type-specific code. No boxing, no vtable overhead.</p>
+  </div>
+
+
+  <!-- SLIDE 11: Collections & Iterators -->
+  <div class="slide">
+    <h2 class="animate">Collections &amp; Iterators</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Rust's iterator chains are the equivalent of LINQ &mdash; lazy, composable, zero-cost.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# LINQ</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# collections &amp; LINQ
+var list = new List&lt;int&gt; { 1,2,3,4,5 };
+var dict = new Dictionary&lt;string, int&gt;();
+var set = new HashSet&lt;int&gt;();
+
+// LINQ pipeline
+var result = numbers
+    .Where(n =&gt; n % 2 == 0)
+    .Select(n =&gt; n * n)
+    .Sum();
+
+var names = users
+    .Where(u =&gt; u.Age &gt; 18)
+    .Select(u =&gt; u.Name)
+    .ToList();
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust Iterators</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust equivalents
+let list: Vec&lt;i32&gt; = vec![1,2,3,4,5];
+let dict: HashMap&lt;String, i32&gt; = HashMap::new();
+let set: HashSet&lt;i32&gt; = HashSet::new();
+
+// Iterator pipeline (= LINQ)
+let result: i32 = numbers.iter()
+    .filter(|n| *n % 2 == 0)
+    .map(|n| n * n)
+    .sum();
+
+let names: Vec&lt;&amp;str&gt; = users.iter()
+    .filter(|u| u.age &gt; 18)
+    .map(|u| u.name.as_str())
+    .collect();
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px;"><code>Vec&lt;T&gt;</code> = List, <code>HashMap</code> = Dictionary, <code>HashSet</code> = HashSet, <code>String</code> = string. The <code>.collect()</code> call materializes the lazy iterator (like <code>.ToList()</code>).</p>
+  </div>
+
+
+  <!-- SLIDE 12: Pattern Matching -->
+  <div class="slide">
+    <h2 class="animate">Pattern Matching</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;"><code>match</code> is exhaustive &mdash; the compiler <span class="highlight">forces you to handle all cases</span>. Far more powerful than C# switch expressions.</p>
+    <div class="content">
+<pre class="animate">
+// Exhaustive match (miss a variant = compile error)
+match status_code {
+    200 =&gt; println!("OK"),
+    404 =&gt; println!("Not Found"),
+    500..=599 =&gt; println!("Server Error"),  // ranges!
+    _ =&gt; println!("Other"),                 // catch-all
+}
+
+// Destructuring enums
+match user.role {
+    Role::Admin { level } =&gt; format!("Admin L{}", level),
+    Role::User =&gt; "Regular user".into(),
+    Role::Guest =&gt; "Guest".into(),
+}
+
+// if let - when you only care about one case
+if let Some(name) = get_name() {
+    println!("Hello, {}", name);
+}
+
+// while let - loop until pattern fails
+while let Some(item) = queue.pop() {
+    process(item);
+}
+
+// matches! macro - returns bool
+let is_admin = matches!(user.role, Role::Admin { .. });
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Error Handling Deep Dive -->
+  <div class="slide">
+    <h2 class="animate">Error Handling Deep Dive</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">C# throws exceptions anywhere and you hope someone catches them. Rust forces you to handle errors <span class="highlight">at every call site</span>.</p>
+    <div class="content">
+<pre class="animate">
+// The ? operator chains errors elegantly
+fn load_config() -&gt; Result&lt;Config, Box&lt;dyn Error&gt;&gt; {
+    let text = fs::read_to_string("config.toml")?;  // returns Err early
+    let config: Config = toml::from_str(&amp;text)?;     // returns Err early
+    Ok(config)
+}
+
+// Custom error types
+#[derive(Debug)]
+enum AppError {
+    NotFound(String),
+    Database(sqlx::Error),
+    Validation(String),
+}
+
+// Map between error types
+impl From&lt;sqlx::Error&gt; for AppError {
+    fn from(e: sqlx::Error) -&gt; Self {
+        AppError::Database(e)
+    }
+}
+
+// Popular crates: thiserror (library errors), anyhow (application errors)
+// thiserror: #[derive(thiserror::Error)] for custom error types
+// anyhow: anyhow::Result&lt;T&gt; for quick error handling with context
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Closures & Fn Traits -->
+  <div class="slide">
+    <h2 class="animate">Closures &amp; Fn Traits</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Rust closures look like C# lambdas but interact with ownership. Three traits determine how they capture variables.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Lambdas</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - GC handles captures
+Func&lt;int, int&gt; add = x =&gt; x + 1;
+Action&lt;string&gt; log = s =&gt;
+    Console.WriteLine(s);
+
+var factor = 10;
+Func&lt;int, int&gt; scale = x =&gt; x * factor;
+// Captures factor by reference
+// GC keeps it alive
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust Closures</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - three closure traits
+let add = |x: i32| x + 1;         // Fn
+let log = |s: &amp;str| println!("{}", s);
+
+let factor = 10;
+let scale = |x| x * factor; // borrows factor (Fn)
+
+let mut count = 0;
+let mut inc = || count += 1; // FnMut
+
+let name = String::from("alice");
+let greet = move || {        // FnOnce
+    println!("Hi {}", name); // takes ownership
+};
+// name is MOVED, can't use it here
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px;"><code>Fn</code> = borrows immutably (like <code>Func&lt;&gt;</code>). <code>FnMut</code> = borrows mutably. <code>FnOnce</code> = takes ownership (can only call once). The <code>move</code> keyword forces ownership transfer.</p>
+  </div>
+
+
+  <!-- SLIDE 15: Async/Await -->
+  <div class="slide">
+    <h2 class="animate">Async / Await</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Similar syntax to C# but different mechanics. Rust futures are <span class="highlight">lazy</span> &mdash; they don't start until polled. You need a runtime (tokio).</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# async/await</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - Task starts immediately
+async Task&lt;string&gt; FetchData(string url)
+{
+    var client = new HttpClient();
+    // Starts the HTTP request NOW
+    var response = await client
+        .GetStringAsync(url);
+    return response;
+}
+
+// .NET runtime provides thread pool
+// Task = hot (already running)
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust async/await</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - Future is lazy
+async fn fetch_data(url: &amp;str)
+    -&gt; Result&lt;String, reqwest::Error&gt;
+{
+    // Nothing happens until .await
+    let response = reqwest::get(url)
+        .await?
+        .text()
+        .await?;
+    Ok(response)
+}
+
+// Need a runtime (tokio)
+#[tokio::main]
+async fn main() {
+    let data = fetch_data("https://...")
+        .await.unwrap();
+}
+// Future = cold (runs when polled)
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Smart Pointers -->
+  <div class="slide">
+    <h2 class="animate">Smart Pointers</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">When single ownership is too restrictive, smart pointers give you controlled flexibility.</p>
+    <div class="metric-grid">
+      <div class="metric-card animate">
+        <h3>Box&lt;T&gt;</h3>
+        <p>Heap allocation. Like a C# class instance. Use for recursive types, large data, or trait objects.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+let b = Box::new(42);  // 42 on the heap
+</pre>
+      </div>
+      <div class="metric-card animate">
+        <h3>Rc&lt;T&gt;</h3>
+        <p>Reference counted. Like C# references but explicit. Multiple owners, single-threaded only.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+let a = Rc::new(vec![1,2,3]);
+let b = Rc::clone(&amp;a); // 2 owners
+</pre>
+      </div>
+      <div class="metric-card animate">
+        <h3>Arc&lt;T&gt;</h3>
+        <p>Atomic Rc. Thread-safe reference counting. Use for shared data across threads.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+let data = Arc::new(Mutex::new(0));
+let d2 = Arc::clone(&amp;data); // safe to send
+</pre>
+      </div>
+      <div class="metric-card animate">
+        <h3>RefCell&lt;T&gt;</h3>
+        <p>Runtime borrow checking. Interior mutability when compiler can't prove safety statically.</p>
+<pre style="border:none; padding:8px; font-size:0.8rem; margin-top:8px;">
+let cell = RefCell::new(42);
+*cell.borrow_mut() = 99; // checked at runtime
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Concurrency -->
+  <div class="slide">
+    <h2 class="animate">Fearless Concurrency</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Rust's ownership system prevents data races at compile time. <span class="highlight">If it compiles, it won't have data races.</span></p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# Concurrency</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// C# - runtime data races possible
+var counter = 0;
+var tasks = Enumerable.Range(0, 10)
+    .Select(_ =&gt; Task.Run(() =&gt; {
+        // DATA RACE! No compiler warning
+        counter++;
+    }));
+await Task.WhenAll(tasks);
+
+// Fix: use lock or Interlocked
+lock(lockObj) { counter++; }
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust Concurrency</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Rust - compiler prevents data races
+let counter = Arc::new(Mutex::new(0));
+let mut handles = vec![];
+for _ in 0..10 {
+    let c = Arc::clone(&amp;counter);
+    handles.push(thread::spawn(move || {
+        let mut num = c.lock().unwrap();
+        *num += 1;  // exclusive access
+    }));
+}
+for h in handles { h.join().unwrap(); }
+// Without Arc+Mutex = COMPILE ERROR
+// Send + Sync traits enforce thread safety
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px; color:var(--text-muted);">Also available: channels (<code>mpsc::channel</code>), scoped threads, async tasks with tokio. The type system guarantees safety.</p>
+  </div>
+
+
+  <!-- SLIDE 18: Cargo & Project Structure -->
+  <div class="slide">
+    <h2 class="animate">Cargo &amp; Project Structure</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Cargo is Rust's build tool + package manager. Think <code>dotnet</code> CLI + NuGet combined.</p>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>C# / .NET Equivalents</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+dotnet new console     # New project
+dotnet build           # Build
+dotnet run             # Run
+dotnet test            # Test
+dotnet add package X   # Add NuGet pkg
+*.csproj               # Project file
+*.sln                  # Solution file
+</pre>
+      </div>
+      <div class="card animate">
+        <h3>Rust / Cargo</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+cargo new myapp        # New project
+cargo build            # Build (debug)
+cargo build --release  # Optimized build
+cargo run              # Build + run
+cargo test             # Run tests
+cargo add serde        # Add crate
+Cargo.toml             # Project file
+# Workspace = solution (multi-crate)
+</pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top: 16px;">
+<pre style="font-size:0.85rem;">
+// Project layout
+myapp/
+  Cargo.toml          // = .csproj (dependencies, metadata)
+  src/
+    main.rs           // binary entry point
+    lib.rs            // library root
+    models/
+      mod.rs          // module declaration (= namespace)
+      user.rs         // pub struct User { ... }
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Macros -->
+  <div class="slide">
+    <h2 class="animate">Macros &mdash; Compile-Time Code Generation</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Rust has no runtime reflection. Macros replace it &mdash; they generate code at compile time. Think C# source generators but built into the language.</p>
+    <div class="content">
+<pre class="animate">
+// Built-in macros (note the !)
+println!("Hello, {}!", name);        // formatted print
+let v = vec![1, 2, 3];              // create Vec
+format!("Score: {}", 42);           // string formatting
+todo!();                            // placeholder
+assert_eq!(a, b);                   // test assertion
+
+// Derive macros = auto-implement traits (like C# attributes)
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+struct User {
+    name: String,
+    age: u32,
+}
+// Debug    = C# ToString() override
+// Clone    = C# ICloneable
+// Serialize = C# [JsonSerializable] (but compile-time!)
+
+// serde = Rust's serialization framework
+// Unlike System.Text.Json, it generates code at compile time
+// No reflection overhead, no runtime surprises
+let json = serde_json::to_string(&amp;user)?;
+let user: User = serde_json::from_str(&amp;json)?;
+</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: The Crate Ecosystem -->
+  <div class="slide">
+    <h2 class="animate">The Crate Ecosystem</h2>
+    <p class="animate" style="text-align:center; margin-bottom:16px;">Mapping your C# knowledge to Rust crates.</p>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Purpose</th><th>C# / .NET</th><th>Rust Crate</th></tr>
+        <tr><td><strong>Serialization</strong></td><td>System.Text.Json / Newtonsoft</td><td><code>serde</code> + <code>serde_json</code></td></tr>
+        <tr><td><strong>Async Runtime</strong></td><td>Built-in (Task, async/await)</td><td><code>tokio</code></td></tr>
+        <tr><td><strong>Web Framework</strong></td><td>ASP.NET Core</td><td><code>axum</code> or <code>actix-web</code></td></tr>
+        <tr><td><strong>Database</strong></td><td>Entity Framework Core</td><td><code>sqlx</code> or <code>diesel</code></td></tr>
+        <tr><td><strong>CLI Arguments</strong></td><td>System.CommandLine</td><td><code>clap</code></td></tr>
+        <tr><td><strong>Logging</strong></td><td>ILogger / Serilog</td><td><code>tracing</code></td></tr>
+        <tr><td><strong>HTTP Client</strong></td><td>HttpClient</td><td><code>reqwest</code></td></tr>
+        <tr><td><strong>Regex</strong></td><td>System.Text.RegularExpressions</td><td><code>regex</code></td></tr>
+        <tr><td><strong>Date/Time</strong></td><td>DateTime / DateTimeOffset</td><td><code>chrono</code> or <code>time</code></td></tr>
+        <tr><td><strong>Error Handling</strong></td><td>Exceptions</td><td><code>thiserror</code> / <code>anyhow</code></td></tr>
+      </table>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: When to Use Rust -->
+  <div class="slide">
+    <h2 class="animate">When to Use Rust</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3 class="green">Use Rust For</h3>
+        <ul>
+          <li><strong>CLI tools</strong> &mdash; fast startup, single binary</li>
+          <li><strong>Systems programming</strong> &mdash; OS, drivers, embedded</li>
+          <li><strong>WebAssembly</strong> &mdash; first-class WASM support</li>
+          <li><strong>Game engines</strong> &mdash; Bevy, performance-critical</li>
+          <li><strong>Network services</strong> &mdash; proxies, load balancers</li>
+          <li><strong>Performance-critical libraries</strong> &mdash; called from any language via FFI</li>
+          <li><strong>The hot path</strong> &mdash; rewrite bottlenecks in Rust</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3 style="color: var(--accent);">Stay in C# For</h3>
+        <ul>
+          <li><strong>Enterprise CRUD apps</strong> &mdash; EF Core, ASP.NET</li>
+          <li><strong>Rapid prototyping</strong> &mdash; faster iteration</li>
+          <li><strong>Large team projects</strong> &mdash; lower learning curve</li>
+          <li><strong>GUI apps</strong> &mdash; WPF, MAUI, Blazor</li>
+          <li><strong>Game logic</strong> &mdash; Unity ecosystem</li>
+          <li><strong>Business logic</strong> &mdash; where GC overhead is fine</li>
+        </ul>
+        <p style="margin-top:16px; font-size:1rem; color:var(--text-muted);">Interop via FFI: <code>extern "C"</code> lets Rust and C# call each other. Use Rust for the hot path, C# for business logic.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F980;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate"><span class="highlight">Ownership</span> replaces the garbage collector &mdash; one owner, deterministic drops</li>
+        <li class="animate"><span class="highlight">Borrowing</span> gives safe references &mdash; many readers OR one writer</li>
+        <li class="animate"><code>Option&lt;T&gt;</code> and <code>Result&lt;T,E&gt;</code> replace <strong>null</strong> and <strong>exceptions</strong></li>
+        <li class="animate">Traits = interfaces + composition &mdash; <strong>no inheritance needed</strong></li>
+        <li class="animate">Iterator chains = LINQ &mdash; <strong>zero-cost abstractions</strong></li>
+        <li class="animate">If it compiles, it is <span class="highlight">memory safe and data-race free</span></li>
+      </ul>
+      <p class="animate" style="margin-top:24px; font-size:1.2rem;">The compiler is strict, but it catches entire classes of bugs that C# leaves to runtime. Fight the borrow checker now, or fight production bugs later.</p>
+      <p class="animate" style="margin-top:20px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 22</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
