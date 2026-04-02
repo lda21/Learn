@@ -841,7 +841,94 @@ What went right/wrong? Suggest improvements."""
     </div>
   </div>
 
-  <!-- Slide 19: Best Practices -->
+  <!-- Slide 19: Inference Deep Dive -->
+  <div class="slide">
+    <h2 class="animate">Inference Deep Dive &mdash; From Model to API</h2>
+    <div class="content animate">
+      <p>Training produces a model file. How does it actually serve predictions in production?</p>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>GPU or CPU?</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Model</th><th>Pod Type</th><th>Why</th></tr>
+          <tr><td>XGBoost</td><td><span class="green">CPU</span></td><td>Tree traversal is branching logic, not matrix math. CPU is faster + cheaper.</td></tr>
+          <tr><td>HMM (hmmlearn)</td><td><span class="green">CPU</span></td><td>Small state matrix. Inference is Viterbi algorithm. CPU-only.</td></tr>
+          <tr><td>Sentiment (LLM)</td><td><span class="highlight">API call</span></td><td>Claude API. No local GPU needed &mdash; Anthropic hosts it.</td></tr>
+          <tr><td>Neural net / Transformer</td><td><span class="highlight">GPU</span></td><td>Matrix multiplication. GPU is 10-100x faster. Use for deep learning models.</td></tr>
+          <tr><td>Linear / Logistic</td><td><span class="green">CPU</span></td><td>Trivial dot product. Microsecond inference.</td></tr>
+        </table>
+        <p style="margin-top:12px; font-size:0.95rem; color:var(--text-muted);"><strong>Rule of thumb:</strong> if it's tree-based or statistical &rarr; CPU. If it's neural network with large matrices &rarr; GPU.</p>
+      </div>
+      <div class="card">
+        <h3>Model Sizes</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Model</th><th>File Size</th><th>Memory</th></tr>
+          <tr><td>XGBoost (500 trees)</td><td>5-50 MB</td><td>~100 MB</td></tr>
+          <tr><td>HMM (3 regimes)</td><td>&lt; 1 MB</td><td>~10 MB</td></tr>
+          <tr><td>Logistic / Linear</td><td>&lt; 1 MB</td><td>~5 MB</td></tr>
+          <tr><td>BERT (NLP)</td><td>400 MB</td><td>~1.5 GB</td></tr>
+          <tr><td>LLaMA 7B (quantized)</td><td>4 GB</td><td>~6 GB GPU</td></tr>
+        </table>
+        <p style="margin-top:12px; font-size:0.95rem; color:var(--text-muted);">Your trading models (XGBoost + HMM) fit in <strong>&lt; 200 MB RAM total</strong>. No GPU needed. A single <code>t3.medium</code> pod handles it.</p>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+      <h3>How to Expose the Model</h3>
+      <div class="two-col">
+        <div class="card">
+          <h3>Option 1: In-Process (recommended for trading)</h3>
+<pre style="border:none; padding:12px; font-size:0.82rem;">
+# Model loaded directly in the strategy pod
+# No network hop. Fastest inference (~1ms).
+
+import joblib
+
+class SignalService:
+    def __init__(self):
+        self.model = joblib.load("/models/xgboost_v43.pkl")
+        self.hmm = joblib.load("/models/hmm_v12.pkl")
+
+    def predict(self, features):
+        regime = self.hmm.predict(features["regime_input"])
+        signal = self.model.predict(features["signal_input"])
+        return {"regime": regime, "signal": signal}
+
+# Kubernetes: mount model from S3 via init container
+# or sidecar that syncs model artifacts on version change
+</pre>
+        </div>
+        <div class="card">
+          <h3>Option 2: Model Server (for shared/GPU models)</h3>
+<pre style="border:none; padding:12px; font-size:0.82rem;">
+# Separate pod serving predictions via gRPC/REST
+# Use when: GPU needed, or multiple consumers
+
+# Deployment options:
+# 1. FastAPI + uvicorn (simple)
+# 2. TorchServe (PyTorch models)
+# 3. Triton Inference Server (multi-framework)
+# 4. Seldon Core (K8s native, A/B testing)
+# 5. KServe (K8s, auto-scaling, canary)
+
+# FastAPI example:
+@app.post("/predict")
+async def predict(req: PredictRequest):
+    features = np.array(req.features)
+    signal = model.predict(features)
+    return {"signal": signal.tolist()}
+
+# K8s Service:
+#   model-server.trading-ai.svc:8080/predict
+#   HPA: scale on request latency > 50ms
+</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Slide 20: Best Practices -->
   <div class="slide">
     <h2 class="animate">Best Practices</h2>
     <div class="bp-grid animate">
@@ -877,7 +964,7 @@ What went right/wrong? Suggest improvements."""
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 21</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
