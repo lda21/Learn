@@ -720,7 +720,82 @@ ws.onclose = () => {
   </div>
 
 
-  <!-- Slide 14: WebSocket → Kafka Pipeline -->
+  <!-- Slide 14: SSE Failover — Built-in Recovery -->
+  <div class="slide">
+    <h2 class="animate">SSE Failover &mdash; Built-in Recovery</h2>
+    <p class="subtitle animate">SSE has the same pod failover problem, but the spec solves it for you</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>WebSocket (DIY)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// You build everything yourself
+ws.onclose = () => {
+  // 1. Detect disconnect
+  // 2. Exponential backoff
+  // 3. Reconnect manually
+  // 4. Track last sequence ID
+  // 5. Fetch missed data via REST
+  // 6. Resume stream
+};
+// ~30 lines of reconnect logic
+</pre>
+        <ul style="margin-top:12px">
+          <li>No auto-reconnect</li>
+          <li>No resume token</li>
+          <li>No built-in replay</li>
+          <li>You build all recovery logic</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 class="green">SSE (Built-in)</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+// Client — that's it. Zero reconnect code.
+const es = new EventSource('/stream');
+es.onmessage = (e) => update(e.data);
+
+// Browser AUTOMATICALLY:
+// 1. Detects disconnect
+// 2. Reconnects after 3 seconds
+// 3. Sends Last-Event-ID header
+// 4. Server replays missed events
+</pre>
+        <ul style="margin-top:12px">
+          <li class="green">Auto-reconnect (browser built-in)</li>
+          <li class="green">Resume token (<code>Last-Event-ID</code>)</li>
+          <li class="green">Replay protocol in the spec</li>
+          <li class="green">Zero client-side recovery code</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+      <h3>How SSE Last-Event-ID Works</h3>
+<pre style="font-size:0.85rem;">
+# Server sends events with IDs:
+id: 4582
+data: {"price": 50123.45}
+
+id: 4583
+data: {"price": 50124.00}
+
+# ← Pod dies. Browser auto-reconnects to new pod.
+# Browser sends header:  Last-Event-ID: 4583
+
+# Server (Node.js) — read the header, replay missed events:
+app.get('/stream', (req, res) => {
+  const lastId = req.headers['last-event-id'];
+  if (lastId) {
+    const missed = await redis.getEventsAfter(lastId);  // replay from store
+    missed.forEach(e => res.write(`id: ${e.id}\ndata: ${e.data}\n\n`));
+  }
+  // Continue live stream...
+});
+</pre>
+    </div>
+    <p class="animate" style="text-align:center; margin-top:12px; color:var(--text-muted);"><span class="highlight">Key insight:</span> SSE is better than WebSocket for pod failover &mdash; recovery is part of the spec. Use SSE for server→client streaming (prices, notifications). Use WebSocket only when you need bidirectional communication.</p>
+  </div>
+
+
+  <!-- Slide 15: WebSocket → Kafka Pipeline -->
   <div class="slide">
     <h2 class="animate">WebSocket &rarr; Kafka Pipeline</h2>
     <p class="subtitle animate">AI Crypto Agent ingests exchange ticks into Kafka for downstream processing</p>
@@ -1000,7 +1075,7 @@ async def test_tick_processing(mock_ws):
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 21</div>
+<div class="slide-counter" id="counter">1 / 22</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
