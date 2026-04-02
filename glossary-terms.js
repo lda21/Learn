@@ -332,6 +332,8 @@ const GLOSSARY_TERMS = [
   {t:"Cache-Aside", d:"A caching pattern where the application checks Redis first, fetches from the database on miss, then stores the result in Redis for future requests.", tags:["Redis"]},
   {t:"RDB Snapshot", d:"Redis's point-in-time persistence mechanism. Creates a binary dump of the entire dataset. Fast to load but may lose recent data between snapshots.", tags:["Redis"]},
   {t:"AOF", d:"Append-Only File — Redis persistence that logs every write operation. More durable than RDB snapshots. Can be configured for fsync every second or every write.", tags:["Redis"]},
+  {t:"Canonical Schema", d:"A standardized, agreed-upon data format shared across services or systems. Acts as the single source of truth for a data entity's shape, ensuring consistency across producers and consumers.", tags:["Data Architecture","API"]},
+  {t:"Materialized View", d:"A precomputed query result stored as a physical table in the database. Unlike regular views, materialized views cache the result and must be refreshed (manually or on schedule) to reflect source changes. Used for expensive aggregations and read-heavy workloads.", tags:["Database","PostgreSQL"]},
 ];
 
 (function() {
@@ -486,7 +488,7 @@ const GLOSSARY_TERMS = [
   tt.addEventListener('mouseenter', function() { clearTimeout(tooltipTimeout); });
   tt.addEventListener('mouseleave', function() { tooltipTimeout = setTimeout(hideTooltip, 300); });
 
-  // Click: tap to show, tap again to open glossary for that term
+  // Click: tap to show tooltip, tap again to dismiss (never navigate away)
   document.addEventListener('click', function(e) {
     const link = e.target.closest('.term-link');
     if (!link) {
@@ -497,9 +499,6 @@ const GLOSSARY_TERMS = [
     e.stopPropagation();
     if (activeLink === link && tt.classList.contains('visible')) {
       hideTooltip();
-      // Open glossary with search for this term
-      const name = link.getAttribute('data-term');
-      window.open('glossary.html?search=' + encodeURIComponent(name), '_blank');
       return;
     }
     showTooltip(link);
@@ -511,6 +510,44 @@ const GLOSSARY_TERMS = [
   } else {
     linkifySlides();
   }
+
+  // Slide hash tracking for browser back/forward button support
+  (function() {
+    var slides = document.querySelectorAll('.slide');
+    if (slides.length < 2) return; // not a slide deck
+
+    // Find the showSlide function from the course's own script
+    var origShowSlide = window.showSlide;
+    if (typeof origShowSlide !== 'function') return;
+
+    // Patch showSlide to update URL hash
+    var skipPush = false;
+    window.showSlide = function(index) {
+      origShowSlide(index);
+      var slideNum = Math.max(0, Math.min(index, slides.length - 1)) + 1;
+      if (!skipPush && history.pushState) {
+        history.pushState({slide: slideNum}, '', '#slide-' + slideNum);
+      }
+    };
+
+    // Restore slide from hash on page load
+    var hash = window.location.hash;
+    if (hash && hash.startsWith('#slide-')) {
+      var num = parseInt(hash.replace('#slide-', ''), 10);
+      if (num > 0 && num <= slides.length) {
+        window.showSlide(num - 1);
+      }
+    }
+
+    // Handle browser back/forward
+    window.addEventListener('popstate', function(e) {
+      if (e.state && e.state.slide) {
+        skipPush = true;
+        window.showSlide(e.state.slide - 1);
+        skipPush = false;
+      }
+    });
+  })();
 })();
 
 
