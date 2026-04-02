@@ -42,7 +42,7 @@
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
     }
 
     .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
@@ -171,7 +171,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
       h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
       p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
       .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
@@ -198,7 +198,7 @@
       .content { max-width: 100%; }
     }
     @media (max-width: 480px) {
-      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; overflow-x: hidden; }
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
       h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
       p, li { font-size: 1.2rem; line-height: 1.65; }
       pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
@@ -402,8 +402,8 @@ In RAM: 01001000 01101001</pre>
   <div class="slide">
     <h2 class="animate">ASCII Conversion Chart</h2>
     <p class="subtitle animate">Decimal &mdash; Binary &mdash; Octal &mdash; Hex &mdash; ASCII (all 128 characters)</p>
-    <div class="content animate" style="overflow-x:auto;">
-      <table style="font-size:0.75rem; white-space:nowrap; max-width:100%;">
+    <div class="content animate" style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:calc(100vw - 48px);">
+      <table style="font-size:0.65rem; white-space:nowrap; min-width:800px;">
         <tr><th>Dec</th><th>Binary</th><th>Oct</th><th>Hex</th><th>Char</th><th style="border-left:2px solid var(--accent)">Dec</th><th>Binary</th><th>Oct</th><th>Hex</th><th>Char</th><th style="border-left:2px solid var(--accent)">Dec</th><th>Binary</th><th>Oct</th><th>Hex</th><th>Char</th><th style="border-left:2px solid var(--accent)">Dec</th><th>Binary</th><th>Oct</th><th>Hex</th><th>Char</th></tr>
         <tr><td>0</td><td>00000000</td><td>000</td><td>00</td><td>NUL</td><td style="border-left:2px solid var(--accent)">32</td><td>00100000</td><td>040</td><td>20</td><td>SP</td><td style="border-left:2px solid var(--accent)">64</td><td>01000000</td><td>100</td><td>40</td><td>@</td><td style="border-left:2px solid var(--accent)">96</td><td>01100000</td><td>140</td><td>60</td><td>`</td></tr>
         <tr><td>1</td><td>00000001</td><td>001</td><td>01</td><td>SOH</td><td style="border-left:2px solid var(--accent)">33</td><td>00100001</td><td>041</td><td>21</td><td>!</td><td style="border-left:2px solid var(--accent)">65</td><td>01000001</td><td>101</td><td>41</td><td><strong>A</strong></td><td style="border-left:2px solid var(--accent)">97</td><td>01100001</td><td>141</td><td>61</td><td><strong>a</strong></td></tr>

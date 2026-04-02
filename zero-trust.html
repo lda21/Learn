@@ -42,7 +42,7 @@
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
     }
 
     .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
@@ -167,7 +167,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
       h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
       p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
       .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
@@ -193,7 +193,7 @@
       .content { max-width: 100%; }
     }
     @media (max-width: 480px) {
-      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; overflow-x: hidden; }
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
       h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
       p, li { font-size: 1.2rem; line-height: 1.65; }
       pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }

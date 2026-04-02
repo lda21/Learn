@@ -42,7 +42,7 @@
 
     body {
       font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
     }
 
     .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
@@ -167,7 +167,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; overflow-x: hidden; -webkit-overflow-scrolling: touch; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
       h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
       p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
       .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
@@ -193,7 +193,7 @@
       .content { max-width: 100%; }
     }
     @media (max-width: 480px) {
-      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; overflow-x: hidden; }
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
       h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
       p, li { font-size: 1.2rem; line-height: 1.65; }
       pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
@@ -319,8 +319,8 @@ mov  [x], eax      ; store result into x
   <!-- SLIDE 4: Registers (x86-64) -->
   <div class="slide">
     <h2 class="animate">Registers (x86-64)</h2>
-    <div class="content">
-      <table class="animate">
+    <div class="content" style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:calc(100vw - 48px);">
+      <table class="animate" style="min-width:600px;">
         <tr><th>64-bit</th><th>32-bit</th><th>16-bit</th><th>8-bit</th><th>Typical Role</th></tr>
         <tr><td><code>rax</code></td><td><code>eax</code></td><td><code>ax</code></td><td><code>al</code></td><td>Return value, accumulator</td></tr>
         <tr><td><code>rbx</code></td><td><code>ebx</code></td><td><code>bx</code></td><td><code>bl</code></td><td>Callee-saved, general purpose</td></tr>
@@ -417,7 +417,8 @@ Hello, World!
     <h2 class="animate">Instructions That Matter</h2>
     <div class="content">
       <p class="animate" style="text-align:center; margin-bottom:12px;">These ~20 instructions cover <span class="highlight">90% of compiled code</span> you'll ever read.</p>
-      <table class="animate">
+      <div style="overflow-x:auto; -webkit-overflow-scrolling:touch; max-width:calc(100vw - 48px);">
+      <table class="animate" style="min-width:600px;">
         <tr><th>Instruction</th><th>Example</th><th>What It Does</th></tr>
         <tr><td><code>mov</code></td><td><code>mov rax, rbx</code></td><td>Copy value: rax = rbx</td></tr>
         <tr><td><code>add</code> / <code>sub</code></td><td><code>add rax, 8</code></td><td>Arithmetic: rax += 8</td></tr>
@@ -434,6 +435,7 @@ Hello, World!
         <tr><td><code>shl</code> / <code>shr</code></td><td><code>shl rax, 2</code></td><td>Shift left/right (multiply/divide by powers of 2)</td></tr>
         <tr><td><code>nop</code></td><td><code>nop</code></td><td>No operation (alignment padding)</td></tr>
       </table>
+      </div>
     </div>
   </div>
 
