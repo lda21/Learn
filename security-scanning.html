@@ -773,6 +773,17 @@ helm install falco falcosecurity/falco \
           <p>setuid calls, namespace escapes, capability abuse</p>
         </div>
       </div>
+      <div class="card animate" style="margin-top:16px; border-top:4px solid var(--accent);">
+        <h3>Sysdig &mdash; Commercial Falco on Steroids</h3>
+        <p>Sysdig <strong>created Falco</strong> (donated to CNCF) and built a commercial platform on top:</p>
+        <ul>
+          <li><span class="highlight">Sysdig Secure</span> &mdash; Falco runtime + image scanning + cloud posture + K8s security + compliance (SOC2, PCI, HIPAA) in one dashboard</li>
+          <li><span class="highlight">Sysdig Capture</span> &mdash; records <strong>every syscall</strong> like a flight recorder. After an incident, replay what files were read, what connections were made, what commands ran</li>
+          <li><span class="highlight">Sysdig Monitor</span> &mdash; Prometheus-compatible metrics and dashboards</li>
+          <li><strong>Cost:</strong> ~$25-50/node/month. Worth it at 50+ nodes when managing 5 separate tools becomes a burden</li>
+          <li><strong>When Sysdig over DIY:</strong> regulated industry, post-incident forensics, large fleet, security team wants one vendor</li>
+        </ul>
+      </div>
     </div>
   </div>
 
