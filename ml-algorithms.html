@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>ML Algorithms - Machine Learning for Developers</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 1.15rem; display: block; overflow-x: auto; } th, td { padding: 12px 14px; font-size: 1.15rem; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h1 class="animate title-fire">ML Algorithms</h1>
+    <p class="subtitle animate">Machine Learning for Developers Who Can Code</p>
+    <div class="animate" style="margin-top: 20px;">
+      <span class="tag">Machine Learning</span>
+      <span class="tag">Classification</span>
+      <span class="tag">Regression</span>
+      <span class="tag">Clustering</span>
+      <span class="tag">Python</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: The ML Landscape -->
+  <div class="slide">
+    <h2 class="animate">The ML Landscape</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Learning Types</h3>
+        <ul>
+          <li><span class="highlight">Supervised</span> &mdash; You have labels (input &rarr; known output). Learns mapping from X to y.</li>
+          <li><span class="highlight">Unsupervised</span> &mdash; No labels. Discovers structure, clusters, patterns in data.</li>
+          <li><span class="highlight">Reinforcement</span> &mdash; Agent learns by reward signal. Trial and error (games, robotics).</li>
+        </ul>
+        <p style="margin-top:12px;"><strong>Classification</strong> = predict a category (spam/not spam)<br>
+        <strong>Regression</strong> = predict a number (price, temperature)</p>
+      </div>
+      <div class="card animate">
+        <h3>Core Concepts</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import numpy as np
+from sklearn.model_selection import train_test_split
+
+# X = feature matrix (inputs)
+# y = target vector (labels)
+X = np.array([[1,2],[3,4],[5,6],[7,8]])
+y = np.array([0, 0, 1, 1])
+
+# Always split: train on some, test on rest
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+# Overfitting  = memorizes training data,
+#                fails on new data
+# Underfitting = too simple, misses patterns
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Linear Regression -->
+  <div class="slide">
+    <h2 class="animate">Linear Regression</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Fits a <span class="highlight">straight line</span> through your data: <code>y = wx + b</code></li>
+          <li>Minimizes the sum of <strong>squared errors</strong> between predictions and actual values</li>
+          <li><strong>When to use:</strong> Predicting continuous values with linear relationships &mdash; house prices, revenue forecasting, trading signal strength</li>
+          <li><strong>Limitations:</strong> Only captures linear patterns. Real-world data is often non-linear</li>
+          <li>Multiple features: <code>y = w1*x1 + w2*x2 + ... + b</code></li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import numpy as np
+from sklearn.linear_model import LinearRegression
+from sklearn.model_selection import train_test_split
+
+# Predict stock price from features
+X = np.array([[100, 50], [120, 55],
+              [140, 60], [160, 65],
+              [180, 70]])  # volume, sentiment
+y = np.array([10, 12, 14, 16, 18])  # price
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+model = LinearRegression()
+model.fit(X_train, y_train)
+
+print(f"Coefficients: {model.coef_}")
+print(f"Intercept: {model.intercept_:.2f}")
+print(f"R2 Score: {model.score(X_test, y_test):.2f}")
+print(f"Prediction: {model.predict([[200, 75]])}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Logistic Regression -->
+  <div class="slide">
+    <h2 class="animate">Logistic Regression</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Despite the name, it is for <span class="highlight">classification</span>, not regression</li>
+          <li>The <strong>sigmoid function</strong> squishes any value to a 0-1 probability: <code>P = 1/(1+e^(-z))</code></li>
+          <li>If P > 0.5 &rarr; class 1, else &rarr; class 0</li>
+          <li><strong>When to use:</strong> Baseline classifier, interpretable results, spam detection, credit risk, medical diagnosis</li>
+          <li>Fast, interpretable, great first model to try</li>
+          <li>Outputs probabilities, not just labels</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Predict buy/sell signal from indicators
+X = np.array([[0.8, 30], [0.3, 70],
+              [0.9, 20], [0.2, 80],
+              [0.7, 35], [0.1, 90]])
+# RSI, momentum -> buy(1) or sell(0)
+y = np.array([1, 0, 1, 0, 1, 0])
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.3,
+                     random_state=42)
+
+model = LogisticRegression()
+model.fit(X_train, y_train)
+
+# Get probability, not just label
+proba = model.predict_proba([[0.6, 40]])
+print(f"P(sell): {proba[0][0]:.2f}")
+print(f"P(buy):  {proba[0][1]:.2f}")
+print(f"Accuracy: {model.score(X_test, y_test):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Decision Trees -->
+  <div class="slide">
+    <h2 class="animate">Decision Trees</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>A series of <span class="highlight">if/else questions</span> splitting data at each node</li>
+          <li>Chooses splits using <strong>Gini impurity</strong> or <strong>information gain</strong> &mdash; whichever split best separates classes</li>
+          <li><strong>When to use:</strong> Interpretable models, mixed feature types (numeric + categorical), explaining decisions to stakeholders</li>
+          <li><strong>Warning:</strong> Prone to <span class="highlight">overfitting</span> &mdash; a deep tree memorizes training data</li>
+        </ul>
+        <div class="diagram" style="margin-top:12px;">
+          <div class="box">Price > $50?</div>
+        </div>
+        <div class="diagram">
+          <div class="box" style="border-color:var(--success);">Yes &rarr; Volume > 1M?</div>
+          <div class="box" style="border-color:#c44;">No &rarr; SELL</div>
+        </div>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.tree import export_text
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+X = np.array([[50, 1.2], [30, 0.5],
+              [70, 2.1], [20, 0.3],
+              [60, 1.8], [40, 0.7]])
+y = np.array([1, 0, 1, 0, 1, 0])  # buy/sell
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.3,
+                     random_state=42)
+
+# max_depth prevents overfitting
+tree = DecisionTreeClassifier(max_depth=3,
+                               random_state=42)
+tree.fit(X_train, y_train)
+
+# Print human-readable tree
+rules = export_text(tree,
+    feature_names=["price", "volume"])
+print(rules)
+print(f"Accuracy: {tree.score(X_test, y_test):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Random Forest -->
+  <div class="slide">
+    <h2 class="animate">Random Forest</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>An <span class="highlight">ensemble of many decision trees</span>, each trained on random subsets of data and features</li>
+          <li>Each tree votes &rarr; <strong>majority vote</strong> wins (classification) or average (regression)</li>
+          <li>Fixes the overfitting problem of single trees through <strong>bagging</strong></li>
+          <li><strong>When to use:</strong> Tabular data, feature importance needed, robust default choice for most problems</li>
+          <li>Works well out of the box with minimal tuning</li>
+          <li>Built-in <code>feature_importances_</code> tells you which inputs matter most</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Trading features: RSI, MACD, volume, volatility
+X = np.random.rand(200, 4)
+y = (X[:, 0] * 0.5 + X[:, 2] * 0.3 > 0.4)\
+    .astype(int)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+rf = RandomForestClassifier(
+    n_estimators=100,   # 100 trees
+    max_depth=5,        # prevent overfitting
+    random_state=42
+)
+rf.fit(X_train, y_train)
+
+print(f"Accuracy: {rf.score(X_test, y_test):.2f}")
+
+# Which features matter most?
+names = ["RSI", "MACD", "Volume", "Volatility"]
+for name, imp in zip(names,
+                     rf.feature_importances_):
+    print(f"  {name}: {imp:.3f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: XGBoost / Gradient Boosting -->
+  <div class="slide">
+    <h2 class="animate">XGBoost / Gradient Boosting</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Trees trained <span class="highlight">sequentially</span> &mdash; each new tree fixes errors of the previous ones</li>
+          <li><strong>XGBoost</strong> = optimized gradient boosting with regularization, parallel processing, and missing value handling</li>
+          <li>The <span class="highlight">"default best"</span> for tabular/structured data</li>
+          <li><strong>When to use:</strong> Kaggle competitions, trading signals, fraud detection, any structured data problem</li>
+          <li>Consistently wins on tabular data benchmarks</li>
+          <li>Key params: <code>n_estimators</code>, <code>learning_rate</code>, <code>max_depth</code></li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import xgboost as xgb
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score
+import numpy as np
+
+# Trading signal prediction
+X = np.random.rand(500, 6)  # 6 features
+y = (X[:, 0] + X[:, 3] > 1.0).astype(int)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+model = xgb.XGBClassifier(
+    n_estimators=100,
+    learning_rate=0.1,   # slow learning = better
+    max_depth=4,
+    eval_metric="logloss",
+    random_state=42
+)
+model.fit(X_train, y_train,
+          eval_set=[(X_test, y_test)],
+          verbose=False)
+
+preds = model.predict(X_test)
+print(f"Accuracy: {accuracy_score(y_test, preds):.2f}")
+
+# Feature importance built in
+for i, imp in enumerate(model.feature_importances_):
+    print(f"  Feature {i}: {imp:.3f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Support Vector Machine -->
+  <div class="slide">
+    <h2 class="animate">Support Vector Machine (SVM)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Finds the <span class="highlight">hyperplane</span> that maximizes the margin between classes</li>
+          <li>Support vectors = the closest data points that define the decision boundary</li>
+          <li><strong>Kernel trick:</strong> Maps data to higher dimensions where a linear boundary works &mdash; <code>rbf</code>, <code>poly</code> kernels handle non-linear data</li>
+          <li><strong>When to use:</strong> Small-to-medium datasets, text classification, image classification</li>
+          <li>Less popular now (XGBoost and neural nets dominate) but the concept of margins is foundational</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.svm import SVC
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# SVM is sensitive to scale - always normalize
+X = np.random.rand(150, 3) * [100, 1, 50]
+y = (X[:, 0] / 100 + X[:, 1] > 1.0).astype(int)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+# Pipeline: scale then classify
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("svm", SVC(kernel="rbf", C=1.0,
+                probability=True))
+])
+model.fit(X_train, y_train)
+
+print(f"Accuracy: {model.score(X_test, y_test):.2f}")
+
+# Get probabilities
+proba = model.predict_proba(X_test[:3])
+print(f"Probabilities:\n{proba}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: K-Nearest Neighbors -->
+  <div class="slide">
+    <h2 class="animate">K-Nearest Neighbors (KNN)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Classify a point by the <span class="highlight">majority vote of its K closest neighbors</span></li>
+          <li><strong>No training phase</strong> &mdash; just stores data and computes distances at prediction time (lazy learning)</li>
+          <li>Distance metrics: Euclidean, Manhattan, Minkowski</li>
+          <li><strong>When to use:</strong> Small datasets, anomaly detection, recommendation systems, quick baselines</li>
+          <li><strong>Limitations:</strong> Slow on large data (must scan all points), sensitive to feature scale, curse of dimensionality</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Anomaly detection: find similar patterns
+X = np.random.rand(200, 4)
+y = (np.sum(X, axis=1) > 2.0).astype(int)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+# Always scale features for KNN
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("knn", KNeighborsClassifier(
+        n_neighbors=5,       # K = 5
+        weights="distance",  # closer = more weight
+        metric="euclidean"
+    ))
+])
+model.fit(X_train, y_train)
+
+print(f"Accuracy: {model.score(X_test, y_test):.2f}")
+
+# Try different K values
+for k in [3, 5, 7, 11]:
+    knn = Pipeline([("s", StandardScaler()),
+        ("k", KNeighborsClassifier(n_neighbors=k))])
+    knn.fit(X_train, y_train)
+    print(f"  K={k}: {knn.score(X_test, y_test):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Naive Bayes -->
+  <div class="slide">
+    <h2 class="animate">Naive Bayes</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Applies <span class="highlight">Bayes theorem</span> assuming features are independent: <code>P(class|features) ~ P(features|class) * P(class)</code></li>
+          <li>The "naive" part: assumes each feature contributes independently &mdash; almost never true, but works surprisingly well</li>
+          <li><strong>Extremely fast</strong> to train and predict</li>
+          <li><strong>When to use:</strong> Spam filtering, document/text classification, real-time classification, multi-class problems</li>
+          <li>Variants: GaussianNB (numbers), MultinomialNB (text/counts), BernoulliNB (binary features)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.naive_bayes import GaussianNB
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.feature_extraction.text import \
+    CountVectorizer
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Example 1: Text classification (spam)
+texts = ["buy cheap now", "meeting tomorrow",
+         "free money click", "project update",
+         "winner prize claim", "code review done",
+         "discount offer deal", "deploy friday"]
+labels = [1, 0, 1, 0, 1, 0, 1, 0]  # 1=spam
+
+vec = CountVectorizer()
+X = vec.fit_transform(texts)
+
+nb = MultinomialNB()
+nb.fit(X, labels)
+
+test = vec.transform(["free prize winner"])
+print(f"Spam? {nb.predict(test)[0]}")
+print(f"Probability: {nb.predict_proba(test)}")
+
+# Example 2: Numeric features
+X2 = np.random.rand(100, 3)
+y2 = (X2[:, 0] > 0.5).astype(int)
+gnb = GaussianNB()
+gnb.fit(X2, y2)
+print(f"Score: {gnb.score(X2, y2):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: K-Means Clustering -->
+  <div class="slide">
+    <h2 class="animate">K-Means Clustering</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Unsupervised</span> &mdash; no labels needed. Groups data into K clusters</li>
+          <li>Algorithm: <strong>1)</strong> Pick K random centroids <strong>2)</strong> Assign each point to nearest centroid <strong>3)</strong> Update centroids <strong>4)</strong> Repeat until stable</li>
+          <li><strong>When to use:</strong> Customer segmentation, image compression, anomaly detection, market regime clustering</li>
+          <li><strong>Elbow method:</strong> Plot inertia vs K, pick the "elbow" point</li>
+          <li>You must choose K upfront (unlike DBSCAN)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# Cluster trading days by behavior
+np.random.seed(42)
+X = np.vstack([
+    np.random.randn(50, 2) + [2, 2],   # bull
+    np.random.randn(50, 2) + [-2, -2], # bear
+    np.random.randn(50, 2) + [0, 0],   # sideways
+])
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# Elbow method: find optimal K
+inertias = []
+for k in range(1, 8):
+    km = KMeans(n_clusters=k, random_state=42,
+                n_init=10)
+    km.fit(X_scaled)
+    inertias.append(km.inertia_)
+    print(f"K={k}: inertia={km.inertia_:.1f}")
+
+# Use K=3 (the elbow)
+model = KMeans(n_clusters=3, random_state=42,
+               n_init=10)
+labels = model.fit_predict(X_scaled)
+print(f"\nCluster sizes: {np.bincount(labels)}")
+print(f"Centroids:\n{model.cluster_centers_}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: DBSCAN -->
+  <div class="slide">
+    <h2 class="animate">DBSCAN</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Density-based</span> clustering &mdash; finds clusters of any shape, not just spheres</li>
+          <li>Core idea: a cluster is a dense region separated by sparse regions</li>
+          <li><strong>No need to specify K</strong> &mdash; discovers number of clusters automatically</li>
+          <li>Identifies <span class="highlight">noise/outliers</span> as label <code>-1</code></li>
+          <li><strong>When to use:</strong> Geographic data, irregular cluster shapes, outlier detection, market anomaly detection</li>
+          <li>Key params: <code>eps</code> (neighborhood radius) and <code>min_samples</code> (minimum points to form a cluster)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.cluster import DBSCAN
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# Mix of dense clusters + outliers
+np.random.seed(42)
+cluster1 = np.random.randn(60, 2) + [5, 5]
+cluster2 = np.random.randn(60, 2) + [-5, -5]
+outliers = np.random.uniform(-10, 10, (10, 2))
+X = np.vstack([cluster1, cluster2, outliers])
+
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+db = DBSCAN(
+    eps=0.5,          # neighborhood radius
+    min_samples=5     # min points for a cluster
+)
+labels = db.fit_predict(X_scaled)
+
+n_clusters = len(set(labels) - {-1})
+n_outliers = (labels == -1).sum()
+print(f"Clusters found: {n_clusters}")
+print(f"Outliers found: {n_outliers}")
+print(f"Labels: {np.unique(labels)}")
+
+# Compare: K-Means can't detect outliers
+from sklearn.cluster import KMeans
+km = KMeans(n_clusters=2, random_state=42,
+            n_init=10)
+km_labels = km.fit_predict(X_scaled)
+print(f"K-Means forces all into 2 clusters")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: PCA -->
+  <div class="slide">
+    <h2 class="animate">Principal Component Analysis (PCA)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Dimensionality reduction</span> &mdash; projects high-dimensional data onto fewer dimensions while keeping maximum information</li>
+          <li>Finds <strong>principal components</strong> = directions of maximum variance in the data</li>
+          <li>PC1 captures the most variance, PC2 the second most (orthogonal), etc.</li>
+          <li><strong>When to use:</strong> Too many features (100+ columns), visualization (project to 2D/3D), noise reduction, preprocessing before other algorithms</li>
+          <li>Not interpretable &mdash; components are combinations of original features</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+import numpy as np
+
+# 50 features -> reduce to key components
+np.random.seed(42)
+X = np.random.rand(200, 50)  # 50 features
+
+# Always scale before PCA
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+
+# How many components to keep?
+pca_full = PCA()
+pca_full.fit(X_scaled)
+cumvar = np.cumsum(
+    pca_full.explained_variance_ratio_)
+n_95 = np.argmax(cumvar >= 0.95) + 1
+print(f"Components for 95% variance: {n_95}")
+
+# Reduce to key components
+pca = PCA(n_components=n_95)
+X_reduced = pca.fit_transform(X_scaled)
+print(f"Shape: {X.shape} -> {X_reduced.shape}")
+
+# Or reduce to 2D for visualization
+pca_2d = PCA(n_components=2)
+X_2d = pca_2d.fit_transform(X_scaled)
+print(f"2D variance explained: "
+      f"{sum(pca_2d.explained_variance_ratio_):.2%}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Hidden Markov Model -->
+  <div class="slide">
+    <h2 class="animate">Hidden Markov Model (HMM)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Models <span class="highlight">sequences with hidden states</span> &mdash; you see the outputs but the internal state is unknown</li>
+          <li>Learns <strong>transition probabilities</strong> between states and <strong>emission probabilities</strong> of observations</li>
+          <li>Three problems it solves: decode hidden states, compute likelihood, learn parameters</li>
+          <li><strong>When to use:</strong> Market regime detection (bull/bear/sideways), speech recognition, genomics, sequential pattern mining</li>
+          <li>Perfect for finance: market has hidden "regimes" that produce observable price changes</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from hmmlearn.hmm import GaussianHMM
+import numpy as np
+
+# Detect market regimes from returns
+np.random.seed(42)
+# Simulate: bull(+), bear(-), sideways(~0)
+returns = np.concatenate([
+    np.random.normal(0.02, 0.01, 50),  # bull
+    np.random.normal(-0.02, 0.02, 30), # bear
+    np.random.normal(0.0, 0.005, 40),  # sideways
+    np.random.normal(0.01, 0.015, 30), # bull
+])
+X = returns.reshape(-1, 1)
+
+# Fit HMM with 3 hidden states
+model = GaussianHMM(
+    n_components=3,     # 3 regimes
+    covariance_type="full",
+    n_iter=100,
+    random_state=42
+)
+model.fit(X)
+
+# Decode: what regime is each day?
+states = model.predict(X)
+print(f"States found: {np.unique(states)}")
+for i in range(3):
+    mask = states == i
+    print(f"  State {i}: mean={X[mask].mean():.4f}"
+          f" std={X[mask].std():.4f}"
+          f" days={mask.sum()}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Neural Networks Basics -->
+  <div class="slide">
+    <h2 class="animate">Neural Networks Basics</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Input layer &rarr; Hidden layers &rarr; Output layer</span></li>
+          <li>Each node: <strong>weighted sum + activation function</strong> (ReLU, sigmoid, tanh)</li>
+          <li><strong>Backpropagation</strong> adjusts weights by computing gradients of the error</li>
+          <li>Universal approximator &mdash; can learn any function given enough data and neurons</li>
+          <li><strong>When to use:</strong> Large datasets, complex non-linear patterns, when simpler models fail</li>
+          <li>Requires more data and compute than tree-based models. Start with XGBoost, try NN if needed</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+# Non-linear classification problem
+np.random.seed(42)
+X = np.random.randn(500, 4)
+# XOR-like pattern: NN handles this, linear can't
+y = ((X[:, 0] * X[:, 1]) > 0).astype(int)
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+model = Pipeline([
+    ("scaler", StandardScaler()),
+    ("nn", MLPClassifier(
+        hidden_layer_sizes=(64, 32),  # 2 layers
+        activation="relu",
+        max_iter=500,
+        random_state=42
+    ))
+])
+model.fit(X_train, y_train)
+print(f"Accuracy: {model.score(X_test, y_test):.2f}")
+
+# Compare: Logistic Regression fails on XOR
+from sklearn.linear_model import LogisticRegression
+lr = Pipeline([("s", StandardScaler()),
+    ("lr", LogisticRegression())])
+lr.fit(X_train, y_train)
+print(f"LogReg:  {lr.score(X_test, y_test):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: CNNs -->
+  <div class="slide">
+    <h2 class="animate">Convolutional Neural Networks (CNN)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Specialized for <span class="highlight">spatial data</span> &mdash; images, grids, 2D patterns</li>
+          <li><strong>Convolutional filters</strong> slide across input, detecting local patterns (edges, shapes, textures)</li>
+          <li><strong>Pooling layers</strong> reduce dimensions while preserving important features</li>
+          <li>Deeper layers detect increasingly complex patterns (edges &rarr; shapes &rarr; objects)</li>
+          <li><strong>When to use:</strong> Image classification, object detection, chart pattern recognition, medical imaging</li>
+          <li>Transfer learning: use pre-trained models (ResNet, VGG) for small datasets</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import numpy as np
+
+# CNN with PyTorch-style pseudocode
+# (sklearn doesn't have CNNs)
+
+# Conceptual architecture:
+# Input (28x28 image)
+#   -> Conv2D(32 filters, 3x3) + ReLU
+#   -> MaxPool(2x2)         # 14x14
+#   -> Conv2D(64 filters, 3x3) + ReLU
+#   -> MaxPool(2x2)         # 7x7
+#   -> Flatten              # 7*7*64 = 3136
+#   -> Dense(128) + ReLU
+#   -> Dense(10) + Softmax  # 10 classes
+
+# Using sklearn for a simple image task:
+from sklearn.datasets import load_digits
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split
+
+digits = load_digits()  # 8x8 digit images
+X = digits.data / 16.0  # normalize to 0-1
+y = digits.target
+
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+# MLP on flattened images (CNN would be better)
+clf = MLPClassifier(hidden_layer_sizes=(128, 64),
+                    max_iter=300, random_state=42)
+clf.fit(X_train, y_train)
+print(f"Digit recognition: "
+      f"{clf.score(X_test, y_test):.2%}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: RNN/LSTM -->
+  <div class="slide">
+    <h2 class="animate">Recurrent Neural Networks (RNN/LSTM)</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Specialized for <span class="highlight">sequential data</span> &mdash; each step has memory of previous inputs</li>
+          <li>Vanilla RNN suffers from <strong>vanishing gradient</strong> &mdash; forgets long-range dependencies</li>
+          <li><strong>LSTM</strong> (Long Short-Term Memory) solves this with gates: forget gate, input gate, output gate</li>
+          <li>GRU is a simpler variant with fewer parameters</li>
+          <li><strong>When to use:</strong> Time series forecasting, NLP, stock price sequences, sensor data</li>
+          <li>Being <strong>replaced by Transformers</strong> for most tasks, but still useful for small sequential data</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import numpy as np
+from sklearn.preprocessing import MinMaxScaler
+
+# Prepare time series for LSTM
+# (conceptual - real LSTM uses PyTorch/TF)
+
+# Step 1: Create sequences from price data
+prices = np.cumsum(np.random.randn(200) * 0.5) + 100
+scaler = MinMaxScaler()
+scaled = scaler.fit_transform(
+    prices.reshape(-1, 1))
+
+# Step 2: Create sliding windows
+def create_sequences(data, window=10):
+    X, y = [], []
+    for i in range(len(data) - window):
+        X.append(data[i:i+window])
+        y.append(data[i+window])
+    return np.array(X), np.array(y)
+
+X, y = create_sequences(scaled.flatten(), window=10)
+print(f"Sequences: {X.shape}")  # (190, 10)
+print(f"Targets:   {y.shape}")  # (190,)
+
+# With sklearn (simpler alternative to LSTM):
+from sklearn.linear_model import Ridge
+X_flat = X.reshape(X.shape[0], -1)
+split = int(len(X_flat) * 0.8)
+model = Ridge()
+model.fit(X_flat[:split], y[:split])
+print(f"R2: {model.score(X_flat[split:], y[split:]):.2f}")
+# For real LSTM, use PyTorch nn.LSTM
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Transformers & Attention -->
+  <div class="slide">
+    <h2 class="animate">Transformers &amp; Attention</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>What It Does</h3>
+        <ul>
+          <li><span class="highlight">Self-attention</span>: every element in a sequence attends to every other element, weighted by relevance</li>
+          <li>Fully <strong>parallelizable</strong> (unlike RNNs which process sequentially)</li>
+          <li>Powers <strong>GPT, BERT, Claude, LLaMA</strong> &mdash; the dominant architecture for AI</li>
+          <li>Key innovation: "Attention Is All You Need" (2017)</li>
+          <li><strong>When to use:</strong> NLP, translation, text generation, increasingly for time series and vision (ViT)</li>
+          <li>Pre-trained models via <code>transformers</code> library (Hugging Face) &mdash; fine-tune, don't train from scratch</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import numpy as np
+
+# Simplified self-attention mechanism
+def self_attention(X):
+    """
+    X: (seq_len, d_model) - input embeddings
+    Returns: attention-weighted output
+    """
+    # Q, K, V = linear projections of X
+    # (in practice, learned weight matrices)
+    Q = K = V = X  # simplified
+
+    # Attention scores: how much each token
+    # attends to every other token
+    d_k = Q.shape[-1]
+    scores = Q @ K.T / np.sqrt(d_k)
+
+    # Softmax to get weights (rows sum to 1)
+    exp_scores = np.exp(scores - scores.max(axis=-1,
+                        keepdims=True))
+    weights = exp_scores / exp_scores.sum(axis=-1,
+                           keepdims=True)
+
+    # Weighted sum of values
+    output = weights @ V
+    return output, weights
+
+# Example: 4 tokens, 8-dim embeddings
+X = np.random.rand(4, 8)
+out, attn = self_attention(X)
+print(f"Input shape:  {X.shape}")
+print(f"Output shape: {out.shape}")
+print(f"Attention weights:\n{attn.round(3)}")
+# Each row shows how much that token
+# attends to every other token
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Ensemble Methods -->
+  <div class="slide">
+    <h2 class="animate">Ensemble Methods</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Why Ensembles Win</h3>
+        <ul>
+          <li><span class="highlight">Combining multiple models</span> almost always beats any single model</li>
+          <li><strong>Bagging</strong> (Random Forest) &mdash; parallel models on random subsets, average/vote</li>
+          <li><strong>Boosting</strong> (XGBoost) &mdash; sequential models, each fixing previous errors</li>
+          <li><strong>Stacking</strong> &mdash; feed predictions from multiple models into a meta-model</li>
+          <li><strong>Voting</strong> &mdash; multiple different algorithms vote on the answer</li>
+          <li>Reduces variance (bagging), bias (boosting), or both (stacking)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.ensemble import (VotingClassifier,
+    StackingClassifier, RandomForestClassifier,
+    GradientBoostingClassifier)
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+X = np.random.rand(300, 5)
+y = (X[:, 0] + X[:, 2] > 1.0).astype(int)
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+# Voting: multiple models vote
+voting = VotingClassifier(estimators=[
+    ("rf", RandomForestClassifier(n_estimators=50,
+                                   random_state=42)),
+    ("gb", GradientBoostingClassifier(
+                                   random_state=42)),
+    ("lr", LogisticRegression())
+], voting="soft")  # soft = use probabilities
+voting.fit(X_train, y_train)
+print(f"Voting: {voting.score(X_test, y_test):.2f}")
+
+# Stacking: meta-model on top
+stack = StackingClassifier(estimators=[
+    ("rf", RandomForestClassifier(n_estimators=50,
+                                   random_state=42)),
+    ("gb", GradientBoostingClassifier(
+                                   random_state=42)),
+], final_estimator=LogisticRegression())
+stack.fit(X_train, y_train)
+print(f"Stacking: {stack.score(X_test, y_test):.2f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Evaluation Metrics -->
+  <div class="slide">
+    <h2 class="animate">Evaluation Metrics</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Classification Metrics</h3>
+        <ul>
+          <li><strong>Accuracy</strong> &mdash; % correct. Misleading with imbalanced data (99% non-fraud)</li>
+          <li><strong>Precision</strong> &mdash; of predicted positives, how many are correct? (avoid false alarms)</li>
+          <li><strong>Recall</strong> &mdash; of actual positives, how many did we catch? (avoid missing cases)</li>
+          <li><strong>F1 Score</strong> &mdash; harmonic mean of precision and recall</li>
+          <li><strong>ROC-AUC</strong> &mdash; area under the ROC curve. 1.0 = perfect, 0.5 = random</li>
+          <li><strong>Confusion Matrix</strong> &mdash; table of TP, FP, TN, FN</li>
+        </ul>
+        <p style="margin-top:8px;"><strong>Regression:</strong> MSE, RMSE, MAE, R-squared</p>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.metrics import (classification_report,
+    confusion_matrix, roc_auc_score,
+    mean_squared_error, r2_score)
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+import numpy as np
+
+X = np.random.rand(300, 4)
+y = (X[:, 0] + X[:, 1] > 1.0).astype(int)
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+rf = RandomForestClassifier(random_state=42)
+rf.fit(X_train, y_train)
+preds = rf.predict(X_test)
+proba = rf.predict_proba(X_test)[:, 1]
+
+# Full classification report
+print(classification_report(y_test, preds))
+
+# Confusion matrix
+cm = confusion_matrix(y_test, preds)
+print(f"Confusion Matrix:\n{cm}")
+# [[TN, FP],
+#  [FN, TP]]
+
+# ROC-AUC (needs probabilities)
+auc = roc_auc_score(y_test, proba)
+print(f"ROC-AUC: {auc:.3f}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Feature Engineering -->
+  <div class="slide">
+    <h2 class="animate">Feature Engineering</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>The Most Impactful ML Skill</h3>
+        <ul>
+          <li><span class="highlight">"Better features beat better algorithms"</span></li>
+          <li><strong>Scaling:</strong> StandardScaler (mean=0, std=1), MinMaxScaler (0-1). Required for SVM, KNN, NN</li>
+          <li><strong>Encoding categoricals:</strong> One-hot encoding (color &rarr; 3 binary columns), label encoding (tree models)</li>
+          <li><strong>Missing data:</strong> Impute with mean/median, add "is_missing" flag, or drop</li>
+          <li><strong>Interactions:</strong> price * volume, ratio features, polynomial features</li>
+          <li><strong>Time-based:</strong> Lag features, rolling mean/std, day-of-week, hour, seasonality</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.preprocessing import (StandardScaler,
+    MinMaxScaler, OneHotEncoder)
+from sklearn.impute import SimpleImputer
+import numpy as np
+
+# Scaling
+prices = np.array([[100], [200], [150], [300]])
+scaler = StandardScaler()
+scaled = scaler.fit_transform(prices)
+print(f"Scaled: {scaled.flatten()}")
+
+# One-hot encoding
+categories = np.array([["tech"],["finance"],
+                        ["tech"],["health"]])
+enc = OneHotEncoder(sparse_output=False)
+encoded = enc.fit_transform(categories)
+print(f"One-hot:\n{encoded}")
+print(f"Categories: {enc.categories_}")
+
+# Handle missing values
+data = np.array([[1, np.nan], [2, 3],
+                 [np.nan, 4], [5, 6]])
+imputer = SimpleImputer(strategy="median")
+clean = imputer.fit_transform(data)
+print(f"Imputed:\n{clean}")
+
+# Time-based features for trading
+def add_lag_features(prices, lags=[1, 5, 20]):
+    features = {}
+    for lag in lags:
+        features[f"lag_{lag}"] = np.roll(prices, lag)
+        features[f"return_{lag}"] = (
+            prices - np.roll(prices, lag)
+        ) / np.roll(prices, lag)
+    return features
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Model Selection Cheat Sheet -->
+  <div class="slide">
+    <h2 class="animate">Model Selection Cheat Sheet</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Scenario</th><th>First Choice</th><th>Alternative</th></tr>
+        <tr><td><strong>Tabular data (structured)</strong></td><td>XGBoost / Random Forest</td><td>Gradient Boosting, LightGBM</td></tr>
+        <tr><td><strong>Small dataset (&lt;1000 rows)</strong></td><td>Logistic Regression / SVM</td><td>KNN, Decision Tree</td></tr>
+        <tr><td><strong>Text classification</strong></td><td>Naive Bayes / Transformers</td><td>Logistic Regression + TF-IDF</td></tr>
+        <tr><td><strong>Image classification</strong></td><td>CNN (ResNet, EfficientNet)</td><td>Vision Transformer (ViT)</td></tr>
+        <tr><td><strong>Time series / sequences</strong></td><td>LSTM / Transformer</td><td>XGBoost with lag features</td></tr>
+        <tr><td><strong>Clustering (no labels)</strong></td><td>K-Means / DBSCAN</td><td>Hierarchical, GMM</td></tr>
+        <tr><td><strong>Too many features</strong></td><td>PCA first, then model</td><td>Feature selection (L1 regularization)</td></tr>
+        <tr><td><strong>Need interpretability</strong></td><td>Logistic Regression / Decision Tree</td><td>SHAP values on any model</td></tr>
+        <tr><td><strong>Market regime detection</strong></td><td>HMM</td><td>K-Means on returns</td></tr>
+        <tr><td><strong>Anomaly detection</strong></td><td>Isolation Forest / DBSCAN</td><td>KNN, Autoencoder</td></tr>
+      </table>
+      <pre class="animate" style="margin-top:16px;">
+# Quick decision in code
+import numpy as np
+n_samples, n_features = X.shape
+
+if n_samples < 1000:
+    # Small data: simple models
+    from sklearn.linear_model import LogisticRegression
+    model = LogisticRegression()
+elif n_features > 100:
+    # High-dimensional: reduce first
+    from sklearn.decomposition import PCA
+    from sklearn.ensemble import RandomForestClassifier
+    from sklearn.pipeline import Pipeline
+    model = Pipeline([("pca", PCA(n_components=20)),
+                      ("rf", RandomForestClassifier())])
+else:
+    # Default: XGBoost for tabular
+    import xgboost as xgb
+    model = xgb.XGBClassifier(n_estimators=100)
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Hyperparameter Tuning -->
+  <div class="slide">
+    <h2 class="animate">Hyperparameter Tuning</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>Finding the Best Settings</h3>
+        <ul>
+          <li><span class="highlight">Hyperparameters</span> = settings you choose before training (max_depth, learning_rate, n_estimators)</li>
+          <li><strong>GridSearchCV:</strong> Try every combination. Thorough but slow</li>
+          <li><strong>RandomizedSearchCV:</strong> Random samples from parameter space. Faster, nearly as good</li>
+          <li><strong>Cross-validation (K-fold):</strong> Split data into K folds, train on K-1, test on 1, rotate. More reliable than single split</li>
+          <li><strong>Learning curves:</strong> Plot train/test error vs data size to diagnose overfitting vs underfitting</li>
+          <li><strong>Early stopping:</strong> Stop training when validation score stops improving</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+from sklearn.model_selection import (
+    GridSearchCV, RandomizedSearchCV,
+    cross_val_score, learning_curve)
+from sklearn.ensemble import RandomForestClassifier
+import numpy as np
+
+X = np.random.rand(500, 6)
+y = (X[:, 0] + X[:, 2] > 1.0).astype(int)
+
+# Grid Search: try every combo
+param_grid = {
+    "n_estimators": [50, 100, 200],
+    "max_depth": [3, 5, 10, None],
+    "min_samples_split": [2, 5, 10]
+}
+grid = GridSearchCV(
+    RandomForestClassifier(random_state=42),
+    param_grid, cv=5, scoring="f1", n_jobs=-1
+)
+grid.fit(X, y)
+print(f"Best params: {grid.best_params_}")
+print(f"Best F1: {grid.best_score_:.3f}")
+
+# Cross-validation score
+scores = cross_val_score(
+    grid.best_estimator_, X, y, cv=5,
+    scoring="accuracy")
+print(f"CV Accuracy: {scores.mean():.3f} "
+      f"+/- {scores.std():.3f}")
+
+# Learning curve (diagnose over/underfitting)
+train_sizes, train_scores, test_scores = \
+    learning_curve(grid.best_estimator_, X, y,
+                   cv=5, train_sizes=[0.2, 0.4,
+                   0.6, 0.8, 1.0])
+print(f"Train sizes: {train_sizes}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: From Notebook to Production -->
+  <div class="slide">
+    <h2 class="animate">From Notebook to Production</h2>
+    <div class="two-col">
+      <div class="card animate">
+        <h3>The Production Gap</h3>
+        <ul>
+          <li><span class="highlight">Model serialization:</span> Save trained models for deployment. joblib (sklearn), pickle, ONNX (cross-framework)</li>
+          <li><strong>Serving:</strong> FastAPI, Flask, TorchServe, KServe for real-time predictions via HTTP</li>
+          <li><strong>Monitoring:</strong> Track prediction drift, accuracy decay, data quality over time</li>
+          <li><strong>Retraining pipelines:</strong> Automate retrain on new data (Airflow, Kubeflow, MLflow)</li>
+          <li><strong>A/B testing:</strong> Compare new model vs old in production with real traffic</li>
+          <li><strong>Versioning:</strong> Track model versions, data versions, experiment runs (MLflow, W&amp;B)</li>
+        </ul>
+      </div>
+      <div class="card animate">
+        <h3>Code Example</h3>
+        <pre style="border:none; padding:12px; font-size:0.85rem;">
+import joblib
+import numpy as np
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+
+# Train
+X = np.random.rand(500, 4)
+y = (X[:, 0] + X[:, 1] > 1.0).astype(int)
+X_train, X_test, y_train, y_test = \
+    train_test_split(X, y, test_size=0.2,
+                     random_state=42)
+
+model = RandomForestClassifier(random_state=42)
+model.fit(X_train, y_train)
+
+# Save model
+joblib.dump(model, "model_v1.joblib")
+
+# Load model (in production)
+loaded = joblib.load("model_v1.joblib")
+pred = loaded.predict(X_test[:5])
+print(f"Predictions: {pred}")
+
+# FastAPI serving (pseudocode):
+# from fastapi import FastAPI
+# app = FastAPI()
+# model = joblib.load("model_v1.joblib")
+#
+# @app.post("/predict")
+# def predict(features: list[float]):
+#     X = np.array(features).reshape(1, -1)
+#     pred = model.predict(X)
+#     proba = model.predict_proba(X)
+#     return {"prediction": int(pred[0]),
+#             "confidence": float(proba.max())}
+
+# Monitor drift: compare distributions
+from scipy import stats
+train_mean = X_train.mean(axis=0)
+new_mean = X_test.mean(axis=0)
+print(f"Feature drift: {abs(train_mean - new_mean)}")
+        </pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h2 class="animate">Course Complete</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Start with <span class="highlight">XGBoost or Random Forest</span> for tabular data &mdash; they are hard to beat</li>
+        <li class="animate"><span class="tag">Feature Engineering</span> matters more than algorithm choice</li>
+        <li class="animate">Always <strong>split your data</strong> (train/test) and use <strong>cross-validation</strong></li>
+        <li class="animate">Pick metrics that match your <strong>business problem</strong> (precision vs recall tradeoff)</li>
+        <li class="animate">Use <strong>HMMs</strong> for regime detection, <strong>Transformers</strong> for NLP and sequence tasks</li>
+        <li class="animate">The real challenge is <strong>production</strong>: monitoring, retraining, and drift detection</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Now go build something. Start with sklearn, graduate to PyTorch when needed.
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 25</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
