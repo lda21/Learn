@@ -1865,6 +1865,152 @@ containers:
     </div>
   </div>
 
+  <!-- CSI Drivers -->
+  <div class="slide">
+    <h2 class="animate">CSI &mdash; Container Storage Interface</h2>
+    <div class="content animate">
+      <p>CSI is a standard that lets K8s talk to <strong>any storage system</strong> via plugins. No need to modify K8s core.</p>
+      <div class="diagram">
+        <div class="box">Kubernetes<br><small>kubelet</small></div>
+        <div class="arrow">&rarr; CSI gRPC</div>
+        <div class="box">CSI Driver<br><small>DaemonSet pods</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Storage Backend<br><small>EBS / NFS / Longhorn</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Two Components</h3>
+        <ul>
+          <li><span class="highlight">CSI Controller</span> (Deployment) &mdash; creates/deletes/attaches volumes. Talks to storage API.</li>
+          <li><span class="highlight">CSI Node Driver</span> (DaemonSet) &mdash; mounts/formats volumes on each node. Runs privileged.</li>
+        </ul>
+        <h3 style="margin-top:12px">Common Drivers</h3>
+        <table style="font-size:0.9rem">
+          <tr><th>Driver</th><th>Backend</th></tr>
+          <tr><td><code>aws-ebs-csi</code></td><td>AWS EBS (block)</td></tr>
+          <tr><td><code>aws-efs-csi</code></td><td>AWS EFS (shared NFS)</td></tr>
+          <tr><td><code>longhorn</code></td><td>Distributed (node disks)</td></tr>
+          <tr><td><code>ceph-csi</code></td><td>Ceph (on-prem)</td></tr>
+          <tr><td><code>local-path</code></td><td>Node local disk (dev only)</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>PVC Flow with CSI</h3>
+<pre style="border:none; padding:12px; font-size:0.78rem;">
+# 1. You create a PVC
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: kafka-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: ebs-csi    # which driver
+  resources:
+    requests:
+      storage: 100Gi
+
+# What happens:
+# 1. PVC created → K8s asks CSI Controller
+#    "create a 100Gi volume"
+# 2. Controller calls AWS API → EBS created
+# 3. Pod scheduled to node-3 → "attach to node-3"
+# 4. Controller calls AWS → EBS attaches to EC2
+# 5. Node Driver formats (ext4), mounts
+# 6. Pod starts, sees /data with 100Gi
+</pre>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Longhorn -->
+  <div class="slide">
+    <h2 class="animate">Longhorn &mdash; Distributed Storage for K8s</h2>
+    <p class="subtitle animate">Uses node local disks with automatic replication. No cloud vendor required.</p>
+    <div class="two-col animate" style="margin-top:12px">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li><code>local-path</code>: node dies &rarr; <strong>data is GONE</strong></li>
+          <li>NFS server: single point of failure</li>
+          <li>Ceph: powerful but complex to operate</li>
+          <li>EBS: AWS only, costs money</li>
+        </ul>
+        <h3 style="margin-top:12px">Longhorn Solution</h3>
+        <ul>
+          <li>Replicates data across <strong>2-3 nodes</strong> automatically</li>
+          <li>Node dies &rarr; pod moves, data follows (zero loss)</li>
+          <li>Built-in snapshots, S3 backup, encryption</li>
+          <li>Web UI for management</li>
+          <li>Free, open-source (CNCF)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Install &amp; Use</h3>
+<pre style="border:none; padding:12px; font-size:0.78rem;">
+# Install via Helm
+helm install longhorn longhorn/longhorn \
+  -n longhorn-system --create-namespace \
+  --set defaultSettings.defaultReplicaCount=3
+
+# StorageClass (auto-created, or custom)
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: longhorn-3x
+provisioner: driver.longhorn.io
+parameters:
+  numberOfReplicas: "3"
+  dataLocality: "best-effort"
+
+# Use in PVC — identical to any storage
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+spec:
+  accessModes: [ReadWriteOnce]
+  storageClassName: longhorn-3x
+  resources:
+    requests:
+      storage: 50Gi
+</pre>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:12px">
+      <div class="card">
+        <h3>Postgres: local-path vs Longhorn</h3>
+<pre style="border:none; padding:12px; font-size:0.78rem;">
+local-path:
+  Node 1 dies → data on Node 1 disk
+  → POD MOVES TO NODE 2
+  → DATA IS GONE. DATABASE LOST.
+
+Longhorn (3 replicas):
+  Node 1 dies → data on Node 1, 2, AND 3
+  → Pod moves to Node 2
+  → Longhorn attaches replica from Node 2
+  → ZERO DATA LOSS. ~30s downtime.
+  → New replica auto-created to restore 3x
+</pre>
+      </div>
+      <div class="card">
+        <h3>When to Use What</h3>
+        <table style="font-size:0.85rem">
+          <tr><th>Workload</th><th>Use Longhorn?</th></tr>
+          <tr><td>Postgres / MySQL</td><td class="green"><strong>YES</strong> &mdash; can't lose data</td></tr>
+          <tr><td>Kafka brokers</td><td class="green"><strong>YES</strong> &mdash; faster recovery</td></tr>
+          <tr><td>MongoDB / Elastic</td><td class="green"><strong>YES</strong></td></tr>
+          <tr><td>Redis (cache)</td><td>NO &mdash; ephemeral, needs sub-ms</td></tr>
+          <tr><td>Stateless apps</td><td>NO &mdash; no PVC needed</td></tr>
+        </table>
+        <p style="margin-top:8px; font-size:0.9rem; color:var(--text-muted);"><strong>Latency:</strong> ~0.5-1ms vs ~0.1ms local. Fine for Postgres/Kafka. Not for Redis.</p>
+      </div>
+    </div>
+  </div>
+
+
   <!-- 31. RBAC & SECURITY -->
   <div class="slide">
     <h2 class="animate">RBAC &amp; Security</h2>
