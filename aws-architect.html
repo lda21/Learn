@@ -372,6 +372,53 @@ ScalingPolicy:
     </div>
   </div>
 
+  <!-- EBS vs EFS -->
+  <div class="slide">
+    <h2 class="animate">Storage: EBS vs EFS</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>EBS (Elastic Block Store)</h3>
+        <p>Virtual hard drive attached to <strong>one EC2</strong>.</p>
+        <ul>
+          <li><strong>Block device</strong> &mdash; format (ext4/xfs), mount, use</li>
+          <li><strong>Same AZ only</strong> &mdash; doesn't cross AZs</li>
+          <li>Sub-ms latency (~0.5ms via Nitro card)</li>
+          <li>gp3: 3K IOPS baseline, $0.08/GB/month</li>
+          <li>io2: up to 256K IOPS for databases</li>
+          <li><strong>Fixed size</strong> &mdash; provision and pay upfront</li>
+          <li>Snapshots stored in S3 (cross-region)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>EFS (Elastic File System)</h3>
+        <p>Managed NFS shared by <strong>thousands of instances</strong>.</p>
+        <ul>
+          <li><strong>NFS v4.1</strong> &mdash; mount like a network drive</li>
+          <li><strong>Multi-AZ</strong> &mdash; replicated across 3 AZs</li>
+          <li>Higher latency (~2-5ms, network)</li>
+          <li>~50K IOPS (burst mode)</li>
+          <li>$0.30/GB/month (3.75x more than EBS)</li>
+          <li><strong>Auto-grows</strong> &mdash; pay only for used storage</li>
+          <li>Lifecycle: Standard &rarr; IA (infrequent access) auto-tier</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:12px;">
+      <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+      <table style="min-width:550px;">
+        <tr><th>Workload</th><th>Use</th><th>Why</th></tr>
+        <tr><td>Database (RDS, Postgres)</td><td><span class="highlight">EBS</span></td><td>Single writer, fast IOPS</td></tr>
+        <tr><td>Shared file uploads</td><td><span class="green">EFS</span></td><td>Multiple EC2s write simultaneously</td></tr>
+        <tr><td>ML model serving</td><td><span class="green">EFS</span></td><td>Many instances read same model</td></tr>
+        <tr><td>Container storage (EKS)</td><td><span class="highlight">EBS</span> (RWO) / <span class="green">EFS</span> (RWX)</td><td>Depends on access mode needed</td></tr>
+        <tr><td>High-IOPS critical DB</td><td><span class="highlight">EBS io2</span></td><td>256K IOPS, sub-ms</td></tr>
+        <tr><td>Object storage / static</td><td>S3</td><td>Not a filesystem &mdash; API access only</td></tr>
+      </table>
+      </div>
+      <p style="margin-top:8px; text-align:center; color:var(--text-muted);"><strong>Rule:</strong> one instance writes &rarr; EBS. Many instances share &rarr; EFS. API-based access &rarr; S3.</p>
+    </div>
+  </div>
+
   <!-- SLIDE 8 -->
   <div class="slide">
     <h2 class="animate">Database Selection</h2>

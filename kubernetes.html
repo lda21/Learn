@@ -1998,6 +1998,70 @@ spec:
   </div>
 
 
+  <!-- EBS vs EFS -->
+  <div class="slide">
+    <h2 class="animate">EBS vs EFS &mdash; AWS Storage Deep Dive</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>EBS (Elastic Block Store)</h3>
+        <p>A <span class="highlight">virtual hard drive</span> attached to one EC2 instance. Block device, format it, mount it.</p>
+        <ul>
+          <li><strong>RWO only</strong> &mdash; one node at a time</li>
+          <li><strong>Same AZ only</strong> &mdash; doesn't cross AZs</li>
+          <li>Sub-millisecond latency (~0.5ms)</li>
+          <li>Up to 256K IOPS (io2) or 3K baseline (gp3)</li>
+          <li><strong>Fixed size</strong> &mdash; you provision 100GB, pay for 100GB</li>
+          <li>$0.08/GB/month (gp3)</li>
+        </ul>
+<pre style="border:none; padding:8px; font-size:0.78rem; margin-top:8px;">
+# K8s StorageClass for EBS
+provisioner: ebs.csi.aws.com
+parameters:
+  type: gp3
+  fsType: ext4
+# WaitForFirstConsumer = create in pod's AZ
+volumeBindingMode: WaitForFirstConsumer
+</pre>
+      </div>
+      <div class="card">
+        <h3>EFS (Elastic File System)</h3>
+        <p>A <span class="highlight">managed NFS server</span> that thousands of pods mount simultaneously.</p>
+        <ul>
+          <li><strong>RWO + RWX + ROX</strong> &mdash; shared access</li>
+          <li><strong>Multi-AZ</strong> &mdash; replicated across 3 AZs</li>
+          <li>Higher latency (~2-5ms, NFS over network)</li>
+          <li>~50K IOPS (burst)</li>
+          <li><strong>Auto-grows</strong> &mdash; pay only what you use</li>
+          <li>$0.30/GB/month (3.75x more expensive)</li>
+        </ul>
+<pre style="border:none; padding:8px; font-size:0.78rem; margin-top:8px;">
+# K8s StorageClass for EFS
+provisioner: efs.csi.aws.com
+parameters:
+  provisioningMode: efs-ap
+  fileSystemId: fs-0abc123def
+  directoryPerms: "700"
+</pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:12px;">
+      <div style="overflow-x:auto; -webkit-overflow-scrolling:touch;">
+      <table style="min-width:650px;">
+        <tr><th>Workload</th><th>Storage</th><th>Mode</th><th>Why</th></tr>
+        <tr><td>Postgres / MySQL</td><td><span class="highlight">EBS gp3</span></td><td>RWO</td><td>Single writer, fast IOPS, cheap</td></tr>
+        <tr><td>Kafka broker logs</td><td><span class="highlight">EBS gp3</span></td><td>RWO</td><td>Each broker = own volume</td></tr>
+        <tr><td>Redis persistence</td><td><span class="highlight">EBS gp3</span></td><td>RWO</td><td>One pod, sub-ms needed</td></tr>
+        <tr><td>Shared uploads (API)</td><td><span class="green">EFS</span></td><td>RWX</td><td>Multiple pods write uploads</td></tr>
+        <tr><td>ML model serving</td><td><span class="green">EFS</span></td><td>ROX</td><td>Many pods read same model file</td></tr>
+        <tr><td>WordPress media</td><td><span class="green">EFS</span></td><td>RWX</td><td>Multiple pods, shared media</td></tr>
+        <tr><td>High-IOPS database</td><td><span class="highlight">EBS io2</span></td><td>RWO</td><td>256K IOPS, critical workload</td></tr>
+      </table>
+      </div>
+      <p style="margin-top:8px; text-align:center; color:var(--text-muted);"><strong>Rule:</strong> one pod writes &rarr; EBS (faster, cheaper). Many pods share &rarr; EFS (slower, 3.75x cost).</p>
+    </div>
+  </div>
+
+
   <!-- Longhorn -->
   <div class="slide">
     <h2 class="animate">Longhorn &mdash; Distributed Storage for K8s</h2>
