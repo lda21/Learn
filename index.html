@@ -411,7 +411,7 @@ function filterCourses() {
 
   const filtered = COURSES.filter(c =>
     !q || c.name.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q) || c.tags.some(t => t.toLowerCase().includes(q))
-  );
+  ).sort((a, b) => b.published.localeCompare(a.published) || a.name.localeCompare(b.name));
 
   countEl.textContent = filtered.length + ' course' + (filtered.length !== 1 ? 's' : '');
 
