@@ -683,7 +683,83 @@ Low address: 0x00000000...</pre>
   </div>
 
 
-  <!-- SLIDE 16: CPU Fetch-Decode-Execute -->
+  <!-- SLIDE 16: How RAM Physically Stores Bytes -->
+  <div class="slide">
+    <h2 class="animate">How RAM Physically Stores Bytes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>One Bit = One Capacitor</h3>
+        <ul>
+          <li><span class="highlight">Charged</span> capacitor = <strong>1</strong></li>
+          <li><span class="highlight">Discharged</span> capacitor = <strong>0</strong></li>
+          <li>Each capacitor paired with a transistor (switch)</li>
+          <li>Capacitors <strong>leak charge</strong> &mdash; refreshed 15,000&times;/sec</li>
+          <li>Power off = charge drains = data gone (<strong>volatile</strong>)</li>
+        </ul>
+        <p style="margin-top:12px; color:var(--text-muted); font-size:1rem;">16 GB RAM = ~137 billion tiny leaking capacitors being desperately refreshed.</p>
+      </div>
+      <div class="card">
+        <h3>Storing <code>int a = 3</code></h3>
+<pre style="border:none; padding:12px; font-size:0.82rem;">
+Address 0x7FFF1224 (4 bytes):
+
+Byte 0: 03 = 00000011
+  Capacitor 0: discharged (0)
+  Capacitor 1: charged    (1) &larr;
+  Capacitor 2: discharged (0)   these two
+  Capacitor 3: discharged (0)   hold the "3"
+  Capacitor 4: discharged (0)
+  Capacitor 5: discharged (0)
+  Capacitor 6: discharged (0)
+  Capacitor 7: discharged (0)
+
+Byte 1: 00 (all discharged)
+Byte 2: 00 (all discharged)
+Byte 3: 00 (all discharged)
+
+32 capacitors. 30 discharged. 2 charged.
+That's the number 3 as physical charge.</pre>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>How the CPU Reads a Byte</h3>
+<pre style="border:none; padding:12px; font-size:0.82rem;">
+CPU: "give me byte at 0x7FFF1228"
+             &darr;
+  ┌──────────────────────────────┐
+  &vert;  RAM chip (row &times; column grid) &vert;
+  &vert;                              &vert;
+  &vert;  Row 0: [0][0][1][0]...     &vert;
+  &vert;  Row 1: [1][0][0][1]...     &vert;
+  &vert;  Row 2: [0][1][0][0]... &larr;  &vert;
+  &vert;         &uarr;                    &vert;
+  &vert;       column                  &vert;
+  └──────────────────────────────┘
+
+1. Address decoded to row + column
+2. Row activated (transistors open)
+3. Sense amplifiers read charge
+4. Column selector picks 8 bits
+5. Returns byte on data bus (~10ns)</pre>
+      </div>
+      <div class="card">
+        <h3>Memory Hierarchy (speed)</h3>
+        <div class="diagram" style="flex-direction:column; gap:6px;">
+          <div class="box" style="min-width:90%; font-size:0.9rem; background:var(--accent); color:#fff;">CPU Registers &mdash; 0.3 ns</div>
+          <div class="box" style="min-width:80%; font-size:0.9rem;">L1 Cache (SRAM) &mdash; 1 ns</div>
+          <div class="box" style="min-width:70%; font-size:0.9rem;">L2 Cache &mdash; 3 ns</div>
+          <div class="box" style="min-width:60%; font-size:0.9rem;">L3 Cache &mdash; 10 ns</div>
+          <div class="box" style="min-width:50%; font-size:0.9rem; border-color:var(--success);">RAM (DRAM) &mdash; 50 ns</div>
+          <div class="box" style="min-width:40%; font-size:0.9rem; border-color:var(--warning);">SSD &mdash; 100,000 ns</div>
+        </div>
+        <p style="margin-top:10px; font-size:0.95rem; color:var(--text-muted);">SRAM (cache) = 6 transistors/bit, no refresh needed. Fast but expensive. DRAM = 1 capacitor + 1 transistor/bit. Cheap but needs constant refresh.</p>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: CPU Fetch-Decode-Execute -->
   <div class="slide">
     <h2 class="animate">Step 3 &mdash; CPU Fetch-Decode-Execute</h2>
     <div class="content">
