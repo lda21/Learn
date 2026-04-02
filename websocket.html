@@ -648,7 +648,79 @@ ws.onmessage = (e) => {
     </div>
   </div>
 
-  <!-- Slide 13: WebSocket → Kafka Pipeline -->
+  <!-- Slide 13: Pod Failover & Data Consistency -->
+  <div class="slide">
+    <h2 class="animate">Pod Failover &amp; Data Consistency</h2>
+    <p class="subtitle animate">What happens when a pod dies and the client reconnects to a different pod?</p>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Client</div>
+        <div class="arrow">&harr;</div>
+        <div class="box" style="border-color:var(--warning)">Pod 1<br><small style="color:var(--warning)">&times; dies</small></div>
+        <div class="arrow" style="color:var(--warning)">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Pod 2<br><small>reconnects here</small></div>
+      </div>
+    </div>
+    <div class="two-col animate" style="margin-top:20px">
+      <div class="card">
+        <h3>What the Client Sees</h3>
+        <ul>
+          <li><span class="highlight">YES &mdash; connection drops.</span> The TCP socket dies. The client gets an <code>onclose</code> event. This is <strong>not transparent.</strong></li>
+          <li>The load balancer does NOT magically hand the connection to another pod &mdash; WebSocket is a persistent TCP connection to one specific pod</li>
+          <li>Client must <strong>reconnect</strong> (new handshake, new TCP socket, new pod assignment by LB)</li>
+          <li>During reconnect: <strong>messages are lost.</strong> Anything sent while disconnected is gone.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Data Loss Window</h3>
+<pre style="border:none; padding:12px; font-size:0.85rem;">
+Timeline:
+  T0: Pod 1 healthy, streaming data
+  T1: Pod 1 crashes
+      ← messages lost here
+  T2: Client detects disconnect (~5-30s)
+  T3: Client reconnects to Pod 2
+  T4: New stream starts
+
+Gap: T1 → T4 = 5-60 seconds of lost data
+</pre>
+      </div>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px">
+      <div class="metric-card">
+        <h3>Solution 1: Sequence Numbers</h3>
+        <p>Server tags every message with a sequence ID. Client sends <code>last_seen_seq=4582</code> on reconnect. New pod replays from 4583 onwards. <strong>Requires server-side message buffer</strong> (Redis, Kafka).</p>
+      </div>
+      <div class="metric-card">
+        <h3>Solution 2: Shared State</h3>
+        <p>Don't keep state in pods. Store all session state in <strong>Redis</strong>. Any pod can serve any client. Pod 2 reads client state from Redis and resumes. Pod is stateless, Redis is the source of truth.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Solution 3: Event Bus Replay</h3>
+        <p>All messages flow through <strong>Kafka with retention</strong>. On reconnect, consumer replays from the offset where the client disconnected. Zero data loss if offsets are tracked.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Solution 4: Client-Side Recovery</h3>
+        <p>On reconnect, client calls a <strong>REST snapshot endpoint</strong> to get current full state, then resumes the WebSocket stream. Simple, no server-side replay needed. Works for trading dashboards.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:16px; font-size:0.85rem;">
+// Client-side: reconnect with recovery
+ws.onclose = () => {
+  // 1. Fetch full state snapshot via REST
+  const snapshot = await fetch('/api/state?since=' + lastSeqId);
+  applySnapshot(snapshot);
+
+  // 2. Reconnect WebSocket with last known sequence
+  const ws = new WebSocket(url + '?resume_from=' + lastSeqId);
+
+  // 3. Server replays missed messages, then continues live stream
+};
+</pre>
+  </div>
+
+
+  <!-- Slide 14: WebSocket → Kafka Pipeline -->
   <div class="slide">
     <h2 class="animate">WebSocket &rarr; Kafka Pipeline</h2>
     <p class="subtitle animate">AI Crypto Agent ingests exchange ticks into Kafka for downstream processing</p>
@@ -928,7 +1000,7 @@ async def test_tick_processing(mock_ws):
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 21</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
