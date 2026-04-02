@@ -48,7 +48,7 @@
     .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
     .slide {
       position: absolute; inset: 0; display: flex; flex-direction: column;
-      justify-content: flex-start; align-items: center; padding: 80px 80px 60px;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
       opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
     }
     .slide.active { opacity: 1; pointer-events: auto; }
@@ -143,7 +143,7 @@
       transition: background 0.2s;
     }
     .back-link:hover { background: #C4654A; }
-    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--bg); padding: 4px 10px; border-radius: 6px; }
 
     .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
     .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
@@ -167,7 +167,7 @@
 
     @media (max-width: 768px) {
       body { font-size: 18px; }
-      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 30px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
       h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
       p, li { font-size: 1.3rem; line-height: 1.7; }
       .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
@@ -186,14 +186,14 @@
       .nav-toggle { display: flex; }
       .nav { display: none; }
       .close-btn { display: none; }
-      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--bg); padding: 4px 8px; border-radius: 6px; }
       [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
       [data-nav="visible"] .close-btn { display: flex; }
       [data-nav="visible"] .slide { padding-bottom: 120px; }
       .content { max-width: 100%; }
     }
     @media (max-width: 480px) {
-      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 24px; }
+      .slide { padding: 24px 18px; padding-top: 40px; padding-bottom: 60px; }
       h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
       p, li { font-size: 1.2rem; line-height: 1.65; }
       pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
