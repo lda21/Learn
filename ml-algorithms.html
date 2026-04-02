@@ -333,6 +333,10 @@ print(f"Prediction: {model.predict([[200, 75]])}")
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Predict next-day returns from features like RSI, volume ratio, and bid-ask spread. In <strong>pairs trading</strong>, linear regression measures the spread between two correlated assets (e.g., BTC/ETH) &mdash; fit a linear relationship between their prices, then trade when the spread deviates significantly from the regression line (mean-reversion). Also used for <strong>beta estimation</strong>: how much does a stock move relative to the market? <code>beta = slope of regression(stock_returns, market_returns)</code>. A beta of 1.3 means the stock moves 30% more than the index on average.</p>
+    </div>
   </div>
 
 
@@ -379,6 +383,10 @@ print(f"P(buy):  {proba[0][1]:.2f}")
 print(f"Accuracy: {model.score(X_test, y_test):.2f}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Binary signal: "will price go up or down in the next hour?" Input features: RSI, MACD crossover, volume spike, funding rate. Output: probability of an up move. If <code>P &gt; 0.6</code>, go long. If <code>P &lt; 0.4</code>, go short. Logistic regression is the <strong>baseline model</strong> for any trading signal &mdash; if it can't find signal in your features, more complex models won't either. Also useful for classifying trades as "good fill" vs "bad fill" based on slippage features like order size, spread width, and time-of-day.</p>
     </div>
   </div>
 
@@ -433,6 +441,10 @@ print(f"Accuracy: {tree.score(X_test, y_test):.2f}")
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Explain trading rules in human-readable form: <code>IF RSI &lt; 30 AND volume &gt; 2x average AND funding_rate &lt; -0.01% THEN buy signal</code>. Compliance teams love this &mdash; they can read the tree and understand exactly <strong>why</strong> a trade was made. Used for <strong>trade attribution</strong> ("why did the system buy here?"), risk rule explanation, and regulatory auditing. When a regulator asks "how does your algorithm make decisions?", a decision tree gives a clear, auditable answer that no black-box model can match.</p>
+    </div>
   </div>
 
 
@@ -483,6 +495,10 @@ for name, imp in zip(names,
     print(f"  {name}: {imp:.3f}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p><strong>Feature importance for alpha research</strong>: which features actually predict returns? Run a Random Forest, extract <code>feature_importances_</code> &rarr; "RSI contributes 22%, funding rate 18%, order book imbalance 15%, volume 12%..." Kill features with &lt;5% importance to reduce noise and overfitting. Also used to predict <strong>trade execution quality</strong> &mdash; will this order get filled at a good price given current order book conditions (spread, depth, volatility)? The ensemble of trees is robust to outliers that are common in financial data.</p>
     </div>
   </div>
 
@@ -538,6 +554,10 @@ for i, imp in enumerate(model.feature_importances_):
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>The <strong>workhorse of quantitative trading</strong>. Input: 50+ features (technical indicators, microstructure signals, sentiment scores, on-chain metrics). Output: signal strength (-1 to +1). <strong>Walk-forward validation</strong> is critical &mdash; train on 2 years, validate on the next 3 months, roll forward to avoid look-ahead bias. XGBoost handles missing data natively, which matters in crypto where some features aren't available for all symbols. Also used for credit scoring and fraud detection in transactions. Consistently outperforms other models on structured/tabular financial data.</p>
+    </div>
   </div>
 
 
@@ -587,6 +607,10 @@ proba = model.predict_proba(X_test[:3])
 print(f"Probabilities:\n{proba}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Classify <strong>market regimes</strong> when the boundary between states is non-linear. With an RBF kernel, SVM can separate "trending" vs "mean-reverting" markets in a feature space of volatility + autocorrelation + volume. In <strong>options trading</strong>: classify whether implied volatility is "cheap" or "expensive" relative to realized vol features. Less common now (XGBoost usually wins on structured data) but useful for <strong>small, clean datasets</strong> where the margin-maximization property gives SVM an edge over other classifiers.</p>
     </div>
   </div>
 
@@ -644,6 +668,10 @@ for k in [3, 5, 7, 11]:
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Find <strong>similar historical market conditions</strong>. "The current market looks like these 5 past episodes" &rarr; what happened next in those episodes? Used for <strong>pattern matching</strong>: today's price/volume/volatility pattern is most similar to dates X, Y, Z &mdash; use their outcomes as a probability distribution for what happens next. Also for <strong>anomaly detection</strong>: if a trade's features have no close neighbors in historical data, it's unusual &rarr; flag for review. Simple but effective for building recommendation systems for portfolio construction ("find assets most similar to this one").</p>
+    </div>
   </div>
 
 
@@ -697,6 +725,10 @@ print(f"Score: {gnb.score(X2, y2):.2f}")
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p><strong>Real-time news classification</strong>. Stream financial news headlines &rarr; classify as positive/negative/neutral for each asset. "Fed raises rates" &rarr; negative for growth stocks, positive for banks. Process thousands of headlines per second with minimal latency. Also: classify earnings call transcripts, SEC filings sentiment, and social media sentiment at scale. Naive Bayes is chosen here because <strong>speed matters more than accuracy</strong> &mdash; you need to react to breaking news in milliseconds, and the naive independence assumption is a worthwhile tradeoff for sub-millisecond inference.</p>
+    </div>
   </div>
 
 
@@ -749,6 +781,10 @@ print(f"\nCluster sizes: {np.bincount(labels)}")
 print(f"Centroids:\n{model.cluster_centers_}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Cluster trading days into <strong>regimes</strong>: high-vol/low-vol, trending/ranging, risk-on/risk-off. Cluster assets by behavior for <strong>portfolio construction</strong>: "these 5 cryptos move together, diversify across clusters instead of within them." Cluster order flow patterns to detect different types of <strong>market participants</strong> (institutional vs retail vs algorithmic) based on order size, timing, and fill rates. Also: cluster client trading behavior for risk monitoring &mdash; detect when a client's pattern shifts to a different cluster (potential risk signal).</p>
     </div>
   </div>
 
@@ -806,6 +842,10 @@ print(f"K-Means forces all into 2 clusters")
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Detect <strong>market manipulation events</strong> &mdash; unusual clusters of trades at specific prices/times that don't fit normal patterns. The noise points DBSCAN identifies (label <code>-1</code>) are potential <strong>spoofing or wash trading</strong>. Unlike K-Means, DBSCAN doesn't force every data point into a cluster, so normal trading activity gets grouped while suspicious isolated events get flagged as outliers. This asymmetry is exactly what surveillance teams need: identify the abnormal without distorting the normal.</p>
+    </div>
   </div>
 
 
@@ -858,6 +898,10 @@ print(f"2D variance explained: "
       f"{sum(pca_2d.explained_variance_ratio_):.2%}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Reduce 100+ correlated technical indicators down to 5-10 principal components that capture most variance. Eliminates <strong>multicollinearity</strong> that breaks regression models. In risk management: PCA on a correlation matrix of asset returns reveals <strong>hidden risk factors</strong> &mdash; PC1 is usually "market direction", PC2 is "growth vs value", PC3 is "large vs small cap". Also: compress order book features (50 levels &times; bid+ask &times; size+count = 200 features &rarr; 10 PCs) to make downstream models tractable without losing the signal buried in the book.</p>
     </div>
   </div>
 
@@ -912,6 +956,10 @@ for i in range(3):
           f" days={mask.sum()}")
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>The <strong>classic trading regime detector</strong>. Hidden states: bull / bear / sideways. Observable outputs: daily returns, volatility. The model learns: "when in bull state, returns are ~+0.1% with low vol; when in bear, returns are ~-0.2% with high vol." Use for <strong>adaptive strategy selection</strong>: run a momentum strategy in bull regime, mean-reversion in sideways, reduce exposure in bear. Also enables <strong>dynamic position sizing</strong> (larger positions when confidently in bull state) and regime-aware risk limits (tighter stops when the model assigns high probability to a bear transition).</p>
     </div>
   </div>
 
@@ -971,6 +1019,10 @@ print(f"LogReg:  {lr.score(X_test, y_test):.2f}")
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p><strong>Non-linear signal generation</strong> when tree-based models plateau. Input: embeddings of order book state + technical features + sentiment scores. Neural networks learn complex feature interactions that XGBoost misses. <strong>Warning</strong>: requires much more data (100K+ samples), overfits easily on noisy financial data, and is a black box (hard to explain to the risk team). In practice, used as <strong>one model in an ensemble</strong> alongside XGBoost &mdash; the NN captures non-linear interactions while XGBoost handles the structured features, and their errors are often uncorrelated.</p>
+    </div>
   </div>
 
 
@@ -1029,6 +1081,10 @@ print(f"Digit recognition: "
         </pre>
       </div>
     </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p><strong>Chart pattern recognition</strong> &mdash; feed candlestick chart images to a CNN, classify as "head and shoulders", "double bottom", "triangle breakout", etc. Also: process <strong>order book heatmaps</strong> as 2D images to detect patterns in bid/ask depth over time (e.g., large hidden walls forming before price moves). Less common in HFT (inference is too slow for microsecond decisions), but useful for <strong>medium-frequency strategies</strong> where you can afford to process data every few minutes and the visual patterns carry genuine predictive signal.</p>
+    </div>
   </div>
 
 
@@ -1084,6 +1140,10 @@ print(f"R2: {model.score(X_flat[split:], y[split:]):.2f}")
 # For real LSTM, use PyTorch nn.LSTM
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>Predict next N candles from a sequence of past candles. Input: sequence of (open, high, low, close, volume) for the last 50 periods. The LSTM <strong>"remembers" sequential dependencies</strong> &mdash; e.g., "after 3 consecutive down days with decreasing volume, price tends to reverse." The forget gate learns which historical context matters and which to discard. <strong>Warning</strong>: very prone to overfitting on financial data because price sequences have low signal-to-noise ratio. Being replaced by Transformers for most sequence modeling tasks, but still useful when data is limited and sequences are short.</p>
     </div>
   </div>
 
@@ -1143,6 +1203,10 @@ print(f"Attention weights:\n{attn.round(3)}")
 # attends to every other token
         </pre>
       </div>
+    </div>
+    <div class="card animate" style="margin-top:16px; max-width:1000px; width:100%; border-top:4px solid var(--success);">
+      <h3 class="green">Trading / Investment Use Case</h3>
+      <p>The <strong>attention mechanism</strong> enables multi-asset, multi-timeframe analysis. Self-attention can look at ALL past timestamps simultaneously (not sequentially like LSTM), weighing each one by relevance. Used for: processing <strong>entire order books as sequences</strong>, multi-asset correlation modeling (attention weights reveal which assets influence each other), and sentiment analysis of long financial documents (10-K filings, earnings transcripts). Also: the foundation for <strong>FinGPT and BloombergGPT</strong> &mdash; domain-specific language models trained on financial text for trading signal extraction, report summarization, and risk analysis.</p>
     </div>
   </div>
 
