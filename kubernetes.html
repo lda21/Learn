@@ -1749,6 +1749,80 @@ spec:
     </div>
   </div>
 
+  <!-- Calico CNI -->
+  <div class="slide">
+    <h2 class="animate">Calico &mdash; CNI &amp; Network Security</h2>
+    <div class="content animate">
+      <p>Calico is a <span class="highlight">CNI plugin</span> (Container Network Interface) that provides pod networking AND network policy enforcement. The most popular CNI for production K8s.</p>
+    </div>
+    <div class="two-col animate" style="margin-top:12px">
+      <div class="card">
+        <h3>What Calico Does</h3>
+        <ul>
+          <li><span class="highlight">Pod networking</span> &mdash; assigns IPs, routes traffic between pods across nodes (BGP or VXLAN overlay)</li>
+          <li><span class="highlight">NetworkPolicy enforcement</span> &mdash; K8s NetworkPolicy only defines rules. Calico actually <strong>enforces</strong> them via iptables/eBPF</li>
+          <li><span class="highlight">GlobalNetworkPolicy</span> &mdash; Calico-specific: cluster-wide policies (K8s native only does per-namespace)</li>
+          <li><span class="highlight">DNS-based policies</span> &mdash; allow/deny by domain name, not just IP</li>
+          <li><span class="highlight">Egress gateway</span> &mdash; control outbound traffic from pods to external services</li>
+        </ul>
+        <h3 style="margin-top:12px">Why Not Just AWS VPC CNI?</h3>
+        <ul>
+          <li>VPC CNI assigns real VPC IPs to pods (good for performance)</li>
+          <li>But VPC CNI <strong>does NOT enforce NetworkPolicies</strong></li>
+          <li>On EKS: use VPC CNI for networking + <strong>Calico for policy enforcement</strong></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Install on EKS</h3>
+<pre style="border:none; padding:12px; font-size:0.78rem;">
+# EKS: VPC CNI handles networking,
+# Calico handles policy enforcement only
+kubectl apply -f https://raw.githubusercontent.com/\
+  aws/amazon-vpc-cni-k8s/master/config/master/\
+  calico-operator.yaml
+kubectl apply -f https://raw.githubusercontent.com/\
+  aws/amazon-vpc-cni-k8s/master/config/master/\
+  calico-crs.yaml
+
+# Bare-metal: Calico handles BOTH
+# networking + policies
+helm install calico projectcalico/tigera-operator \
+  --namespace tigera-operator \
+  --create-namespace
+</pre>
+        <h3 style="margin-top:12px">Calico GlobalNetworkPolicy</h3>
+<pre style="border:none; padding:12px; font-size:0.78rem;">
+# Deny all egress except DNS cluster-wide
+# (K8s NetworkPolicy can't do this)
+apiVersion: projectcalico.org/v3
+kind: GlobalNetworkPolicy
+metadata:
+  name: default-deny-egress
+spec:
+  selector: all()
+  types: [Egress]
+  egress:
+    - action: Allow
+      protocol: UDP
+      destination:
+        ports: [53]
+    - action: Deny
+</pre>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:12px">
+      <table>
+        <tr><th>CNI</th><th>Networking</th><th>NetworkPolicy</th><th>Best For</th></tr>
+        <tr><td><span class="highlight">Calico</span></td><td>BGP / VXLAN</td><td class="green"><strong>Full support</strong> + GlobalNetworkPolicy</td><td>Production, security-focused, on-prem + cloud</td></tr>
+        <tr><td>Cilium</td><td>eBPF</td><td class="green">Full support + L7 policies</td><td>Advanced observability, service mesh replacement</td></tr>
+        <tr><td>AWS VPC CNI</td><td>VPC IPs</td><td style="color:var(--warning)">NO enforcement</td><td>EKS default, needs Calico alongside</td></tr>
+        <tr><td>Flannel</td><td>VXLAN</td><td style="color:var(--warning)">NO support</td><td>Simple dev clusters only</td></tr>
+        <tr><td>Weave</td><td>VXLAN</td><td class="green">Basic support</td><td>Simple setup, small clusters</td></tr>
+      </table>
+    </div>
+  </div>
+
+
   <!-- 29. PORT FORWARDING -->
   <div class="slide">
     <h2 class="animate">Port Forwarding</h2>
