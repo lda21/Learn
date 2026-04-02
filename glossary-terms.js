@@ -549,6 +549,87 @@ const GLOSSARY_TERMS = [
       }
     });
   })();
+
+  // ── Syntax Highlighting (highlight.js, lazy-loaded) ──────────────
+  (function() {
+    var pres = document.querySelectorAll('pre');
+    if (pres.length === 0) return;
+
+    // Theme CSS that respects our light/dark mode
+    var style = document.createElement('style');
+    style.textContent = [
+      // Override highlight.js backgrounds to match our theme
+      'pre code.hljs{background:transparent!important;padding:0!important;font-size:inherit!important;line-height:inherit!important}',
+      // Light mode token colors
+      '.hljs-keyword,.hljs-selector-tag,.hljs-built_in,.hljs-type{color:#DA7756;font-weight:600}',
+      '.hljs-string,.hljs-attr{color:#5A9A6E}',
+      '.hljs-number,.hljs-literal{color:#B07D48}',
+      '.hljs-comment,.hljs-meta{color:#6B6560;font-style:italic}',
+      '.hljs-function .hljs-title,.hljs-title.function_,.hljs-title.class_{color:#6B8EC9}',
+      '.hljs-variable,.hljs-params{color:#E8E2DC}',
+      '.hljs-symbol,.hljs-bullet{color:#DA7756}',
+      '.hljs-regexp{color:#D4976C}',
+      '.hljs-addition{color:#5A9A6E}',
+      '.hljs-deletion{color:#c0392b}',
+      '.hljs-operator,.hljs-punctuation{color:#9B9590}',
+      '.hljs-property{color:#E8E2DC}',
+      '.hljs-tag{color:#DA7756}',
+      '.hljs-name{color:#DA7756}',
+      '.hljs-attribute{color:#6B8EC9}',
+      // Section headers in pre blocks (lines starting with #)
+      '.hljs-meta .hljs-keyword{color:#DA7756}',
+      '.hljs-selector-class{color:#6B8EC9}',
+      '.hljs-subst{color:#E8E2DC}',
+    ].join('\n');
+    document.head.appendChild(style);
+
+    // Load highlight.js from CDN
+    var script = document.createElement('script');
+    script.src = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js';
+    script.async = true;
+    script.onload = function() {
+      // Register additional languages we use frequently
+      var langs = [
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/rust.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/dockerfile.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/nginx.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/yaml.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/hcl.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/protobuf.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/x86asm.min.js',
+        'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/armasm.min.js',
+      ];
+      var loaded = 0;
+      function highlightAll() {
+        // Don't highlight pre blocks that are clearly ASCII art or diagrams
+        pres.forEach(function(pre) {
+          var text = pre.textContent;
+          // Skip if it looks like ASCII art (lots of box-drawing, arrows, or layout)
+          if ((text.match(/[─│┌┐└┘├┤┬┴┼═║╔╗╚╝╠╣╦╩╬▸→←↑↓▼△►◄●○■□]/g) || []).length > 5) return;
+          if ((text.match(/[\+\-\|]{3,}/g) || []).length > 3) return;
+          // Skip if no code-like content (just plain text descriptions)
+          var codeSignals = (text.match(/[{}();=<>\/\[\]]/g) || []).length;
+          if (codeSignals < 3 && text.length > 50) return;
+          hljs.highlightElement(pre);
+        });
+      }
+      langs.forEach(function(url) {
+        var s = document.createElement('script');
+        s.src = url;
+        s.async = true;
+        s.onload = function() {
+          loaded++;
+          if (loaded === langs.length) highlightAll();
+        };
+        s.onerror = function() {
+          loaded++;
+          if (loaded === langs.length) highlightAll();
+        };
+        document.body.appendChild(s);
+      });
+    };
+    document.body.appendChild(script);
+  })();
 })();
 
 
