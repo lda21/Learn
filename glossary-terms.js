@@ -334,6 +334,7 @@ const GLOSSARY_TERMS = [
   {t:"AOF", d:"Append-Only File — Redis persistence that logs every write operation. More durable than RDB snapshots. Can be configured for fsync every second or every write.", tags:["Redis"]},
   {t:"Canonical Schema", d:"A standardized, agreed-upon data format shared across services or systems. Acts as the single source of truth for a data entity's shape, ensuring consistency across producers and consumers.", tags:["Data Architecture","API"]},
   {t:"Materialized View", d:"A precomputed query result stored as a physical table in the database. Unlike regular views, materialized views cache the result and must be refreshed (manually or on schedule) to reflect source changes. Used for expensive aggregations and read-heavy workloads.", tags:["Database","PostgreSQL"]},
+  {t:"DAG", d:"Directed Acyclic Graph — a graph where edges have direction and no cycles exist (you can never follow edges back to where you started). Used everywhere: Git commit history, Airflow task dependencies, Terraform resource ordering, Kafka Streams topologies, and CI/CD pipeline stages. If A depends on B and B depends on C, that's a DAG: C → B → A.", tags:["Data Architecture","CI/CD","Orchestration"]},
 ];
 
 (function() {
