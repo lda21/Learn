@@ -1,0 +1,914 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Technical Trading Indicators</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --danger: #C0392B;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      overflow: hidden;
+      height: 100vh;
+    }
+
+    .deck { width: 100vw; height: 100vh; position: relative; }
+
+    .slide {
+      position: absolute; inset: 0;
+      display: flex; flex-direction: column;
+      justify-content: center; align-items: center;
+      padding: 60px 80px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.5s ease;
+      background: var(--bg);
+      overflow-y: auto;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre {
+      font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+      background: var(--code-bg); color: #E8E2DC; border-radius: 6px;
+    }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre {
+      padding: 24px 28px; font-size: 0.95rem; line-height: 1.6;
+      overflow-x: auto; width: 100%; max-width: 900px;
+      border-left: 4px solid var(--accent);
+    }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+
+    .card {
+      background: #fff; border-radius: 12px; padding: 28px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .card h3 { margin-bottom: 12px; }
+
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .red { color: var(--danger); }
+    .tag {
+      display: inline-block; background: var(--accent2);
+      padding: 4px 14px; border-radius: 20px; font-size: 0.95rem;
+      margin: 4px; color: var(--accent); font-weight: 600;
+    }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card {
+      background: #fff; border-radius: 12px; padding: 24px;
+      border-top: 4px solid var(--accent);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item {
+      background: #fff; border-radius: 10px; padding: 18px 22px;
+      font-size: 1.1rem; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid #D9D2CB; font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button {
+      background: var(--accent); color: #fff; border: none; border-radius: 8px;
+      padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s;
+    }
+    .nav button:hover { background: #C4654A; }
+
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .formula-box {
+      background: var(--accent2); border-radius: 10px; padding: 20px 28px;
+      margin: 12px 0; font-size: 1.15rem; text-align: center;
+      border-left: 4px solid var(--accent); max-width: 900px; width: 100%;
+    }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; }
+      .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.15rem; padding: 3px 8px; }
+      pre { padding: 18px 16px; font-size: 1rem; }
+      .two-col, .metric-grid, .bp-grid { grid-template-columns: 1fr; gap: 16px; }
+      .nav button { padding: 12px 22px; font-size: 1.1rem; }
+      table { font-size: 1rem; }
+      th, td { padding: 10px 12px; font-size: 1rem; }
+    }
+    @media (max-width: 480px) {
+      h1 { font-size: 2rem; } h2 { font-size: 1.8rem; }
+      .logo-icon { font-size: 4rem; } .title-fire { font-size: 3rem; }
+    }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="deck">
+
+  <!-- Slide 1: Title -->
+  <div class="slide active">
+    <span class="title-fire animate">&#x1F4C8;</span>
+    <h1 class="animate">Technical Trading Indicators</h1>
+    <p class="subtitle animate">A comprehensive guide to the 7 core indicators<br>powering the TradeQuests Feature Store</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">RSI</span>
+      <span class="tag">MACD</span>
+      <span class="tag">ATR</span>
+      <span class="tag">VWAP</span>
+      <span class="tag">Bollinger Bands</span>
+      <span class="tag">Volume POC</span>
+      <span class="tag">EMA</span>
+    </div>
+  </div>
+
+  <!-- Slide 2: Overview -->
+  <div class="slide">
+    <h2 class="animate">What We Will Cover</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>&#x1F4CA; RSI</h3>
+        <p>Relative Strength Index &mdash; momentum oscillator measuring overbought/oversold conditions</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F4C9; MACD Histogram</h3>
+        <p>Moving Average Convergence Divergence &mdash; trend-following momentum indicator</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F4CF; ATR</h3>
+        <p>Average True Range &mdash; volatility measurement for position sizing and stop-losses</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x2696; VWAP</h3>
+        <p>Volume Weighted Average Price &mdash; institutional benchmark for fair value</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F4CA; Bollinger Bands</h3>
+        <p>Statistical volatility envelope &mdash; mean reversion and breakout signals</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F3AF; Volume POC</h3>
+        <p>Point of Control &mdash; the price level with the highest traded volume</p>
+      </div>
+      <div class="metric-card" style="grid-column: 1 / -1; max-width: 460px; justify-self: center;">
+        <h3>&#x27B0; EMA 20</h3>
+        <p>20-period Exponential Moving Average &mdash; dynamic trend and support/resistance</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 3: RSI - Theory -->
+  <div class="slide">
+    <h2 class="animate">RSI &mdash; Relative Strength Index</h2>
+    <div class="content">
+      <p class="animate">Developed by <strong>J. Welles Wilder Jr.</strong> (1978), RSI is a <span class="highlight">momentum oscillator</span> that measures the speed and magnitude of recent price changes on a scale of 0 to 100.</p>
+      <div class="formula-box animate">
+        <strong>RSI = 100 &minus; (100 / (1 + RS))</strong><br>
+        where <strong>RS</strong> = Average Gain over <em>n</em> periods / Average Loss over <em>n</em> periods<br>
+        <small style="color:var(--text-muted);">Standard period: n = 14</small>
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3 class="green">&#x2191; Overbought Zone (RSI &gt; 70)</h3>
+          <p style="font-size:1.05rem;">Price has risen aggressively. May signal an upcoming pullback or reversal. Buyers are exhausted; sellers may step in.</p>
+        </div>
+        <div class="card">
+          <h3 class="red">&#x2193; Oversold Zone (RSI &lt; 30)</h3>
+          <p style="font-size:1.05rem;">Price has fallen sharply. May signal a bounce or reversal. Sellers are exhausted; buyers may step in.</p>
+        </div>
+      </div>
+      <ul class="animate" style="margin-top:16px;">
+        <li><strong>Bullish divergence:</strong> price makes lower low, RSI makes higher low &rarr; reversal up</li>
+        <li><strong>Bearish divergence:</strong> price makes higher high, RSI makes lower high &rarr; reversal down</li>
+        <li>RSI ~50 = neutral momentum; useful as a trend filter</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 4: RSI - Examples -->
+  <div class="slide">
+    <h2 class="animate">RSI &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>RSI</th><th>Interpretation</th><th>Signal</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>39.3</td>
+          <td>Below neutral (50), approaching oversold territory</td>
+          <td style="color:var(--warning);">&#x26A0; Bearish momentum, watch for 30 level</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td style="color:var(--success);">22.7</td>
+          <td>Deep in <span class="highlight">oversold zone</span> (&lt; 30)</td>
+          <td style="color:var(--success);">&#x2705; Potential bounce / mean reversion trade</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (RSI = 39.3)</h3>
+          <ul>
+            <li>Momentum is weakening but not yet extreme</li>
+            <li>No buy signal yet &mdash; wait for RSI &lt; 30 or bullish divergence</li>
+            <li>If RSI continues falling, expect further downside</li>
+            <li>A cross back above 50 would signal renewed bullish momentum</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (RSI = 22.7)</h3>
+          <ul>
+            <li>RSI well below 30 &rarr; <strong>deeply oversold</strong></li>
+            <li>Historically strong bounce probability at this level</li>
+            <li>Look for confirmation: bullish candle, volume spike, divergence</li>
+            <li>Consider scaling into a long position with tight stop-loss</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 5: MACD - Theory -->
+  <div class="slide">
+    <h2 class="animate">MACD Histogram</h2>
+    <div class="content">
+      <p class="animate">The <strong>Moving Average Convergence Divergence</strong> (Gerald Appel, 1979) tracks the relationship between two exponential moving averages to identify trend direction, momentum, and potential reversals.</p>
+      <div class="formula-box animate">
+        <strong>MACD Line</strong> = EMA(12) &minus; EMA(26)<br>
+        <strong>Signal Line</strong> = EMA(9) of the MACD Line<br>
+        <strong>Histogram</strong> = MACD Line &minus; Signal Line
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>&#x2705; Bullish Signals</h3>
+          <ul>
+            <li><strong>MACD crosses above signal</strong> &rarr; buy signal</li>
+            <li>Histogram turns from negative to positive</li>
+            <li>Histogram bars growing taller = increasing momentum</li>
+            <li>Bullish divergence: price lower low, MACD higher low</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#x274C; Bearish Signals</h3>
+          <ul>
+            <li><strong>MACD crosses below signal</strong> &rarr; sell signal</li>
+            <li>Histogram turns from positive to negative</li>
+            <li>Histogram bars growing more negative = selling pressure</li>
+            <li>Bearish divergence: price higher high, MACD lower high</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 6: MACD - Examples -->
+  <div class="slide">
+    <h2 class="animate">MACD Histogram &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>MACD Hist</th><th>Interpretation</th><th>Signal</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td style="color:var(--danger);">-0.8238</td>
+          <td>Strong negative histogram &mdash; MACD well below signal line</td>
+          <td style="color:var(--danger);">&#x1F534; Active downtrend, bearish momentum</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td style="color:var(--danger);">-0.0625</td>
+          <td>Slightly negative &mdash; near zero line</td>
+          <td style="color:var(--warning);">&#x1F7E1; Weak bearish; potential crossover imminent</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (Hist = -0.8238)</h3>
+          <ul>
+            <li>Large negative value indicates <strong>strong selling pressure</strong></li>
+            <li>The 12-EMA is well below the 26-EMA</li>
+            <li>Do NOT try to catch the falling knife &mdash; wait for histogram to shrink</li>
+            <li>A shrinking histogram (e.g., -0.82 &rarr; -0.50 &rarr; -0.20) signals momentum is slowing</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (Hist = -0.0625)</h3>
+          <ul>
+            <li>Near-zero histogram = <strong>MACD and signal nearly converged</strong></li>
+            <li>A bullish crossover (histogram flips positive) may be very close</li>
+            <li>Combined with RSI at 22.7: potential <strong>confluence buy signal</strong></li>
+            <li>Watch the next few candles for confirmation</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 7: ATR - Theory -->
+  <div class="slide">
+    <h2 class="animate">ATR &mdash; Average True Range</h2>
+    <div class="content">
+      <p class="animate">Developed by <strong>J. Welles Wilder Jr.</strong> (1978), ATR measures <span class="highlight">market volatility</span> by decomposing the entire range of an asset price for a period. It does NOT indicate direction &mdash; only how much price is moving.</p>
+      <div class="formula-box animate">
+        <strong>True Range</strong> = max(<br>
+        &nbsp;&nbsp;|High &minus; Low|,<br>
+        &nbsp;&nbsp;|High &minus; Previous Close|,<br>
+        &nbsp;&nbsp;|Low &minus; Previous Close|<br>
+        )<br><br>
+        <strong>ATR</strong> = Simple Moving Average of True Range over <em>n</em> periods (typically 14)
+      </div>
+      <ul class="animate" style="margin-top:16px;">
+        <li><strong>High ATR:</strong> large price swings, high volatility &mdash; wider stops needed</li>
+        <li><strong>Low ATR:</strong> small price moves, consolidation &mdash; tighter stops possible</li>
+        <li><strong>Position sizing:</strong> Risk $ / ATR = number of units to trade</li>
+        <li><strong>Stop-loss placement:</strong> Entry &plusmn; (1.5&times; to 3&times; ATR) is a common rule</li>
+        <li>ATR expanding after a squeeze often precedes a breakout</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 8: ATR - Examples -->
+  <div class="slide">
+    <h2 class="animate">ATR &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>Price (~)</th><th>ATR</th><th>ATR %</th><th>Volatility</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>~$2,470</td>
+          <td>1.5376</td>
+          <td>0.06%</td>
+          <td>Very low &mdash; tight consolidation</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td>~$94.70</td>
+          <td>0.0503</td>
+          <td>0.05%</td>
+          <td>Very low &mdash; compressed range</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (ATR = 1.5376)</h3>
+          <ul>
+            <li>At ~$2,470, a $1.54 ATR means each candle moves about <strong>0.06%</strong></li>
+            <li>Extremely tight range &mdash; a volatility squeeze is underway</li>
+            <li>Stop-loss at 2&times; ATR = $3.07 from entry</li>
+            <li>If risking $100 per trade: position size = $100 / $3.07 &asymp; <strong>32.6 units</strong></li>
+            <li>Watch for ATR expansion &rarr; imminent breakout signal</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (ATR = 0.0503)</h3>
+          <ul>
+            <li>At ~$94.70, a $0.05 ATR means candles move about <strong>0.05%</strong></li>
+            <li>Even tighter consolidation than YFI</li>
+            <li>Stop-loss at 2&times; ATR = $0.10 from entry</li>
+            <li>If risking $100 per trade: position size = $100 / $0.10 = <strong>1,000 units</strong></li>
+            <li>Low ATR + oversold RSI = coiled spring ready to move</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 9: VWAP - Theory -->
+  <div class="slide">
+    <h2 class="animate">VWAP &mdash; Volume Weighted Average Price</h2>
+    <div class="content">
+      <p class="animate">VWAP is the <span class="highlight">institutional benchmark</span> for fair value during a trading session. It represents the average price weighted by volume, showing where the most capital changed hands.</p>
+      <div class="formula-box animate">
+        <strong>VWAP = &Sigma;(Price &times; Volume) / &Sigma;(Volume)</strong><br><br>
+        <small style="color:var(--text-muted);">Calculated cumulatively from the session open. Resets each day for intraday use.</small>
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>&#x2705; Price Above VWAP</h3>
+          <ul>
+            <li>Buyers are in control</li>
+            <li>Institutions that bought are in profit</li>
+            <li>Bullish bias &mdash; look for long entries on pullbacks to VWAP</li>
+            <li>VWAP acts as <strong>dynamic support</strong></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#x274C; Price Below VWAP</h3>
+          <ul>
+            <li>Sellers are in control</li>
+            <li>Institutions that bought are underwater</li>
+            <li>Bearish bias &mdash; look for short entries on rallies to VWAP</li>
+            <li>VWAP acts as <strong>dynamic resistance</strong></li>
+          </ul>
+        </div>
+      </div>
+      <ul class="animate" style="margin-top:16px;">
+        <li><strong>Mean reversion:</strong> prices tend to gravitate back toward VWAP</li>
+        <li><strong>Execution benchmark:</strong> institutions aim to buy below VWAP, sell above VWAP</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 10: VWAP - Examples -->
+  <div class="slide">
+    <h2 class="animate">VWAP &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>Price (~)</th><th>VWAP</th><th>Position</th><th>Bias</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>~$2,470</td>
+          <td>&mdash;</td>
+          <td>No VWAP data (24h crypto)</td>
+          <td style="color:var(--text-muted);">Neutral</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td>~$94.70</td>
+          <td>94.79</td>
+          <td>Slightly <span class="red">below</span> VWAP</td>
+          <td style="color:var(--warning);">Marginally bearish</td>
+        </tr>
+      </table>
+      <div class="card animate" style="margin-top:24px; max-width:900px;">
+        <h3>AAVE/USD Deep Dive (VWAP = 94.79)</h3>
+        <ul>
+          <li>Current price ~$94.70 is just <strong>$0.09 below VWAP</strong> (only 0.09%)</li>
+          <li>This is essentially at the fair-value line &mdash; no strong directional bias from VWAP alone</li>
+          <li>Institutions see this price as roughly <strong>fair</strong> for the session</li>
+          <li>If price bounces above $94.79, bulls regain control &rarr; target upper VWAP bands</li>
+          <li>If price falls away from VWAP, look for the next support at Volume POC ($94.72)</li>
+          <li><strong>Key rule:</strong> VWAP is most useful intraday. For multi-day crypto analysis, anchored VWAP from key swing points is more relevant.</li>
+        </ul>
+      </div>
+      <p class="animate" style="margin-top:16px; color:var(--text-muted); font-size:1.05rem;"><strong>Why no VWAP for YFI?</strong> VWAP requires volume data and a session anchor. Some feeds may not provide it for all pairs, or the pair may have insufficient intraday volume.</p>
+    </div>
+  </div>
+
+  <!-- Slide 11: Bollinger Bands - Theory -->
+  <div class="slide">
+    <h2 class="animate">Bollinger Bands</h2>
+    <div class="content">
+      <p class="animate">Created by <strong>John Bollinger</strong> (1980s), Bollinger Bands are a <span class="highlight">volatility envelope</span> placed above and below a moving average. The width dynamically adapts to market volatility using standard deviation.</p>
+      <div class="formula-box animate">
+        <strong>Middle Band</strong> = SMA(20)<br>
+        <strong>Upper Band</strong> = SMA(20) + 2 &times; &sigma;(20)<br>
+        <strong>Lower Band</strong> = SMA(20) &minus; 2 &times; &sigma;(20)<br><br>
+        <small style="color:var(--text-muted);">&sigma; = standard deviation of closing prices over the last 20 periods</small>
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>The Squeeze</h3>
+          <ul>
+            <li>Bands narrow &rarr; low volatility &rarr; <strong>breakout imminent</strong></li>
+            <li>Represents a coiling market building energy</li>
+            <li>Direction of breakout NOT predicted &mdash; combine with other indicators</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Band Walks</h3>
+          <ul>
+            <li>Price hugging the upper band = <strong>strong uptrend</strong></li>
+            <li>Price hugging the lower band = <strong>strong downtrend</strong></li>
+            <li>Touching the band is NOT a reversal signal in trending markets</li>
+          </ul>
+        </div>
+      </div>
+      <ul class="animate" style="margin-top:16px;">
+        <li><strong>Mean reversion:</strong> In ranging markets, price tends to bounce between bands</li>
+        <li><strong>%B indicator:</strong> (Price &minus; Lower) / (Upper &minus; Lower) shows where price sits within bands</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Slide 12: Bollinger Bands - Examples -->
+  <div class="slide">
+    <h2 class="animate">Bollinger Bands &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>BB Upper</th><th>BB Lower</th><th>Width</th><th>%B</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>2478.33</td>
+          <td>2463.39</td>
+          <td>$14.94 (0.6%)</td>
+          <td>~0.44 (mid-range)</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td>95.15</td>
+          <td>94.35</td>
+          <td>$0.80 (0.8%)</td>
+          <td>~0.44 (mid-range)</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (2463.39 &mdash; 2478.33)</h3>
+          <ul>
+            <li>Band width only <strong>$14.94</strong> &mdash; an extremely tight squeeze</li>
+            <li>Middle band (SMA 20) &asymp; $2,470.86</li>
+            <li>Price is near the middle &rarr; no directional bias from bands</li>
+            <li>This tight squeeze strongly suggests a <strong>big move is coming</strong></li>
+            <li>A close above $2,478.33 = bullish breakout confirmation</li>
+            <li>A close below $2,463.39 = bearish breakdown confirmation</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (94.35 &mdash; 95.15)</h3>
+          <ul>
+            <li>Band width only <strong>$0.80</strong> &mdash; also a tight squeeze</li>
+            <li>Middle band (SMA 20) &asymp; $94.75</li>
+            <li>Price at ~$94.70 is just below the middle band</li>
+            <li>Combined with RSI 22.7 (deeply oversold): if bands expand upward, expect bounce</li>
+            <li>A close below $94.35 would signal bearish breakdown</li>
+            <li>A close above $95.15 would confirm bullish reversal</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 13: Volume POC - Theory -->
+  <div class="slide">
+    <h2 class="animate">Volume POC &mdash; Point of Control</h2>
+    <div class="content">
+      <p class="animate">The Point of Control (POC) is the price level with the <span class="highlight">highest traded volume</span> in a Volume Profile. It represents the &ldquo;fairest&rdquo; price where the most market participants agreed to transact.</p>
+      <div class="formula-box animate">
+        <strong>Volume Profile:</strong> a histogram of volume traded at each price level<br>
+        <strong>POC:</strong> the price level with the tallest volume bar<br>
+        <strong>Value Area (VA):</strong> the range containing ~70% of total volume (VA High &amp; VA Low)
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>&#x1F3AF; POC as Magnet</h3>
+          <ul>
+            <li>Price is <strong>attracted to POC</strong> like a magnet</li>
+            <li>Acts as the strongest support/resistance in the profile</li>
+            <li>Price moving away from POC tends to get pulled back</li>
+            <li>High-volume nodes = strong S/R; low-volume nodes = fast movement</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>&#x1F4CA; Trading the POC</h3>
+          <ul>
+            <li><strong>Price at POC:</strong> expect consolidation, range-bound trading</li>
+            <li><strong>Price above POC:</strong> POC acts as support on pullbacks</li>
+            <li><strong>Price below POC:</strong> POC acts as resistance on rallies</li>
+            <li><strong>Breakaway from POC:</strong> initiating move, trend beginning</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 14: Volume POC - Examples -->
+  <div class="slide">
+    <h2 class="animate">Volume POC &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>Price (~)</th><th>VOL POC</th><th>Distance</th><th>Interpretation</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>~$2,470</td>
+          <td>2463.65</td>
+          <td>$6.35 above POC</td>
+          <td>Price slightly above &mdash; POC is support</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td>~$94.70</td>
+          <td>94.72</td>
+          <td>$0.02 below POC</td>
+          <td>Essentially AT the POC &mdash; fair value</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (POC = 2463.65)</h3>
+          <ul>
+            <li>Price is <strong>$6.35 above POC</strong>, sitting within the value area</li>
+            <li>The POC aligns closely with the <strong>BB lower band</strong> ($2,463.39)</li>
+            <li>This creates a <strong>confluence support zone</strong> at $2,463&ndash;$2,464</li>
+            <li>If price drops, expect strong buying interest at the POC level</li>
+            <li>A breakdown below POC would be a significant bearish signal</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (POC = 94.72)</h3>
+          <ul>
+            <li>Price is <strong>essentially at the POC</strong> &mdash; within $0.02</li>
+            <li>This confirms the market views ~$94.72 as <strong>fair value</strong></li>
+            <li>POC aligns with VWAP ($94.79) and EMA 20 ($94.69) &mdash; <strong>triple confluence</strong></li>
+            <li>This tight cluster creates a critical decision zone</li>
+            <li>A breakout from this cluster will likely lead to a <strong>decisive directional move</strong></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 15: EMA 20 - Theory -->
+  <div class="slide">
+    <h2 class="animate">EMA 20 &mdash; Exponential Moving Average</h2>
+    <div class="content">
+      <p class="animate">The <strong>20-period Exponential Moving Average</strong> gives more weight to recent prices than a simple moving average, making it more responsive to new information. It is the <span class="highlight">most widely-used short-term trend filter</span>.</p>
+      <div class="formula-box animate">
+        <strong>Multiplier (k)</strong> = 2 / (n + 1) = 2 / 21 &asymp; 0.0952<br><br>
+        <strong>EMA<sub>today</sub></strong> = (Close &times; k) + (EMA<sub>yesterday</sub> &times; (1 &minus; k))<br><br>
+        <small style="color:var(--text-muted);">The most recent price gets ~9.5% weight; older prices decay exponentially</small>
+      </div>
+      <div class="two-col animate" style="margin-top:20px;">
+        <div class="card">
+          <h3>EMA vs SMA</h3>
+          <table style="margin:0;">
+            <tr><th>Feature</th><th>EMA</th><th>SMA</th></tr>
+            <tr><td>Weighting</td><td>Exponential (recent = more)</td><td>Equal for all periods</td></tr>
+            <tr><td>Responsiveness</td><td>Fast &mdash; reacts quickly</td><td>Slow &mdash; lags more</td></tr>
+            <tr><td>Whipsaws</td><td>More prone</td><td>Fewer false signals</td></tr>
+            <tr><td>Best for</td><td>Short-term trading</td><td>Longer-term trend</td></tr>
+          </table>
+        </div>
+        <div class="card">
+          <h3>How to Trade It</h3>
+          <ul>
+            <li><strong>Price above EMA 20:</strong> bullish &mdash; use as dynamic support</li>
+            <li><strong>Price below EMA 20:</strong> bearish &mdash; use as dynamic resistance</li>
+            <li><strong>EMA slope up:</strong> uptrend; <strong>slope down:</strong> downtrend</li>
+            <li><strong>Pullback to EMA:</strong> classic trend-continuation entry point</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 16: EMA 20 - Examples -->
+  <div class="slide">
+    <h2 class="animate">EMA 20 &mdash; Live Examples</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Symbol</th><th>Price (~)</th><th>EMA 20</th><th>Position</th><th>Trend Signal</th></tr>
+        <tr>
+          <td><strong>YFI/USD</strong></td>
+          <td>~$2,470</td>
+          <td>2469.26</td>
+          <td>Just above EMA (+$0.74)</td>
+          <td style="color:var(--text-muted);">Neutral &mdash; at the trend line</td>
+        </tr>
+        <tr>
+          <td><strong>AAVE/USD</strong></td>
+          <td>~$94.70</td>
+          <td>94.69</td>
+          <td>Essentially at EMA (+$0.01)</td>
+          <td style="color:var(--text-muted);">Neutral &mdash; decision point</td>
+        </tr>
+      </table>
+      <div class="two-col animate" style="margin-top:24px;">
+        <div class="card">
+          <h3>YFI/USD (EMA 20 = 2469.26)</h3>
+          <ul>
+            <li>Price only <strong>$0.74 above EMA</strong> &mdash; sitting right on the trend line</li>
+            <li>EMA 20 aligns with the middle of the Bollinger Bands (~$2,470.86)</li>
+            <li>This is a <strong>make-or-break level</strong> for trend direction</li>
+            <li>A close below EMA + BB middle = bearish shift toward lower band and POC</li>
+            <li>A bounce off EMA = continuation of range or bullish resumption</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>AAVE/USD (EMA 20 = 94.69)</h3>
+          <ul>
+            <li>Price within <strong>$0.01 of EMA</strong> &mdash; effectively touching it</li>
+            <li>The EMA, VWAP ($94.79), and POC ($94.72) are all within a <strong>$0.10 range</strong></li>
+            <li>This convergence is unusual and signals a <strong>high-probability setup</strong></li>
+            <li>The direction of the break from this cluster will define the next trend</li>
+            <li>Use ATR (0.05) to set stops just outside the cluster</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 17: Combining Indicators -->
+  <div class="slide">
+    <h2 class="animate">Combining Indicators</h2>
+    <div class="content">
+      <p class="animate">No single indicator is reliable alone. The key is <span class="highlight">confluence</span> &mdash; when multiple independent indicators align to tell the same story.</p>
+      <div class="metric-grid animate" style="margin-top:20px;">
+        <div class="metric-card">
+          <h3>&#x1F3AF; Trend Identification</h3>
+          <p><strong>EMA 20</strong> for direction + <strong>MACD</strong> for momentum confirmation</p>
+          <p style="margin-top:8px;"><code>Price > EMA 20</code> + <code>MACD Hist > 0</code> = Bullish trend confirmed</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x23F0; Entry Timing</h3>
+          <p><strong>RSI</strong> for overbought/oversold + <strong>Bollinger Bands</strong> for extremes</p>
+          <p style="margin-top:8px;"><code>RSI < 30</code> + <code>Price at lower BB</code> = High-probability long entry</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F4B0; Fair Value Check</h3>
+          <p><strong>VWAP</strong> + <strong>Volume POC</strong> for institutional price agreement</p>
+          <p style="margin-top:8px;"><code>Price near VWAP &amp; POC</code> = Fair value; expect range-bound action</p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F4CF; Risk Management</h3>
+          <p><strong>ATR</strong> for stop-loss distance and position sizing</p>
+          <p style="margin-top:8px;"><code>Stop = Entry &minus; 2&times;ATR</code> | <code>Size = Risk$ / (2&times;ATR)</code></p>
+        </div>
+      </div>
+      <div class="card animate" style="margin-top:20px; max-width:900px; text-align:center;">
+        <h3>The Confluence Framework</h3>
+        <p style="font-size:1.3rem; margin-top:8px;">
+          <span class="tag">Trend (EMA)</span> &rarr;
+          <span class="tag">Momentum (MACD)</span> &rarr;
+          <span class="tag">Timing (RSI + BB)</span> &rarr;
+          <span class="tag">Validation (VWAP + POC)</span> &rarr;
+          <span class="tag">Risk (ATR)</span>
+        </p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 18: Real-World Multi-Indicator Analysis -->
+  <div class="slide">
+    <h2 class="animate">Feature Store Analysis</h2>
+    <p class="subtitle animate">Putting all 7 indicators together on real data</p>
+    <div class="content" style="margin-top:16px;">
+      <div class="two-col animate">
+        <div class="card" style="border-top:4px solid var(--accent);">
+          <h3>YFI/USD &mdash; Full Picture</h3>
+          <table style="margin:8px 0;">
+            <tr><td>RSI</td><td>39.3 &mdash; weakening, not yet oversold</td></tr>
+            <tr><td>MACD Hist</td><td style="color:var(--danger);">-0.8238 &mdash; strong bearish momentum</td></tr>
+            <tr><td>ATR</td><td>1.5376 &mdash; low volatility squeeze</td></tr>
+            <tr><td>VWAP</td><td>&mdash; (not available)</td></tr>
+            <tr><td>BB</td><td>2463&ndash;2478 &mdash; tight squeeze</td></tr>
+            <tr><td>POC</td><td>2463.65 &mdash; support below</td></tr>
+            <tr><td>EMA 20</td><td>2469.26 &mdash; price right at EMA</td></tr>
+          </table>
+          <p style="font-size:1.05rem; color:var(--text-muted); border-top:1px solid #eee; padding-top:10px;">
+            <strong>Verdict:</strong> Bearish momentum within a tight consolidation. The MACD is strongly negative, but ATR and BB show compression. <span class="highlight">Wait for the squeeze breakout</span>. A break below POC/BB lower ($2,463) confirms downside. A MACD histogram recovery + break above BB upper ($2,478) signals bullish reversal.
+          </p>
+        </div>
+        <div class="card" style="border-top:4px solid var(--success);">
+          <h3>AAVE/USD &mdash; Full Picture</h3>
+          <table style="margin:8px 0;">
+            <tr><td>RSI</td><td style="color:var(--success);">22.7 &mdash; deeply oversold</td></tr>
+            <tr><td>MACD Hist</td><td>-0.0625 &mdash; near zero, crossover soon</td></tr>
+            <tr><td>ATR</td><td>0.0503 &mdash; very tight range</td></tr>
+            <tr><td>VWAP</td><td>94.79 &mdash; price just below</td></tr>
+            <tr><td>BB</td><td>94.35&ndash;95.15 &mdash; tight squeeze</td></tr>
+            <tr><td>POC</td><td>94.72 &mdash; price at POC</td></tr>
+            <tr><td>EMA 20</td><td>94.69 &mdash; price at EMA</td></tr>
+          </table>
+          <p style="font-size:1.05rem; color:var(--text-muted); border-top:1px solid #eee; padding-top:10px;">
+            <strong>Verdict:</strong> <span class="green">Strongest confluence for a potential long.</span> RSI deeply oversold + MACD near crossover + price at the triple-confluence of VWAP/POC/EMA. ATR compression suggests an imminent move. <span class="highlight">A bullish MACD crossover here would be a high-probability buy signal</span> with stop below BB lower ($94.35).
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 19: Pitfalls & Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Common Pitfalls &amp; Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item">
+        <span>01</span> <strong>Never rely on a single indicator.</strong> RSI oversold alone is NOT a buy signal &mdash; always seek confluence from 2&ndash;3 independent indicators.
+      </div>
+      <div class="bp-item">
+        <span>02</span> <strong>Indicators lag.</strong> All indicators are derived from past price data. They confirm trends, they don&rsquo;t predict them. Use price action as the leading signal.
+      </div>
+      <div class="bp-item">
+        <span>03</span> <strong>Context matters.</strong> RSI at 30 in a strong downtrend can stay oversold for weeks. Bollinger Band touches in a trend are NOT reversal signals.
+      </div>
+      <div class="bp-item">
+        <span>04</span> <strong>Timeframe alignment.</strong> Check indicators on multiple timeframes. A bullish signal on the 5-min chart means nothing if the daily chart is bearish.
+      </div>
+      <div class="bp-item">
+        <span>05</span> <strong>ATR for stops, always.</strong> Fixed-dollar or fixed-percentage stop-losses ignore market volatility. ATR-based stops adapt to conditions automatically.
+      </div>
+      <div class="bp-item">
+        <span>06</span> <strong>VWAP resets daily.</strong> Don&rsquo;t use yesterday&rsquo;s VWAP for today. For multi-day analysis, use anchored VWAP from significant price levels.
+      </div>
+      <div class="bp-item">
+        <span>07</span> <strong>Volume validates everything.</strong> Breakouts without volume are suspect. POC and VWAP inherently incorporate volume, making them more reliable than pure price indicators.
+      </div>
+      <div class="bp-item">
+        <span>08</span> <strong>Don&rsquo;t over-optimize.</strong> Default settings (RSI 14, MACD 12/26/9, BB 20/2, EMA 20) work well. Curve-fitting parameters to past data leads to poor forward performance.
+      </div>
+    </div>
+  </div>
+
+  <!-- Slide 20: Key Takeaways -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4C8;</span>
+    <h2 class="animate">Key Takeaways</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate"><strong>RSI</strong> measures momentum &mdash; oversold (&lt;30) and overbought (&gt;70) are your watchpoints</li>
+        <li class="animate"><strong>MACD Histogram</strong> shows trend strength &mdash; zero-line crossovers are key signals</li>
+        <li class="animate"><strong>ATR</strong> quantifies volatility &mdash; use it for <span class="highlight">position sizing and stop-losses</span></li>
+        <li class="animate"><strong>VWAP</strong> reveals institutional fair value &mdash; price above = bullish, below = bearish</li>
+        <li class="animate"><strong>Bollinger Bands</strong> show volatility extremes &mdash; squeezes precede big moves</li>
+        <li class="animate"><strong>Volume POC</strong> is the price magnet &mdash; strongest support/resistance level</li>
+        <li class="animate"><strong>EMA 20</strong> defines the short-term trend &mdash; dynamic support/resistance</li>
+        <li class="animate"><span class="highlight">Confluence is king</span> &mdash; 2&ndash;3 aligned indicators &gt; any single one</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+    </div>
+  </div>
+
+</div>
+
+<!-- Navigation -->
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+  }
+
+  function navigate(dir) {
+    showSlide(current + dir);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+</body>
+</html>
