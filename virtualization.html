@@ -1,0 +1,854 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Virtualization &amp; MicroVMs</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: "Fira Code", "Cascadia Code", "Consolas", monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.4rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px; background: var(--accent); color: #fff;
+      text-decoration: none; border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.2rem; cursor: pointer; z-index: 200; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow); color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- 1. TITLE -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F5A5;</span>
+    <h1 class="animate">Virtualization &amp; MicroVMs</h1>
+    <p class="subtitle animate">From bare metal to microVMs &mdash; KVM, hypervisors, containers, and Firecracker</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">KVM</span><span class="tag">Hypervisor</span><span class="tag">Firecracker</span><span class="tag">Containers</span>
+    </div>
+  </div>
+
+  <!-- 2. WHAT IS VIRTUALIZATION? -->
+  <div class="slide">
+    <h2 class="animate">What is Virtualization?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Concept</h3>
+        <ul>
+          <li>Creating <span class="highlight">virtual versions</span> of physical hardware resources</li>
+          <li>Multiple isolated environments on a <span class="highlight">single machine</span></li>
+          <li>Each guest thinks it has <span class="highlight">dedicated hardware</span></li>
+          <li>Foundation of <span class="highlight">cloud computing</span> &mdash; AWS, GCP, Azure all built on it</li>
+          <li>Enables efficient resource utilization, isolation, and portability</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><span class="highlight">Isolation</span> &mdash; workloads can&rsquo;t interfere with each other</li>
+          <li><span class="highlight">Density</span> &mdash; run hundreds of VMs on one server</li>
+          <li><span class="highlight">Portability</span> &mdash; move workloads between machines</li>
+          <li><span class="highlight">Security</span> &mdash; hardware-enforced boundaries</li>
+          <li><span class="highlight">Snapshotting</span> &mdash; save and restore entire machine states</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. VIRTUALIZATION TIMELINE -->
+  <div class="slide">
+    <h2 class="animate">Evolution of Virtualization</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">1960s<br><small>IBM CP/CMS</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">1999<br><small>VMware Workstation</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">2003<br><small>Xen Hypervisor</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">2007<br><small>KVM in Linux</small></div>
+      </div>
+      <div class="diagram" style="margin-top:8px">
+        <div class="box">2013<br><small>Docker</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">2018<br><small>Firecracker</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">2020s<br><small>Confidential VMs</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Today<br><small>MicroVMs + WASM</small></div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Key Milestones</h3>
+          <ul>
+            <li><span class="highlight">Intel VT-x</span> (2005) &mdash; hardware virtualization support in CPUs</li>
+            <li><span class="highlight">AMD-V</span> (2006) &mdash; AMD&rsquo;s hardware virtualization extensions</li>
+            <li><span class="highlight">SR-IOV</span> &mdash; hardware-level network device sharing</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>The Trend</h3>
+          <ul>
+            <li>From <span class="highlight">heavy full VMs</span> to lightweight microVMs</li>
+            <li>From <span class="highlight">minutes</span> to boot to <span class="highlight">milliseconds</span></li>
+            <li>From <span class="highlight">GBs</span> of overhead to <span class="highlight">MBs</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. TYPE 1 vs TYPE 2 HYPERVISORS -->
+  <div class="slide">
+    <h2 class="animate">Type 1 vs Type 2 Hypervisors</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Type 1 &mdash; Bare Metal</h3>
+        <ul>
+          <li>Runs <span class="highlight">directly on hardware</span>, no host OS</li>
+          <li>The hypervisor <em>is</em> the operating system</li>
+          <li><span class="highlight">Better performance</span> &mdash; no host OS overhead</li>
+          <li>Used in production data centers and cloud providers</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--text-muted)"><strong>Examples:</strong> VMware ESXi, Microsoft Hyper-V, Xen, KVM*</p>
+      </div>
+      <div class="card">
+        <h3>Type 2 &mdash; Hosted</h3>
+        <ul>
+          <li>Runs <span class="highlight">on top of a host OS</span> as a regular application</li>
+          <li>Host OS manages hardware, hypervisor creates VMs above it</li>
+          <li><span class="highlight">Easier setup</span> but more overhead</li>
+          <li>Common for development and testing</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--text-muted)"><strong>Examples:</strong> VirtualBox, VMware Workstation, Parallels, QEMU (without KVM)</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;color:var(--text-muted);font-size:1.1rem">*KVM is unique &mdash; it turns the Linux kernel itself into a Type 1 hypervisor via a kernel module</p>
+  </div>
+
+  <!-- 5. KVM DEEP DIVE -->
+  <div class="slide">
+    <h2 class="animate">KVM &mdash; Kernel-based Virtual Machine</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Architecture</h3>
+        <ul>
+          <li><span class="highlight">Kernel module</span> (<code>kvm.ko</code>) that turns Linux into a hypervisor</li>
+          <li>Uses <span class="highlight">Intel VT-x</span> or <span class="highlight">AMD-V</span> hardware extensions</li>
+          <li>Each VM is a regular <span class="highlight">Linux process</span> managed by the scheduler</li>
+          <li>Memory managed via <span class="highlight">EPT/NPT</span> (Extended/Nested Page Tables)</li>
+          <li>In mainline Linux kernel since <span class="highlight">2.6.20</span> (2007)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How It Works</h3>
+        <pre style="font-size:0.8rem">
+# Check hardware support
+grep -E "vmx|svm" /proc/cpuinfo
+
+# Load KVM module
+modprobe kvm_intel  # or kvm_amd
+
+# KVM exposes /dev/kvm
+ls -la /dev/kvm
+
+# Each VM = a process with
+# file descriptors for:
+#   - VM control (ioctls)
+#   - vCPUs
+#   - Memory regions</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. KVM INTERNALS -->
+  <div class="slide">
+    <h2 class="animate">KVM Internals</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Guest VM<br><small>User code</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">VM Exit</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">KVM Module<br><small>Handle exit</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">VM Entry</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Guest VM<br><small>Resume</small></div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>VM Exits</h3>
+          <ul>
+            <li>Guest executes a <span class="highlight">privileged instruction</span> (I/O, MSR access)</li>
+            <li>CPU traps into KVM kernel module</li>
+            <li>KVM handles the operation or delegates to <span class="highlight">userspace VMM</span></li>
+            <li>Fewer exits = <span class="highlight">better performance</span></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Key Components</h3>
+          <ul>
+            <li><span class="highlight">VMCS/VMCB</span> &mdash; per-vCPU control structure storing guest state</li>
+            <li><span class="highlight">EPT/NPT</span> &mdash; two-level page tables for memory translation</li>
+            <li><span class="highlight">IOMMU (VT-d)</span> &mdash; direct device assignment to guests</li>
+            <li><span class="highlight">virtio</span> &mdash; para-virtualized device framework</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. VMMs: QEMU vs FIRECRACKER -->
+  <div class="slide">
+    <h2 class="animate">VMM: The Userspace Component</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is a VMM?</h3>
+        <ul>
+          <li>Virtual Machine Monitor &mdash; the <span class="highlight">userspace process</span> that manages a VM</li>
+          <li>KVM provides the <span class="highlight">hardware virtualization</span> (kernel-side)</li>
+          <li>VMM provides the <span class="highlight">device model</span> (userspace-side)</li>
+          <li>Emulates hardware devices the guest OS expects to see</li>
+          <li>Handles I/O, storage, networking for the guest</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>KVM + VMM Architecture</h3>
+        <pre style="font-size:0.8rem">
+┌─────────────────────┐
+│    Guest VM          │
+│  (Linux, Windows)    │
+├─────────────────────┤
+│  KVM  (kernel)       │
+│  - vCPU scheduling   │
+│  - Memory (EPT)      │
+│  - VM entry/exit     │
+├─────────────────────┤
+│  VMM  (userspace)    │
+│  - Device emulation  │
+│  - I/O handling      │
+│  - Network/Storage   │
+└─────────────────────┘</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. QEMU -->
+  <div class="slide">
+    <h2 class="animate">QEMU &mdash; The Swiss Army Knife</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>Full system emulator <span class="highlight">and</span> VMM</li>
+          <li>Can emulate <span class="highlight">entire CPUs</span> in software (x86, ARM, RISC-V, etc.)</li>
+          <li>With KVM: near <span class="highlight">native performance</span></li>
+          <li>Without KVM: full emulation (slow but cross-architecture)</li>
+          <li><span class="highlight">Millions of lines</span> of C code</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Device Model</h3>
+        <ul>
+          <li>Emulates <span class="highlight">hundreds of devices</span>: PCI, USB, GPU, sound, NVMe, etc.</li>
+          <li><span class="highlight">Live migration</span> &mdash; move running VMs between hosts</li>
+          <li><span class="highlight">Snapshots</span> &mdash; save/restore full VM state</li>
+          <li>BIOS/UEFI boot support</li>
+          <li>Powers <span class="highlight">libvirt</span>, OpenStack, Proxmox</li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+# Launch a VM with QEMU + KVM
+qemu-system-x86_64 \
+  -enable-kvm -m 4G -smp 4 \
+  -drive file=disk.qcow2 \
+  -net nic -net user</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. FIRECRACKER -->
+  <div class="slide">
+    <h2 class="animate">Firecracker &mdash; The MicroVM Pioneer</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Is It?</h3>
+        <ul>
+          <li>Open-source VMM built by <span class="highlight">AWS</span>, written in <span class="highlight">Rust</span></li>
+          <li>Creates <span class="highlight">microVMs</span> &mdash; lightweight VMs with minimal device model</li>
+          <li>Boots in <span class="highlight">&lt;125ms</span> with <span class="highlight">&lt;5MB</span> memory overhead</li>
+          <li>Uses <span class="highlight">KVM</span> for hardware virtualization</li>
+          <li>Released in <span class="highlight">2018</span>, Apache 2.0 license</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Design Philosophy</h3>
+        <ul>
+          <li><span class="highlight">Minimal attack surface</span> &mdash; ~50K lines of Rust (vs millions in QEMU)</li>
+          <li><span class="highlight">No PCI bus</span> &mdash; uses virtio over MMIO instead</li>
+          <li><span class="highlight">No USB, GPU, sound</span> &mdash; only what workloads need</li>
+          <li><span class="highlight">No BIOS/UEFI</span> &mdash; direct kernel boot only</li>
+          <li><span class="highlight">No live migration</span> &mdash; ephemeral by design</li>
+          <li>REST API over Unix socket for configuration</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. FIRECRACKER ARCHITECTURE -->
+  <div class="slide">
+    <h2 class="animate">Firecracker Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Host Machine</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">KVM</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Firecracker<br><small>VMM process</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">MicroVM<br><small>Own kernel</small></div>
+      </div>
+      <div class="metric-grid" style="margin-top:24px">
+        <div class="metric-card">
+          <h3>Boot Time</h3>
+          <p><span class="highlight" style="font-size:1.8rem">&lt;125ms</span></p>
+          <p>From API call to guest init</p>
+        </div>
+        <div class="metric-card">
+          <h3>Memory Overhead</h3>
+          <p><span class="highlight" style="font-size:1.8rem">&lt;5 MB</span></p>
+          <p>Per microVM, excluding guest RAM</p>
+        </div>
+        <div class="metric-card">
+          <h3>Device Model</h3>
+          <p><span class="highlight" style="font-size:1.8rem">5 devices</span></p>
+          <p>virtio-net, virtio-block, serial, keyboard, vsock</p>
+        </div>
+        <div class="metric-card">
+          <h3>Communication</h3>
+          <p><span class="highlight" style="font-size:1.8rem">vsock</span></p>
+          <p>VM socket protocol for host&harr;guest IPC</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. QEMU vs FIRECRACKER -->
+  <div class="slide">
+    <h2 class="animate">QEMU vs Firecracker</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Feature</th><th>QEMU</th><th>Firecracker</th></tr>
+        <tr><td>Language</td><td>C</td><td><span class="highlight">Rust</span></td></tr>
+        <tr><td>Codebase</td><td>~2M+ LOC</td><td><span class="highlight">~50K LOC</span></td></tr>
+        <tr><td>Boot time</td><td>~1-5 seconds</td><td><span class="highlight">&lt;125ms</span></td></tr>
+        <tr><td>Memory overhead</td><td>~100-200 MB</td><td><span class="highlight">&lt;5 MB</span></td></tr>
+        <tr><td>Device emulation</td><td>Hundreds (PCI, USB, GPU)</td><td><span class="highlight">5 devices (virtio MMIO)</span></td></tr>
+        <tr><td>Live migration</td><td><span class="green">Yes</span></td><td>No</td></tr>
+        <tr><td>Snapshots</td><td><span class="green">Yes</span></td><td><span class="green">Yes</span> (since 1.0)</td></tr>
+        <tr><td>Cross-arch emulation</td><td><span class="green">Yes</span></td><td>No</td></tr>
+        <tr><td>Use case</td><td>General-purpose VMs</td><td><span class="highlight">Ephemeral microVMs</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 12. WHO USES FIRECRACKER -->
+  <div class="slide">
+    <h2 class="animate">Who Uses Firecracker?</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>&#x2601; AWS Lambda</h3>
+        <p>Every serverless function invocation runs inside a Firecracker microVM for <span class="highlight">multi-tenant isolation</span></p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F433; AWS Fargate</h3>
+        <p>Container tasks are isolated in microVMs &mdash; <span class="highlight">no shared kernel</span> between customers</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F310; Fly.io</h3>
+        <p>Deploys user applications in Firecracker VMs at <span class="highlight">edge locations worldwide</span></p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F916; Claude Code</h3>
+        <p>Anthropic runs code execution sandboxes in Firecracker microVMs for <span class="highlight">secure isolation</span></p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;color:var(--text-muted);font-size:1.1rem">Firecracker handles <span class="highlight">millions</span> of microVM launches per second across AWS infrastructure</p>
+  </div>
+
+  <!-- 13. CONTAINERS vs VMs -->
+  <div class="slide">
+    <h2 class="animate">Containers vs Virtual Machines</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Containers (Docker, OCI)</h3>
+        <ul>
+          <li><span class="highlight">Share the host kernel</span> &mdash; no separate OS</li>
+          <li>Isolation via <span class="highlight">namespaces</span> (PID, network, mount) and <span class="highlight">cgroups</span> (resource limits)</li>
+          <li>Start in <span class="highlight">milliseconds</span>, minimal overhead</li>
+          <li>Portable via container images (OCI format)</li>
+          <li><span class="warning">Weaker isolation</span> &mdash; kernel exploit = host compromise</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Virtual Machines (KVM)</h3>
+        <ul>
+          <li><span class="highlight">Own kernel</span> &mdash; full OS per VM</li>
+          <li>Isolation via <span class="highlight">hardware virtualization</span> (VT-x/AMD-V)</li>
+          <li>Boot in <span class="highlight">seconds</span>, GBs of overhead</li>
+          <li>Portable via disk images (qcow2, raw)</li>
+          <li><span class="green">Strong isolation</span> &mdash; hardware-enforced boundaries</li>
+        </ul>
+      </div>
+    </div>
+    <div class="animate" style="margin-top:16px;text-align:center">
+      <p style="font-size:1.15rem;color:var(--text-muted)">MicroVMs bridge the gap: <span class="highlight">container-like speed</span> with <span class="highlight">VM-like isolation</span></p>
+    </div>
+  </div>
+
+  <!-- 14. LINUX NAMESPACES & CGROUPS -->
+  <div class="slide">
+    <h2 class="animate">Namespaces &amp; Cgroups</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Linux Namespaces</h3>
+        <ul>
+          <li><span class="highlight">PID</span> &mdash; isolated process ID trees</li>
+          <li><span class="highlight">NET</span> &mdash; separate network stacks, interfaces, IP addresses</li>
+          <li><span class="highlight">MNT</span> &mdash; independent filesystem mount points</li>
+          <li><span class="highlight">UTS</span> &mdash; separate hostname and domain</li>
+          <li><span class="highlight">IPC</span> &mdash; isolated inter-process communication</li>
+          <li><span class="highlight">USER</span> &mdash; separate user/group ID mappings</li>
+          <li><span class="highlight">CGROUP</span> &mdash; isolated cgroup hierarchies</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Control Groups (cgroups)</h3>
+        <ul>
+          <li><span class="highlight">CPU</span> &mdash; limit CPU time and cores</li>
+          <li><span class="highlight">Memory</span> &mdash; set memory limits and OOM behavior</li>
+          <li><span class="highlight">I/O</span> &mdash; throttle disk read/write bandwidth</li>
+          <li><span class="highlight">PIDs</span> &mdash; limit number of processes</li>
+          <li>cgroups v2 unifies the hierarchy</li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+# View cgroup limits
+cat /sys/fs/cgroup/memory.max
+cat /sys/fs/cgroup/cpu.max</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. VIRTIO -->
+  <div class="slide">
+    <h2 class="animate">virtio &mdash; Para-virtualized I/O</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Emulating real hardware (e.g., Intel e1000 NIC) is <span class="highlight">slow</span></li>
+          <li>Every I/O operation causes <span class="highlight">VM exits</span> &mdash; traps into the hypervisor</li>
+          <li>Full emulation wastes CPU cycles on translating device protocols</li>
+        </ul>
+        <h3 style="margin-top:16px">The Solution: virtio</h3>
+        <ul>
+          <li>Guest <span class="highlight">knows</span> it&rsquo;s virtualized &mdash; uses optimized drivers</li>
+          <li>Shared memory <span class="highlight">virt-queues</span> for efficient data transfer</li>
+          <li>Standardized by <span class="highlight">OASIS</span> (virtio 1.0, 1.1, 1.2)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>virtio Device Types</h3>
+        <ul>
+          <li><code>virtio-net</code> &mdash; network interface</li>
+          <li><code>virtio-blk</code> &mdash; block storage</li>
+          <li><code>virtio-scsi</code> &mdash; SCSI storage</li>
+          <li><code>virtio-fs</code> &mdash; shared filesystem (FUSE-based)</li>
+          <li><code>virtio-gpu</code> &mdash; graphics adapter</li>
+          <li><code>virtio-vsock</code> &mdash; host-guest socket communication</li>
+        </ul>
+        <h3 style="margin-top:16px">Transport Modes</h3>
+        <ul>
+          <li><span class="highlight">PCI</span> &mdash; used by QEMU (full PCI bus emulation)</li>
+          <li><span class="highlight">MMIO</span> &mdash; used by Firecracker (simpler, no PCI)</li>
+          <li><span class="highlight">CCW</span> &mdash; used on s390x (IBM mainframes)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. SECURITY COMPARISON -->
+  <div class="slide">
+    <h2 class="animate">Security: Isolation Models</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Layer</th><th>Containers</th><th>Full VMs</th><th>MicroVMs</th></tr>
+        <tr><td>Kernel</td><td><span class="warning">Shared</span></td><td><span class="green">Separate</span></td><td><span class="green">Separate</span></td></tr>
+        <tr><td>CPU isolation</td><td>cgroups</td><td><span class="green">VT-x/AMD-V</span></td><td><span class="green">VT-x/AMD-V</span></td></tr>
+        <tr><td>Memory isolation</td><td>cgroups</td><td><span class="green">EPT/NPT</span></td><td><span class="green">EPT/NPT</span></td></tr>
+        <tr><td>Escape difficulty</td><td>Kernel exploit</td><td>Hypervisor exploit</td><td><span class="green">Hypervisor + Rust</span></td></tr>
+        <tr><td>Attack surface</td><td><span class="warning">Large (syscalls)</span></td><td>Medium (device model)</td><td><span class="green">Minimal (5 devices)</span></td></tr>
+        <tr><td>Boot time</td><td><span class="green">&lt;1s</span></td><td>1-30s</td><td><span class="green">&lt;125ms</span></td></tr>
+        <tr><td>Overhead</td><td><span class="green">&lt;10 MB</span></td><td>100+ MB</td><td><span class="green">&lt;5 MB</span></td></tr>
+      </table>
+      <p style="margin-top:16px;color:var(--text-muted);font-size:1.05rem">Firecracker adds <span class="highlight">seccomp filters</span> and <span class="highlight">jailer</span> for defense-in-depth beyond KVM isolation</p>
+    </div>
+  </div>
+
+  <!-- 17. KATA CONTAINERS & CLOUD HYPERVISOR -->
+  <div class="slide">
+    <h2 class="animate">Other MicroVM Projects</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Kata Containers</h3>
+        <ul>
+          <li>Runs <span class="highlight">OCI containers inside lightweight VMs</span></li>
+          <li>Compatible with <span class="highlight">Docker</span> and <span class="highlight">Kubernetes</span> (CRI-O, containerd)</li>
+          <li>Supports multiple VMMs: QEMU, Firecracker, <span class="highlight">Cloud Hypervisor</span></li>
+          <li>CNCF project &mdash; bridges container UX with VM security</li>
+          <li><code>kata-runtime</code> replaces <code>runc</code> as the OCI runtime</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Cloud Hypervisor</h3>
+        <ul>
+          <li>Written in <span class="highlight">Rust</span>, built on top of <code>rust-vmm</code> crates</li>
+          <li>Richer feature set than Firecracker: <span class="highlight">PCI, VFIO, hotplug</span></li>
+          <li>Supports <span class="highlight">UEFI boot</span> and Windows guests</li>
+          <li>Backed by Intel, Microsoft, ARM, and others</li>
+          <li>Good middle ground between QEMU and Firecracker</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:16px">
+      <div class="diagram">
+        <div class="box">Container Image</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Kata Runtime</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">VMM<br><small>(FC / QEMU / CH)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">MicroVM<br><small>+ guest kernel</small></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18. RUST-VMM ECOSYSTEM -->
+  <div class="slide">
+    <h2 class="animate">rust-vmm &mdash; Building Blocks</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is rust-vmm?</h3>
+        <ul>
+          <li>A set of shared <span class="highlight">Rust crates</span> for building VMMs</li>
+          <li>Used by <span class="highlight">Firecracker</span>, <span class="highlight">Cloud Hypervisor</span>, and <span class="highlight">CrosVM</span></li>
+          <li>Avoids duplicating VMM components across projects</li>
+          <li>Backed by AWS, Intel, Google, Red Hat, ARM</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Crates</h3>
+        <ul>
+          <li><code>kvm-ioctls</code> &mdash; safe Rust wrappers for KVM API</li>
+          <li><code>vm-memory</code> &mdash; guest memory management</li>
+          <li><code>vm-virtio</code> &mdash; virtio device framework</li>
+          <li><code>vm-superio</code> &mdash; legacy serial/keyboard</li>
+          <li><code>linux-loader</code> &mdash; kernel/initrd loading</li>
+          <li><code>event-manager</code> &mdash; epoll-based event loop</li>
+          <li><code>seccompiler</code> &mdash; seccomp BPF filter builder</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. CHOOSING THE RIGHT APPROACH -->
+  <div class="slide">
+    <h2 class="animate">Choosing the Right Approach</h2>
+    <div class="content animate">
+      <div class="bp-grid">
+        <div class="bp-item"><span>1</span> <strong>Containers</strong> &mdash; trusted workloads, maximum density, fast CI/CD, microservices</div>
+        <div class="bp-item"><span>2</span> <strong>Full VMs (QEMU)</strong> &mdash; legacy OS, Windows guests, live migration, GPU passthrough</div>
+        <div class="bp-item"><span>3</span> <strong>MicroVMs (Firecracker)</strong> &mdash; multi-tenant serverless, ephemeral sandboxes, untrusted code</div>
+        <div class="bp-item"><span>4</span> <strong>Kata Containers</strong> &mdash; Kubernetes with VM isolation, compliance requirements</div>
+        <div class="bp-item"><span>5</span> <strong>Cloud Hypervisor</strong> &mdash; cloud-native VMs with PCI/VFIO, richer than Firecracker</div>
+        <div class="bp-item"><span>6</span> <strong>gVisor</strong> &mdash; user-space kernel for containers, intercepting syscalls without full VM</div>
+        <div class="bp-item"><span>7</span> <strong>WASM (Wazero, Wasmtime)</strong> &mdash; language-level sandboxing, portable bytecode, edge computing</div>
+        <div class="bp-item"><span>8</span> <strong>Confidential VMs (SEV, TDX)</strong> &mdash; encrypted memory, attestation, zero-trust cloud</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. COURSE COMPLETE -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F5A5;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a comprehensive understanding of virtualization technologies:</p>
+      <div style="margin:20px 0">
+        <span class="tag">KVM</span><span class="tag">QEMU</span><span class="tag">Firecracker</span>
+        <span class="tag">MicroVMs</span><span class="tag">virtio</span><span class="tag">Containers</span>
+        <span class="tag">Namespaces</span><span class="tag">Cgroups</span><span class="tag">Kata Containers</span>
+        <span class="tag">Cloud Hypervisor</span><span class="tag">rust-vmm</span><span class="tag">Hypervisors</span>
+      </div>
+      <p style="color:var(--text-muted)">From bare metal to microVMs &mdash; the full stack of modern virtualization.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "&#x2600;" : "&#x263E;";
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-nav");
+    const next = current === "visible" ? "hidden" : "visible";
+    html.setAttribute("data-nav", next);
+    localStorage.setItem("navVisible", next);
+    document.getElementById("navToggle").innerHTML = next === "visible" ? "&#x2715;" : "&#x2630;";
+  }
+  (function() {
+    const saved = localStorage.getItem("navVisible") || "hidden";
+    document.documentElement.setAttribute("data-nav", saved);
+    if (document.getElementById("navToggle")) {
+      document.getElementById("navToggle").innerHTML = saved === "visible" ? "&#x2715;" : "&#x2630;";
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll(".slide");
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  const navBtns = document.querySelectorAll(".nav button");
+  function showSlide(index) {
+    slides[current].classList.remove("active");
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add("active");
+    progress.style.width = ((current / (slides.length - 1)) * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? "none" : "";
+      navBtns[1].style.display = current === slides.length - 1 ? "none" : "";
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigate(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); navigate(-1); }
+    if (e.key === "Home") { e.preventDefault(); showSlide(0); }
+    if (e.key === "End") { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener("touchend", (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

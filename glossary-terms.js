@@ -349,6 +349,21 @@ const GLOSSARY_TERMS = [
   {t:"AGL", d:"Automotive Grade Linux — a Linux Foundation project providing a shared Linux-based platform for automotive applications including infotainment, telematics, and instrument clusters. Adopted by Toyota, Mercedes, Mazda.", tags:["Linux Foundation","Automotive"]},
   {t:"LFX", d:"The Linux Foundation's unified platform for open source project management. Includes LFX Insights (contributor analytics), Mentorship, Security (vulnerability detection), Crowdfunding, and EasyCLA.", tags:["Linux Foundation","Tooling"]},
   {t:"OpenSearch", d:"A community-driven, Apache 2.0-licensed fork of Elasticsearch and Kibana, hosted by the Linux Foundation. Provides full-text search, analytics, observability, and vector search for AI applications.", tags:["Linux Foundation","Search","Analytics"]},
+  {t:"Hypervisor", d:"Software that creates and manages virtual machines. Type 1 (bare metal) runs directly on hardware (ESXi, KVM, Xen). Type 2 (hosted) runs atop a host OS (VirtualBox, VMware Workstation).", tags:["Virtualization"]},
+  {t:"KVM", d:"Kernel-based Virtual Machine — a Linux kernel module that turns the kernel into a Type 1 hypervisor. Uses Intel VT-x or AMD-V hardware extensions. Each VM is a regular Linux process.", tags:["Virtualization","Linux"]},
+  {t:"VMM", d:"Virtual Machine Monitor — the userspace process that manages a VM's device model, I/O, and configuration. KVM handles CPU/memory virtualization; the VMM handles everything else. Examples: QEMU, Firecracker.", tags:["Virtualization"]},
+  {t:"QEMU", d:"Quick EMUlator — a full-system emulator and VMM. Can emulate entire CPUs in software or pair with KVM for near-native performance. Emulates hundreds of devices including PCI, USB, and GPU.", tags:["Virtualization"]},
+  {t:"Firecracker", d:"An open-source microVM monitor built by AWS in Rust. Boots in <125ms with <5MB overhead. Minimal device model (5 virtio devices). Powers AWS Lambda and Fargate.", tags:["Virtualization","MicroVM"]},
+  {t:"MicroVM", d:"A lightweight virtual machine with a minimal device model, designed for fast boot and low overhead. Combines container-like speed with VM-level hardware isolation. Examples: Firecracker, Cloud Hypervisor.", tags:["Virtualization"]},
+  {t:"virtio", d:"A standardized para-virtualized I/O framework. The guest knows it's virtualized and uses optimized drivers instead of emulated hardware. Devices include virtio-net, virtio-blk, and virtio-vsock.", tags:["Virtualization"]},
+  {t:"Namespace", d:"A Linux kernel feature that isolates system resources (PID, network, mount, user, IPC, UTS, cgroup) between processes. The foundation of container isolation alongside Cgroup.", tags:["Virtualization","Containers","Linux"]},
+  {t:"Cgroup", d:"Control Group — a Linux kernel feature that limits and accounts for resource usage (CPU, memory, I/O, PIDs) of process groups. cgroups v2 provides a unified hierarchy.", tags:["Virtualization","Containers","Linux"]},
+  {t:"Kata Containers", d:"A CNCF project that runs OCI containers inside lightweight VMs. Compatible with Docker and Kubernetes via CRI-O/containerd. Supports QEMU, Firecracker, and Cloud Hypervisor as VMMs.", tags:["Virtualization","Containers"]},
+  {t:"Cloud Hypervisor", d:"A Rust-based VMM built on rust-vmm crates. Richer than Firecracker with PCI, VFIO, UEFI boot, and device hotplug. Backed by Intel, Microsoft, and ARM.", tags:["Virtualization","MicroVM"]},
+  {t:"rust-vmm", d:"A set of shared Rust crates for building VMMs. Includes kvm-ioctls, vm-memory, vm-virtio, and linux-loader. Used by Firecracker, Cloud Hypervisor, and CrosVM.", tags:["Virtualization","Rust"]},
+  {t:"EPT", d:"Extended Page Tables — Intel's hardware support for nested memory translation in VMs. Eliminates expensive shadow page table walks. AMD equivalent is NPT (Nested Page Tables).", tags:["Virtualization"]},
+  {t:"vsock", d:"A VM socket protocol for communication between a host and guest VM without using TCP/IP networking. Used by Firecracker for host-to-guest IPC via <code>virtio-vsock</code>.", tags:["Virtualization"]},
+  {t:"Seccomp", d:"Secure Computing mode — a Linux kernel feature that restricts which system calls a process can make. Firecracker uses seccomp BPF filters to limit the VMM's syscall surface.", tags:["Virtualization","Security"]},
 ];
 
 (function() {
