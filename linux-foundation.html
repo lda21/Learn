@@ -59,7 +59,7 @@
     p, li { font-size: 1.25rem; line-height: 1.7; }
     ul { list-style: none; padding: 0; }
     li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
-    li::before { content: "B8"; position: absolute; left: 0; color: var(--accent); }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
     .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
 
     code, pre { font-family: "Fira Code", "Cascadia Code", "Consolas", monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
@@ -917,7 +917,7 @@ PackageLicenseConcluded: MIT
   }
 
   function updateToggleIcon(theme) {
-    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "☀" : "☾";
+    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "&#x2600;" : "&#x263E;";
   }
 
   // Load saved theme
@@ -934,13 +934,13 @@ PackageLicenseConcluded: MIT
     const next = current === "visible" ? "hidden" : "visible";
     html.setAttribute("data-nav", next);
     localStorage.setItem("navVisible", next);
-    document.getElementById("navToggle").innerHTML = next === "visible" ? "✕" : "☰";
+    document.getElementById("navToggle").innerHTML = next === "visible" ? "&#x2715;" : "&#x2630;";
   }
   (function() {
     const saved = localStorage.getItem("navVisible") || "hidden";
     document.documentElement.setAttribute("data-nav", saved);
     if (document.getElementById("navToggle")) {
-      document.getElementById("navToggle").innerHTML = saved === "visible" ? "✕" : "☰";
+      document.getElementById("navToggle").innerHTML = saved === "visible" ? "&#x2715;" : "&#x2630;";
     }
   })();
 </script>
