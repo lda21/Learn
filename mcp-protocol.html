@@ -722,25 +722,37 @@ POST /token
     </div>
   </div>
 
-  <!-- 16. OTHER AUTH METHODS -->
+  <!-- 16. BEARER TOKENS & TOKEN TYPES -->
   <div class="slide">
-    <h2 class="animate">Other Authentication Methods</h2>
-    <div class="metric-grid animate">
-      <div class="metric-card">
-        <h3>API Keys</h3>
-        <p>Simple string token in header (<code>X-API-Key</code>) or query param. <span class="highlight">No expiry, no scopes, no refresh.</span> Best for internal/dev use.</p>
+    <h2 class="animate">Bearer Tokens &amp; Token Types</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Bearer Tokens (RFC 6750)</h3>
+        <ul>
+          <li><span class="highlight">Possession = access</span> &mdash; no proof of identity required</li>
+          <li>Sent via <code>Authorization: Bearer &lt;token&gt;</code> header</li>
+          <li>Must be protected by <span class="highlight">HTTPS</span> (no built-in tamper protection)</li>
+          <li>Used by OAuth 2.0/2.1, OIDC, and most modern APIs</li>
+          <li>Can be <span class="highlight">opaque strings</span> or <span class="highlight">JWTs</span> (self-contained)</li>
+          <li>Vulnerable to <span class="warning">token theft</span> if intercepted</li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+# Opaque bearer token
+Authorization: Bearer mF_9.B5f-4.1JqM
+
+# JWT bearer token (self-contained)
+Authorization: Bearer eyJhbGciOiJSUzI1NiJ9.
+  eyJzdWIiOiJ1c2VyMTIzIn0.signature</pre>
       </div>
-      <div class="metric-card">
-        <h3>mTLS (Mutual TLS)</h3>
-        <p>Both client and server present <span class="highlight">X.509 certificates</span>. Strongest transport-level auth. Used in banking, healthcare, zero-trust networks.</p>
-      </div>
-      <div class="metric-card">
-        <h3>SAML 2.0</h3>
-        <p><span class="highlight">XML-based</span> SSO protocol. IdP sends signed assertions to SP. Dominant in <span class="highlight">enterprise</span> (Okta, Azure AD, PingFederate). Heavy, complex.</p>
-      </div>
-      <div class="metric-card">
-        <h3>Basic / Digest Auth</h3>
-        <p><span class="highlight">HTTP-native</span>. Basic sends base64 credentials (requires HTTPS). Digest uses challenge-response with nonce. Legacy &mdash; rarely used alone.</p>
+      <div class="card">
+        <h3>Other Token Types</h3>
+        <ul>
+          <li><span class="highlight">MAC Tokens</span> &mdash; HMAC-signed requests, like OAuth 1.0a but simpler. Never widely adopted.</li>
+          <li><span class="highlight">DPoP</span> (RFC 9449) &mdash; Demonstration of Proof-of-Possession. Client proves it holds a private key. Prevents token replay.</li>
+          <li><span class="highlight">PAT</span> &mdash; Personal Access Token. Long-lived bearer token scoped to a user. Used by GitHub, GitLab, Jira.</li>
+          <li><span class="highlight">SAS Tokens</span> &mdash; Shared Access Signatures. Time-limited, URI-scoped tokens. Used by Azure Storage.</li>
+          <li><span class="highlight">Hawk</span> &mdash; HTTP MAC-based auth scheme. Signs method + URI + timestamp. Alternative to Bearer for sensitive APIs.</li>
+        </ul>
       </div>
     </div>
   </div>
@@ -783,80 +795,55 @@ eyJhbGciOi...  // base64url encoded
     <p class="animate" style="margin-top:12px;color:var(--text-muted);font-size:1.05rem">MCP servers can use OIDC-compatible auth servers for user identity + OAuth 2.1 for authorization</p>
   </div>
 
-  <!-- 18. AUTH COMPARISON TABLE -->
+  <!-- 18. MORE AUTH METHODS -->
+  <div class="slide">
+    <h2 class="animate">More Authentication Methods</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Enterprise &amp; Network</h3>
+        <ul>
+          <li><span class="highlight">SAML 2.0</span> &mdash; XML-based SSO. IdP sends signed assertions to SP. Dominant in enterprise (Okta, Azure AD, PingFederate)</li>
+          <li><span class="highlight">Kerberos</span> &mdash; ticket-based auth using a Key Distribution Center (KDC). Powers Active Directory. No passwords over the network</li>
+          <li><span class="highlight">LDAP Bind</span> &mdash; authenticate against a directory server (Active Directory, OpenLDAP). Username + password verification</li>
+          <li><span class="highlight">NTLM</span> &mdash; legacy Windows challenge-response protocol. Replaced by Kerberos but still found in older systems</li>
+          <li><span class="highlight">RADIUS</span> &mdash; network access auth for VPN, Wi-Fi, dial-up. Centralized AAA (Authentication, Authorization, Accounting)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Modern &amp; Passwordless</h3>
+        <ul>
+          <li><span class="highlight">WebAuthn / FIDO2</span> &mdash; public-key auth using hardware keys (YubiKey) or biometrics. Phishing-resistant. W3C standard</li>
+          <li><span class="highlight">Passkeys</span> &mdash; FIDO2 credentials synced across devices via iCloud, Google, or 1Password. Replaces passwords entirely</li>
+          <li><span class="highlight">Magic Links</span> &mdash; one-time login URLs sent via email. Simple UX, no password. Used by Slack, Notion</li>
+          <li><span class="highlight">TOTP / HOTP</span> &mdash; time-based or counter-based one-time passwords. 6-digit codes from authenticator apps (RFC 6238/4226)</li>
+          <li><span class="highlight">API Keys</span> &mdash; static string in header (<code>X-API-Key</code>) or query param. No expiry or scopes. Best for internal/dev use</li>
+          <li><span class="highlight">Basic / Digest</span> &mdash; HTTP-native. Basic sends base64 creds (needs HTTPS). Digest uses challenge-response. Legacy</li>
+          <li><span class="highlight">mTLS</span> &mdash; mutual X.509 certificates. Strongest transport-level auth. Banking, zero-trust</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. AUTH COMPARISON TABLE -->
   <div class="slide">
     <h2 class="animate">Authentication Methods Compared</h2>
     <div class="content animate">
       <table>
-        <tr><th>Method</th><th>Year</th><th>Token Type</th><th>Best For</th><th>Status</th></tr>
-        <tr><td><span class="highlight">OAuth 1.0a</span></td><td>2007</td><td>Signed requests</td><td>Legacy APIs</td><td><span class="warning">Deprecated</span></td></tr>
-        <tr><td><span class="highlight">OAuth 2.0</span></td><td>2012</td><td>Bearer token</td><td>Web/mobile apps</td><td>Widely deployed</td></tr>
-        <tr><td><span class="highlight">OAuth 2.1</span></td><td>2024</td><td>Bearer + PKCE</td><td>MCP, modern apps</td><td><span class="green">Recommended</span></td></tr>
-        <tr><td><span class="highlight">OIDC</span></td><td>2014</td><td>ID Token (JWT)</td><td>SSO, identity</td><td><span class="green">Active</span></td></tr>
-        <tr><td><span class="highlight">SAML 2.0</span></td><td>2005</td><td>XML assertions</td><td>Enterprise SSO</td><td>Enterprise standard</td></tr>
-        <tr><td><span class="highlight">API Keys</span></td><td>N/A</td><td>Static string</td><td>Internal, dev</td><td>Simple but limited</td></tr>
-        <tr><td><span class="highlight">mTLS</span></td><td>N/A</td><td>X.509 certs</td><td>Zero-trust, B2B</td><td>High security</td></tr>
-        <tr><td><span class="highlight">Basic Auth</span></td><td>1996</td><td>Base64 creds</td><td>Legacy HTTP</td><td><span class="warning">Avoid alone</span></td></tr>
+        <tr><th>Method</th><th>Token / Credential</th><th>Best For</th><th>Status</th></tr>
+        <tr><td><span class="highlight">OAuth 2.1</span></td><td>Bearer + PKCE</td><td>MCP, modern apps</td><td><span class="green">MCP Standard</span></td></tr>
+        <tr><td><span class="highlight">OAuth 2.0</span></td><td>Bearer token</td><td>Web/mobile apps</td><td>Widely deployed</td></tr>
+        <tr><td><span class="highlight">OAuth 1.0a</span></td><td>HMAC signatures</td><td>Legacy APIs</td><td><span class="warning">Deprecated</span></td></tr>
+        <tr><td><span class="highlight">OIDC</span></td><td>ID Token (JWT)</td><td>SSO, identity</td><td><span class="green">Active</span></td></tr>
+        <tr><td><span class="highlight">SAML 2.0</span></td><td>XML assertions</td><td>Enterprise SSO</td><td>Enterprise standard</td></tr>
+        <tr><td><span class="highlight">Kerberos</span></td><td>Tickets (TGT/ST)</td><td>Active Directory, intranet</td><td>Enterprise standard</td></tr>
+        <tr><td><span class="highlight">WebAuthn</span></td><td>Public key (FIDO2)</td><td>Passwordless, phishing-proof</td><td><span class="green">Modern standard</span></td></tr>
+        <tr><td><span class="highlight">Bearer Token</span></td><td>Opaque or JWT</td><td>API access</td><td>Universal</td></tr>
+        <tr><td><span class="highlight">PAT</span></td><td>Long-lived bearer</td><td>Developer APIs (GitHub)</td><td>Common</td></tr>
+        <tr><td><span class="highlight">DPoP</span></td><td>Proof-of-possession</td><td>High-security OAuth</td><td><span class="green">Emerging</span></td></tr>
+        <tr><td><span class="highlight">API Keys</span></td><td>Static string</td><td>Internal, dev</td><td>Simple but limited</td></tr>
+        <tr><td><span class="highlight">mTLS</span></td><td>X.509 certificates</td><td>Zero-trust, B2B</td><td>High security</td></tr>
+        <tr><td><span class="highlight">Basic Auth</span></td><td>Base64 credentials</td><td>Legacy HTTP</td><td><span class="warning">Avoid alone</span></td></tr>
       </table>
-    </div>
-  </div>
-
-  <!-- 19. BUILDING AN MCP SERVER -->
-  <div class="slide">
-    <h2 class="animate">Building an MCP Server</h2>
-    <div class="two-col animate">
-      <div class="card">
-        <h3>TypeScript (Official SDK)</h3>
-        <pre style="font-size:0.8rem">
-import { McpServer } from
-  "@modelcontextprotocol/sdk/server/mcp.js";
-import { StdioServerTransport } from
-  "@modelcontextprotocol/sdk/server/stdio.js";
-
-const server = new McpServer({
-  name: "my-server",
-  version: "1.0.0"
-});
-
-server.tool("greet",
-  { name: { type: "string" } },
-  async ({ name }) => ({
-    content: [{
-      type: "text",
-      text: "Hello " + name
-    }]
-  })
-);
-
-const transport = new StdioServerTransport();
-await server.connect(transport);</pre>
-      </div>
-      <div class="card">
-        <h3>Python (Official SDK)</h3>
-        <pre style="font-size:0.8rem">
-from mcp.server.fastmcp import FastMCP
-
-mcp = FastMCP("my-server")
-
-@mcp.tool()
-def greet(name: str) -> str:
-    """Greet a user by name."""
-    return f"Hello {name}"
-
-@mcp.resource("config://app")
-def get_config() -> str:
-    """Return app configuration."""
-    return json.dumps(config)
-
-@mcp.prompt()
-def review_code(code: str) -> str:
-    """Create a code review prompt."""
-    return f"Review this code:\n{code}"
-
-# Run with stdio transport
-mcp.run()</pre>
-        <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem">Also available: Java, Kotlin, C#, Go, Rust SDKs</p>
-      </div>
     </div>
   </div>
 
@@ -869,8 +856,9 @@ mcp.run()</pre>
       <div style="margin:20px 0">
         <span class="tag">MCP Protocol</span><span class="tag">Tools</span><span class="tag">Resources</span>
         <span class="tag">Transports</span><span class="tag">OAuth 1.0a</span><span class="tag">OAuth 2.0</span>
-        <span class="tag">OAuth 2.1</span><span class="tag">PKCE</span><span class="tag">OIDC</span>
-        <span class="tag">SAML</span><span class="tag">API Keys</span><span class="tag">mTLS</span>
+        <span class="tag">OAuth 2.1</span><span class="tag">PKCE</span><span class="tag">Bearer Tokens</span>
+        <span class="tag">DPoP</span><span class="tag">OIDC</span><span class="tag">SAML</span>
+        <span class="tag">Kerberos</span><span class="tag">WebAuthn</span><span class="tag">mTLS</span>
       </div>
       <p style="color:var(--text-muted)">One protocol, many tools &mdash; secure, standardized, and open.</p>
       <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>

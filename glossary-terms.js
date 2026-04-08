@@ -381,6 +381,13 @@ const GLOSSARY_TERMS = [
   {t:"Streamable HTTP", d:"MCP's current standard HTTP transport. Single endpoint accepts POST requests, can respond with JSON or SSE streams. Supports session management via Mcp-Session-Id header.", tags:["MCP","Transport"]},
   {t:"Sampling", d:"An MCP capability where the server requests the AI model to generate text. Enables agentic behaviors while maintaining human-in-the-loop control via the client.", tags:["MCP","AI"]},
   {t:"Elicitation", d:"An MCP capability where the server asks the user for structured input. Client renders a form based on JSON Schema. Results can be accepted, declined, or cancelled.", tags:["MCP"]},
+  {t:"DPoP", d:"Demonstration of Proof-of-Possession (RFC 9449) — an OAuth extension where the client proves it holds a private key when using a token. Prevents token replay and theft.", tags:["Authentication","OAuth"]},
+  {t:"PAT", d:"Personal Access Token — a long-lived bearer token scoped to a user account. Used by GitHub, GitLab, Jira, and Confluence for API access instead of passwords.", tags:["Authentication"]},
+  {t:"Kerberos", d:"A ticket-based network authentication protocol using a Key Distribution Center (KDC). Powers Active Directory. No passwords sent over the network — uses symmetric key cryptography.", tags:["Authentication","Enterprise"]},
+  {t:"WebAuthn", d:"Web Authentication API (W3C/FIDO2) — public-key authentication using hardware security keys or biometrics. Phishing-resistant. Basis for Passkeys.", tags:["Authentication","Security"]},
+  {t:"Passkey", d:"A FIDO2/WebAuthn credential synced across devices via iCloud Keychain, Google Password Manager, or 1Password. Replaces passwords with public-key cryptography and biometric verification.", tags:["Authentication","Security"]},
+  {t:"TOTP", d:"Time-based One-Time Password (RFC 6238) — generates 6-digit codes from a shared secret and current time. Used by authenticator apps (Google Authenticator, Authy). Rotates every 30 seconds.", tags:["Authentication","MFA"]},
+  {t:"Magic Link", d:"A passwordless authentication method where a one-time login URL is sent via email. User clicks the link to authenticate. Used by Slack, Notion, and Vercel.", tags:["Authentication"]},
 ];
 
 (function() {
