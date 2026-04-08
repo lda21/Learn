@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Linux Foundation</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: "B8"; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: "Fira Code", "Cascadia Code", "Consolas", monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.4rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px; background: var(--accent); color: #fff;
+      text-decoration: none; border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.2rem; cursor: pointer; z-index: 200; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow); color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F427;</span>
+    <h1 class="animate">Linux Foundation</h1>
+    <p class="subtitle animate">The neutral home for open source &mdash; hosting the world&rsquo;s most critical projects</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Open Source</span><span class="tag">Projects</span><span class="tag">Training</span><span class="tag">Standards</span>
+    </div>
+  </div>
+
+  <!-- 2. WHAT IS THE LINUX FOUNDATION? -->
+  <div class="slide">
+    <h2 class="animate">What is the Linux Foundation?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Organization</h3>
+        <ul>
+          <li>Founded in <span class="highlight">2000</span> as a nonprofit technology consortium</li>
+          <li><span class="highlight">Vendor-neutral</span> steward of open source collaboration</li>
+          <li>Hosts <span class="highlight">900+</span> open source projects</li>
+          <li><span class="highlight">2M+</span> contributors worldwide</li>
+          <li><span class="highlight">$16B+</span> in shared technology investment</li>
+          <li>Not a vendor &mdash; doesn&rsquo;t sell commercial products</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What It Provides</h3>
+        <ul>
+          <li><span class="highlight">Governance</span> &mdash; neutral project stewardship</li>
+          <li><span class="highlight">Infrastructure</span> &mdash; CI/CD, hosting, tooling (LFX)</li>
+          <li><span class="highlight">Legal</span> &mdash; IP management, license compliance</li>
+          <li><span class="highlight">Marketing</span> &mdash; events, branding, outreach</li>
+          <li><span class="highlight">Training</span> &mdash; courses, certifications, edX</li>
+          <li><span class="highlight">Security</span> &mdash; supply chain, auditing, best practices</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. ORGANIZATIONAL STRUCTURE -->
+  <div class="slide">
+    <h2 class="animate">Organizational Structure</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Linux Foundation</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">CNCF</div>
+        <div class="box">LF AI &amp; Data</div>
+        <div class="box">OpenSSF</div>
+        <div class="box">LF Networking</div>
+      </div>
+      <div class="diagram" style="margin-top:8px">
+        <div class="box">LF Energy</div>
+        <div class="box">LF Edge</div>
+        <div class="box">Hyperledger</div>
+        <div class="box">FINOS</div>
+        <div class="box">React Foundation</div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Sub-Foundations</h3>
+          <ul>
+            <li>Each has its own <span class="highlight">governance board</span> and budget</li>
+            <li>Own Technical Oversight Committees (TOC)</li>
+            <li>Independent project lifecycle (sandbox &rarr; incubating &rarr; graduated)</li>
+            <li>Share LF&rsquo;s legal, financial, and infrastructure backbone</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Membership &amp; Funding</h3>
+          <ul>
+            <li><span class="highlight">Platinum</span> &mdash; board seat, strategic direction</li>
+            <li><span class="highlight">Gold</span> &mdash; advisory council participation</li>
+            <li><span class="highlight">Silver</span> &mdash; community participation</li>
+            <li>Members: Google, Microsoft, AWS, Red Hat, Intel, Meta, IBM, Huawei, and 1000+ more</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. LINUX KERNEL -->
+  <div class="slide">
+    <h2 class="animate">Linux Kernel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Flagship Project</h3>
+        <ul>
+          <li>Created by <span class="highlight">Linus Torvalds</span> in 1991</li>
+          <li><span class="highlight">30M+</span> lines of code</li>
+          <li><span class="highlight">20,000+</span> contributors from 1,700+ companies</li>
+          <li>New release every <span class="highlight">~9 weeks</span></li>
+          <li>Powers Android, cloud servers, supercomputers, embedded devices</li>
+          <li>100% of Top 500 supercomputers run Linux</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+uname -r                  # kernel version
+lsmod                     # loaded modules
+modprobe &lt;module&gt;         # load a module
+cat /proc/cpuinfo         # CPU info
+dmesg | tail              # kernel messages
+</pre>
+      </div>
+      <div class="card">
+        <h3>Key Subsystems</h3>
+        <ul>
+          <li><span class="highlight">Process Scheduler</span> &mdash; CFS (Completely Fair Scheduler)</li>
+          <li><span class="highlight">Memory Management</span> &mdash; virtual memory, page cache, OOM killer</li>
+          <li><span class="highlight">VFS</span> &mdash; Virtual Filesystem (ext4, XFS, Btrfs, ZFS)</li>
+          <li><span class="highlight">Networking Stack</span> &mdash; TCP/IP, eBPF, netfilter, XDP</li>
+          <li><span class="highlight">Device Drivers</span> &mdash; largest subsystem by code volume</li>
+          <li><span class="highlight">Security</span> &mdash; SELinux, AppArmor, seccomp, namespaces</li>
+          <li><span class="highlight">cgroups</span> &mdash; resource limits (foundation of containers)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. KUBERNETES (CNCF) -->
+  <div class="slide">
+    <h2 class="animate">Kubernetes (CNCF)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Container Orchestration</h3>
+        <ul>
+          <li>Originally from Google (Borg), donated to CNCF in 2015</li>
+          <li><span class="highlight">Graduated</span> CNCF project (2018)</li>
+          <li><span class="highlight">88K+</span> GitHub stars, 3,700+ contributors</li>
+          <li>Declarative: describe desired state, K8s reconciles</li>
+          <li>Self-healing, auto-scaling, rolling updates</li>
+          <li>De facto standard for container orchestration</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Architecture</h3>
+        <div class="diagram" style="margin-bottom:12px">
+          <div class="box" style="border-color:var(--success)">Control Plane</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">Worker Nodes</div>
+        </div>
+        <ul>
+          <li><span class="highlight">API Server</span> &mdash; REST gateway for all operations</li>
+          <li><span class="highlight">etcd</span> &mdash; distributed key-value store</li>
+          <li><span class="highlight">Scheduler</span> &mdash; places pods on nodes</li>
+          <li><span class="highlight">kubelet</span> &mdash; node agent running pods</li>
+          <li><span class="highlight">kube-proxy</span> &mdash; networking and load balancing</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. CNCF LANDSCAPE -->
+  <div class="slide">
+    <h2 class="animate">CNCF Landscape</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Graduated Projects</h3>
+        <p>Production-proven, widely adopted</p>
+        <ul>
+          <li><span class="highlight">Kubernetes</span> &mdash; orchestration</li>
+          <li><span class="highlight">Prometheus</span> &mdash; monitoring</li>
+          <li><span class="highlight">Envoy</span> &mdash; service proxy</li>
+          <li><span class="highlight">CoreDNS</span> &mdash; DNS server</li>
+          <li><span class="highlight">containerd</span> &mdash; container runtime</li>
+          <li><span class="highlight">Helm</span> / <span class="highlight">Argo</span> / <span class="highlight">Flux</span></li>
+          <li><span class="highlight">etcd</span> / <span class="highlight">OPA</span> / <span class="highlight">Istio</span></li>
+        </ul>
+      </div>
+      <div class="metric-card">
+        <h3>Incubating Projects</h3>
+        <p>Growing adoption, maturing</p>
+        <ul>
+          <li><span class="highlight">Knative</span> &mdash; serverless on K8s</li>
+          <li><span class="highlight">KEDA</span> &mdash; event-driven autoscaling</li>
+          <li><span class="highlight">Dapr</span> &mdash; distributed app runtime</li>
+          <li><span class="highlight">Backstage</span> &mdash; developer portal</li>
+          <li><span class="highlight">Crossplane</span> &mdash; cloud IaC</li>
+          <li><span class="highlight">Cilium</span> &mdash; eBPF networking</li>
+        </ul>
+      </div>
+      <div class="metric-card">
+        <h3>Observability Stack</h3>
+        <p>Full-stack monitoring &amp; tracing</p>
+        <ul>
+          <li><span class="highlight">OpenTelemetry</span> &mdash; unified telemetry</li>
+          <li><span class="highlight">Jaeger</span> &mdash; distributed tracing</li>
+          <li><span class="highlight">Thanos</span> &mdash; long-term Prometheus</li>
+          <li><span class="highlight">Cortex</span> &mdash; multi-tenant metrics</li>
+          <li><span class="highlight">Fluentd</span> &mdash; log aggregation</li>
+        </ul>
+      </div>
+      <div class="metric-card">
+        <h3>CNCF Trail Map</h3>
+        <p>Recommended adoption path</p>
+        <ul>
+          <li><span class="green">1.</span> Containerize applications</li>
+          <li><span class="green">2.</span> Set up CI/CD pipelines</li>
+          <li><span class="green">3.</span> Orchestrate with Kubernetes</li>
+          <li><span class="green">4.</span> Add observability</li>
+          <li><span class="green">5.</span> Implement service mesh</li>
+          <li><span class="green">6.</span> Apply security &amp; policy</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. MODEL CONTEXT PROTOCOL (MCP) -->
+  <div class="slide">
+    <h2 class="animate">Model Context Protocol (MCP)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What is MCP?</h3>
+        <ul>
+          <li>Open protocol for connecting <span class="highlight">AI models to external data and tools</span></li>
+          <li>Standardizes how LLMs interact with systems</li>
+          <li>Originated at <span class="highlight">Anthropic</span>, donated to the Linux Foundation in 2025</li>
+          <li>"USB-C for AI" &mdash; one universal connector</li>
+          <li>Replaces fragile, custom integrations</li>
+          <li>Adopted by Claude, VS Code, JetBrains, Cursor, and more</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Architecture</h3>
+        <div class="diagram" style="margin-bottom:12px">
+          <div class="box" style="border-color:var(--success)">MCP Host</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">MCP Client</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">MCP Server</div>
+        </div>
+        <ul>
+          <li><span class="highlight">Resources</span> &mdash; data the model can read</li>
+          <li><span class="highlight">Tools</span> &mdash; actions the model can invoke</li>
+          <li><span class="highlight">Prompts</span> &mdash; reusable prompt templates</li>
+          <li><span class="highlight">Sampling</span> &mdash; server-initiated LLM requests</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+{
+  "mcpServers": {
+    "github": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-github"]
+    }
+  }
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. PYTORCH (LF AI & DATA) -->
+  <div class="slide">
+    <h2 class="animate">PyTorch (LF AI &amp; Data)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Deep Learning Framework</h3>
+        <ul>
+          <li>Created by <span class="highlight">Meta AI</span>, moved to LF in 2022</li>
+          <li><span class="highlight">Dynamic computation graphs</span> &mdash; define-by-run</li>
+          <li>Pythonic, intuitive API beloved by researchers</li>
+          <li><span class="highlight">Dominant</span> in ML research papers (&gt;80%)</li>
+          <li>Production-ready with TorchServe and ONNX export</li>
+          <li><span class="highlight">82K+</span> GitHub stars</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ecosystem</h3>
+        <ul>
+          <li><span class="highlight">TorchServe</span> &mdash; model serving at scale</li>
+          <li><span class="highlight">TorchVision</span> &mdash; computer vision</li>
+          <li><span class="highlight">TorchAudio</span> &mdash; audio processing</li>
+          <li><span class="highlight">TorchText</span> &mdash; NLP utilities</li>
+          <li><span class="highlight">PyTorch Lightning</span> &mdash; structured training</li>
+          <li><span class="highlight">torch.compile</span> &mdash; JIT compilation (2.0+)</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+import torch
+import torch.nn as nn
+
+model = nn.Sequential(
+    nn.Linear(784, 256),
+    nn.ReLU(),
+    nn.Linear(256, 10)
+)
+x = torch.randn(32, 784)
+out = model(x)  # shape: [32, 10]
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. RAY (LF AI & DATA) -->
+  <div class="slide">
+    <h2 class="animate">Ray (LF AI &amp; Data)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Distributed Computing</h3>
+        <ul>
+          <li>Scale Python from laptop to cluster with <span class="highlight">minimal code changes</span></li>
+          <li>Created at UC Berkeley RISELab, joined LF AI &amp; Data</li>
+          <li>Unified framework for ML workloads</li>
+          <li>Used by OpenAI, Uber, Spotify, Shopify, Netflix</li>
+          <li><span class="highlight">35K+</span> GitHub stars</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+import ray
+
+@ray.remote
+def train_model(config):
+    # runs on any node in the cluster
+    return model.fit(config)
+
+# Launch 10 training jobs in parallel
+futures = [train_model.remote(c) for c in configs]
+results = ray.get(futures)
+</pre>
+      </div>
+      <div class="card">
+        <h3>Ray Libraries</h3>
+        <ul>
+          <li><span class="highlight">Ray Core</span> &mdash; distributed primitives (tasks, actors, objects)</li>
+          <li><span class="highlight">Ray Train</span> &mdash; distributed model training</li>
+          <li><span class="highlight">Ray Tune</span> &mdash; hyperparameter tuning at scale</li>
+          <li><span class="highlight">Ray Serve</span> &mdash; scalable model serving</li>
+          <li><span class="highlight">Ray Data</span> &mdash; distributed data processing</li>
+          <li><span class="highlight">Ray RLlib</span> &mdash; reinforcement learning</li>
+        </ul>
+        <div class="diagram" style="margin-top:12px">
+          <div class="box">Ray Core</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">Train / Tune</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">Serve</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. OPENSEARCH -->
+  <div class="slide">
+    <h2 class="animate">OpenSearch</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Search &amp; Analytics</h3>
+        <ul>
+          <li>Community-driven fork of <span class="highlight">Elasticsearch + Kibana</span></li>
+          <li>Created by AWS in 2021, moved to LF in 2024</li>
+          <li><span class="highlight">Apache 2.0</span> license &mdash; truly open source</li>
+          <li>Full-text search, log analytics, observability, security</li>
+          <li>Drop-in replacement for Elasticsearch 7.x</li>
+          <li>Vector search for AI/ML applications</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Components</h3>
+        <ul>
+          <li><span class="highlight">OpenSearch</span> &mdash; search and analytics engine</li>
+          <li><span class="highlight">OpenSearch Dashboards</span> &mdash; visualization UI</li>
+          <li><span class="highlight">Data Prepper</span> &mdash; data ingestion pipeline</li>
+          <li><span class="highlight">Clients</span> &mdash; Java, Python, Go, Node.js, Ruby</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+GET /logs/_search
+{
+  "query": {
+    "bool": {
+      "must": [
+        { "match": { "level": "ERROR" } },
+        { "range": { "@timestamp": {
+            "gte": "now-1h"
+        }}}
+      ]
+    }
+  }
+}
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. RISC-V INTERNATIONAL -->
+  <div class="slide">
+    <h2 class="animate">RISC-V International</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Open Instruction Set Architecture</h3>
+        <ul>
+          <li>Free, open <span class="highlight">ISA</span> &mdash; no licensing fees</li>
+          <li>Started at UC Berkeley in 2010, joined LF in 2020</li>
+          <li>Modular design: base integer + optional extensions</li>
+          <li>Growing across embedded, mobile, automotive, HPC</li>
+          <li><span class="highlight">13B+</span> RISC-V cores shipped</li>
+          <li>Backed by Qualcomm, Samsung, NVIDIA, Google, Intel</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Architecture Comparison</h3>
+        <table style="font-size:0.95rem">
+          <tr><th>Feature</th><th>RISC-V</th><th>ARM</th><th>x86</th></tr>
+          <tr><td>License</td><td><span class="green">Free &amp; open</span></td><td>Paid royalty</td><td>Closed</td></tr>
+          <tr><td>Design</td><td>Modular</td><td>Fixed profiles</td><td>Monolithic</td></tr>
+          <tr><td>Extensions</td><td>Custom OK</td><td>Limited</td><td>Vendor only</td></tr>
+          <tr><td>Ecosystem</td><td>Growing</td><td>Mature</td><td>Mature</td></tr>
+        </table>
+        <p style="margin-top:12px;font-size:1rem"><span class="highlight">Base ISA:</span> RV32I / RV64I + extensions: <code>M</code> (multiply), <code>A</code> (atomic), <code>F</code> (float), <code>D</code> (double), <code>C</code> (compressed)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. OPENSSF -->
+  <div class="slide">
+    <h2 class="animate">OpenSSF &mdash; Open Source Security</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Securing the Supply Chain</h3>
+        <ul>
+          <li>Founded 2020 after major supply chain attacks (SolarWinds, Log4Shell)</li>
+          <li>Cross-industry collaboration on open source security</li>
+          <li>Funded by Google, Microsoft, AWS, GitHub, Intel, and more</li>
+          <li><span class="highlight">$150M+</span> pledged for supply chain security</li>
+        </ul>
+        <table style="font-size:0.9rem;margin-top:10px">
+          <tr><th>SLSA Level</th><th>Requirements</th></tr>
+          <tr><td>Level 1</td><td>Documented build process</td></tr>
+          <tr><td>Level 2</td><td>Hosted build, signed provenance</td></tr>
+          <tr><td>Level 3</td><td>Hardened builds, non-falsifiable provenance</td></tr>
+          <tr><td>Level 4</td><td>Two-party review, hermetic builds</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Key Initiatives</h3>
+        <ul>
+          <li><span class="highlight">Scorecard</span> &mdash; automated security health checks for repos (CI/CD, branch protection, fuzzing, SAST)</li>
+          <li><span class="highlight">Sigstore</span> &mdash; keyless code signing and verification (cosign, Rekor, Fulcio)</li>
+          <li><span class="highlight">SLSA</span> &mdash; Supply-chain Levels for Software Artifacts framework</li>
+          <li><span class="highlight">GUAC</span> &mdash; Graph for Understanding Artifact Composition</li>
+          <li><span class="highlight">Alpha-Omega</span> &mdash; funding security for critical projects</li>
+          <li><span class="highlight">Package Analysis</span> &mdash; detecting malicious packages</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+# Check a repo's security scorecard
+scorecard --repo=github.com/org/repo
+
+# Sign a container image with Sigstore
+cosign sign myregistry.io/myimage:latest
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. HYPERLEDGER -->
+  <div class="slide">
+    <h2 class="animate">Hyperledger</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Enterprise Blockchain</h3>
+        <ul>
+          <li>Founded in 2016 under the Linux Foundation</li>
+          <li><span class="highlight">Permissioned</span> blockchains for business</li>
+          <li>Not cryptocurrencies &mdash; enterprise distributed ledger tech</li>
+          <li>Members: IBM, Accenture, Intel, JPMorgan, Cisco</li>
+          <li>Use cases: supply chain, healthcare records, trade finance, digital identity</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Projects</h3>
+        <ul>
+          <li><span class="highlight">Fabric</span> &mdash; modular, pluggable blockchain platform. Channels for privacy, chaincode (smart contracts) in Go/Java/Node</li>
+          <li><span class="highlight">Besu</span> &mdash; Ethereum-compatible client for enterprise. EVM, permissioning, privacy groups</li>
+          <li><span class="highlight">Iroha</span> &mdash; simple blockchain for mobile and web</li>
+          <li><span class="highlight">Aries</span> &mdash; decentralized identity toolkit</li>
+          <li><span class="highlight">Cacti</span> &mdash; cross-chain interoperability</li>
+          <li><span class="highlight">Firefly</span> &mdash; Web3 gateway for enterprises</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. LF NETWORKING & LF EDGE -->
+  <div class="slide">
+    <h2 class="animate">LF Networking &amp; LF Edge</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>LF Networking</h3>
+        <ul>
+          <li>Open source for <span class="highlight">SDN/NFV</span> and telecom networks</li>
+          <li><span class="highlight">ONAP</span> &mdash; network automation for 5G (AT&amp;T, China Mobile)</li>
+          <li><span class="highlight">FD.io (VPP)</span> &mdash; ultra-fast userspace packet processing</li>
+          <li><span class="highlight">OpenDaylight</span> &mdash; SDN controller platform</li>
+          <li><span class="highlight">Tungsten Fabric</span> &mdash; multi-cloud networking</li>
+          <li><span class="highlight">Anuket</span> &mdash; reference platform for NFV/cloud-native</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>LF Edge</h3>
+        <ul>
+          <li>Unified framework for <span class="highlight">edge computing</span></li>
+          <li><span class="highlight">Akraino</span> &mdash; edge infrastructure blueprints</li>
+          <li><span class="highlight">EdgeX Foundry</span> &mdash; IoT edge platform (vendor-neutral)</li>
+          <li><span class="highlight">Open Horizon</span> &mdash; autonomous edge workload management</li>
+          <li><span class="highlight">EVE</span> &mdash; edge virtualization engine (Project EVE)</li>
+          <li><span class="highlight">Baetyl</span> &mdash; lightweight edge computing (Baidu-origin)</li>
+          <li>Bridging cloud &harr; edge &harr; device</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. LF ENERGY & AGL -->
+  <div class="slide">
+    <h2 class="animate">LF Energy &amp; Automotive Grade Linux</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>LF Energy</h3>
+        <ul>
+          <li>Open source for <span class="highlight">power grid modernization</span></li>
+          <li>Decarbonization, digitalization, decentralization</li>
+          <li><span class="highlight">SEAPATH</span> &mdash; software platform for energy automation</li>
+          <li><span class="highlight">OperatorFabric</span> &mdash; operator notification system</li>
+          <li><span class="highlight">OpenSTEF</span> &mdash; short-term energy forecasting</li>
+          <li><span class="highlight">SOGNO</span> &mdash; service-oriented grid for distribution networks</li>
+          <li>Members: RTE, Alliander, Shell, Audi, Microsoft</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Automotive Grade Linux (AGL)</h3>
+        <ul>
+          <li>Shared Linux platform for <span class="highlight">automotive</span> applications</li>
+          <li><span class="highlight">Infotainment</span> &mdash; in-vehicle multimedia systems</li>
+          <li><span class="highlight">Telematics</span> &mdash; vehicle data and connectivity</li>
+          <li><span class="highlight">Instrument Cluster</span> &mdash; digital dashboard displays</li>
+          <li><span class="highlight">ADAS</span> &mdash; advanced driver assistance</li>
+          <li>Adopted by <span class="highlight">Toyota, Mercedes, Mazda, Suzuki, Subaru</span></li>
+          <li>Reduces development cost by sharing a common platform</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. OPENSTACK & ZEPHYR -->
+  <div class="slide">
+    <h2 class="animate">OpenStack &amp; Zephyr RTOS</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>OpenStack</h3>
+        <ul>
+          <li>Open source <span class="highlight">cloud infrastructure</span> platform</li>
+          <li>IaaS: compute, storage, networking as a service</li>
+          <li>Powers private and hybrid clouds worldwide</li>
+          <li>40M+ cores in production globally</li>
+        </ul>
+        <table style="font-size:0.9rem;margin-top:8px">
+          <tr><th>Service</th><th>Function</th></tr>
+          <tr><td><code>Nova</code></td><td>Compute (VMs)</td></tr>
+          <tr><td><code>Neutron</code></td><td>Networking</td></tr>
+          <tr><td><code>Cinder</code></td><td>Block storage</td></tr>
+          <tr><td><code>Swift</code></td><td>Object storage</td></tr>
+          <tr><td><code>Keystone</code></td><td>Identity / auth</td></tr>
+          <tr><td><code>Glance</code></td><td>Image service</td></tr>
+          <tr><td><code>Horizon</code></td><td>Dashboard</td></tr>
+        </table>
+      </div>
+      <div class="card">
+        <h3>Zephyr RTOS</h3>
+        <ul>
+          <li>Real-time operating system for <span class="highlight">IoT and embedded</span></li>
+          <li>Small footprint: runs on devices with &lt;8KB RAM</li>
+          <li>Supports <span class="highlight">500+</span> boards and SoCs</li>
+          <li>Connectivity: Bluetooth, WiFi, Thread, LoRaWAN, USB</li>
+          <li>Safety-certifiable (IEC 61508 / ISO 26262)</li>
+          <li>Members: Intel, Nordic Semiconductor, NXP, Google</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+# Zephyr build example
+west build -b nrf52840dk_nrf52840   samples/basic/blinky
+
+west flash  # flash to device
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. SPDX & COMPLIANCE -->
+  <div class="slide">
+    <h2 class="animate">SPDX &amp; Compliance Standards</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>SPDX &mdash; Software Bill of Materials</h3>
+        <ul>
+          <li><span class="highlight">ISO/IEC 5962</span> international standard</li>
+          <li>Machine-readable format for SBOMs</li>
+          <li>Documents packages, files, licenses, relationships</li>
+          <li>Required by US Executive Order 14028 (cybersecurity)</li>
+          <li>Supported by GitHub, SPDX-SBOM-Generator, Syft</li>
+        </ul>
+<pre style="font-size:0.8rem;margin-top:8px">
+SPDXVersion: SPDX-2.3
+DataLicense: CC0-1.0
+SPDXID: SPDXRef-DOCUMENT
+DocumentName: my-application
+Creator: Tool: syft-0.98.0
+PackageName: express
+PackageVersion: 4.18.2
+PackageLicenseConcluded: MIT
+</pre>
+      </div>
+      <div class="card">
+        <h3>Compliance &amp; Data Standards</h3>
+        <ul>
+          <li><span class="highlight">OpenChain (ISO 5230)</span> &mdash; international standard for open source license compliance programs</li>
+          <li><span class="highlight">CDLA</span> &mdash; Community Data License Agreement for sharing open data (Permissive + Sharing variants)</li>
+          <li><span class="highlight">FOSSology</span> &mdash; open source license compliance toolkit</li>
+          <li><span class="highlight">REUSE</span> &mdash; best practices for declaring licenses in repos</li>
+        </ul>
+        <div class="diagram" style="margin-top:16px">
+          <div class="box">Source Code</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box" style="border-color:var(--success)">SBOM (SPDX)</div>
+          <div class="arrow">&rarr;</div>
+          <div class="box">Compliance Check</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 18. TRAINING & CERTIFICATION -->
+  <div class="slide">
+    <h2 class="animate">Training &amp; Certification</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Certification</th><th>Focus</th><th>Format</th></tr>
+        <tr><td><code>LFCS</code></td><td>Linux Foundation Certified System Administrator</td><td>Performance-based, 2 hrs</td></tr>
+        <tr><td><code>LFCE</code></td><td>Linux Foundation Certified Engineer</td><td>Performance-based, 2 hrs</td></tr>
+        <tr><td><code>CKA</code></td><td>Certified Kubernetes Administrator</td><td>Performance-based, 2 hrs</td></tr>
+        <tr><td><code>CKAD</code></td><td>Certified Kubernetes App Developer</td><td>Performance-based, 2 hrs</td></tr>
+        <tr><td><code>CKS</code></td><td>Certified Kubernetes Security Specialist</td><td>Performance-based, 2 hrs</td></tr>
+        <tr><td><code>LFCA</code></td><td>Linux Foundation Certified IT Associate</td><td>Multiple choice, 90 min</td></tr>
+        <tr><td><code>KCNA</code></td><td>Kubernetes &amp; Cloud Native Associate</td><td>Multiple choice, 90 min</td></tr>
+        <tr><td><code>PCA</code></td><td>Prometheus Certified Associate</td><td>Multiple choice, 90 min</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>Delivery</h3>
+          <ul>
+            <li><span class="highlight">edX</span> &mdash; free courses + paid certificates</li>
+            <li><span class="highlight">LF Training Portal</span> &mdash; instructor-led and self-paced</li>
+            <li><span class="highlight">SkillCreds</span> &mdash; micro-certifications for specific skills</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Key Stats</h3>
+          <ul>
+            <li><span class="highlight">3M+</span> enrollments on edX</li>
+            <li><span class="highlight">100+</span> courses and learning paths</li>
+            <li>All performance exams are <span class="highlight">hands-on</span> (real CLI, real clusters)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. EVENTS & LFX -->
+  <div class="slide">
+    <h2 class="animate">Events &amp; LFX Platform</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Major Events</h3>
+        <ul>
+          <li><span class="highlight">Open Source Summit</span> &mdash; flagship event (NA, Europe, Japan)</li>
+          <li><span class="highlight">KubeCon + CloudNativeCon</span> &mdash; largest K8s/cloud native conference (12K+ attendees)</li>
+          <li><span class="highlight">Embedded Open Source Summit</span> &mdash; Zephyr, AGL, Yocto</li>
+          <li><span class="highlight">AI_dev</span> &mdash; open source AI conference</li>
+          <li><span class="highlight">Linux Plumbers Conference</span> &mdash; kernel developers</li>
+          <li><span class="highlight">cdCon</span> &mdash; continuous delivery</li>
+          <li><span class="highlight">250+</span> events per year globally</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>LFX Platform</h3>
+        <ul>
+          <li>Unified platform for <span class="highlight">project management</span></li>
+          <li><span class="highlight">LFX Insights</span> &mdash; contributor analytics, commit data, PR velocity</li>
+          <li><span class="highlight">LFX Mentorship</span> &mdash; paid mentorship programs for new contributors</li>
+          <li><span class="highlight">LFX Security</span> &mdash; vulnerability detection, SBOM</li>
+          <li><span class="highlight">LFX Crowdfunding</span> &mdash; fund open source work</li>
+          <li><span class="highlight">LFX Project Control Center</span> &mdash; governance, meetings, mailing lists</li>
+          <li>EasyCLA &mdash; contributor license agreement management</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. COURSE COMPLETE -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F427;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a comprehensive understanding of the Linux Foundation ecosystem:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Linux Kernel</span><span class="tag">Kubernetes</span><span class="tag">CNCF</span>
+        <span class="tag">MCP</span><span class="tag">PyTorch</span><span class="tag">Ray</span>
+        <span class="tag">OpenSearch</span><span class="tag">RISC-V</span><span class="tag">OpenSSF</span>
+        <span class="tag">Hyperledger</span><span class="tag">LF Networking</span><span class="tag">LF Edge</span>
+        <span class="tag">LF Energy</span><span class="tag">AGL</span><span class="tag">OpenStack</span>
+        <span class="tag">Zephyr</span><span class="tag">SPDX</span><span class="tag">Training</span>
+      </div>
+      <p style="color:var(--text-muted)">900+ projects, one neutral home &mdash; powering the world&rsquo;s shared technology infrastructure.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "☀" : "☾";
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-nav");
+    const next = current === "visible" ? "hidden" : "visible";
+    html.setAttribute("data-nav", next);
+    localStorage.setItem("navVisible", next);
+    document.getElementById("navToggle").innerHTML = next === "visible" ? "✕" : "☰";
+  }
+  (function() {
+    const saved = localStorage.getItem("navVisible") || "hidden";
+    document.documentElement.setAttribute("data-nav", saved);
+    if (document.getElementById("navToggle")) {
+      document.getElementById("navToggle").innerHTML = saved === "visible" ? "✕" : "☰";
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll(".slide");
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  const navBtns = document.querySelectorAll(".nav button");
+  function showSlide(index) {
+    slides[current].classList.remove("active");
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add("active");
+    progress.style.width = ((current / (slides.length - 1)) * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? "none" : "";
+      navBtns[1].style.display = current === slides.length - 1 ? "none" : "";
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigate(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); navigate(-1); }
+    if (e.key === "Home") { e.preventDefault(); showSlide(0); }
+    if (e.key === "End") { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener("touchend", (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
