@@ -1,0 +1,967 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>MCP &amp; Authentication</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: "Fira Code", "Cascadia Code", "Consolas", monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.4rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px; background: var(--accent); color: #fff;
+      text-decoration: none; border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.2rem; cursor: pointer; z-index: 200; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow); color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F50C;</span>
+    <h1 class="animate">MCP &amp; Authentication</h1>
+    <p class="subtitle animate">Model Context Protocol &mdash; transports, tool types, authentication, and OAuth flows</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">MCP</span><span class="tag">OAuth 2.1</span><span class="tag">Authentication</span><span class="tag">Transports</span>
+    </div>
+  </div>
+
+  <!-- 2. WHAT IS MCP? -->
+  <div class="slide">
+    <h2 class="animate">What is MCP?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Model Context Protocol</h3>
+        <ul>
+          <li>An <span class="highlight">open standard</span> for connecting AI models to external tools, data, and services</li>
+          <li>Created by <span class="highlight">Anthropic</span>, now an open specification</li>
+          <li>Think of it as <span class="highlight">USB-C for AI</span> &mdash; one protocol, many integrations</li>
+          <li>JSON-RPC 2.0 based &mdash; request/response + notifications</li>
+          <li>Replaces ad-hoc tool integrations with a <span class="highlight">universal standard</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li><span class="highlight">Before MCP:</span> Every AI app builds custom integrations (N&times;M problem)</li>
+          <li><span class="highlight">After MCP:</span> Build once, connect everywhere (N+M)</li>
+          <li>Server authors expose capabilities <span class="highlight">once</span></li>
+          <li>Client authors connect <span class="highlight">once</span></li>
+          <li>Adopted by Claude, Cursor, VS Code, Windsurf, Cline, and more</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. MCP ARCHITECTURE -->
+  <div class="slide">
+    <h2 class="animate">MCP Architecture</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box" style="border-color:var(--success)">Host App<br><small>(Claude, IDE)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">MCP Client</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Transport<br><small>(stdio / SSE / Streamable HTTP)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">MCP Server</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Resources<br><small>(APIs, DBs, Files)</small></div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Key Roles</h3>
+          <ul>
+            <li><span class="highlight">Host</span> &mdash; application that needs AI capabilities (Claude Desktop, IDEs)</li>
+            <li><span class="highlight">Client</span> &mdash; maintains 1:1 connection with a server</li>
+            <li><span class="highlight">Server</span> &mdash; exposes tools, resources, and prompts via MCP</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Protocol Basics</h3>
+          <ul>
+            <li>Built on <span class="highlight">JSON-RPC 2.0</span></li>
+            <li>Stateful connections with <span class="highlight">capability negotiation</span></li>
+            <li>Client and server declare capabilities during <code>initialize</code></li>
+            <li>Supports <span class="highlight">bi-directional</span> communication</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 4. MCP PRIMITIVES -->
+  <div class="slide">
+    <h2 class="animate">MCP Primitives</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>&#x1F527; Tools</h3>
+          <p>Functions the model can <span class="highlight">invoke</span>. Server exposes, model decides when to call. Requires user approval.</p>
+          <p style="margin-top:8px"><code>tools/list</code> &rarr; <code>tools/call</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F4C1; Resources</h3>
+          <p>Data the client can <span class="highlight">read</span>. File contents, DB records, API responses. Application-controlled.</p>
+          <p style="margin-top:8px"><code>resources/list</code> &rarr; <code>resources/read</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F4DD; Prompts</h3>
+          <p>Reusable <span class="highlight">prompt templates</span> with arguments. User-controlled &mdash; selected explicitly.</p>
+          <p style="margin-top:8px"><code>prompts/list</code> &rarr; <code>prompts/get</code></p>
+        </div>
+        <div class="metric-card">
+          <h3>&#x1F514; Notifications</h3>
+          <p>One-way messages for <span class="highlight">events</span>. No response expected. Resource changes, progress updates, log messages.</p>
+          <p style="margin-top:8px"><code>notifications/*</code></p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. MCP TOOLS -->
+  <div class="slide">
+    <h2 class="animate">Tools &mdash; Model-Controlled Actions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How Tools Work</h3>
+        <ul>
+          <li>Server <span class="highlight">declares</span> available tools with JSON Schema inputs</li>
+          <li>Model <span class="highlight">decides</span> when to call a tool based on context</li>
+          <li>Client sends <code>tools/call</code> with arguments</li>
+          <li>Server executes and returns <span class="highlight">results</span></li>
+          <li>Can return <span class="highlight">text</span>, <span class="highlight">images</span>, or <span class="highlight">embedded resources</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Example: GitHub Tool</h3>
+        <pre style="font-size:0.8rem">
+// Server declares tool
+{
+  "name": "create_issue",
+  "description": "Create a GitHub issue",
+  "inputSchema": {
+    "type": "object",
+    "properties": {
+      "repo": {"type": "string"},
+      "title": {"type": "string"},
+      "body": {"type": "string"}
+    },
+    "required": ["repo", "title"]
+  }
+}
+
+// Client calls tool
+{"method": "tools/call",
+ "params": {
+   "name": "create_issue",
+   "arguments": {
+     "repo": "org/repo",
+     "title": "Bug in auth"
+   }
+ }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 6. MCP RESOURCES & PROMPTS -->
+  <div class="slide">
+    <h2 class="animate">Resources &amp; Prompts</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Resources</h3>
+        <ul>
+          <li>Identified by <span class="highlight">URIs</span> (e.g., <code>file:///path</code>, <code>postgres://db/table</code>)</li>
+          <li>Can be <span class="highlight">text</span> or <span class="highlight">binary</span> (base64-encoded)</li>
+          <li><span class="highlight">Static</span> resources &mdash; listed via <code>resources/list</code></li>
+          <li><span class="highlight">Dynamic</span> resources &mdash; discovered via <code>resources/templates</code> with URI templates</li>
+          <li>Servers can notify clients when resources <span class="highlight">change</span></li>
+          <li><span class="highlight">Subscriptions</span> &mdash; clients subscribe to specific resource updates</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Prompts</h3>
+        <ul>
+          <li>Pre-defined <span class="highlight">message templates</span> with typed arguments</li>
+          <li>Can produce <span class="highlight">multi-turn</span> conversations (user + assistant messages)</li>
+          <li>Can <span class="highlight">embed resources</span> in the generated messages</li>
+          <li>User-controlled &mdash; explicitly selected, not auto-triggered</li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+// Prompt with arguments
+{
+  "name": "explain_code",
+  "arguments": [
+    {"name": "language", "required": true},
+    {"name": "code", "required": true}
+  ]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. MCP TRANSPORTS -->
+  <div class="slide">
+    <h2 class="animate">MCP Transports</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Transport</th><th>How It Works</th><th>Use Case</th></tr>
+        <tr><td><span class="highlight">stdio</span></td><td>Client spawns server as child process. JSON-RPC over stdin/stdout.</td><td>Local tools, CLI integrations</td></tr>
+        <tr><td><span class="highlight">SSE</span> (deprecated)</td><td>HTTP POST for client&rarr;server. Server-Sent Events for server&rarr;client.</td><td>Remote servers (legacy)</td></tr>
+        <tr><td><span class="highlight">Streamable HTTP</span></td><td>Single HTTP endpoint. POST for requests, optional SSE for streaming. Supports stateless and stateful modes.</td><td>Remote servers (current standard)</td></tr>
+      </table>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>stdio Transport</h3>
+          <ul>
+            <li>Simplest &mdash; no network, no auth needed</li>
+            <li>Server lifecycle managed by client</li>
+            <li>stderr used for <span class="highlight">logging</span> (not protocol)</li>
+            <li>Used by Claude Desktop, Claude Code, Cursor</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Streamable HTTP Transport</h3>
+          <ul>
+            <li>Single endpoint accepts <span class="highlight">POST</span> requests</li>
+            <li>Server may respond with JSON or <span class="highlight">SSE stream</span></li>
+            <li>Optional <code>Mcp-Session-Id</code> header for state</li>
+            <li>Supports <span class="highlight">resumability</span> via <code>Last-Event-ID</code></li>
+            <li>Requires <span class="highlight">authentication</span> for remote access</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8. MCP LIFECYCLE -->
+  <div class="slide">
+    <h2 class="animate">Connection Lifecycle</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Client</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">initialize<br><small>capabilities</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Server</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">initialized<br><small>notification</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Operations</div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Initialize Phase</h3>
+          <pre style="font-size:0.8rem">
+// Client sends
+{"method": "initialize",
+ "params": {
+   "protocolVersion": "2025-03-26",
+   "capabilities": {
+     "roots": {"listChanged": true}
+   },
+   "clientInfo": {
+     "name": "Claude Code",
+     "version": "1.0"
+   }
+ }
+}
+
+// Server responds with its
+// capabilities: tools, resources,
+// prompts, logging, etc.</pre>
+        </div>
+        <div class="card">
+          <h3>Server Capabilities</h3>
+          <ul>
+            <li><code>tools</code> &mdash; supports <code>tools/list</code> and <code>tools/call</code></li>
+            <li><code>resources</code> &mdash; supports resource reading and subscriptions</li>
+            <li><code>prompts</code> &mdash; supports prompt templates</li>
+            <li><code>logging</code> &mdash; can emit log messages</li>
+            <li><code>completions</code> &mdash; supports argument auto-complete</li>
+          </ul>
+          <h3 style="margin-top:16px">Client Capabilities</h3>
+          <ul>
+            <li><code>roots</code> &mdash; can provide filesystem roots</li>
+            <li><code>sampling</code> &mdash; supports LLM sampling requests</li>
+            <li><code>elicitation</code> &mdash; can prompt user for input</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 9. SAMPLING & ELICITATION -->
+  <div class="slide">
+    <h2 class="animate">Sampling &amp; Elicitation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Sampling (Server &rarr; LLM)</h3>
+        <ul>
+          <li>Server can <span class="highlight">request the AI model</span> to generate text</li>
+          <li>Enables <span class="highlight">agentic behaviors</span> &mdash; server-driven reasoning</li>
+          <li>Client maintains <span class="highlight">human-in-the-loop</span> control</li>
+          <li>Server sends <code>sampling/createMessage</code></li>
+          <li>Client routes to LLM, may <span class="highlight">modify</span> or <span class="highlight">reject</span></li>
+          <li>Supports <code>maxTokens</code>, <code>temperature</code>, model preferences</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Elicitation (Server &rarr; User)</h3>
+        <ul>
+          <li>Server can <span class="highlight">ask the user</span> for input directly</li>
+          <li>Structured forms with <span class="highlight">JSON Schema</span> validation</li>
+          <li>Client renders appropriate UI (text, confirm, select)</li>
+          <li>Server sends <code>elicitation/create</code></li>
+          <li>Results: <span class="highlight">accepted</span>, <span class="highlight">declined</span>, or <span class="highlight">cancelled</span></li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+// Server asks user to confirm
+{"method": "elicitation/create",
+ "params": {
+   "message": "Deploy to production?",
+   "requestedSchema": {
+     "type": "object",
+     "properties": {
+       "confirm": {
+         "type": "boolean"
+       }
+     }
+   }
+ }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. AUTHENTICATION OVERVIEW -->
+  <div class="slide">
+    <h2 class="animate">Authentication for MCP</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Auth Matters</h3>
+        <ul>
+          <li><span class="highlight">stdio</span> transport &mdash; no auth needed (local process)</li>
+          <li><span class="highlight">HTTP</span> transport &mdash; auth is <span class="highlight">critical</span> for remote servers</li>
+          <li>MCP spec mandates <span class="highlight">OAuth 2.1</span> as the standard authorization framework</li>
+          <li>Servers can also accept <span class="highlight">API keys</span>, <span class="highlight">tokens</span>, or other schemes</li>
+          <li>Auth is negotiated via HTTP headers, not the JSON-RPC layer</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Auth Methods Landscape</h3>
+        <ul>
+          <li><span class="highlight">OAuth 2.1</span> &mdash; MCP&rsquo;s official standard (recommended)</li>
+          <li><span class="highlight">OAuth 2.0</span> &mdash; widely deployed, predecessor to 2.1</li>
+          <li><span class="highlight">OAuth 1.0a</span> &mdash; legacy, signature-based</li>
+          <li><span class="highlight">API Keys</span> &mdash; simple but limited</li>
+          <li><span class="highlight">mTLS</span> &mdash; certificate-based mutual auth</li>
+          <li><span class="highlight">SAML 2.0</span> &mdash; enterprise SSO (XML-based)</li>
+          <li><span class="highlight">Basic / Digest</span> &mdash; HTTP-native, rarely used alone</li>
+          <li><span class="highlight">OIDC</span> &mdash; identity layer on top of OAuth 2.0</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. OAUTH 1.0a -->
+  <div class="slide">
+    <h2 class="animate">OAuth 1.0a &mdash; The Original</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How It Works</h3>
+        <ul>
+          <li>Released <span class="highlight">2007</span>, defined in RFC 5849</li>
+          <li><span class="highlight">Signature-based</span> &mdash; every request signed with HMAC-SHA1</li>
+          <li>No bearer tokens &mdash; client must prove possession of secret</li>
+          <li>Three-legged flow: request token &rarr; authorize &rarr; access token</li>
+          <li>Tokens <span class="highlight">never expire</span> by default</li>
+        </ul>
+        <pre style="font-size:0.8rem;margin-top:12px">
+Authorization: OAuth
+  oauth_consumer_key="app123",
+  oauth_token="user456",
+  oauth_signature_method="HMAC-SHA1",
+  oauth_signature="kYjzVBB8Y...",
+  oauth_timestamp="1318622958",
+  oauth_nonce="kllo9940pd9333jh"</pre>
+      </div>
+      <div class="card">
+        <h3>Pros &amp; Cons</h3>
+        <ul>
+          <li><span class="green">Secure without HTTPS</span> &mdash; signatures protect integrity</li>
+          <li><span class="green">No token leakage risk</span> &mdash; signatures are request-specific</li>
+          <li><span class="warning">Complex implementation</span> &mdash; signature base string is error-prone</li>
+          <li><span class="warning">Not scalable</span> &mdash; no scopes, no token refresh</li>
+          <li><span class="warning">Deprecated</span> &mdash; replaced by OAuth 2.0</li>
+        </ul>
+        <p style="margin-top:12px;color:var(--text-muted)"><strong>Still used by:</strong> Twitter/X API v1.1, some legacy enterprise systems</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. OAUTH 2.0 -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.0 &mdash; The Industry Standard</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Core Concepts</h3>
+        <ul>
+          <li>Released <span class="highlight">2012</span>, defined in RFC 6749</li>
+          <li><span class="highlight">Bearer tokens</span> &mdash; whoever has the token can use it</li>
+          <li><span class="highlight">Scopes</span> &mdash; limit what a token can access</li>
+          <li><span class="highlight">Refresh tokens</span> &mdash; get new access tokens without re-auth</li>
+          <li>Requires <span class="highlight">HTTPS</span> for security (no signatures)</li>
+          <li>Multiple <span class="highlight">grant types</span> for different use cases</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Grant Types</h3>
+        <ul>
+          <li><span class="highlight">Authorization Code</span> &mdash; web apps, most secure flow</li>
+          <li><span class="highlight">Client Credentials</span> &mdash; machine-to-machine, no user</li>
+          <li><span class="highlight">Implicit</span> &mdash; SPAs (now <span class="warning">deprecated</span>)</li>
+          <li><span class="highlight">Resource Owner Password</span> &mdash; direct login (now <span class="warning">deprecated</span>)</li>
+          <li><span class="highlight">Device Code</span> &mdash; TVs, CLIs, IoT (RFC 8628)</li>
+          <li><span class="highlight">Refresh Token</span> &mdash; renew access silently</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 13. OAUTH 2.0 AUTH CODE FLOW -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.0 Authorization Code Flow</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">User</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Client App</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Auth Server<br><small>/authorize</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">User Login<br><small>+ Consent</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Auth Code<br><small>&rarr; /token</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Access Token</div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Step by Step</h3>
+          <ul>
+            <li><span class="highlight">1.</span> Client redirects user to auth server with <code>client_id</code>, <code>redirect_uri</code>, <code>scope</code></li>
+            <li><span class="highlight">2.</span> User authenticates and grants consent</li>
+            <li><span class="highlight">3.</span> Auth server redirects back with <span class="highlight">authorization code</span></li>
+            <li><span class="highlight">4.</span> Client exchanges code for <span class="highlight">access token</span> (+ refresh token)</li>
+            <li><span class="highlight">5.</span> Client uses access token in <code>Authorization: Bearer</code> header</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Security Considerations</h3>
+          <ul>
+            <li><span class="highlight">PKCE</span> required for public clients (RFC 7636)</li>
+            <li><span class="highlight">State</span> parameter prevents CSRF attacks</li>
+            <li>Short-lived access tokens (minutes to hours)</li>
+            <li>Refresh tokens stored securely server-side</li>
+            <li><code>redirect_uri</code> must be <span class="highlight">exact match</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 14. OAUTH 2.1 -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.1 &mdash; MCP&rsquo;s Standard</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Changed from 2.0</h3>
+        <ul>
+          <li><span class="highlight">PKCE required</span> for ALL clients (not just public)</li>
+          <li><span class="warning">Implicit grant removed</span> &mdash; was vulnerable to token leakage</li>
+          <li><span class="warning">Password grant removed</span> &mdash; anti-pattern for modern apps</li>
+          <li><span class="highlight">Redirect URI exact match</span> &mdash; no more wildcard matching</li>
+          <li><span class="highlight">Refresh token rotation</span> &mdash; one-time use, detect replay</li>
+          <li>Consolidates best practices from OAuth 2.0 Security BCP</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>PKCE (Proof Key for Code Exchange)</h3>
+        <pre style="font-size:0.8rem">
+// 1. Client generates random verifier
+code_verifier = random(43-128 chars)
+
+// 2. Client creates challenge
+code_challenge = BASE64URL(
+  SHA256(code_verifier)
+)
+
+// 3. Send challenge in /authorize
+GET /authorize?
+  code_challenge=E9Melhoa2O...
+  &code_challenge_method=S256
+
+// 4. Send verifier in /token
+POST /token
+  code_verifier=dBjftJeZ4CVP...</pre>
+        <p style="margin-top:8px;color:var(--text-muted);font-size:0.95rem">Prevents authorization code interception attacks</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 15. MCP OAUTH FLOW -->
+  <div class="slide">
+    <h2 class="animate">MCP OAuth 2.1 Flow</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">MCP Client</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Discovery<br><small>/.well-known</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Register<br><small>(dynamic)</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">Authorize<br><small>+ PKCE</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Token</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">MCP Server</div>
+      </div>
+      <div class="two-col" style="margin-top:24px">
+        <div class="card">
+          <h3>Discovery &amp; Registration</h3>
+          <ul>
+            <li>Client fetches <code>/.well-known/oauth-authorization-server</code> from MCP server</li>
+            <li>Gets <span class="highlight">authorization</span>, <span class="highlight">token</span>, and <span class="highlight">registration</span> endpoints</li>
+            <li>Uses <span class="highlight">Dynamic Client Registration</span> (RFC 7591) &mdash; no pre-registration needed</li>
+            <li>Falls back to <code>/.well-known/openid-configuration</code> for OIDC servers</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Token Usage</h3>
+          <ul>
+            <li>Access token sent via <code>Authorization: Bearer</code> header</li>
+            <li>Server validates token on every HTTP request</li>
+            <li>On <span class="highlight">401</span>, client must re-authorize</li>
+            <li>Third-party auth servers supported &mdash; MCP server may delegate to <span class="highlight">Auth0, Okta, Azure AD</span></li>
+            <li>Resource metadata at <code>/.well-known/oauth-protected-resource</code> (RFC 9728)</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16. OTHER AUTH METHODS -->
+  <div class="slide">
+    <h2 class="animate">Other Authentication Methods</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>API Keys</h3>
+        <p>Simple string token in header (<code>X-API-Key</code>) or query param. <span class="highlight">No expiry, no scopes, no refresh.</span> Best for internal/dev use.</p>
+      </div>
+      <div class="metric-card">
+        <h3>mTLS (Mutual TLS)</h3>
+        <p>Both client and server present <span class="highlight">X.509 certificates</span>. Strongest transport-level auth. Used in banking, healthcare, zero-trust networks.</p>
+      </div>
+      <div class="metric-card">
+        <h3>SAML 2.0</h3>
+        <p><span class="highlight">XML-based</span> SSO protocol. IdP sends signed assertions to SP. Dominant in <span class="highlight">enterprise</span> (Okta, Azure AD, PingFederate). Heavy, complex.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Basic / Digest Auth</h3>
+        <p><span class="highlight">HTTP-native</span>. Basic sends base64 credentials (requires HTTPS). Digest uses challenge-response with nonce. Legacy &mdash; rarely used alone.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 17. OIDC -->
+  <div class="slide">
+    <h2 class="animate">OpenID Connect (OIDC)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Identity on Top of OAuth</h3>
+        <ul>
+          <li>OAuth 2.0 = <span class="highlight">authorization</span> (what can you do?)</li>
+          <li>OIDC = <span class="highlight">authentication</span> (who are you?)</li>
+          <li>Adds an <span class="highlight">ID Token</span> (JWT) to the OAuth flow</li>
+          <li>Standardizes <code>/userinfo</code> endpoint for profile data</li>
+          <li>Discovery via <code>/.well-known/openid-configuration</code></li>
+          <li>Used by Google, Microsoft, Apple, Okta, Auth0, Keycloak</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>ID Token (JWT)</h3>
+        <pre style="font-size:0.8rem">
+// JWT payload (decoded)
+{
+  "iss": "https://auth.example.com",
+  "sub": "user_123",
+  "aud": "my_mcp_client",
+  "exp": 1712345678,
+  "iat": 1712342078,
+  "nonce": "abc123",
+  "email": "user@example.com",
+  "name": "Alice Smith"
+}
+
+// Three parts: header.payload.signature
+eyJhbGciOi...  // base64url encoded
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;color:var(--text-muted);font-size:1.05rem">MCP servers can use OIDC-compatible auth servers for user identity + OAuth 2.1 for authorization</p>
+  </div>
+
+  <!-- 18. AUTH COMPARISON TABLE -->
+  <div class="slide">
+    <h2 class="animate">Authentication Methods Compared</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Method</th><th>Year</th><th>Token Type</th><th>Best For</th><th>Status</th></tr>
+        <tr><td><span class="highlight">OAuth 1.0a</span></td><td>2007</td><td>Signed requests</td><td>Legacy APIs</td><td><span class="warning">Deprecated</span></td></tr>
+        <tr><td><span class="highlight">OAuth 2.0</span></td><td>2012</td><td>Bearer token</td><td>Web/mobile apps</td><td>Widely deployed</td></tr>
+        <tr><td><span class="highlight">OAuth 2.1</span></td><td>2024</td><td>Bearer + PKCE</td><td>MCP, modern apps</td><td><span class="green">Recommended</span></td></tr>
+        <tr><td><span class="highlight">OIDC</span></td><td>2014</td><td>ID Token (JWT)</td><td>SSO, identity</td><td><span class="green">Active</span></td></tr>
+        <tr><td><span class="highlight">SAML 2.0</span></td><td>2005</td><td>XML assertions</td><td>Enterprise SSO</td><td>Enterprise standard</td></tr>
+        <tr><td><span class="highlight">API Keys</span></td><td>N/A</td><td>Static string</td><td>Internal, dev</td><td>Simple but limited</td></tr>
+        <tr><td><span class="highlight">mTLS</span></td><td>N/A</td><td>X.509 certs</td><td>Zero-trust, B2B</td><td>High security</td></tr>
+        <tr><td><span class="highlight">Basic Auth</span></td><td>1996</td><td>Base64 creds</td><td>Legacy HTTP</td><td><span class="warning">Avoid alone</span></td></tr>
+      </table>
+    </div>
+  </div>
+
+  <!-- 19. BUILDING AN MCP SERVER -->
+  <div class="slide">
+    <h2 class="animate">Building an MCP Server</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypeScript (Official SDK)</h3>
+        <pre style="font-size:0.8rem">
+import { McpServer } from
+  "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from
+  "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new McpServer({
+  name: "my-server",
+  version: "1.0.0"
+});
+
+server.tool("greet",
+  { name: { type: "string" } },
+  async ({ name }) => ({
+    content: [{
+      type: "text",
+      text: "Hello " + name
+    }]
+  })
+);
+
+const transport = new StdioServerTransport();
+await server.connect(transport);</pre>
+      </div>
+      <div class="card">
+        <h3>Python (Official SDK)</h3>
+        <pre style="font-size:0.8rem">
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("my-server")
+
+@mcp.tool()
+def greet(name: str) -> str:
+    """Greet a user by name."""
+    return f"Hello {name}"
+
+@mcp.resource("config://app")
+def get_config() -> str:
+    """Return app configuration."""
+    return json.dumps(config)
+
+@mcp.prompt()
+def review_code(code: str) -> str:
+    """Create a code review prompt."""
+    return f"Review this code:\n{code}"
+
+# Run with stdio transport
+mcp.run()</pre>
+        <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem">Also available: Java, Kotlin, C#, Go, Rust SDKs</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. COURSE COMPLETE -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F50C;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a comprehensive understanding of MCP and authentication:</p>
+      <div style="margin:20px 0">
+        <span class="tag">MCP Protocol</span><span class="tag">Tools</span><span class="tag">Resources</span>
+        <span class="tag">Transports</span><span class="tag">OAuth 1.0a</span><span class="tag">OAuth 2.0</span>
+        <span class="tag">OAuth 2.1</span><span class="tag">PKCE</span><span class="tag">OIDC</span>
+        <span class="tag">SAML</span><span class="tag">API Keys</span><span class="tag">mTLS</span>
+      </div>
+      <p style="color:var(--text-muted)">One protocol, many tools &mdash; secure, standardized, and open.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "&#x2600;" : "&#x263E;";
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-nav");
+    const next = current === "visible" ? "hidden" : "visible";
+    html.setAttribute("data-nav", next);
+    localStorage.setItem("navVisible", next);
+    document.getElementById("navToggle").innerHTML = next === "visible" ? "&#x2715;" : "&#x2630;";
+  }
+  (function() {
+    const saved = localStorage.getItem("navVisible") || "hidden";
+    document.documentElement.setAttribute("data-nav", saved);
+    if (document.getElementById("navToggle")) {
+      document.getElementById("navToggle").innerHTML = saved === "visible" ? "&#x2715;" : "&#x2630;";
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll(".slide");
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  const navBtns = document.querySelectorAll(".nav button");
+  function showSlide(index) {
+    slides[current].classList.remove("active");
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add("active");
+    progress.style.width = ((current / (slides.length - 1)) * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? "none" : "";
+      navBtns[1].style.display = current === slides.length - 1 ? "none" : "";
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigate(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); navigate(-1); }
+    if (e.key === "Home") { e.preventDefault(); showSlide(0); }
+    if (e.key === "End") { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener("touchend", (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

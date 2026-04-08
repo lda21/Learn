@@ -364,6 +364,23 @@ const GLOSSARY_TERMS = [
   {t:"EPT", d:"Extended Page Tables — Intel's hardware support for nested memory translation in VMs. Eliminates expensive shadow page table walks. AMD equivalent is NPT (Nested Page Tables).", tags:["Virtualization"]},
   {t:"vsock", d:"A VM socket protocol for communication between a host and guest VM without using TCP/IP networking. Used by Firecracker for host-to-guest IPC via <code>virtio-vsock</code>.", tags:["Virtualization"]},
   {t:"Seccomp", d:"Secure Computing mode — a Linux kernel feature that restricts which system calls a process can make. Firecracker uses seccomp BPF filters to limit the VMM's syscall surface.", tags:["Virtualization","Security"]},
+  {t:"MCP", d:"Model Context Protocol — an open standard for connecting AI models to external tools, data, and services. Uses JSON-RPC 2.0 with capability negotiation. Created by Anthropic.", tags:["MCP","AI"]},
+  {t:"MCP Server", d:"A process that exposes tools, resources, and prompts via the Model Context Protocol. Communicates with MCP clients over stdio, SSE, or Streamable HTTP transport.", tags:["MCP"]},
+  {t:"MCP Client", d:"A component that maintains a 1:1 connection with an MCP Server. Embedded in host applications like Claude Desktop, Claude Code, or IDE extensions.", tags:["MCP"]},
+  {t:"JSON-RPC", d:"A stateless, lightweight remote procedure call protocol using JSON. MCP uses JSON-RPC 2.0 for all request/response and notification messages.", tags:["MCP","Protocol"]},
+  {t:"OAuth 2.0", d:"An authorization framework (RFC 6749) using bearer tokens, scopes, and grant types. Requires HTTPS. Supports Authorization Code, Client Credentials, and Device Code flows.", tags:["Authentication","OAuth"]},
+  {t:"OAuth 2.1", d:"The consolidated OAuth standard mandated by MCP. Requires PKCE for all clients, removes Implicit and Password grants, enforces refresh token rotation and exact redirect URI matching.", tags:["Authentication","OAuth","MCP"]},
+  {t:"OAuth 1.0a", d:"The original OAuth protocol (RFC 5849) using HMAC-SHA1 signatures per request. Secure without HTTPS but complex to implement. Deprecated in favor of OAuth 2.0.", tags:["Authentication","OAuth"]},
+  {t:"PKCE", d:"Proof Key for Code Exchange (RFC 7636) — prevents authorization code interception. Client generates a random verifier, sends SHA256 challenge to /authorize, proves possession at /token.", tags:["Authentication","OAuth"]},
+  {t:"OIDC", d:"OpenID Connect — an identity layer on top of OAuth 2.0. Adds ID Tokens (JWT) for authentication and a /userinfo endpoint. Used by Google, Microsoft, Okta, Auth0.", tags:["Authentication","SSO"]},
+  {t:"SAML", d:"Security Assertion Markup Language 2.0 — an XML-based SSO protocol where an Identity Provider sends signed assertions to a Service Provider. Dominant in enterprise environments.", tags:["Authentication","SSO"]},
+  {t:"mTLS", d:"Mutual TLS — both client and server present X.509 certificates during TLS handshake. Provides transport-level authentication. Used in zero-trust networks and banking.", tags:["Authentication","Security"]},
+  {t:"Bearer Token", d:"An access token where possession alone grants access. Sent via <code>Authorization: Bearer &lt;token&gt;</code> header. Must be protected by HTTPS since there is no proof of possession.", tags:["Authentication","OAuth"]},
+  {t:"Refresh Token", d:"A long-lived token used to obtain new access tokens without re-authentication. Should be stored securely server-side. OAuth 2.1 requires rotation (one-time use).", tags:["Authentication","OAuth"]},
+  {t:"JWT", d:"JSON Web Token — a compact, URL-safe token format with three base64url-encoded parts: header, payload, and signature. Used as ID Tokens in OIDC and access tokens in some OAuth flows.", tags:["Authentication"]},
+  {t:"Streamable HTTP", d:"MCP's current standard HTTP transport. Single endpoint accepts POST requests, can respond with JSON or SSE streams. Supports session management via Mcp-Session-Id header.", tags:["MCP","Transport"]},
+  {t:"Sampling", d:"An MCP capability where the server requests the AI model to generate text. Enables agentic behaviors while maintaining human-in-the-loop control via the client.", tags:["MCP","AI"]},
+  {t:"Elicitation", d:"An MCP capability where the server asks the user for structured input. Client renders a form based on JSON Schema. Results can be accepted, declined, or cancelled.", tags:["MCP"]},
 ];
 
 (function() {
