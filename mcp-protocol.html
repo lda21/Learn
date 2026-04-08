@@ -847,7 +847,291 @@ eyJhbGciOi...  // base64url encoded
     </div>
   </div>
 
-  <!-- 20. COURSE COMPLETE -->
+  <!-- 20. OAUTH 2.0 AUTH CODE + IMPLICIT SEQUENCE -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.0 Flows: Auth Code &amp; Implicit</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Authorization Code + PKCE</h3>
+        <pre style="font-size:0.75rem">
+┌──────┐  ┌──────┐  ┌──────────┐  ┌──────────┐
+│ User │  │Client│  │Auth Server│  │ Resource │
+└──┬───┘  └──┬───┘  └────┬─────┘  └────┬─────┘
+   │ Click   │           │             │
+   │ Login   │           │             │
+   │────────>│           │             │
+   │         │ /authorize│             │
+   │         │ +PKCE     │             │
+   │         │ challenge │             │
+   │         │──────────>│             │
+   │         │           │             │
+   │  Login form + consent             │
+   │<────────────────────│             │
+   │ Enter credentials   │             │
+   │────────────────────>│             │
+   │         │           │             │
+   │         │ auth_code │             │
+   │         │<──────────│             │
+   │         │           │             │
+   │         │ POST /token             │
+   │         │ +code     │             │
+   │         │ +verifier │             │
+   │         │──────────>│             │
+   │         │           │             │
+   │         │ access_token            │
+   │         │ +refresh  │             │
+   │         │<──────────│             │
+   │         │           │             │
+   │         │ GET /api + Bearer token │
+   │         │─────────────────────────>
+   │         │           │    data     │
+   │         │<─────────────────────────
+   │  Result │           │             │
+   │<────────│           │             │</pre>
+      </div>
+      <div class="card">
+        <h3>Implicit (Deprecated in 2.1)</h3>
+        <pre style="font-size:0.75rem">
+┌──────┐  ┌──────┐  ┌──────────┐
+│ User │  │Client│  │Auth Server│
+└──┬───┘  └──┬───┘  └────┬─────┘
+   │ Click   │           │
+   │ Login   │           │
+   │────────>│           │
+   │         │ /authorize│
+   │         │ response_ │
+   │         │ type=token│
+   │         │──────────>│
+   │         │           │
+   │  Login + consent    │
+   │<────────────────────│
+   │ Approve │           │
+   │────────────────────>│
+   │         │           │
+   │         │ #access_  │
+   │         │  token    │
+   │         │  (in URL  │
+   │         │  fragment)│
+   │         │<──────────│
+   │         │           │
+   │ ⚠ Token exposed in │
+   │   browser history,  │
+   │   URL bar, referrer │
+   │                     │
+   │ No refresh token    │
+   │ No PKCE protection  │</pre>
+        <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem"><span class="warning">Removed in OAuth 2.1</span> &mdash; use Auth Code + PKCE instead</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 21. OAUTH 2.0 CLIENT CREDENTIALS & DEVICE CODE -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.0 Flows: Client Credentials &amp; Device Code</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Client Credentials (M2M)</h3>
+        <pre style="font-size:0.75rem">
+┌──────────┐          ┌──────────┐
+│  Client   │          │Auth Server│
+│ (service) │          │          │
+└────┬─────┘          └────┬─────┘
+     │                     │
+     │ POST /token         │
+     │ grant_type=         │
+     │  client_credentials │
+     │ client_id=svc123    │
+     │ client_secret=xxx   │
+     │ scope=read:data     │
+     │────────────────────>│
+     │                     │
+     │   access_token      │
+     │   (no refresh token │
+     │    — no user)       │
+     │<────────────────────│
+     │                     │
+     │ Use token to call   │
+     │ resource server     │
+     │                     │
+
+ ✓ No user interaction
+ ✓ Service-to-service
+ ✓ Cron jobs, daemons
+ ✓ MCP server backends</pre>
+      </div>
+      <div class="card">
+        <h3>Device Code (RFC 8628)</h3>
+        <pre style="font-size:0.75rem">
+┌──────┐ ┌──────┐ ┌──────────┐
+│Device│ │ User │ │Auth Server│
+│(TV/  │ │(phone│ │          │
+│ CLI) │ │  /PC)│ │          │
+└──┬───┘ └──┬───┘ └────┬─────┘
+   │        │          │
+   │ POST /device/code │
+   │──────────────────>│
+   │        │          │
+   │ device_code +     │
+   │ user_code: ABCD   │
+   │ verification_uri  │
+   │<──────────────────│
+   │        │          │
+   │ Show:  │          │
+   │ "Go to │          │
+   │ url.co │          │
+   │ Enter: │          │
+   │ ABCD"  │          │
+   │        │          │
+   │   ┌────┴─────┐   │
+   │   │Visit URL │   │
+   │   │Enter code│   │
+   │   │Login +   │   │
+   │   │consent   │──>│
+   │   └──────────┘   │
+   │                   │
+   │ Poll POST /token  │
+   │ (every 5s)        │
+   │──────────────────>│
+   │   access_token    │
+   │<──────────────────│
+
+ ✓ Smart TVs, CLIs
+ ✓ Claude Code login
+ ✓ IoT devices</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 22. OAUTH 2.0 PASSWORD & REFRESH TOKEN FLOWS -->
+  <div class="slide">
+    <h2 class="animate">OAuth 2.0 Flows: Password &amp; Refresh Token</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Resource Owner Password (Deprecated)</h3>
+        <pre style="font-size:0.75rem">
+┌──────┐  ┌──────┐  ┌──────────┐
+│ User │  │Client│  │Auth Server│
+└──┬───┘  └──┬───┘  └────┬─────┘
+   │         │           │
+   │ Enter   │           │
+   │ user +  │           │
+   │ pass    │           │
+   │────────>│           │
+   │         │           │
+   │         │ POST /token
+   │         │ grant_type=
+   │         │  password  │
+   │         │ username=  │
+   │         │ password=  │
+   │         │──────────>│
+   │         │           │
+   │         │ access +  │
+   │         │ refresh   │
+   │         │ token     │
+   │         │<──────────│
+
+ ⚠ Client sees user password
+ ⚠ No MFA support
+ ⚠ Removed in OAuth 2.1
+ ⚠ Only for legacy migration</pre>
+      </div>
+      <div class="card">
+        <h3>Refresh Token Flow</h3>
+        <pre style="font-size:0.75rem">
+┌──────┐          ┌──────────┐
+│Client│          │Auth Server│
+└──┬───┘          └────┬─────┘
+   │                   │
+   │ API call with     │
+   │ expired token     │
+   │──────> 401        │
+   │                   │
+   │ POST /token       │
+   │ grant_type=       │
+   │  refresh_token    │
+   │ refresh_token=    │
+   │  rt_abc123        │
+   │──────────────────>│
+   │                   │
+   │ new access_token  │
+   │ new refresh_token │
+   │ (rotation)        │
+   │<──────────────────│
+   │                   │
+   │ Retry API call    │
+   │ with new token    │
+   │──────>  200 OK    │
+
+ ✓ Silent re-auth
+ ✓ No user interaction
+ ✓ OAuth 2.1: one-time use
+   (rotation = replay
+    detection)</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 23. BUILDING AN MCP SERVER -->
+  <div class="slide">
+    <h2 class="animate">Building an MCP Server</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypeScript (Official SDK)</h3>
+        <pre style="font-size:0.8rem">
+import { McpServer } from
+  "@modelcontextprotocol/sdk/server/mcp.js";
+import { StdioServerTransport } from
+  "@modelcontextprotocol/sdk/server/stdio.js";
+
+const server = new McpServer({
+  name: "my-server",
+  version: "1.0.0"
+});
+
+server.tool("greet",
+  { name: { type: "string" } },
+  async ({ name }) => ({
+    content: [{
+      type: "text",
+      text: "Hello " + name
+    }]
+  })
+);
+
+const transport =
+  new StdioServerTransport();
+await server.connect(transport);</pre>
+      </div>
+      <div class="card">
+        <h3>Python (Official SDK)</h3>
+        <pre style="font-size:0.8rem">
+from mcp.server.fastmcp import FastMCP
+
+mcp = FastMCP("my-server")
+
+@mcp.tool()
+def greet(name: str) -> str:
+    """Greet a user by name."""
+    return f"Hello {name}"
+
+@mcp.resource("config://app")
+def get_config() -> str:
+    """Return app configuration."""
+    return json.dumps(config)
+
+@mcp.prompt()
+def review_code(code: str) -> str:
+    """Create a code review prompt."""
+    return f"Review this:\n{code}"
+
+# Run with stdio transport
+mcp.run()</pre>
+        <p style="margin-top:8px;color:var(--text-muted);font-size:0.9rem">Also: Java, Kotlin, C#, Go, Rust SDKs</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 24. COURSE COMPLETE -->
   <div class="slide">
     <span class="logo-icon animate">&#x1F50C;</span>
     <h2 class="animate">Course Complete!</h2>
@@ -867,7 +1151,7 @@ eyJhbGciOi...  // base64url encoded
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 20</div>
+<div class="slide-counter" id="counter">1 / 24</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
