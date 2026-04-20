@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Senior Agent Engineer</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%;
+      width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.3s, border-color 0.3s; box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%;
+      width: 44px; height: 44px; font-size: 1.4rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center;
+      transition: background 0.3s, border-color 0.3s; box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px;
+      background: var(--accent); color: #fff; text-decoration: none;
+      border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%;
+      width: 44px; height: 44px; font-size: 1.2rem; cursor: pointer; z-index: 200;
+      align-items: center; justify-content: center; box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3ED;</span>
+    <h1 class="animate">Senior Agent Engineer</h1>
+    <p class="subtitle animate">The agent factory craft &mdash; prompts, evidence, calibration</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Agents</span><span class="tag">Prompts</span><span class="tag">Evals</span><span class="tag">Calibration</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why This Role Exists</h2>
+    <div class="content animate">
+      <p style="text-align:center; margin-bottom:20px; color:var(--text-muted);">Everything else in the factory is scaffolding. The agents are where quality actually happens.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3 style="color:var(--success);">Excellent Agents &rarr; Ships</h3>
+          <ul>
+            <li>Prompt catches spec ambiguity before it becomes a bug</li>
+            <li>Red-team agent finds the escape before production does</li>
+            <li>Evidence bundle forces the handoff to be reviewable</li>
+            <li>Calibration closes the loop on every new failure class</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="color:#e74c3c;">Mediocre Agents &rarr; Doesn't</h3>
+          <ul>
+            <li>Orchestrator retries the same broken reasoning</li>
+            <li>Escapes slip through silently; no feedback loop</li>
+            <li>Reviewers become the bottleneck the factory was meant to remove</li>
+            <li>Every sprint re-learns yesterday's failures</li>
+          </ul>
+        </div>
+      </div>
+      <p style="text-align:center; margin-top:24px;"><span class="highlight">Your leverage point:</span> the five system prompts, their tools, and the loop that hardens them.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Factory Mental Model</h2>
+    <p class="subtitle animate" style="margin-bottom:20px">Orchestrator routes work. Agents do work. Controls catch escapes.</p>
+    <div class="diagram animate">
+      <div class="box" style="border-color:var(--text-muted);">Orchestrator<br><small>scaffolding</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="background:var(--accent); color:#fff; border-color:var(--accent);">5 Agents<br><small>quality happens here</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Deterministic<br>Gates</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Calibration<br>Loop</div>
+    </div>
+    <div class="content animate" style="margin-top:20px">
+      <div class="card">
+        <ul>
+          <li><span class="highlight">Orchestrator</span> &mdash; routing, retries, budgets, fan-out. Infrastructure.</li>
+          <li><span class="highlight">Agents</span> &mdash; prompts + tools + skills + evidence schemas. The product.</li>
+          <li><span class="highlight">Gates</span> &mdash; deterministic checks (type check, tests, schemas) that don't hallucinate.</li>
+          <li><span class="highlight">Calibration</span> &mdash; every escape becomes a new control next sprint.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Five Agents</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>&#x1F4CB; Product</h3>
+        <p>Turns vague requests into testable specs. Owns acceptance criteria, edge cases, and the "done" definition.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F3D7; Architect</h3>
+        <p>Decomposes the spec into an implementation plan. Chooses patterns, interfaces, data contracts.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F9D1;&#x200D;&#x1F4BB; Developer</h3>
+        <p>Writes and edits code against the plan. Runs tests locally, produces the diff and the evidence bundle.</p>
+      </div>
+      <div class="metric-card">
+        <h3>&#x1F6A8; Red-Team <span class="tag" style="font-size:0.75rem">Gemini</span></h3>
+        <p>Cross-model adversarial review. Hunts for spec gaps, security holes, and plausible-looking wrong code.</p>
+      </div>
+      <div class="metric-card" style="grid-column: 1 / -1;">
+        <h3>&#x2699; DevOps</h3>
+        <p>Ships the diff. Owns CI, deploy, feature flags, rollback. The last line before production and the first line of telemetry back.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deterministic Gates vs Probabilistic Agents</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">Two problem classes. Confusing them is the #1 way factories fail.</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Deterministic Gate</h3>
+        <ul>
+          <li>Same input &rarr; same output, every time</li>
+          <li>Type checker, unit test, JSON schema, lint rule</li>
+          <li>Verdict is binary: pass / fail</li>
+          <li>Cheap to run, impossible to bypass accidentally</li>
+          <li>Where you encode <span class="highlight">non-negotiables</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Probabilistic Agent</h3>
+        <ul>
+          <li>Same input &rarr; distribution of outputs</li>
+          <li>LLM call with prompt + tools</li>
+          <li>Verdict is a judgment, with confidence</li>
+          <li>Expensive, eventually wrong on some %</li>
+          <li>Where you encode <span class="highlight">judgment</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px; text-align:center; color:var(--text-muted);"><span class="highlight">Rule:</span> if a check can be deterministic, it must be. Agents are for what gates can't express.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Agent Anatomy</h2>
+    <div class="content animate">
+<pre>
+# The four things every agent in the factory has
+---
+name: architect
+model: claude-opus-4-7
+tools:
+  - read_repo          # scoped file reader
+  - query_spec         # product-agent evidence
+  - propose_plan       # writes structured plan
+  - no_code_write      # gate: architect never writes code
+skills:
+  - architect-docs     # loaded on demand
+  - data-contracts
+evidence_schema: schemas/architect-plan.v3.json
+---
+
+You are the Architect Agent. Input: a Product evidence bundle.
+Output: a plan matching architect-plan.v3.json.
+Never write code. If the spec is ambiguous, emit an ambiguity
+record and halt &mdash; do not guess.
+</pre>
+      <p style="margin-top:14px; text-align:center; color:var(--text-muted);"><span class="highlight">Prompt</span> + <span class="highlight">tool config</span> + <span class="highlight">skill-loading</span> + <span class="highlight">evidence schema</span>. All four versioned together.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Product Agent Deep Dive</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Job</h3>
+        <ul>
+          <li>Turn a request into a <span class="highlight">testable spec</span></li>
+          <li>Enumerate acceptance criteria &amp; edge cases</li>
+          <li>Surface ambiguity explicitly (don't resolve it)</li>
+          <li>Define "done" as a set of verifiable assertions</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Evidence output</h3>
+<pre style="font-size:0.8rem">
+{
+  "spec_version": "2.1",
+  "title": "...",
+  "acceptance": [
+    {"id":"A1","given":"...","when":"...","then":"..."}
+  ],
+  "edge_cases": [...],
+  "ambiguities": [
+    {"id":"Q1","question":"...","blocks":["A3"]}
+  ],
+  "out_of_scope": [...]
+}
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;"><span class="highlight">Failure mode it prevents:</span> "works on my machine" &mdash; a spec the Developer and Red-Team can't both evaluate against.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Architect Agent Deep Dive</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Job</h3>
+        <ul>
+          <li>Consume Product evidence, emit a <span class="highlight">plan</span></li>
+          <li>Choose interfaces, data contracts, seams</li>
+          <li>Flag risks &amp; reversibility of each choice</li>
+          <li><span class="green">Never</span> write code</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Signature moves</h3>
+        <ul>
+          <li>Tool config denies <code>Edit</code> / <code>Write</code></li>
+          <li>Skill <code>architect-docs</code> loaded for ADR patterns</li>
+          <li>Outputs a strict JSON plan; schema gated in CI</li>
+          <li>Halts on unresolved ambiguity &mdash; upstream fix, not guess</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center; color:var(--text-muted);">Monday's work: <span class="highlight">revise the Architect prompt</span> after last week's interface mismatches.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Developer Agent Deep Dive</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Job</h3>
+        <ul>
+          <li>Execute the plan &mdash; the <span class="highlight">only</span> agent with write tools</li>
+          <li>Run tests locally before handoff</li>
+          <li>Emit a diff + test results + coverage delta</li>
+          <li>Halt &amp; escalate if plan is unbuildable</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Evidence output</h3>
+<pre style="font-size:0.8rem">
+{
+  "plan_id": "arch-2026-04-20-17",
+  "diff": "...",
+  "tests_added": 4,
+  "tests_passing": 412,
+  "coverage_delta": "+0.8%",
+  "unresolved": [],
+  "plan_deviations": [
+    {"why": "interface X not feasible",
+     "action": "escalated"}
+  ]
+}
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;"><span class="highlight">Temptation to resist:</span> letting the Developer also plan. Blurs responsibilities, wrecks eval signal.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Red-Team Agent (Gemini)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why a different model</h3>
+        <ul>
+          <li>Claude wrote the code; Claude has <span class="highlight">correlated blind spots</span></li>
+          <li>Gemini's training distribution differs &mdash; catches failures Claude rationalizes</li>
+          <li>Model diversity is a cheap orthogonal signal</li>
+          <li>Adversarial stance baked into the prompt, not an afterthought</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What it hunts</h3>
+        <ul>
+          <li>Spec gaps: "what about input X?"</li>
+          <li>Plausible-but-wrong code (looks fine, breaks subtly)</li>
+          <li>Security: injection, auth bypass, data leaks</li>
+          <li>Regression risk against the evidence bundle</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;"><span class="highlight">Calibration tip:</span> every finding it misses becomes a red-team eval case next sprint.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">DevOps Agent Deep Dive</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Job</h3>
+        <ul>
+          <li>Merge, deploy, monitor, roll back</li>
+          <li>Owns CI pipelines &amp; feature-flag state</li>
+          <li>Closes the telemetry loop back to calibration</li>
+          <li>The last deterministic gate before production</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Guardrails</h3>
+        <ul>
+          <li>Cannot deploy without green evidence bundle</li>
+          <li>Rollback is the <span class="highlight">default</span> on anomaly, not an exception</li>
+          <li>Emits post-deploy observability snapshot as evidence</li>
+          <li>Feeds production escapes into the calibration queue</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center; color:var(--text-muted);">DevOps is where probabilistic work meets deterministic infrastructure. Keep the seam sharp.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Evidence Bundles</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">The handoff artifact. Structured, schema-validated, reviewable.</p>
+    <div class="diagram animate">
+      <div class="box">Product<br><small>spec bundle</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Architect<br><small>plan bundle</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Developer<br><small>diff bundle</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Red-Team<br><small>review bundle</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">DevOps<br><small>deploy bundle</small></div>
+    </div>
+    <div class="content animate" style="margin-top:18px">
+      <div class="card">
+        <h3>What makes a bundle work</h3>
+        <ul>
+          <li><span class="highlight">Schema-versioned</span> &mdash; <code>plan.v3.json</code>, <code>review.v2.json</code></li>
+          <li><span class="highlight">Self-contained</span> &mdash; next agent needs no hidden context</li>
+          <li><span class="highlight">Machine-checkable</span> &mdash; deterministic gates before the next agent runs</li>
+          <li><span class="highlight">Auditable</span> &mdash; every decision traces back to an input field</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Prompts as Code</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Treat them like code</h3>
+        <ul>
+          <li>In git. Reviewed via PR. <span class="highlight">Never</span> edited in a playground</li>
+          <li>Semver: <code>architect.v3.2.md</code></li>
+          <li>Changes require an eval run; CI blocks regressions</li>
+          <li>Diffs are readable; avoid monolithic rewrites</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Red flag if you see</h3>
+        <ul>
+          <li>"Let me just tweak the prompt in prod"</li>
+          <li>Prompt lives in a Notion doc</li>
+          <li>No one knows what version is deployed</li>
+          <li>Changes shipped with <span class="highlight">zero eval evidence</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center; color:var(--text-muted);">Believing prompts don't need version control &mdash; immediate disqualifier for this role.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Iteration Loop</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">20+ prompt iterations against <span class="highlight">real failures</span> &mdash; not polish on a demo.</p>
+    <div class="diagram animate">
+      <div class="box">Real failure</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Add to eval set</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Revise prompt</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Run full eval</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Ship / revert</div>
+    </div>
+    <div class="content animate" style="margin-top:18px">
+      <div class="bp-grid">
+        <div class="bp-item"><span>1</span>One change per iteration &mdash; know what moved the number</div>
+        <div class="bp-item"><span>2</span>New failure &rarr; new eval case, <span class="highlight">always</span></div>
+        <div class="bp-item"><span>3</span>Keep the regression set; never prune a case because it's "solved"</div>
+        <div class="bp-item"><span>4</span>Revert freely &mdash; prompt changes are cheap to undo</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">A/B Testing Prompt Changes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The question</h3>
+        <p style="margin-bottom:10px;">Is this prompt change actually better, or did I overfit to the last failure?</p>
+        <ul>
+          <li>Run <span class="highlight">old</span> and <span class="highlight">new</span> on identical eval set</li>
+          <li>Score with the same rubric, same model</li>
+          <li>Paired comparison: per-case win / loss / tie</li>
+          <li>Look at variance, not just mean</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Signals to trust</h3>
+        <ul>
+          <li><span class="green">Fewer regressions</span> on the gold set</li>
+          <li><span class="green">Lower variance</span> across N reruns</li>
+          <li><span class="green">Same or better</span> on held-out cases</li>
+          <li><span class="green">Cheaper</span> at equal quality (tokens, latency)</li>
+        </ul>
+        <p style="margin-top:10px; font-size:0.95rem; color:var(--text-muted);">"It felt better" is not a signal.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Eval Harnesses</h2>
+    <div class="content animate">
+      <div class="card">
+        <h3>Anatomy of a good harness</h3>
+        <ul>
+          <li><span class="highlight">Gold set</span> &mdash; N cases with expected outputs or rubric</li>
+          <li><span class="highlight">Runner</span> &mdash; deterministic; same seed, same tools, same env</li>
+          <li><span class="highlight">Scorer</span> &mdash; mix of exact match, schema check, LLM-judge for soft criteria</li>
+          <li><span class="highlight">Report</span> &mdash; per-case verdict, per-dimension scores, deltas vs baseline</li>
+          <li><span class="highlight">Storage</span> &mdash; every run archived; reproducible six months later</li>
+        </ul>
+      </div>
+      <div class="bp-grid animate" style="margin-top:18px">
+        <div class="bp-item"><span>&#x2713;</span>Every failure ticket becomes an eval case</div>
+        <div class="bp-item"><span>&#x2713;</span>Gold answers reviewed by a human, versioned</div>
+        <div class="bp-item"><span>&#x2713;</span>LLM-judge scorers are themselves eval'd</div>
+        <div class="bp-item"><span>&#x2713;</span>Cost &amp; latency reported alongside quality</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Regression Benchmarks in CI</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Prompt PR workflow</h3>
+        <ol style="list-style:decimal; padding-left:1.4em;">
+          <li>Engineer edits <code>architect.v3.2.md</code></li>
+          <li>CI runs full eval on gold set + recent escapes</li>
+          <li>Report posted to PR: per-case diff vs baseline</li>
+          <li>Reviewer inspects regressions before approving</li>
+          <li>Merge blocks if any gold case regresses</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>What a good report looks like</h3>
+<pre style="font-size:0.8rem">
+architect.v3.1 -> v3.2
+  gold set (240 cases):   +3 wins, 0 regressions
+  recent escapes (18):    +5 fixed, 0 regressions
+  latency p50:            -4% (faster)
+  tokens/case p50:        +8%
+  LLM-judge rubric:       +0.12 / 5.0
+VERDICT: merge-eligible
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Eval Harness &mdash; Code</h2>
+    <div class="content animate">
+<pre>
+// eval/run.ts  (Claude Agent SDK)
+import Anthropic from "@anthropic-ai/sdk";
+import { loadGoldSet, scoreCase, archive } from "./lib";
+
+const client = new Anthropic();
+const prompt = await readPrompt("architect.v3.2.md");
+const cases  = await loadGoldSet("architect");
+
+const results = await Promise.all(cases.map(async (c) => {
+  const out = await client.messages.create({
+    model: "claude-opus-4-7",
+    system: prompt,
+    messages: [{ role: "user", content: c.input }],
+    max_tokens: 4096,
+  });
+  return { id: c.id, output: out, score: scoreCase(c, out) };
+}));
+
+await archive({ prompt_version: "v3.2", results });
+const delta = diffAgainst("architect.v3.1", results);
+if (delta.regressions.length) process.exit(1);   // CI gate
+</pre>
+      <p style="margin-top:12px; text-align:center; color:var(--text-muted);">TS for the harness, Python for the scorers. Both versioned with the prompt.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Escape Classes</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">An escape = a failure that got past every gate and agent. Classify by severity &amp; cause.</p>
+    <div class="content animate">
+      <table>
+        <tr><th>Class</th><th>Meaning</th><th>Response</th></tr>
+        <tr><td><strong>E0</strong></td><td>Production incident &mdash; user-visible, data loss, or security</td><td>Halt factory, root-cause, new gate same day</td></tr>
+        <tr><td><strong>E1</strong></td><td>Caught by customer / monitoring post-deploy</td><td>Rollback, eval case, control by end of week</td></tr>
+        <tr><td><strong>E2</strong></td><td>Caught by deterministic gate after all agents passed</td><td>New Red-Team eval case, prompt revision candidate</td></tr>
+        <tr><td><strong>E3</strong></td><td>Caught by human reviewer when Red-Team said ship</td><td>Most valuable &mdash; Red-Team prompt &amp; skill update</td></tr>
+      </table>
+      <p style="margin-top:14px; text-align:center;">E3 is the gold. Every E3 caught is a permanent upgrade to the Red-Team agent.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Calibration Loop</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">How escapes become permanent controls.</p>
+    <div class="diagram animate">
+      <div class="box" style="border-color:#e74c3c;">Escape<br>detected</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Classify<br>E0&ndash;E3</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--warning);">Root-cause<br>review</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">New control<br>(gate / eval / prompt)</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box" style="border-color:var(--success);">Ship&nbsp;&amp;<br>measure</div>
+    </div>
+    <div class="content animate" style="margin-top:18px">
+      <div class="card">
+        <ul>
+          <li><span class="highlight">Weekly calibration review</span> &mdash; whole team walks every new escape</li>
+          <li>Every escape exits with one of: new eval case, new prompt rule, new gate, or accepted risk</li>
+          <li>"Accepted risk" requires a written rationale and an owner</li>
+          <li>Escape rate reported as a trend, not a snapshot</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Case Study: A Wednesday E3</h2>
+    <div class="content animate">
+      <div class="card" style="margin-bottom:14px;">
+        <h3 style="color:#e74c3c;">What happened</h3>
+        <p>Human reviewer caught a SQL-injection-shaped pattern the Developer produced and Red-Team signed off on. The input was trusted "internal" data that had become externally reachable three months ago.</p>
+      </div>
+      <div class="two-col">
+        <div class="card">
+          <h3>Why Red-Team missed it</h3>
+          <ul>
+            <li>Prompt assumed "internal" == trusted</li>
+            <li>No eval case for trust-boundary drift</li>
+            <li>Schema didn't flag the data source change</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3 style="color:var(--success);">Closing the loop</h3>
+          <ul>
+            <li>Eval case added: "data previously internal, now external"</li>
+            <li>Red-Team prompt: explicit trust-boundary question</li>
+            <li>Architect evidence schema: <code>data_source_provenance</code> required</li>
+            <li>Gate: CI check for new external ingress on "internal" types</li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px; text-align:center;"><span class="highlight">Next sprint:</span> escape rate on this class drops to zero. That's the job.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Reviewer Checklist &rarr; Permanent Control</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">A reviewer catching the same thing twice means the checklist failed.</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The promotion ladder</h3>
+        <ol style="list-style:decimal; padding-left:1.4em;">
+          <li>Reviewer spots a new failure</li>
+          <li>Add it to the reviewer checklist (humans)</li>
+          <li>Add it to the Red-Team eval set (agent)</li>
+          <li>Encode as a deterministic gate if possible</li>
+          <li>Retire from the checklist once gated</li>
+        </ol>
+      </div>
+      <div class="card">
+        <h3>Why it matters</h3>
+        <ul>
+          <li>Human reviewers are <span class="highlight">expensive, slow, and biased</span> by fatigue</li>
+          <li>Their best work is finding <span class="highlight">novel</span> classes, not policing known ones</li>
+          <li>Checklists become gates. Gates free reviewers for new escapes.</li>
+          <li>Friday's proposal: one checklist item ready to promote</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Skill-Loading Logic</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Bake in vs load on demand</h3>
+        <ul>
+          <li><span class="highlight">System prompt</span> &mdash; universal, stable, rarely changes</li>
+          <li><span class="highlight">Skill</span> &mdash; domain knowledge pack, loaded only when relevant</li>
+          <li>Loading irrelevant skills = context pollution, worse outputs</li>
+          <li>Skills are versioned separately; evals per skill</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Routing heuristics</h3>
+<pre style="font-size:0.8rem">
+// Architect's skill router
+if (spec.mentions("database schema"))
+  load("data-contracts");
+if (spec.touches(["auth","token","pii"]))
+  load("security-architecture");
+if (plan_complexity > threshold)
+  load("adr-templates");
+
+// Default: no skills &mdash; base prompt only
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center; color:var(--text-muted);">The router itself is an evaluable component. Wrong-skill-loaded is a measurable failure mode.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Claude Agent SDK (TS + Python)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why this stack</h3>
+        <ul>
+          <li><span class="highlight">TypeScript</span> for the orchestrator, harness, evidence schemas</li>
+          <li><span class="highlight">Python</span> for scorers, data tooling, notebooks</li>
+          <li>Claude API for Product/Architect/Developer/DevOps agents</li>
+          <li>Separate Gemini client for Red-Team (model diversity)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What the SDK gives you</h3>
+        <ul>
+          <li>Tool-use plumbing with typed schemas</li>
+          <li>Streaming, cancellation, token accounting</li>
+          <li>Prompt caching &mdash; matters at eval scale</li>
+          <li>Batch API for eval reruns at 50% cost</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;"><span class="highlight">Bonus points:</span> shipped with Claude API or Agent SDK specifically &mdash; you know the sharp edges.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Multi-Agent Coordination</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Single-agent chatbot</h3>
+        <ul>
+          <li>One prompt, one context, one conversation</li>
+          <li>Failure modes: hallucination, drift</li>
+          <li>Evals score final answers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Multi-agent factory</h3>
+        <ul>
+          <li>Five agents, five contexts, structured handoffs</li>
+          <li>Failure modes: <span class="highlight">inter-agent</span> &mdash; spec drift, plan/code mismatch, review blind spots</li>
+          <li>Evals score each handoff <span class="highlight">and</span> end-to-end</li>
+          <li>Debugging means tracing the bundle lineage</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;">RAG-chatbot intuitions don't transfer. Coordination is a different problem class.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Anti-Patterns &amp; Red Flags</h2>
+    <div class="content animate">
+      <div class="bp-grid">
+        <div class="bp-item"><span>&#x2717;</span>"I use LangChain" &mdash; without specifics on what broke</div>
+        <div class="bp-item"><span>&#x2717;</span>Prompts edited in a UI playground, not git</div>
+        <div class="bp-item"><span>&#x2717;</span>No distinction between deterministic gates and probabilistic agents</div>
+        <div class="bp-item"><span>&#x2717;</span>Eval set = "vibes" instead of versioned cases</div>
+        <div class="bp-item"><span>&#x2717;</span>Treating all escapes the same &mdash; no severity taxonomy</div>
+        <div class="bp-item"><span>&#x2717;</span>RAG-chatbot experience presented as agent experience</div>
+        <div class="bp-item"><span>&#x2717;</span>Prompt changes shipped with zero eval evidence</div>
+        <div class="bp-item"><span>&#x2717;</span>Hackathon demo experience, not 3+ months of production</div>
+      </div>
+      <p style="margin-top:18px; text-align:center; color:var(--text-muted);">Each one predicts a specific class of failure in the factory.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">A Good Week in the Role</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Day</th><th>Output</th><th>Why it matters</th></tr>
+        <tr><td><strong>Mon</strong></td><td>Ship revised Architect prompt</td><td>Close last week's plan/code mismatches</td></tr>
+        <tr><td><strong>Tue</strong></td><td>Add 4 eval cases from weekend escapes</td><td>Regression set grows with reality</td></tr>
+        <tr><td><strong>Wed</strong></td><td>Catch a new E3 in calibration review</td><td>Red-Team gets permanently better</td></tr>
+        <tr><td><strong>Thu</strong></td><td>Promote a checklist item to a gate</td><td>Free human reviewers for novel work</td></tr>
+        <tr><td><strong>Fri</strong></td><td>Propose reviewer-checklist change</td><td>Next sprint's escape rate ticks down</td></tr>
+      </table>
+      <div class="diagram animate" style="margin-top:24px">
+        <div class="box" style="border-color:var(--success);">Escape rate<br>this sprint</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="background:var(--success); color:#fff; border-color:var(--success);">Escape rate<br>next sprint</div>
+      </div>
+      <p style="margin-top:12px; text-align:center; color:var(--text-muted);"><span class="highlight">The measurable signal:</span> escape rate drops, sprint over sprint.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3ED;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You've walked the agent factory end-to-end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Factory Model</span><span class="tag">5 Agents</span><span class="tag">Evidence Bundles</span>
+        <span class="tag">Prompts-as-Code</span><span class="tag">Eval Harnesses</span><span class="tag">Escape Classes</span>
+        <span class="tag">Calibration Loop</span><span class="tag">Red-Team</span>
+      </div>
+      <p style="color:var(--text-muted)">Ship a revised prompt Monday. Catch an escape Wednesday. Propose a checklist change Friday. Watch the escape rate drop next sprint.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+<div class="slide-counter" id="counter">1 / 28</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
