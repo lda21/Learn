@@ -388,6 +388,14 @@ const GLOSSARY_TERMS = [
   {t:"Passkey", d:"A FIDO2/WebAuthn credential synced across devices via iCloud Keychain, Google Password Manager, or 1Password. Replaces passwords with public-key cryptography and biometric verification.", tags:["Authentication","Security"]},
   {t:"TOTP", d:"Time-based One-Time Password (RFC 6238) — generates 6-digit codes from a shared secret and current time. Used by authenticator apps (Google Authenticator, Authy). Rotates every 30 seconds.", tags:["Authentication","MFA"]},
   {t:"Magic Link", d:"A passwordless authentication method where a one-time login URL is sent via email. User clicks the link to authenticate. Used by Slack, Notion, and Vercel.", tags:["Authentication"]},
+  {t:"Evidence Bundle", d:"A structured, schema-validated artifact passed between agents in a factory. Contains every input and decision the next agent needs, so the handoff is auditable and machine-checkable.", tags:["Agents","Evals"]},
+  {t:"Escape Class", d:"A severity taxonomy (E0–E3) for failures that slipped past every gate. E0 is a production incident; E3 is a human reviewer catching something the Red-Team agent signed off on — the most valuable signal for calibration.", tags:["Agents","Evals"]},
+  {t:"Calibration Loop", d:"The weekly cycle that turns each new escape into a permanent control — a new eval case, a prompt rule, or a deterministic gate. The mechanism that makes the factory's escape rate trend down over time.", tags:["Agents","Evals"]},
+  {t:"Red-Team Agent", d:"An adversarial review agent run on a different model (e.g. Gemini when the Developer uses Claude) to provide cross-model diversity. Hunts spec gaps, plausible-but-wrong code, and security issues.", tags:["Agents","Evals"]},
+  {t:"Eval Harness", d:"A reproducible runner that executes an agent prompt against a versioned gold set of cases, scores each output, and reports per-case deltas vs a baseline. The regression benchmark for prompt changes.", tags:["Agents","Evals","Prompts"]},
+  {t:"Prompts-as-Code", d:"Treating LLM system prompts the same as source code: versioned in git, reviewed via PR, tested against eval sets in CI, and never edited in a playground. Non-negotiable for production agent systems.", tags:["Agents","Prompts"]},
+  {t:"Deterministic Gate", d:"A check whose output is the same for the same input — type checker, unit test, JSON schema, lint rule. Binary pass/fail. Used wherever a non-negotiable rule can be expressed without an LLM.", tags:["Agents","Evals"]},
+  {t:"Gold Set", d:"A versioned collection of eval cases with expected outputs or scoring rubrics. Every new failure ticket is added; cases are never pruned just because they're 'solved'. The regression baseline.", tags:["Evals"]},
 ];
 
 (function() {
