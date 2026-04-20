@@ -918,6 +918,108 @@ if (plan_complexity > threshold)
   </div>
 
   <div class="slide">
+    <h2 class="animate">SDLC Phase Coverage by Framework</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">Where each framework has native roles/skills. <span class="green">&#x25CF;</span> strong &middot; <span style="color:var(--warning);">&#x25D1;</span> partial &middot; <span style="color:var(--text-muted);">&#x25CB;</span> absent.</p>
+    <div class="content animate">
+      <table style="font-size:0.95rem;">
+        <tr><th>Framework</th><th>Req</th><th>Design</th><th>Code</th><th>Test</th><th>Review</th><th>Ship</th><th>Monitor</th></tr>
+        <tr><td><strong>MetaGPT</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--text-muted);">&#x25CB;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>ChatDev</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--text-muted);">&#x25CB;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>OpenHands</strong></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--warning);">&#x25D1;</td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td></tr>
+        <tr><td><strong>BMAD</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>superpowers</strong></td><td style="color:var(--warning);">&#x25D1;</td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>gstack</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>spec-kit</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--text-muted);">&#x25CB;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>oh-my-claudecode</strong></td><td style="color:var(--warning);">&#x25D1;</td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+        <tr><td><strong>compound-eng</strong></td><td><span class="green">&#x25CF;</span></td><td><span class="green">&#x25CF;</span></td><td style="color:var(--warning);">&#x25D1;</td><td style="color:var(--warning);">&#x25D1;</td><td><span class="green">&#x25CF;</span></td><td style="color:var(--text-muted);">&#x25CB;</td><td style="color:var(--text-muted);">&#x25CB;</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);">No framework is strong across all 7 phases. <span class="highlight">Ship + Monitor</span> is near-universal whitespace.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scale: Agents, Skills, Hooks</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">Raw footprint per framework (April 2026).</p>
+    <div class="content animate">
+      <table>
+        <tr><th>Framework</th><th>Agents / Roles</th><th>Skills</th><th>Hooks</th><th>MCP servers</th></tr>
+        <tr><td><strong>MetaGPT</strong></td><td>5 core</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr><td><strong>ChatDev 2.0</strong></td><td>7</td><td>&mdash;</td><td>&mdash;</td><td>&mdash;</td></tr>
+        <tr><td><strong>OpenHands</strong></td><td>10+ task specialists</td><td>&mdash;</td><td>lifecycle</td><td>partial</td></tr>
+        <tr><td><strong>BMAD-METHOD</strong></td><td>12+ domain experts</td><td>yes</td><td>&mdash;</td><td>partial</td></tr>
+        <tr><td><strong>superpowers</strong></td><td>subagent-driven</td><td>many</td><td>plugin hooks</td><td>yes</td></tr>
+        <tr><td><strong>gstack</strong></td><td>23 role-skills</td><td>23</td><td>&mdash;</td><td>yes</td></tr>
+        <tr><td><strong>spec-kit</strong></td><td>30+ tool agents</td><td>&mdash;</td><td>CI hooks</td><td>&mdash;</td></tr>
+        <tr><td><strong>oh-my-claudecode</strong></td><td>19 specialists</td><td>yes</td><td>yes</td><td>yes</td></tr>
+        <tr><td><strong>everything-claude-code</strong></td><td>48 subagents</td><td>183</td><td>20+</td><td>6+ (GH, Supabase, Vercel&hellip;)</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);"><span class="highlight">everything-claude-code</span> is the maximalist; <span class="highlight">MetaGPT</span> the minimalist. Scale is not quality &mdash; eval coverage is.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Handoff Format &amp; Isolation</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">How state crosses between agents, and how failures are contained.</p>
+    <div class="content animate">
+      <table style="font-size:0.95rem;">
+        <tr><th>Framework</th><th>Handoff artifact</th><th>Schema-validated?</th><th>Isolation</th></tr>
+        <tr><td><strong>MetaGPT</strong></td><td><code>prd.md</code>, <code>design.md</code>, <code>api.json</code></td><td>partial (API JSON)</td><td>none</td></tr>
+        <tr><td><strong>ChatDev</strong></td><td>multi-turn dialogue log</td><td>no</td><td>none</td></tr>
+        <tr><td><strong>OpenHands</strong></td><td>task state + file diffs</td><td>no</td><td><span class="highlight">Docker sandbox</span></td></tr>
+        <tr><td><strong>BMAD</strong></td><td>Markdown artifacts per role</td><td>no</td><td>none</td></tr>
+        <tr><td><strong>superpowers</strong></td><td>shared plan files</td><td>no</td><td><span class="highlight">git worktrees</span></td></tr>
+        <tr><td><strong>gstack</strong></td><td>shared Markdown</td><td>no</td><td>&mdash;</td></tr>
+        <tr><td><strong>spec-kit</strong></td><td><code>spec.md</code> &rarr; <code>plan.md</code> &rarr; <code>tasks.md</code></td><td>no</td><td>&mdash;</td></tr>
+        <tr><td><strong>oh-my-claudecode</strong></td><td>PRD + task list</td><td>no</td><td>worktrees (Ralph)</td></tr>
+        <tr><td><strong>get-shit-done</strong></td><td><code>HANDOFF.json</code></td><td><span class="green">yes</span> &mdash; closest to evidence bundle</td><td>&mdash;</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);">Markdown wins on authoring cost. <span class="highlight">JSON schemas</span> win on gate enforcement. Nobody ships both yet.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">How to Choose &mdash; Buy vs Build</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Buy (adopt an OSS skeleton)</h3>
+        <ul>
+          <li>Ship <span class="highlight">to customers</span> in &lt; 3 months</li>
+          <li>Agents are a <span class="highlight">means</span>, not the product</li>
+          <li>Team &lt; 5 engineers</li>
+          <li>No proprietary eval corpus yet</li>
+          <li>Standard-ish SDLC (web, API, typical SaaS)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:var(--warning);">Build (custom on Claude Agent SDK)</h3>
+        <ul>
+          <li>Agents-as-product is the <span class="highlight">business</span></li>
+          <li>Proprietary eval data / domain corpus you can't share</li>
+          <li>Provider independence is a hard requirement</li>
+          <li>Existing options have gaps you can't patch cleanly</li>
+          <li>Strict data residency or airgapped deploy</li>
+        </ul>
+      </div>
+    </div>
+    <div class="content animate" style="margin-top:18px">
+      <div class="card">
+        <h3>If you're buying, pick your skeleton</h3>
+        <table style="font-size:0.95rem;">
+          <tr><th>If your priority is&hellip;</th><th>Pick</th></tr>
+          <tr><td>Production sandbox + real repos + SWE-bench credibility</td><td><strong>OpenHands</strong></td></tr>
+          <tr><td>Greenfield code-from-PRD, portable across LLMs</td><td><strong>MetaGPT</strong></td></tr>
+          <tr><td>Already in Claude Code, want a battle-tested pipeline</td><td><strong>superpowers</strong></td></tr>
+          <tr><td>Agile-domain role breadth (PM, UX, PO, SM)</td><td><strong>BMAD-METHOD</strong></td></tr>
+          <tr><td>Spec-first with deterministic artifact chain</td><td><strong>spec-kit</strong></td></tr>
+          <tr><td>End-to-end w/ release role + cross-model review</td><td><strong>gstack</strong></td></tr>
+          <tr><td>Maximalist: 48 agents + 183 skills + 20+ hooks</td><td><strong>everything-claude-code</strong></td></tr>
+        </table>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center;"><span class="highlight">Whatever you pick</span>, the eval harness + calibration loop is yours to build. That's the moat.</p>
+  </div>
+
+  <div class="slide">
     <h2 class="animate">Anti-Patterns &amp; Red Flags</h2>
     <div class="content animate">
       <div class="bp-grid">
@@ -1002,7 +1104,7 @@ if (plan_complexity > threshold)
   </div>
 
 </div>
-<div class="slide-counter" id="counter">1 / 32</div>
+<div class="slide-counter" id="counter">1 / 36</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
