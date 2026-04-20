@@ -837,6 +837,87 @@ if (plan_complexity > threshold)
   </div>
 
   <div class="slide">
+    <h2 class="animate">Role-Based Frameworks &mdash; SDLC Landscape</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">Nine OSS options. Same core idea: fixed roles, scripted handoffs, SDLC-spanning.</p>
+    <div class="content animate">
+      <table>
+        <tr><th>Framework</th><th>Headline Roles</th><th>Stars</th></tr>
+        <tr><td><strong>MetaGPT</strong></td><td>PM &rarr; Architect &rarr; PjM &rarr; Engineer &rarr; QA</td><td>~46k</td></tr>
+        <tr><td><strong>ChatDev 2.0</strong></td><td>CEO, CPO, CTO, Programmer, Reviewer, Tester, Designer</td><td>~27k</td></tr>
+        <tr><td><strong>OpenHands</strong></td><td>CodeActAgent + task specialists</td><td>~40k</td></tr>
+        <tr><td><strong>BMAD-METHOD</strong></td><td>Analyst, PM, Architect, Dev, UX, QA, PO, SM</td><td>~45k</td></tr>
+        <tr><td><strong>superpowers</strong></td><td>Planner, Implementer, Reviewer (+ TDD, docs)</td><td>~161k</td></tr>
+        <tr><td><strong>gstack</strong></td><td>CEO, Designer, Eng Mgr, QA, Security, Release</td><td>~78k</td></tr>
+        <tr><td><strong>spec-kit</strong></td><td>Spec &rarr; Plan &rarr; Tasks &rarr; Contracts (artifact chain)</td><td>~89k</td></tr>
+        <tr><td><strong>oh-my-claudecode</strong></td><td>19 specialists: PRD, execute, verify, fix</td><td>~30k</td></tr>
+        <tr><td><strong>compound-engineering</strong></td><td>Ideate, Brainstorm, Plan, Work, Review, Compound</td><td>~15k</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);">Two tribes: <span class="highlight">framework-native</span> (standalone runtimes) vs <span class="highlight">Claude-Code-native</span> (harness plugins).</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Framework-Native: MetaGPT, ChatDev, OpenHands</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">Research-rooted. Ship their own CLI/runtime. Portable across LLM providers.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>MetaGPT <span class="tag" style="font-size:0.75rem">~46k</span></h3>
+        <p><strong>Roles:</strong> PM &rarr; Architect &rarr; PjM &rarr; Engineer &rarr; QA. SOP-encoded.</p>
+        <p><strong>Artifacts:</strong> <code>prd.md</code>, <code>design.md</code>, <code>api.json</code>, code, tests.</p>
+        <p><strong>SDLC:</strong> Requirements &rarr; Design &rarr; Code &rarr; Test. Deploy out of scope.</p>
+      </div>
+      <div class="metric-card">
+        <h3>ChatDev 2.0 <span class="tag" style="font-size:0.75rem">~27k</span></h3>
+        <p><strong>Roles:</strong> CEO, CPO, CTO, Programmer, Reviewer, Tester, Designer.</p>
+        <p><strong>Style:</strong> Dialogue-driven multi-turn negotiation between roles.</p>
+        <p><strong>SDLC:</strong> Strong on spec/design; thin on ops.</p>
+      </div>
+      <div class="metric-card">
+        <h3>OpenHands <span class="tag" style="font-size:0.75rem">~40k</span></h3>
+        <p><strong>Roles:</strong> CodeActAgent (generalist) + specialized task agents.</p>
+        <p><strong>Strength:</strong> Best sandbox in the space; SWE-bench 72% on Claude 4.5.</p>
+        <p><strong>SDLC:</strong> Code &rarr; Test &rarr; Execute. Production-grade.</p>
+      </div>
+      <div class="metric-card">
+        <h3>When to pick these</h3>
+        <p>You want <span class="highlight">full control</span> of the orchestrator, provider independence, and you're willing to run the runtime yourself. Trade: more glue code, less harness reuse.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Claude-Code-Native: superpowers, BMAD, gstack, spec-kit</h2>
+    <p class="subtitle animate" style="margin-bottom:14px">Ride the Claude Code harness. Skills + hooks + MCP + subagents.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>superpowers <span class="tag" style="font-size:0.75rem">~161k</span></h3>
+        <p>7-phase: brainstorm &rarr; worktrees &rarr; plan &rarr; subagent exec &rarr; TDD &rarr; review &rarr; complete. Two-stage review (author + adversary).</p>
+      </div>
+      <div class="metric-card">
+        <h3>BMAD-METHOD <span class="tag" style="font-size:0.75rem">~45k</span></h3>
+        <p>Agile-domain coverage: Analyst, PM, Architect, Dev, UX, QA, PO, SM. "Party Mode" multi-persona brainstorming.</p>
+      </div>
+      <div class="metric-card">
+        <h3>gstack <span class="tag" style="font-size:0.75rem">~78k</span></h3>
+        <p>23 skills across the SDLC: CEO, designer, eng mgr, QA, security, release. Cross-model review built in.</p>
+      </div>
+      <div class="metric-card">
+        <h3>spec-kit <span class="tag" style="font-size:0.75rem">~89k</span></h3>
+        <p>Spec-first: <code>spec.md</code> &rarr; <code>plan.md</code> &rarr; <code>tasks.md</code> &rarr; contracts. 30+ agents consume the chain.</p>
+      </div>
+      <div class="metric-card">
+        <h3>oh-my-claudecode <span class="tag" style="font-size:0.75rem">~30k</span></h3>
+        <p>Teams-first: plan &rarr; PRD &rarr; execute &rarr; verify &rarr; fix. 19 specialists, Codex + Gemini cross-validation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>compound-engineering <span class="tag" style="font-size:0.75rem">~15k</span></h3>
+        <p>6-phase cycle: ideate &rarr; brainstorm &rarr; plan &rarr; work &rarr; review &rarr; compound. 80/20 planning-vs-execution.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);">Pick one as the skeleton. Your factory's leverage is the <span class="highlight">eval + calibration layer</span> on top.</p>
+  </div>
+
+  <div class="slide">
     <h2 class="animate">Anti-Patterns &amp; Red Flags</h2>
     <div class="content animate">
       <div class="bp-grid">
@@ -921,7 +1002,7 @@ if (plan_complexity > threshold)
   </div>
 
 </div>
-<div class="slide-counter" id="counter">1 / 29</div>
+<div class="slide-counter" id="counter">1 / 32</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
