@@ -304,6 +304,7 @@
       </div>
     </div>
     <p class="animate" style="margin-top:20px; text-align:center; color:var(--text-muted);"><span class="highlight">Rule:</span> if a check can be deterministic, it must be. Agents are for what gates can't express.</p>
+    <p class="animate" style="margin-top:8px; text-align:center; font-size:0.95rem; color:var(--text-muted);">Claude Code's <span class="highlight">27-event hook taxonomy</span> (PreToolUse, PostToolUse, PreCompact, UserPromptSubmit, PermissionRequest, SubagentStop&hellip;) is the enforcement surface &mdash; an agent can't ignore a hook the way it can ignore a prompt.</p>
   </div>
 
   <div class="slide">
@@ -500,6 +501,7 @@ record and halt &mdash; do not guess.
         </ul>
       </div>
     </div>
+    <p class="animate" style="margin-top:14px; text-align:center; color:var(--text-muted);">The community default is Markdown (spec-kit, OpenSpec, BMAD). Cheaper to author, but unvalidated. JSON schemas trade authoring cost for <span class="highlight">gate enforcement</span>.</p>
   </div>
 
   <div class="slide">
@@ -782,6 +784,7 @@ if (plan_complexity > threshold)
       </div>
     </div>
     <p class="animate" style="margin-top:18px; text-align:center; color:var(--text-muted);">The router itself is an evaluable component. Wrong-skill-loaded is a measurable failure mode.</p>
+    <p class="animate" style="margin-top:8px; text-align:center; font-size:0.95rem; color:var(--text-muted);">The <code>SKILL.md</code> format (<code>anthropics/skills</code>) encodes routing hints declaratively: <code>name</code>, <code>description</code>, <code>when_to_use</code>, <code>model</code>, <code>effort</code>, <code>paths</code>. Metadata loads; body loads on demand.</p>
   </div>
 
   <div class="slide">
@@ -871,6 +874,38 @@ if (plan_complexity > threshold)
   </div>
 
   <div class="slide">
+    <h2 class="animate">Where This Fits in the OSS Landscape</h2>
+    <p class="subtitle animate" style="margin-bottom:18px">The Claude Code community has converged on half the factory. The other half is whitespace.</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 style="color:var(--success);">Adopt &mdash; OSS has this solved</h3>
+        <ul>
+          <li><span class="highlight">Skill format</span> &mdash; <code>anthropics/skills</code>, SKILL.md, 1000+ community skills</li>
+          <li><span class="highlight">Hooks</span> &mdash; 27 lifecycle events; deterministic enforcement</li>
+          <li><span class="highlight">MCP servers</span> &mdash; mature tool integration standard</li>
+          <li><span class="highlight">Ralph loops</span> &mdash; canonical autonomous-loop pattern</li>
+          <li><span class="highlight">Worktree-per-task</span> &mdash; parallel agents without collision</li>
+          <li><span class="highlight">Cross-model handoff</span> &mdash; Claude &harr; Codex &harr; Gemini</li>
+          <li><span class="highlight">Role-based multi-agent</span> &mdash; MetaGPT, BMAD, superpowers, gstack</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="color:#e74c3c;">Build &mdash; OSS does not cover</h3>
+        <ul>
+          <li><span class="highlight">Schema-validated evidence bundles</span> &mdash; Markdown is the default; nobody gates on structure</li>
+          <li><span class="highlight">Eval harnesses with CI regression gates</span> &mdash; literally absent in this ecosystem</li>
+          <li><span class="highlight">A/B prompt comparison</span> with paired win/loss stats &mdash; zero coverage</li>
+          <li><span class="highlight">Escape-class taxonomy</span> (E0&ndash;E3) &mdash; no one has named it</li>
+          <li><span class="highlight">Calibration loop</span> &mdash; "document learnings" is the ceiling; no automation</li>
+          <li><span class="highlight">Red-Team as a seat</span> &mdash; cross-model review exists; permanent adversary role does not</li>
+          <li><span class="highlight">Checklist &rarr; gate promotion</span> ladder &mdash; checklists yes, discipline no</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px; text-align:center;"><span class="highlight">The moat is on the right.</span> Everyone ships agents. Almost no one measures them.</p>
+  </div>
+
+  <div class="slide">
     <span class="logo-icon animate">&#x1F3ED;</span>
     <h2 class="animate">Course Complete!</h2>
     <div class="content animate" style="text-align:center">
@@ -886,7 +921,7 @@ if (plan_complexity > threshold)
   </div>
 
 </div>
-<div class="slide-counter" id="counter">1 / 28</div>
+<div class="slide-counter" id="counter">1 / 29</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
