@@ -175,6 +175,9 @@ feat: add MCP glossary terms
 - `main` — production branch
 - Feature branches for new courses or significant changes
 
+### Course publishing workflow
+When a new course is finished (HTML file + `index.html` entry + glossary terms), push the change directly to `main`. Rebase the working branch on `origin/main` first if main has moved, resolve any conflicts (typically the top of the `COURSES` array and the end of `GLOSSARY_TERMS`), then fast-forward `main`. No PR review gate for courses.
+
 ## Mobile Responsiveness
 
 All courses must be responsive. Key breakpoints:
