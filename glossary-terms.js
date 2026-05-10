@@ -396,6 +396,13 @@ const GLOSSARY_TERMS = [
   {t:"Prompts-as-Code", d:"Treating LLM system prompts the same as source code: versioned in git, reviewed via PR, tested against eval sets in CI, and never edited in a playground. Non-negotiable for production agent systems.", tags:["Agents","Prompts"]},
   {t:"Deterministic Gate", d:"A check whose output is the same for the same input — type checker, unit test, JSON schema, lint rule. Binary pass/fail. Used wherever a non-negotiable rule can be expressed without an LLM.", tags:["Agents","Evals"]},
   {t:"Gold Set", d:"A versioned collection of eval cases with expected outputs or scoring rubrics. Every new failure ticket is added; cases are never pruned just because they're 'solved'. The regression baseline.", tags:["Evals"]},
+  {t:"Droid", d:"A Factory.ai autonomous agent purpose-built for one role in the SDLC (Code, Knowledge, Review, Spec, Incident, Ticket). Each Droid has explicit scope, tools, and guardrails rather than being a generalist.", tags:["Factory.ai","AI Agents"]},
+  {t:"Mission (Factory.ai)", d:"A long-running, multi-step delegated outcome (e.g. a service migration) that Factory.ai plans, executes, and verifies across hours or days using multiple Droids coordinated by a planner.", tags:["Factory.ai","AI Agents"]},
+  {t:"Code Droid", d:"Factory.ai's main engineering Droid. Handles feature development, refactors, bug fixes, and migrations end-to-end &mdash; cloning the repo, editing files, adding tests, and opening a PR.", tags:["Factory.ai","AI Agents"]},
+  {t:"Knowledge Droid", d:"Factory.ai's research Droid. Searches your codebase, internal docs, and the web to answer architectural questions, write specs, and document legacy systems with cited sources.", tags:["Factory.ai","AI Agents"]},
+  {t:"Coordinator (Factory.ai)", d:"The planning agent in Factory.ai's multi-agent architecture. Decomposes a goal into steps and dispatches each step to the specialist Droid best suited for it.", tags:["Factory.ai","AI Agents"]},
+  {t:"Autonomy Level", d:"A Factory.ai control that scopes how much a Droid can do unattended &mdash; Suggest, Confirm, Auto, or Gated. Teams typically start at Suggest and promote as trust grows.", tags:["Factory.ai","AI Agents"]},
+  {t:"Organizational Memory", d:"Factory.ai's persistent store of decisions, runbooks, conventions, and architecture maps captured from past missions, so every Droid starts with the same context as a senior teammate.", tags:["Factory.ai","AI Agents"]},
 ];
 
 (function() {
