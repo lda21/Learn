@@ -1,0 +1,778 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Factory.ai</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h1 class="animate">Factory.ai</h1>
+    <p class="subtitle animate">Agent-native software development with autonomous Droids</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">AI Agents</span><span class="tag">Droids</span><span class="tag">SDLC</span><span class="tag">Multi-Agent</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Factory.ai?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Engineers spend hours on routine work: refactors, bug triage, doc lookups</li>
+          <li>Single-purpose AI tools don't span the full SDLC</li>
+          <li>Context lives scattered across GitHub, Jira, Slack, PagerDuty</li>
+          <li>Generalist agents lack role boundaries and accountability</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Factory Approach</h3>
+        <ul>
+          <li><span class="highlight">Droids</span> &mdash; specialized autonomous agents per role</li>
+          <li><span class="highlight">Missions</span> &mdash; long-running, multi-step delegated work</li>
+          <li><span class="highlight">Everywhere</span> &mdash; IDE, CLI, Desktop, Slack, web</li>
+          <li><span class="highlight">Enterprise</span> &mdash; security, audit, org-wide context</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is a Droid?</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:18px">A <span class="highlight">Droid</span> is an autonomous AI agent purpose-built for one role in the software lifecycle &mdash; with explicit tools, scope, and guardrails.</p>
+      <div class="diagram">
+        <div class="box">Goal<br><span style="font-size:0.85rem;color:var(--text-muted)">natural language</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Plan<br><span style="font-size:0.85rem;color:var(--text-muted)">decomposed steps</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Execute<br><span style="font-size:0.85rem;color:var(--text-muted)">tools + code</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Verify<br><span style="font-size:0.85rem;color:var(--text-muted)">tests + review</span></div>
+      </div>
+      <p style="text-align:center;margin-top:14px;color:var(--text-muted)">Each Droid has access to your repos, tickets, docs, and runtime &mdash; same context as a human teammate.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Multi-Agent Architecture</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:14px">A <span class="highlight">coordinator</span> decomposes work and dispatches to specialist Droids with explicit role boundaries.</p>
+      <div class="diagram">
+        <div class="box">Coordinator</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Code Droid</div>
+      </div>
+      <div class="diagram">
+        <div class="box">Coordinator</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Knowledge Droid</div>
+      </div>
+      <div class="diagram">
+        <div class="box">Coordinator</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Review Droid</div>
+      </div>
+      <p style="text-align:center;margin-top:14px"><span class="green">Specialization &gt; generalization.</span> Smaller scope means higher quality and clearer audit trails.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Code Droid</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li>End-to-end feature development</li>
+          <li>Refactors across multiple files</li>
+          <li>Bug fixes from a stack trace or ticket</li>
+          <li>Migrations (framework, language, deps)</li>
+          <li>Opens PRs with test coverage</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How You Use It</h3>
+<pre style="font-size:0.8rem">
+# From the CLI
+factory run code \
+  --goal "Add JWT refresh-token \
+          rotation to /auth/refresh" \
+  --repo backend \
+  --branch feature/jwt-rotation
+
+# Or paste a Jira ticket URL
+# in the IDE side-panel and hit Delegate
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Knowledge Droid</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Research Specialist</h3>
+        <ul>
+          <li>Searches your codebase, docs, and the web</li>
+          <li>Answers <span class="highlight">"why does this exist?"</span> questions</li>
+          <li>Writes specs and design docs</li>
+          <li>Generates onboarding docs for legacy systems</li>
+          <li>Cites sources with line numbers and links</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sample Prompts</h3>
+<pre style="font-size:0.8rem">
+"How does the billing service
+ reconcile failed payments?"
+
+"Generate a spec for migrating
+ our auth from sessions to JWT."
+
+"What changed in the checkout
+ flow between v3.4 and v3.7?"
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Code Review Droid</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Context-Aware PR Review</h3>
+        <ul>
+          <li>Reads the diff <span class="highlight">and</span> the surrounding repo</li>
+          <li>Flags missing tests, edge cases, security issues</li>
+          <li>Knows your team's conventions from past PRs</li>
+          <li>Comments inline like a human reviewer</li>
+          <li>Cross-references related tickets</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Triggers</h3>
+        <ul>
+          <li>Auto-runs on every PR open / push</li>
+          <li>Re-runs on <code>/factory review</code> comment</li>
+          <li>Blocks merge on critical findings (configurable)</li>
+          <li>Approves when checks are clean</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Specification Droid</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:14px">Turns rough conversations into formal product specs &mdash; the bridge between PMs and engineers.</p>
+      <div class="diagram">
+        <div class="box">Slack thread<br><span style="font-size:0.85rem;color:var(--text-muted)">requirements chat</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Spec Droid<br><span style="font-size:0.85rem;color:var(--text-muted)">structures + clarifies</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Spec doc<br><span style="font-size:0.85rem;color:var(--text-muted)">acceptance criteria</span></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Jira tickets<br><span style="font-size:0.85rem;color:var(--text-muted)">ready to assign</span></div>
+      </div>
+      <p style="margin-top:18px;text-align:center"><span class="green">Output</span>: a structured spec with goals, non-goals, acceptance criteria, and open questions &mdash; not just a transcript.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Incident Response Droid</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>On-Call Sidekick</h3>
+        <ul>
+          <li>Triages PagerDuty alerts in seconds</li>
+          <li>Pulls dashboards, logs, recent deploys</li>
+          <li>Suggests likely root cause with evidence</li>
+          <li>Drafts runbook steps and Slack updates</li>
+          <li>Can <span class="highlight">propose</span> a fix PR for review</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sample Flow</h3>
+<pre style="font-size:0.8rem">
+1. PagerDuty fires: 5xx spike
+2. Droid joins #incident-1234
+3. "Last deploy 14 min ago
+    by service-checkout
+    changed payment retry logic"
+4. Posts log excerpt + diff
+5. Suggests rollback or hotfix
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Ticket Management Droid</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Backlog Hygiene</h3>
+        <ul>
+          <li>Triages new tickets by labels and severity</li>
+          <li>Auto-assigns to the right team</li>
+          <li>Flags duplicates and stale issues</li>
+          <li>Adds reproduction steps when missing</li>
+          <li>Estimates effort from similar past tickets</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Matters</h3>
+        <ul>
+          <li>Engineers stop drowning in triage</li>
+          <li>Tickets arrive ready to start</li>
+          <li>Cross-links to related PRs and incidents</li>
+          <li>Hand-off to <span class="highlight">Code Droid</span> when ready</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Missions: Multi-Day Autonomy</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:14px">A <span class="highlight">Mission</span> is a high-level business outcome the platform plans, executes, and verifies across hours or days &mdash; using multiple Droids.</p>
+<pre>
+Mission: "Migrate the billing service off legacy Python 2
+          and onto our new Kotlin microservice."
+
+  Day 1  Knowledge Droid  &mdash; map call sites, dependencies, contracts
+  Day 1  Spec Droid       &mdash; produce migration plan + acceptance criteria
+  Day 2  Code Droid       &mdash; port modules, open staged PRs
+  Day 2  Review Droid     &mdash; review each PR, flag risks
+  Day 3  Code Droid       &mdash; address review comments, run integration tests
+  Day 3  Coordinator      &mdash; verify SLOs, summarize for human approval
+</pre>
+      <p style="text-align:center;margin-top:14px;color:var(--text-muted)">Humans stay in the loop at gates: spec approval, PR merge, deploy.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Surfaces: Work Where You Are</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>IDE</h3>
+        <p>Native plugins for VS Code, JetBrains, Vim. Delegate from a side panel; Droids edit your local branch.</p>
+      </div>
+      <div class="metric-card">
+        <h3>CLI</h3>
+        <p><code>factory</code> binary for scripts and CI. Same Droids, headless. Great for batch jobs and pipelines.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Desktop App</h3>
+        <p>Supervised access to filesystem, browser, and shell &mdash; Droids reach beyond a single IDE window.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Slack / Teams</h3>
+        <p>Chat-driven delegation. Mention <code>@factory</code> in any channel; get PRs, specs, or answers back.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Native Integrations</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Source &amp; Tickets</h3>
+        <ul>
+          <li><span class="highlight">GitHub / GitLab</span> &mdash; PRs, branches, CI status</li>
+          <li><span class="highlight">Jira / Linear</span> &mdash; tickets, sprints, custom fields</li>
+          <li><span class="highlight">Confluence / Notion</span> &mdash; docs and runbooks</li>
+          <li>Real-time indexing &mdash; Droids see what you see</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Ops &amp; Comms</h3>
+        <ul>
+          <li><span class="highlight">PagerDuty / Opsgenie</span> &mdash; alerts and on-call</li>
+          <li><span class="highlight">Slack / Teams</span> &mdash; channels and DMs</li>
+          <li><span class="highlight">Datadog / Grafana</span> &mdash; metrics for incidents</li>
+          <li><span class="highlight">Sentry</span> &mdash; error grouping and stack traces</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Organizational Memory</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:14px">Factory captures decisions, runbooks, and conventions so every Droid starts where the last one left off.</p>
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Decision Log</h3>
+          <p>"We chose Kotlin over Go for the billing rewrite because&hellip;" &mdash; cited the next time the topic comes up.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Runbooks</h3>
+          <p>Incident steps, deploy procedures, debugging recipes &mdash; learned from past missions.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Conventions</h3>
+          <p>Code style, test patterns, review checklists &mdash; auto-applied without re-prompting.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Architecture Map</h3>
+          <p>Live graph of services, owners, and dependencies &mdash; updated as the codebase changes.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Guardrails &amp; Autonomy Controls</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Autonomy Levels</h3>
+        <ul>
+          <li><span class="highlight">Suggest</span> &mdash; Droid proposes; human edits and applies</li>
+          <li><span class="highlight">Confirm</span> &mdash; Droid acts after each-step approval</li>
+          <li><span class="highlight">Auto</span> &mdash; Droid runs end-to-end; human reviews PR</li>
+          <li><span class="highlight">Gated</span> &mdash; Auto, but pauses at named checkpoints</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Safety Controls</h3>
+        <ul>
+          <li>Per-repo and per-droid permissions</li>
+          <li>Branch protection &mdash; never push to <code>main</code></li>
+          <li>Secrets redaction in prompts and logs</li>
+          <li>Full audit trail of every tool call</li>
+          <li>Bring-your-own model provider (Anthropic, OpenAI, &hellip;)</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Sample Workflow: Bug to PR</h2>
+    <div class="content animate">
+<pre>
+1. PagerDuty alert  &rarr; Incident Droid joins #incident-77
+                     &rarr; pulls logs, recent deploys, dashboards
+                     &rarr; posts: "Likely cause: retry storm in
+                                   payments-svc commit a3f9c2"
+
+2. Engineer types in Slack:
+   "@factory open a fix to cap retries at 3 with backoff."
+
+3. Code Droid  &rarr; clones repo, edits payments-svc/retry.go
+                &rarr; adds unit + integration tests
+                &rarr; opens PR #2104 with rationale
+
+4. Review Droid  &rarr; auto-reviews PR
+                  &rarr; flags: "Consider exponential jitter"
+                  &rarr; Code Droid amends in same PR
+
+5. CI green  &rarr; engineer merges  &rarr; deploy unblocks
+</pre>
+      <p style="text-align:center;margin-top:14px"><span class="green">Total wall-clock</span>: ~12 minutes from page to merged fix.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Start with <span class="highlight">Suggest</span> mode; promote to Auto as trust grows</div>
+      <div class="bp-item"><span>2.</span> Write goals as outcomes, not steps ("ship X" not "do A then B")</div>
+      <div class="bp-item"><span>3.</span> Connect Jira and Slack early &mdash; context quality &gt; model quality</div>
+      <div class="bp-item"><span>4.</span> Use Knowledge Droid before Code Droid on legacy systems</div>
+      <div class="bp-item"><span>5.</span> Curate the decision log &mdash; correct mistakes once, reused forever</div>
+      <div class="bp-item"><span>6.</span> Pin Droids to specific repos and branches; avoid blast radius</div>
+      <div class="bp-item"><span>7.</span> Treat Droid PRs like junior-engineer PRs &mdash; review, don't rubber-stamp</div>
+      <div class="bp-item"><span>8.</span> Use Missions for migrations; single delegations for tickets</div>
+      <div class="bp-item"><span>9.</span> Keep humans on the merge gate for production-touching work</div>
+      <div class="bp-item"><span>10.</span> Measure outcomes (MTTR, PR cycle time), not lines generated</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Factory vs. Single-Agent Tools</h2>
+    <div class="content animate">
+      <table>
+        <thead>
+          <tr><th>Dimension</th><th>Single-agent (Cursor, Copilot)</th><th>Factory.ai</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Scope</td><td>One IDE session</td><td>Full SDLC across surfaces</td></tr>
+          <tr><td>Roles</td><td>Generalist</td><td>Specialized Droids</td></tr>
+          <tr><td>Duration</td><td>Minutes (a request)</td><td>Hours to days (Missions)</td></tr>
+          <tr><td>Context</td><td>Open files + repo</td><td>Repo + tickets + docs + alerts</td></tr>
+          <tr><td>Surfaces</td><td>IDE</td><td>IDE, CLI, Desktop, Slack, web</td></tr>
+          <tr><td>Audit</td><td>Chat history</td><td>Per-tool-call audit trail</td></tr>
+        </tbody>
+      </table>
+      <p style="text-align:center;margin-top:14px;color:var(--text-muted)">Factory is complementary &mdash; many teams use Cursor for inline edits and Factory for delegated work.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pricing &amp; Getting Started</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pricing (Team)</h3>
+        <ul>
+          <li><span class="highlight">$40 / team</span> base, monthly</li>
+          <li><span class="highlight">$10 / active user</span>, monthly</li>
+          <li>No minimum seat count</li>
+          <li>Bring your own model keys to control LLM spend</li>
+          <li>Enterprise tier for SSO, audit, custom guardrails</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Getting Started</h3>
+<pre style="font-size:0.8rem">
+# 1. Install the CLI
+brew install factory-ai/tap/factory
+
+# 2. Log in and link a repo
+factory login
+factory link --repo my-org/backend
+
+# 3. Connect Jira + Slack from
+#    the web console
+
+# 4. Delegate your first task
+factory run code --goal "..."
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x2699;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have toured Factory.ai:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Droids</span><span class="tag">Multi-Agent</span><span class="tag">Missions</span>
+        <span class="tag">Code Droid</span><span class="tag">Knowledge Droid</span><span class="tag">Review Droid</span>
+        <span class="tag">Spec Droid</span><span class="tag">Incident Droid</span><span class="tag">Surfaces</span>
+        <span class="tag">Integrations</span><span class="tag">Org Memory</span><span class="tag">Guardrails</span>
+      </div>
+      <p style="color:var(--text-muted)">Delegate outcomes, not keystrokes. Specialized Droids beat one big agent &mdash; clearer scope, cleaner audit, better results.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
