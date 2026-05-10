@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>AWS Bedrock AgentCore</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3ED;</span>
+    <h1 class="animate">AWS Bedrock AgentCore</h1>
+    <p class="subtitle animate">Deploy and operate AI agents at any scale</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Agents</span><span class="tag">Runtime</span><span class="tag">AWS</span><span class="tag">Bedrock</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why AgentCore?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Production Gap</h3>
+        <ul>
+          <li>Building an agent in a notebook is easy</li>
+          <li>Running one in production is not</li>
+          <li>Sessions need <span class="highlight">isolation, identity, memory</span></li>
+          <li>Tools need <span class="highlight">auth, discovery, governance</span></li>
+          <li>Ops need <span class="highlight">tracing, debugging, scale</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What AgentCore Provides</h3>
+        <ul>
+          <li>Serverless hosting for any agent framework</li>
+          <li>Any LLM (Bedrock, OpenAI, Gemini, self-hosted)</li>
+          <li>Memory, identity, tools, observability as primitives</li>
+          <li>Compose services independently &mdash; no lock-in</li>
+          <li>GA October 2025</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">AgentCore is the <span class="highlight">infrastructure layer</span> for agents &mdash; the equivalent of EC2/Lambda for code.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Seven Services</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Runtime</h3>
+        <p>Serverless agent hosting on isolated microVMs. Up to 8-hour sessions.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Memory</h3>
+        <p>Short-term session context + long-term durable memory across sessions.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Identity</h3>
+        <p>OAuth + IAM auth for agents to act on behalf of users or themselves.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Gateway</h3>
+        <p>Turn APIs, Lambdas, and MCP servers into agent-discoverable tools.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Code Interpreter</h3>
+        <p>Sandboxed Python/JS/TS execution for agent-written code.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Browser</h3>
+        <p>Managed Chromium for web automation, scraping, and form-fill tasks.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Plus Observability</span> &mdash; OpenTelemetry traces, metrics, and CloudWatch GenAI dashboards across all six services.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Reference Architecture</h2>
+    <div class="diagram animate">
+      <div class="box">User / App</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Identity<br><small>(inbound auth)</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Runtime<br><small>(your agent)</small></div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Runtime</div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Memory</div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Gateway<br><small>(MCP tools)</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Code Interp.<br>/ Browser</div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;max-width:900px">Each service has its own API and pricing. Use one, use all. The Runtime calls Memory, Gateway, and tools through standard SDKs &mdash; nothing forces you to use Bedrock models or Strands as your framework.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Runtime: Serverless Hosting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Is</h3>
+        <ul>
+          <li>Purpose-built serverless runtime for agents</li>
+          <li>Each session in its own <span class="highlight">microVM</span> (Firecracker)</li>
+          <li>Isolated CPU, memory, filesystem per session</li>
+          <li>Sessions up to <span class="highlight">8 hours</span> long</li>
+          <li>Scales to zero, billed per session</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why MicroVMs?</h3>
+        <ul>
+          <li>Hard isolation between user sessions</li>
+          <li>Untrusted code (Code Interpreter) is contained</li>
+          <li>Stateful: long reasoning loops keep working memory</li>
+          <li>No shared kernel attack surface</li>
+          <li>Same primitive Lambda uses, with longer leases</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Key insight:</span> agent sessions are stateful and long-lived &mdash; Lambda's 15-minute cap can't host them. Runtime is built for this.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Runtime: Framework &amp; Model Agnostic</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Frameworks Supported</h3>
+        <ul>
+          <li><span class="highlight">Strands Agents</span> &mdash; AWS-native</li>
+          <li><span class="highlight">LangGraph</span> &mdash; LangChain stateful agents</li>
+          <li><span class="highlight">CrewAI</span> &mdash; multi-agent crews</li>
+          <li><span class="highlight">LlamaIndex</span> &mdash; RAG-first agents</li>
+          <li>Or any custom Python / TypeScript</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Models Supported</h3>
+        <ul>
+          <li>Bedrock: Claude, Nova, Llama, Mistral</li>
+          <li>OpenAI (GPT family) via API key</li>
+          <li>Google Gemini via API key</li>
+          <li>Self-hosted: any HTTP-callable model</li>
+          <li>Bring your own inference endpoint</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><code>BedrockAgentCoreApp</code> is just an entrypoint wrapper &mdash; your agent code stays the same.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Runtime: Deploy in Three Steps</h2>
+    <div class="content animate">
+<pre>
+# 1. Wrap your agent with the AgentCore entrypoint
+from bedrock_agentcore.runtime import BedrockAgentCoreApp
+from strands import Agent  # or LangGraph, CrewAI, etc.
+
+app = BedrockAgentCoreApp()
+agent = Agent(model="anthropic.claude-sonnet-4-5-v1:0")
+
+@app.entrypoint
+def invoke(payload):
+    user_msg = payload["prompt"]
+    response = agent(user_msg)
+    return {"result": response.message}
+
+if __name__ == "__main__":
+    app.run()
+</pre>
+<pre style="margin-top:12px">
+# 2. Configure (auto-builds Dockerfile + IAM role)
+$ agentcore configure --entrypoint agent.py
+
+# 3. Deploy to AWS
+$ agentcore launch
+$ agentcore invoke '{"prompt": "Plan my trip to Tokyo"}'
+</pre>
+      <p style="margin-top:10px;text-align:center"><span class="highlight">No Dockerfile, no Kubernetes, no Terraform.</span> The CLI builds the container, pushes to ECR, and wires up the runtime.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Memory: Short and Long Term</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Short-Term Memory</h3>
+        <ul>
+          <li>The current session's conversation history</li>
+          <li>Raw turns: user message + agent response</li>
+          <li>Auto-managed within a session</li>
+          <li>Available immediately, no extraction needed</li>
+          <li>Scoped by <code>actorId</code> + <code>sessionId</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Long-Term Memory</h3>
+        <ul>
+          <li>Persists across sessions and weeks</li>
+          <li>AgentCore <span class="highlight">extracts</span> and consolidates from raw events</li>
+          <li>Stored in <span class="highlight">namespaces</span> per user / agent / topic</li>
+          <li>Retrieved by semantic similarity at query time</li>
+          <li>Built on <code>CreateMemory</code> + <code>RetrieveMemoryRecords</code> APIs</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">A session ends. The user comes back tomorrow. Long-term memory remembers <span class="highlight">they're vegan and prefer aisle seats</span> &mdash; without you wiring up a vector DB.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Memory: Built-In Strategies</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Semantic Memory</h3>
+        <p>Extracts and stores facts the user mentioned, indexed for retrieval by meaning.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Summary Memory</h3>
+        <p>Rolling summaries of past sessions, so the agent has context without replaying every turn.</p>
+      </div>
+      <div class="metric-card">
+        <h3>User Preferences</h3>
+        <p>Likes, dislikes, communication style. Auto-extracted from conversation patterns.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Self-Managed</h3>
+        <p>Bring your own extraction + consolidation pipeline. AgentCore stores, you decide what.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Retrieve relevant long-term memory at the start of a turn
+records = client.retrieve_memory_records(
+    memoryId="mem-prod-123",
+    namespace=f"users/{user_id}/preferences",
+    searchCriteria={"searchQuery": user_msg, "topK": 5}
+)
+context = "\n".join(r["content"]["text"] for r in records["memoryRecordSummaries"])
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Identity: Agents Need Auth Too</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>An agent needs to call <span class="highlight">your APIs</span></li>
+          <li>And third-party APIs: Slack, GitHub, Salesforce</li>
+          <li>On behalf of <span class="highlight">specific users</span></li>
+          <li>Without storing raw user passwords</li>
+          <li>With auditable, scoped permissions</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What Identity Provides</h3>
+        <ul>
+          <li>OAuth 2.0 / OIDC integration with Cognito, Okta, Entra, Auth0</li>
+          <li>IAM authorization for AWS resources</li>
+          <li>Encrypted <span class="highlight">vault</span> for refresh tokens</li>
+          <li>Identity-aware authorization policies</li>
+          <li>Workload identity for agent-to-agent calls</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">No more env vars full of long-lived API keys.</span> Tokens are minted per-call, scoped, and revocable.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Identity: Inbound vs Outbound</h2>
+    <div class="diagram animate">
+      <div class="box">User</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box"><span class="highlight">Inbound Auth</span><br><small>OAuth / JWT</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Agent</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box"><span class="highlight">Outbound Auth</span><br><small>3LO / 2LO</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Slack / GitHub<br>/ AWS / etc.</div>
+    </div>
+    <div class="two-col animate" style="margin-top:18px">
+      <div class="card">
+        <h3>Inbound (who calls the agent)</h3>
+        <ul>
+          <li>JWT validated against your IdP</li>
+          <li>Identity flows into the agent context</li>
+          <li>Used to scope memory and tool access</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Outbound (what the agent calls)</h3>
+        <ul>
+          <li><span class="highlight">3LO</span> &mdash; on behalf of user (user consents once, vault stores refresh)</li>
+          <li><span class="highlight">2LO</span> &mdash; agent's own machine identity</li>
+          <li>Tokens minted just-in-time per tool call</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Gateway: Tools as MCP</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Gateway Does</h3>
+        <ul>
+          <li>Single secure endpoint for all agent tools</li>
+          <li>Speaks the <span class="highlight">Model Context Protocol</span> (MCP)</li>
+          <li>Wraps existing APIs and Lambda functions as tools</li>
+          <li>Connects to existing MCP servers</li>
+          <li>Enforces IAM and OAuth on every tool call</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Tool Sources</h3>
+        <ul>
+          <li><span class="highlight">OpenAPI / Smithy</span> &mdash; auto-generated tool schemas from API specs</li>
+          <li><span class="highlight">Lambda</span> &mdash; functions become tools directly</li>
+          <li><span class="highlight">MCP servers</span> &mdash; reuse the open ecosystem</li>
+          <li>Semantic tool search at scale (1000s of tools)</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Without Gateway, every framework re-implements tool wiring. With Gateway, you ship one MCP endpoint and any agent can use it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Gateway: Lambda &#x2192; Tool</h2>
+    <div class="content animate">
+<pre>
+# 1. Create a Gateway
+gw = client.create_gateway(
+    name="weather-tools",
+    protocolType="MCP",
+    authorizerType="CUSTOM_JWT",
+    authorizerConfiguration={
+        "customJWTAuthorizer": {
+            "discoveryUrl": "https://cognito-idp.us-east-1.amazonaws.com/POOL/.well-known/openid-configuration",
+            "allowedClients": ["client-id-123"]
+        }
+    }
+)
+
+# 2. Attach a Lambda target (becomes a discoverable MCP tool)
+target = client.create_gateway_target(
+    gatewayIdentifier=gw["gatewayId"],
+    name="get-forecast",
+    targetConfiguration={
+        "mcp": {"lambda": {"lambdaArn": "arn:aws:lambda:...:fn:weather"}}
+    }
+)
+</pre>
+<pre style="margin-top:12px">
+# 3. Any MCP-aware agent now sees "get-forecast" as a tool
+# Strands, LangGraph, Claude Desktop &mdash; all just point at the gateway URL
+</pre>
+      <p style="margin-top:10px;text-align:center"><span class="highlight">One Lambda, many agents.</span> Add a target, every connected agent discovers the new tool automatically.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Built-In Tool: Code Interpreter</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Sandboxed execution of <span class="highlight">Python, JS, TS</span></li>
+          <li>Each session in its own microVM</li>
+          <li>Pre-installed: pandas, numpy, matplotlib, requests</li>
+          <li>File upload &amp; download in/out of the sandbox</li>
+          <li>No network egress by default</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Use It</h3>
+        <ul>
+          <li>Agent does math without hallucinating arithmetic</li>
+          <li>Generate charts and CSVs from user prompts</li>
+          <li>Parse uploaded PDFs / spreadsheets</li>
+          <li>Run untrusted user code safely</li>
+          <li>Replaces fragile <code>eval()</code> tools</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+from bedrock_agentcore.tools.code_interpreter import code_session
+
+with code_session("us-west-2") as ci:
+    result = ci.invoke("executeCode", {
+        "code": "import pandas as pd; df = pd.read_csv('sales.csv'); print(df.describe())",
+        "language": "python",
+        "clearContext": False
+    })
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Built-In Tool: Browser</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Managed Chromium</h3>
+        <ul>
+          <li>Headful or headless Chromium in a microVM</li>
+          <li>Speaks <span class="highlight">CDP</span> (Chrome DevTools Protocol)</li>
+          <li>Compatible with Playwright, Puppeteer</li>
+          <li>Live view URL for debugging</li>
+          <li>Per-session isolation &mdash; no cross-user cookie leakage</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What Agents Do With It</h3>
+        <ul>
+          <li>Fill out forms on legacy web apps without APIs</li>
+          <li>Scrape behind login walls (with user OAuth)</li>
+          <li>Take screenshots for vision-model analysis</li>
+          <li>Run end-to-end checkout / booking flows</li>
+          <li>Reproduce user-reported bugs</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+from bedrock_agentcore.tools.browser_client import browser_session
+
+with browser_session("us-west-2") as browser:
+    cdp_url = browser.get_cdp_url()
+    # Drive with Playwright
+    page = await playwright_browser.connect_over_cdp(cdp_url)
+    await page.goto("https://internal-app.corp/")
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Observability</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>OpenTelemetry Native</h3>
+        <ul>
+          <li>Spans for every model call, tool call, memory op</li>
+          <li>Standard OTel exporters &mdash; ship to any backend</li>
+          <li>Auto-instrumented when you enable it on Runtime</li>
+          <li>GenAI semantic conventions for prompts and tokens</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>CloudWatch GenAI</h3>
+        <ul>
+          <li>Pre-built dashboards: latency, tokens, errors</li>
+          <li>Per-session and per-agent breakdowns</li>
+          <li>Trace explorer with prompt / response payloads</li>
+          <li>Alarms on cost, error rate, p99 latency</li>
+        </ul>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px">
+# Enable observability on a runtime &mdash; that's it
+client.update_agent_runtime(
+    agentRuntimeId="rt-prod",
+    observabilityConfiguration={"traceLevel": "ALL"}
+)
+# Spans now flow to CloudWatch + your OTel collector
+</pre>
+    <p class="animate" style="margin-top:10px;text-align:center;color:var(--text-muted)">When the agent does something weird, you get the <span class="highlight">full trace</span>: which tool, which prompt, which tokens.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pricing Model</h2>
+    <table class="animate">
+      <thead>
+        <tr><th>Service</th><th>Billed On</th><th>Why It Matters</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Runtime</td><td>vCPU-seconds + GB-seconds</td><td>Idle sessions cost almost nothing; long ones add up</td></tr>
+        <tr><td>Memory</td><td>Events ingested + records retrieved</td><td>Built-in extraction is metered separately</td></tr>
+        <tr><td>Identity</td><td>Token issuances</td><td>3LO refresh flows are cheap; designed for high-volume</td></tr>
+        <tr><td>Gateway</td><td>Tool invocations + targets</td><td>Free tier covers most dev work</td></tr>
+        <tr><td>Code Interpreter</td><td>Sandbox-seconds</td><td>Like Runtime &mdash; pay for active execution</td></tr>
+        <tr><td>Browser</td><td>Sandbox-seconds</td><td>Higher than Code Interp &mdash; Chromium is heavier</td></tr>
+        <tr><td>Observability</td><td>CloudWatch ingest + storage</td><td>Standard CW pricing; sample at high volume</td></tr>
+      </tbody>
+    </table>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Consumption-only.</span> No reserved capacity, no minimum spend. Each service has its own free tier.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AgentCore vs Bedrock Agents</h2>
+    <table class="animate">
+      <thead>
+        <tr><th>&nbsp;</th><th>Bedrock Agents (legacy)</th><th>AgentCore</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Model lock-in</td><td>Bedrock-only</td><td><span class="green">Any model</span></td></tr>
+        <tr><td>Framework</td><td>AWS-defined orchestration</td><td><span class="green">Bring your own (Strands, LangGraph, CrewAI...)</span></td></tr>
+        <tr><td>Session length</td><td>Short-lived</td><td><span class="green">Up to 8 hours</span></td></tr>
+        <tr><td>Tool model</td><td>Action groups, OpenAPI</td><td><span class="green">MCP-native via Gateway</span></td></tr>
+        <tr><td>Memory</td><td>Basic session state</td><td><span class="green">Built-in long-term + strategies</span></td></tr>
+        <tr><td>Composability</td><td>Monolithic service</td><td><span class="green">Use any subset independently</span></td></tr>
+      </tbody>
+    </table>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Bedrock Agents stays for simple cases. AgentCore is the path forward for production, multi-framework, multi-model agents.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Pick services <span class="highlight">a la carte</span> &mdash; don't adopt all seven on day one</div>
+      <div class="bp-item"><span>2.</span> Wire identity <span class="highlight">first</span> &mdash; refactoring auth later is painful</div>
+      <div class="bp-item"><span>3.</span> Use namespaces in Memory like <code>users/{id}/prefs</code> for clean isolation</div>
+      <div class="bp-item"><span>4.</span> Put tools behind Gateway even if you have one agent &mdash; you'll add more</div>
+      <div class="bp-item"><span>5.</span> Always run untrusted code in Code Interpreter, never inside the runtime</div>
+      <div class="bp-item"><span>6.</span> Set explicit session timeouts &mdash; long agents are expensive when looping</div>
+      <div class="bp-item"><span>7.</span> Sample observability traces at high volume; full traces on errors</div>
+      <div class="bp-item"><span>8.</span> Version your prompts and eval them in CI &mdash; AgentCore won't do that for you</div>
+      <div class="bp-item"><span>9.</span> Keep agent code thin &mdash; push tools to Gateway, push state to Memory</div>
+      <div class="bp-item"><span>10.</span> Monitor cost per session, not per request &mdash; sessions are the unit of work</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3ED;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered AWS Bedrock AgentCore:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Runtime</span><span class="tag">Memory</span><span class="tag">Identity</span>
+        <span class="tag">Gateway</span><span class="tag">Code Interpreter</span><span class="tag">Browser</span>
+        <span class="tag">Observability</span><span class="tag">MCP</span><span class="tag">microVMs</span>
+      </div>
+      <p style="color:var(--text-muted)">AgentCore turns agent infrastructure into primitives &mdash; pick the pieces you need, ship faster, and let AWS run the messy parts.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
