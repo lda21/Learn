@@ -411,6 +411,16 @@ const GLOSSARY_TERMS = [
   {t:"Coordinator (Factory.ai)", d:"The planning agent in Factory.ai's multi-agent architecture. Decomposes a goal into steps and dispatches each step to the specialist Droid best suited for it.", tags:["Factory.ai","AI Agents"]},
   {t:"Autonomy Level", d:"A Factory.ai control that scopes how much a Droid can do unattended &mdash; Suggest, Confirm, Auto, or Gated. Teams typically start at Suggest and promote as trust grows.", tags:["Factory.ai","AI Agents"]},
   {t:"Organizational Memory", d:"Factory.ai's persistent store of decisions, runbooks, conventions, and architecture maps captured from past missions, so every Droid starts with the same context as a senior teammate.", tags:["Factory.ai","AI Agents"]},
+  {t:"Copilot Studio", d:"Microsoft's low-code platform for building custom copilots/agents that ground on M365 data, call connectors and MCP tools, and publish to Teams, Microsoft 365 Copilot, web, and voice channels.", tags:["Microsoft 365","Copilot Studio","AI Agents"]},
+  {t:"Agent 365", d:"Microsoft's control plane for managing agents across the tenant. Provides registry, security, observability, optimization, and lifecycle for agents built in Copilot Studio, Azure AI Foundry, or third-party platforms.", tags:["Microsoft 365","Agent 365","Governance"]},
+  {t:"Entra Agent ID", d:"A first-class identity in Microsoft Entra issued to every agent. Carries Conditional Access, MFA, audit, and group-based authorization just like a human user identity.", tags:["Microsoft 365","Entra","Identity"]},
+  {t:"Topic (Copilot Studio)", d:"An authored conversation flow in Copilot Studio with a trigger, nodes, and slots that handles a specific user intent end-to-end. Used when deterministic behavior is required.", tags:["Copilot Studio","AI Agents"]},
+  {t:"Generative Answers", d:"A Copilot Studio node that grounds an LLM response on indexed knowledge sources (SharePoint, files, websites, Dataverse) with citations. The default fallback when no topic matches.", tags:["Copilot Studio","RAG"]},
+  {t:"Action (Copilot Studio)", d:"Something a Copilot Studio agent can do &mdash; a connector call, Power Automate flow, REST/OpenAPI endpoint, MCP tool, or reusable prompt. The orchestrator picks which action to invoke per turn.", tags:["Copilot Studio","AI Agents"]},
+  {t:"Power Automate Flow", d:"A multi-step automation built in Power Automate. Copilot Studio agents call flows as single actions to chain connector calls, conditions, and approvals.", tags:["Microsoft 365","Power Platform"]},
+  {t:"Copilot Studio Message", d:"The billing unit for Copilot Studio. Generative answers, autonomous actions, connector calls, and code interpreter runs each consume messages. Sold as prepaid packs or pay-as-you-go via Azure.", tags:["Copilot Studio","Pricing"]},
+  {t:"Managed Environment", d:"A Power Platform / Copilot Studio environment with extra governance gates &mdash; solution checker, approval workflows, sharing limits &mdash; used for production agents.", tags:["Microsoft 365","Governance"]},
+  {t:"DLP Policy (Microsoft)", d:"Data Loss Prevention policy that classifies connectors into Business, Non-Business, or Blocked groups. Copilot Studio agents cannot mix connectors across groups, preventing data exfiltration.", tags:["Microsoft 365","Security","Governance"]},
 ];
 
 (function() {

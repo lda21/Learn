@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Microsoft Copilot Studio &amp; Agent 365</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F916;</span>
+    <h1 class="animate">Microsoft Copilot Studio &amp; Agent 365</h1>
+    <p class="subtitle animate">Build, govern, and operate AI agents across the Microsoft cloud</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Copilot Studio</span><span class="tag">Agent 365</span><span class="tag">Entra</span><span class="tag">Microsoft 365</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Microsoft&rsquo;s Agent Stack</h2>
+    <div class="diagram animate">
+      <div class="box">Azure AI Foundry<br><small>(pro-code SDK)</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Copilot Studio<br><small>(low-code builder)</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">M365 Copilot<br><small>(end-user surface)</small></div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Entra Agent ID<br><small>(identity)</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Agent 365<br><small>(governance)</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Purview / Defender<br><small>(security, DLP)</small></div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;max-width:900px">Copilot Studio is the <span class="highlight">builder</span>. Agent 365 is the <span class="highlight">control plane</span> &mdash; the place you register, secure, observe, and lifecycle every agent in the tenant, regardless of where it was built.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Copilot Studio?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Pitch</h3>
+        <ul>
+          <li>Low-code agent builder for the M365 tenant</li>
+          <li>Drag-and-drop topics + natural-language authoring</li>
+          <li>Built-in connectors to <span class="highlight">1,500+</span> apps</li>
+          <li>Native channels: Teams, M365 Copilot, web</li>
+          <li>Same identity, DLP, and audit as the rest of M365</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Where It Fits</h3>
+        <ul>
+          <li>Business users build their own copilots</li>
+          <li>Devs extend with Power Automate, REST, MCP</li>
+          <li>IT controls via environments and policies</li>
+          <li>Not a replacement for Foundry &mdash; a faster path</li>
+          <li>Most enterprise &ldquo;chat with our data&rdquo; agents land here</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">If your data and users already live in M365, the cheapest agent to ship is the one you build here.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Anatomy of an Agent</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Topics</h3>
+        <p>Authored conversation flows that handle a user intent end-to-end.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Knowledge</h3>
+        <p>Indexed sources the agent grounds answers in &mdash; SharePoint, files, web, Dataverse.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Actions</h3>
+        <p>Things the agent can <em>do</em> &mdash; connectors, flows, REST, MCP tools, prompts.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Channels</h3>
+        <p>Where the agent is published &mdash; Teams, M365 Copilot, website, Slack, voice.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Identity</h3>
+        <p>How the agent authenticates and acts &mdash; its own Entra Agent ID + delegated user auth.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Orchestration</h3>
+        <p>Generative router that picks the right topic, knowledge, or sub-agent per turn.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Topics &amp; Conversational Flow</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What a Topic Is</h3>
+        <ul>
+          <li>A named flow with a <span class="highlight">trigger</span> (phrases, event, schedule)</li>
+          <li>A graph of <span class="highlight">nodes</span>: question, condition, action, message</li>
+          <li>Slots collect variables before the agent acts</li>
+          <li>Fallback to generative reasoning if no topic matches</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Authoring Modes</h3>
+        <ul>
+          <li><span class="highlight">Describe it</span> &mdash; type intent in plain English</li>
+          <li><span class="highlight">Drag the canvas</span> &mdash; nodes and branches</li>
+          <li><span class="highlight">YAML view</span> &mdash; source-of-truth for solutions/ALM</li>
+          <li>Test pane runs every change with trace output</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Rule of thumb:</span> topics for <em>determinism</em> (PTO request, refund), generative for <em>open</em> questions.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Knowledge: Grounded Answers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Supported Sources</h3>
+        <ul>
+          <li>SharePoint sites &amp; document libraries</li>
+          <li>OneDrive folders, uploaded files (PDF, DOCX&hellip;)</li>
+          <li>Public &amp; auth-gated websites (crawl + index)</li>
+          <li>Dataverse tables &amp; Microsoft Graph</li>
+          <li>Azure AI Search indexes (bring your own RAG)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How Grounding Works</h3>
+        <ul>
+          <li>Sources are chunked + embedded in Copilot Studio</li>
+          <li>Retriever pulls top-K passages per turn</li>
+          <li>LLM cites passages back in the answer</li>
+          <li>Filters honor the user&rsquo;s SharePoint permissions</li>
+          <li>Moderation: confidence threshold + safety classifiers</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><code>Generative answers</code> is the default node &mdash; you can also call it explicitly inside a topic for a hybrid flow.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Actions: Connectors, Flows &amp; REST</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Prebuilt Connectors</h3>
+        <p>1,500+ ready: ServiceNow, SAP, Salesforce, Jira, GitHub, SQL, Azure&hellip;</p>
+      </div>
+      <div class="metric-card">
+        <h3>Power Automate Flows</h3>
+        <p>Author multi-step flows that the agent calls as one action.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Custom REST / OpenAPI</h3>
+        <p>Drop in any OpenAPI spec &mdash; auto-generates an action and schema.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prompt Actions</h3>
+        <p>Reusable LLM prompts (summarize, classify, extract) as first-class tools.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Actions are typed.</span> Each has an input schema, description, and the orchestrator decides when to call which one.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">MCP &amp; Open Tools</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why MCP Matters Here</h3>
+        <ul>
+          <li>Reuse tools you&rsquo;ve already built once, anywhere</li>
+          <li>Same MCP server works in Copilot Studio, Claude, Cursor</li>
+          <li>No bespoke connector per vendor</li>
+          <li>Auth is handled by the agent&rsquo;s identity</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Adding an MCP Server</h3>
+        <ul>
+          <li>Tools &rarr; Add a tool &rarr; <span class="highlight">Model Context Protocol</span></li>
+          <li>Provide URL + auth (Entra, API key, OAuth)</li>
+          <li>Tools auto-surface; toggle which the agent can call</li>
+          <li>Calls + responses appear in the agent trace</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><code>MCP</code> support landed GA in 2025 &mdash; agents can now consume the same open ecosystem the rest of the industry is building.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Multi-Agent Orchestration</h2>
+    <div class="diagram animate">
+      <div class="box">User</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Parent Agent<br><small>(router)</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">HR Agent</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Finance Agent</div>
+    </div>
+    <div class="two-col animate" style="margin-top:14px">
+      <div class="card">
+        <h3>Patterns</h3>
+        <ul>
+          <li><span class="highlight">Skills</span> &mdash; one agent calls another like a tool</li>
+          <li><span class="highlight">Hand-off</span> &mdash; transfer turn ownership</li>
+          <li><span class="highlight">Fan-out</span> &mdash; parent aggregates child results</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why Split Agents</h3>
+        <ul>
+          <li>Different owners, knowledge, and permissions</li>
+          <li>Smaller scope = better tool selection accuracy</li>
+          <li>Each agent has its own identity for audit</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Channels &amp; Surfaces</h2>
+    <table class="animate">
+      <tr><th>Channel</th><th>Use When</th></tr>
+      <tr><td>Microsoft Teams</td><td>Internal employees, chat &amp; @mention in channels</td></tr>
+      <tr><td>M365 Copilot</td><td>Agent appears in the Copilot side panel across Word/Outlook/Teams</td></tr>
+      <tr><td>Custom Website</td><td>Public or customer-portal chat widget</td></tr>
+      <tr><td>Slack / Messenger / WhatsApp</td><td>Reach users outside the M365 tenant</td></tr>
+      <tr><td>Voice / Telephony</td><td>IVR or call-center agents with speech in/out</td></tr>
+      <tr><td>SharePoint / Viva</td><td>Embedded copilots scoped to a site or topic</td></tr>
+    </table>
+    <p class="animate" style="margin-top:14px;text-align:center">One agent, many channels &mdash; same topics, knowledge, and identity. Channel-specific adaptations (cards, voice) ride on top.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Computer Use &amp; Code Interpreter</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Computer Use</h3>
+        <ul>
+          <li>Agents drive a virtual browser to <em>do</em> things</li>
+          <li>Click, type, scrape, fill forms across web apps</li>
+          <li>Useful when no API exists for a legacy system</li>
+          <li>Sandboxed; admin opt-in per environment</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Code Interpreter</h3>
+        <ul>
+          <li>Sandboxed Python runtime for the agent</li>
+          <li>Numeric work, file parsing, chart generation</li>
+          <li>Files in &amp; out without leaving the chat</li>
+          <li>Consumes Copilot Studio messages just like LLM calls</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Both unlock the &ldquo;long tail&rdquo;</span> of automation that connectors and topics alone can&rsquo;t cover.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Authentication &amp; Identity</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Agent Identity</h3>
+        <ul>
+          <li>Every agent gets a <span class="highlight">Microsoft Entra Agent ID</span></li>
+          <li>First-class principal in your tenant, like a user</li>
+          <li>Conditional Access, MFA, and audit logs apply</li>
+          <li>Tools can be scoped by Entra roles &amp; groups</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>End-User Auth</h3>
+        <ul>
+          <li>Default: agent inherits the signed-in user&rsquo;s context</li>
+          <li>Delegated calls run as the user (respects perms)</li>
+          <li>Custom OAuth providers for external systems</li>
+          <li>SSO across Teams, M365, and connected channels</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Agent ID is the foundation:</span> security, governance, and Agent 365 all hang off of it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pricing &amp; Capacity</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Copilot Studio Messages</h3>
+        <ul>
+          <li>The unit of billing &mdash; tied to actions and LLM use</li>
+          <li>Generative answers, autonomous actions, tools all bill</li>
+          <li>Connector calls weigh more than a plain LLM turn</li>
+          <li>Prepaid <span class="highlight">message packs</span> per tenant</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pay-As-You-Go</h3>
+        <ul>
+          <li>Linked to an Azure subscription &mdash; no upfront packs</li>
+          <li>Per-message metering, billed monthly</li>
+          <li>Best for low or spiky volume</li>
+          <li>Mix &amp; match: PAYG for dev, packs for prod</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Budget guardrails live at the <em>environment</em> level &mdash; cap spend before you cap incidents.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Introducing Agent 365</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Premise</h3>
+        <ul>
+          <li>Tenants are about to have <span class="highlight">thousands</span> of agents</li>
+          <li>Built in Copilot Studio, Foundry, ServiceNow, SAP, custom</li>
+          <li>IT has no single place to see, secure, or retire them</li>
+          <li>Treat agents like employees &mdash; hire, manage, offboard</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What Agent 365 Is</h3>
+        <ul>
+          <li>Control plane for every agent in the tenant</li>
+          <li>Discovers agents across vendors automatically</li>
+          <li>Adds identity, security, observability, optimization</li>
+          <li>Surfaces in the Microsoft 365 admin center</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Copilot Studio builds the agent. Agent 365 governs it.</span></p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Entra Agent ID</h2>
+    <div class="diagram animate">
+      <div class="box">Agent</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Entra Agent ID</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Conditional Access</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Resource<br>(Graph, SAP, &hellip;)</div>
+    </div>
+    <ul class="animate" style="max-width:900px">
+      <li>Every agent is a <span class="highlight">first-class identity</span> in Entra</li>
+      <li>Issued and rotated automatically on agent creation</li>
+      <li>Conditional Access policies apply (location, risk, MFA on tool use)</li>
+      <li>Group membership controls which tools and data are reachable</li>
+      <li>Audit logs unify human and agent activity in one stream</li>
+      <li>Offboarding an agent is one click &mdash; revokes every downstream token</li>
+    </ul>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Agent 365 Pillars</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Registry</h3>
+        <p>Inventory of every agent &mdash; owner, scope, channels, status, vendor.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Security</h3>
+        <p>Defender for Cloud Apps + Purview classify data the agent touches.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Interaction</h3>
+        <p>Agent-to-agent messaging &amp; delegation across vendors via open protocols.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Observability</h3>
+        <p>Per-agent traces, prompts, tool calls, costs &mdash; one pane across builders.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Optimization</h3>
+        <p>Usage analytics surface unused agents, expensive prompts, success rates.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Lifecycle</h3>
+        <p>Onboard, promote, retire &mdash; with approvals and ownership transfer.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Governance &amp; ALM</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Environments</h3>
+        <ul>
+          <li>Dev, Test, Prod &mdash; isolated tenants of agents and data</li>
+          <li>DLP policies scope which connectors can be used</li>
+          <li>Capacity / spend caps set per environment</li>
+          <li>Managed Environments add gates and reviews</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Solutions &amp; Pipelines</h3>
+        <ul>
+          <li>Agents packaged into <span class="highlight">solutions</span> (zip of artifacts)</li>
+          <li>Source control: export YAML to git, PR-review changes</li>
+          <li>Pipelines promote solutions between environments</li>
+          <li>Same ALM model as Power Platform &mdash; familiar to admins</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">DLP first.</span> Block connectors and external endpoints by policy before users get clever with them.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Build &amp; Deploy: End-to-End</h2>
+    <div class="content animate">
+<pre>
+# 1. Create the agent (describe it in natural language)
+"You are an HR helper. You can answer policy questions
+ from our SharePoint site, look up PTO balances in Workday,
+ and submit time-off requests."
+
+# 2. Add knowledge
+- Source: SharePoint /sites/hr-policies
+- Source: https://benefits.contoso.com  (public)
+
+# 3. Add actions
+- MCP server:  https://mcp.workday.contoso.com
+- Power Automate flow: SubmitPTORequest
+
+# 4. Identity
+- Agent gets Entra Agent ID automatically
+- End-user delegated auth for Workday calls
+
+# 5. Test &amp; publish
+- Test pane: trace every turn, tool call, citation
+- Publish to: Teams, M365 Copilot
+
+# 6. Register in Agent 365
+- Owner, business unit, data classification
+- DLP + Conditional Access apply from day one
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span>Start with one topic and one knowledge source &mdash; expand only on usage signal.</div>
+      <div class="bp-item"><span>2</span>Write tool descriptions like prompts &mdash; the orchestrator reads them.</div>
+      <div class="bp-item"><span>3</span>Prefer delegated (user) auth over agent-only access wherever possible.</div>
+      <div class="bp-item"><span>4</span>Set DLP and spend caps <em>before</em> first publish, not after.</div>
+      <div class="bp-item"><span>5</span>Version agents via solutions + git &mdash; never ship from the maker portal.</div>
+      <div class="bp-item"><span>6</span>Register every agent in Agent 365 with a real owner &mdash; no orphans.</div>
+      <div class="bp-item"><span>7</span>Use multi-agent split when scope creep hurts tool selection accuracy.</div>
+      <div class="bp-item"><span>8</span>Watch the trace pane like you&rsquo;d watch logs &mdash; it&rsquo;s the only honest signal.</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have mastered Microsoft Copilot Studio &amp; Agent 365:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Topics</span><span class="tag">Knowledge</span><span class="tag">Actions</span>
+        <span class="tag">MCP</span><span class="tag">Multi-Agent</span><span class="tag">Channels</span>
+        <span class="tag">Entra Agent ID</span><span class="tag">Agent 365</span><span class="tag">DLP &amp; ALM</span>
+      </div>
+      <p style="color:var(--text-muted)">Copilot Studio is how you ship agents inside the Microsoft cloud. Agent 365 is how you keep an estate of them honest &mdash; identity, security, and lifecycle for every agent your tenant ever runs.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
