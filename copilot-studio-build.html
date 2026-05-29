@@ -1,0 +1,748 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Copilot Studio in Practice</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6E0;</span>
+    <h1 class="animate">Copilot Studio in Practice</h1>
+    <p class="subtitle animate">A maker&rsquo;s guide to building, testing, and shipping a real agent</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Copilot Studio</span><span class="tag">Low-Code</span><span class="tag">Power Platform</span><span class="tag">Agents</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Build Loop</h2>
+    <div class="diagram animate">
+      <div class="box">Describe</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Ground<br><small>(knowledge)</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Wire actions</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Test &amp; trace</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Publish</div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;max-width:900px">This course follows the loop a maker actually runs &mdash; not the architecture, but the <span class="highlight">clicks, prompts, and gotchas</span>. You build one agent end-to-end, then iterate on it from real usage.</p>
+    <p class="animate" style="margin-top:10px;text-align:center;color:var(--text-muted)">Running example: an <span class="highlight">IT Helpdesk agent</span> that answers policy questions and opens tickets.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Before You Build: Prerequisites</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What You Need</h3>
+        <ul>
+          <li>A <span class="highlight">Power Platform environment</span> you can author in</li>
+          <li>A Copilot Studio license or trial seat</li>
+          <li>Maker access (not just end-user) in that environment</li>
+          <li>Knowing your tenant&rsquo;s DLP policy &mdash; it limits connectors</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Pick the Right Environment</h3>
+        <ul>
+          <li>Never build in the <span class="highlight">Default</span> environment for prod work</li>
+          <li>Use a dedicated Dev environment with Dataverse</li>
+          <li>Environment = boundary for data, DLP, and capacity</li>
+          <li>Confirm spend caps so test loops don&rsquo;t burn budget</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Two minutes choosing the environment saves a painful migration later.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Create Your First Agent</h2>
+    <div class="content animate">
+<pre>
+Copilot Studio &rarr; Create &rarr; New agent
+
+# Describe it in natural language
+"You are the Contoso IT Helpdesk assistant. You help
+ employees with laptop, VPN, and software-access issues.
+ Answer from the IT knowledge base. If you can't resolve
+ it, open a ticket in ServiceNow on the user's behalf."
+
+# Copilot Studio drafts:
+- A name + icon
+- Starter instructions
+- Suggested tone
+- Sample topics
+
+# You then refine name, description, and instructions.
+</pre>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The describe-it flow is a starting point, not the finished agent &mdash; the next slides tighten it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Writing the Agent&rsquo;s Instructions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Treat It Like a Prompt</h3>
+        <ul>
+          <li>State the <span class="highlight">role</span> and the audience plainly</li>
+          <li>List what it <em>should</em> and <em>should not</em> do</li>
+          <li>Name the knowledge and tools it can rely on</li>
+          <li>Specify tone, length, and escalation rules</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Common Mistakes</h3>
+        <ul>
+          <li>Vague: &ldquo;be helpful&rdquo; &mdash; gives the model nothing</li>
+          <li>Overloaded: 30 rules the orchestrator can&rsquo;t weigh</li>
+          <li>No fallback: what to do when it <em>can&rsquo;t</em> answer</li>
+          <li>Forgetting to say <span class="highlight">&ldquo;cite your sources&rdquo;</span></li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Iterate the instructions in the test pane</span> &mdash; change one line, re-ask, watch the behavior shift.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Generative vs. Classic Orchestration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Generative (default)</h3>
+        <ul>
+          <li>The LLM picks topics, knowledge, and tools per turn</li>
+          <li>Best for open Q&amp;A and fuzzy intents</li>
+          <li>You guide it with good descriptions, not rigid graphs</li>
+          <li>Handles multi-step reasoning across tools</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Classic / Topic-First</h3>
+        <ul>
+          <li>Trigger phrases route directly to authored topics</li>
+          <li>Best for <span class="highlight">deterministic</span> flows (reset password)</li>
+          <li>Predictable, testable, auditable paths</li>
+          <li>Use inside a generative agent for the steps that must not vary</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Most real agents are hybrid: generative for answers, topics for the actions that have to be exact.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building a Topic, Node by Node</h2>
+    <div class="content animate">
+<pre>
+Topic: "Open a hardware ticket"
+
+Trigger phrases:  "my laptop is broken", "request new device"
+
+[Trigger]
+   &rarr; [Question] "What device is affected?"   &rarr; var: device
+   &rarr; [Question] "Describe the issue"          &rarr; var: issue
+   &rarr; [Condition] device is empty?
+        &mdash; yes &rarr; [Message] "I need the device first" &rarr; loop
+        &mdash; no  &rarr; [Action] Create ServiceNow ticket(device, issue)
+   &rarr; [Message] "Ticket {ticket.number} created. ETA 2 days."
+</pre>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Nodes: <code>Question</code>, <code>Condition</code>, <code>Action</code>, <code>Message</code>, <code>Set variable</code>. Build it on the canvas or in YAML.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Variables, Slots &amp; Entities</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Variables</h3>
+        <p>Hold values across a conversation. Scope: topic-local or global.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Slot Filling</h3>
+        <p>The agent keeps asking until required inputs are collected.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Entities</h3>
+        <p>Typed extractors &mdash; email, date, number, or custom lists.</p>
+      </div>
+      <div class="metric-card">
+        <h3>System Variables</h3>
+        <p><code>User.DisplayName</code>, <code>Activity.Text</code>, channel, locale &mdash; free context.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Tip:</span> let the generative orchestrator fill slots from natural language instead of asking one question per field.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Adding Knowledge That Works</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Wire It Up</h3>
+        <ul>
+          <li>Add source: SharePoint site, files, public URL, Dataverse</li>
+          <li>Give each source a <span class="highlight">clear description</span> &mdash; the router reads it</li>
+          <li>Scope SharePoint to a site/library, not the whole tenant</li>
+          <li>Re-index after big content changes</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Quality Levers</h3>
+        <ul>
+          <li>Clean, well-titled docs beat one giant PDF</li>
+          <li>Permissions are honored &mdash; test as a real user</li>
+          <li>Raise the moderation threshold to cut weak answers</li>
+          <li>Turn on citations so answers are auditable</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">If answers are wrong, the fix is usually the <em>content and scoping</em>, not the model.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Writing Tool &amp; Action Descriptions</h2>
+    <div class="content animate">
+<pre>
+# The orchestrator chooses tools by READING their descriptions.
+# Write them like instructions to a junior teammate.
+
+Bad:   "ServiceNow action"
+Good:  "Create an IT support ticket in ServiceNow. Use this
+        when the user has a hardware or software problem that
+        you could not resolve from the knowledge base.
+        Requires: device (string), issue (string).
+        Returns: ticket number + status."
+
+# Same rule for each input parameter:
+device:  "The affected device, e.g. 'ThinkPad X1' or 'iPhone 15'."
+</pre>
+    </div>
+    <p class="animate" style="text-align:center"><span class="highlight">90% of &ldquo;the agent didn&rsquo;t call my tool&rdquo;</span> is a weak description, not a bug.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Connecting Actions</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Prebuilt Connector</h3>
+        <p>Pick ServiceNow / SAP / Jira, sign in, select the operation. Fastest path.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Power Automate Flow</h3>
+        <p>Wrap multi-step logic into one action the agent calls. Inputs &rarr; outputs typed.</p>
+      </div>
+      <div class="metric-card">
+        <h3>REST / OpenAPI</h3>
+        <p>Paste a spec &mdash; Copilot Studio generates the action and schema for you.</p>
+      </div>
+      <div class="metric-card">
+        <h3>MCP Server</h3>
+        <p>Add a Model Context Protocol endpoint; its tools auto-surface to the agent.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Watch the DLP policy: if the connector is blocked at the environment level, it won&rsquo;t appear.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Prompt Actions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What They Are</h3>
+        <ul>
+          <li>Reusable LLM prompts exposed as first-class tools</li>
+          <li>Summarize, classify, extract, rewrite &mdash; on demand</li>
+          <li>Built and tested in AI Builder&rsquo;s prompt editor</li>
+          <li>Typed inputs and outputs, like any other action</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>When to Reach for One</h3>
+        <ul>
+          <li>Shape free text into structured data before an action</li>
+          <li>Classify a ticket&rsquo;s urgency from its description</li>
+          <li>Generate a polished reply from raw notes</li>
+          <li>Keep a tricky prompt in one place, reused everywhere</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Prompt actions</span> turn &ldquo;ask the model nicely&rdquo; into a versioned, testable building block.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Test Pane &amp; the Activity Map</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Test as You Build</h3>
+        <ul>
+          <li>The test pane re-runs on <span class="highlight">every save</span></li>
+          <li>Expand a turn to see the full trace</li>
+          <li>Inspect topic chosen, tools called, inputs, citations</li>
+          <li>&ldquo;Test as another user&rdquo; to verify permissions</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Read the Trace</h3>
+        <ul>
+          <li>Which topic or generative path handled the turn?</li>
+          <li>Did the orchestrator pick the right tool?</li>
+          <li>What arguments did it pass?</li>
+          <li>Were knowledge passages actually retrieved?</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">The trace is the only honest signal &mdash; trust it over the chat bubble.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Debugging Common Failures</h2>
+    <table class="animate">
+      <tr><th>Symptom</th><th>Likely Cause &amp; Fix</th></tr>
+      <tr><td>Agent ignores a tool</td><td>Weak/absent tool description &mdash; rewrite it as instructions</td></tr>
+      <tr><td>&ldquo;I don&rsquo;t know&rdquo; on known content</td><td>Source not indexed, mis-scoped, or moderation too strict</td></tr>
+      <tr><td>Wrong tool chosen</td><td>Overlapping descriptions &mdash; make each tool&rsquo;s purpose distinct</td></tr>
+      <tr><td>Action errors out</td><td>Missing/typed-wrong inputs &mdash; check the trace&rsquo;s arguments</td></tr>
+      <tr><td>Works for you, not others</td><td>Permissions or auth &mdash; &ldquo;test as another user&rdquo;</td></tr>
+      <tr><td>Connector missing</td><td>Blocked by environment DLP policy</td></tr>
+    </table>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Debug method:</span> open the trace, find the first turn that diverges, fix that one thing, re-test.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Conversation Design</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Handle the Unhappy Path</h3>
+        <ul>
+          <li>Write a real <span class="highlight">fallback</span> &mdash; not &ldquo;I didn&rsquo;t understand&rdquo;</li>
+          <li>Offer next steps or a human hand-off</li>
+          <li>Confirm before destructive or costly actions</li>
+          <li>Echo back collected values before submitting</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Keep Turns Tight</h3>
+        <ul>
+          <li>One question at a time when slot-filling matters</li>
+          <li>Short answers; link out for the long version</li>
+          <li>Use the user&rsquo;s name and context from system vars</li>
+          <li>Set expectations: &ldquo;this takes ~30 seconds&rdquo;</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Good agents feel designed, not generated &mdash; the unhappy path is where that shows.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Publish &amp; Channels</h2>
+    <div class="content animate">
+<pre>
+# 1. Publish (makes the latest version live)
+Publish &rarr; review changes &rarr; Publish
+
+# 2. Add channels
+- Microsoft Teams      &rarr; submit for admin approval, then install
+- M365 Copilot         &rarr; appears in the Copilot side panel
+- Custom website       &rarr; embed the chat snippet
+- Slack / WhatsApp     &rarr; reach users outside the tenant
+
+# 3. Share with the right audience
+- Specific users / security groups (start small)
+- Pilot group first, then widen
+
+# Note: changes are NOT live until you Publish again.
+</pre>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Teams and M365 channels usually require an <span class="highlight">admin approval</span> step &mdash; plan for it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Analytics &amp; Iteration</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Engagement</h3>
+        <p>Sessions, active users, channels &mdash; is anyone using it?</p>
+      </div>
+      <div class="metric-card">
+        <h3>Resolution Rate</h3>
+        <p>Resolved vs. escalated vs. abandoned &mdash; the headline metric.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Topic / Tool Usage</h3>
+        <p>What gets used, what never fires, what fails often.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Transcripts</h3>
+        <p>Read real conversations &mdash; the richest source of fixes.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Ship small, read transcripts, fix the top failure, repeat.</span> That loop beats big upfront design.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">From Dev to Prod (ALM)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Package It</h3>
+        <ul>
+          <li>Put the agent in a <span class="highlight">solution</span> (zip of artifacts)</li>
+          <li>Export the YAML to git &mdash; review changes in PRs</li>
+          <li>Don&rsquo;t hand-edit directly in the prod maker portal</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Promote It</h3>
+        <ul>
+          <li>Pipelines move the solution Dev &rarr; Test &rarr; Prod</li>
+          <li>Connection references rebind per environment</li>
+          <li>Each environment keeps its own DLP and caps</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Same ALM model as the rest of Power Platform &mdash; environments, solutions, pipelines.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Maker Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span>Start with one topic and one knowledge source; expand on usage signal.</div>
+      <div class="bp-item"><span>2</span>Write every tool and source description like a prompt &mdash; the router reads them.</div>
+      <div class="bp-item"><span>3</span>Iterate instructions in the test pane, one change at a time.</div>
+      <div class="bp-item"><span>4</span>Always design the unhappy path and a human hand-off.</div>
+      <div class="bp-item"><span>5</span>Confirm before any destructive or costly action.</div>
+      <div class="bp-item"><span>6</span>Test as another user to catch permission and auth gaps.</div>
+      <div class="bp-item"><span>7</span>Read the trace, not the chat bubble, when something breaks.</div>
+      <div class="bp-item"><span>8</span>Version via solutions + git; promote through pipelines, never edit prod live.</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You can now build a Copilot Studio agent end-to-end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Describe</span><span class="tag">Instructions</span><span class="tag">Topics</span>
+        <span class="tag">Knowledge</span><span class="tag">Actions</span><span class="tag">Prompt Actions</span>
+        <span class="tag">Test &amp; Trace</span><span class="tag">Debug</span><span class="tag">Publish</span>
+        <span class="tag">Analytics</span><span class="tag">ALM</span>
+      </div>
+      <p style="color:var(--text-muted)">The maker&rsquo;s loop is simple: describe an agent, ground it, wire its actions, test relentlessly in the trace, ship small, and iterate from real transcripts. For the architecture, identity, and tenant-wide governance side, see the <em>Microsoft Copilot Studio &amp; Agent 365</em> course.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
