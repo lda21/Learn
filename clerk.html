@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Clerk - Authentication &amp; User Management</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F510;</span>
+    <h1 class="animate title-fire">Clerk</h1>
+    <p class="subtitle animate">Drop-in Authentication &amp; User Management for Modern Apps</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">Authentication</span>
+      <span class="tag">Identity</span>
+      <span class="tag">B2B SaaS</span>
+      <span class="tag">Sessions</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is Clerk -->
+  <div class="slide">
+    <h2 class="animate">What is Clerk?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">A complete <span class="highlight">authentication and user management</span> platform &mdash; auth, sessions, and a hosted user database in one</li>
+        <li class="animate">Ships <strong>prebuilt, customizable UI components</strong> (&lt;SignIn /&gt;, &lt;UserButton /&gt;) so you don't build login screens by hand</li>
+        <li class="animate">Handles the hard parts: <strong>passwords, OAuth, MFA, passkeys, magic links, sessions, and JWTs</strong></li>
+        <li class="animate">Built-in <span class="highlight">Organizations</span> for multi-tenant B2B apps &mdash; teams, roles, permissions, and enterprise SSO</li>
+        <li class="animate">SDKs for <strong>Next.js, React, Remix, Astro, Expo, Vue, JavaScript</strong>, plus backend SDKs for Node, Python, Go, and Ruby</li>
+      </ul>
+      <pre class="animate">
+# The whole login screen in one line of JSX
+import { SignIn } from '@clerk/nextjs';
+
+export default function Page() {
+  return &lt;SignIn /&gt;;   // email, password, OAuth, MFA, passkeys — all included
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why Clerk -->
+  <div class="slide">
+    <h2 class="animate">Why Clerk?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Capability</th><th>Clerk</th><th>NextAuth / Auth.js</th><th>Auth0</th></tr>
+        <tr><td>Prebuilt UI components</td><td><span class="green">Yes (drop-in)</span></td><td>Build your own</td><td>Hosted pages</td></tr>
+        <tr><td>User database</td><td><span class="green">Managed</span></td><td>You host (adapter)</td><td><span class="green">Managed</span></td></tr>
+        <tr><td>Organizations / B2B</td><td><span class="green">Native</span></td><td>DIY</td><td>Add-on</td></tr>
+        <tr><td>MFA &amp; Passkeys</td><td><span class="green">Built-in</span></td><td>DIY</td><td><span class="green">Built-in</span></td></tr>
+        <tr><td>Frontend-first DX</td><td><span class="green">Excellent</span></td><td>Good</td><td>Generic</td></tr>
+        <tr><td>Free tier</td><td><span class="green">50k MAU</span></td><td>Free (self-host)</td><td>~7.5k MAU</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;"><strong>Choose Clerk when:</strong> you want production-grade auth in an afternoon, need polished UI out of the box, or are building a multi-tenant B2B SaaS.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Architecture -->
+  <div class="slide">
+    <h2 class="animate">How Clerk Works</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Browser<br>(Clerk SDK)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Frontend API<br>(Clerk-hosted)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Session JWT</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Your Backend<br>(verifies token)</div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px;">
+        <div class="metric-card animate">
+          <h3>Frontend API</h3>
+          <p>Clerk-hosted endpoint the browser SDK talks to for sign-in, sign-up, and session management. Served from your domain via DNS (e.g. <code>clerk.yourapp.com</code>).</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Backend API</h3>
+          <p>Server-side REST API for managing users, organizations, and sessions. Called via secret key with the backend SDKs.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Session Tokens</h3>
+          <p>Short-lived <strong>JWTs</strong> (default 60s) stored in a cookie, refreshed automatically. Your backend verifies them statelessly.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Clerk Dashboard</h3>
+          <p>Configure auth strategies, social providers, MFA, branding, and organizations &mdash; no code deploy needed.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Core Concepts -->
+  <div class="slide">
+    <h2 class="animate">Core Concepts</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>The Object Model</h3>
+          <ul>
+            <li><strong>User</strong> &mdash; a person, with emails, phones, and external accounts</li>
+            <li><strong>Session</strong> &mdash; an active sign-in on a device</li>
+            <li><strong>Client</strong> &mdash; a browser/device that may hold multiple sessions</li>
+            <li><strong>Organization</strong> &mdash; a team/company a user belongs to</li>
+            <li><strong>JWT / Claims</strong> &mdash; the verified token your API trusts</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Keys</h3>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+# .env.local — two keys
+NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=pk_test_...
+CLERK_SECRET_KEY=sk_test_...
+
+# Publishable key  -> safe in the browser
+# Secret key       -> server only, never ship
+          </pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Clerk distinguishes <span class="highlight">instances</span>: a <code>development</code> instance (test keys, on a shared domain) and a <code>production</code> instance (live keys, your own domain with proper DNS).</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Quickstart Next.js -->
+  <div class="slide">
+    <h2 class="animate">Quickstart &mdash; Next.js</h2>
+    <div class="content">
+      <pre class="animate">
+npm install @clerk/nextjs
+      </pre>
+      <pre class="animate">
+// middleware.ts — required: runs Clerk on every request
+import { clerkMiddleware } from '@clerk/nextjs/server';
+
+export default clerkMiddleware();
+
+export const config = {
+  matcher: ['/((?!_next|.*\\..*).*)', '/(api|trpc)(.*)'],
+};
+      </pre>
+      <pre class="animate">
+// app/layout.tsx — wrap the app in ClerkProvider
+import { ClerkProvider, SignInButton, UserButton, SignedIn, SignedOut } from '@clerk/nextjs';
+
+export default function RootLayout({ children }) {
+  return (
+    &lt;ClerkProvider&gt;
+      &lt;html&gt;&lt;body&gt;
+        &lt;header&gt;
+          &lt;SignedOut&gt;&lt;SignInButton /&gt;&lt;/SignedOut&gt;
+          &lt;SignedIn&gt;&lt;UserButton /&gt;&lt;/SignedIn&gt;
+        &lt;/header&gt;
+        {children}
+      &lt;/body&gt;&lt;/html&gt;
+    &lt;/ClerkProvider&gt;
+  );
+}
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Quickstart React -->
+  <div class="slide">
+    <h2 class="animate">Quickstart &mdash; React (SPA)</h2>
+    <div class="content">
+      <pre class="animate">
+npm install @clerk/clerk-react
+      </pre>
+      <pre class="animate">
+// main.tsx — provide the publishable key
+import { ClerkProvider } from '@clerk/clerk-react';
+
+const KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+
+createRoot(document.getElementById('root')!).render(
+  &lt;ClerkProvider publishableKey={KEY} afterSignOutUrl="/"&gt;
+    &lt;App /&gt;
+  &lt;/ClerkProvider&gt;
+);
+      </pre>
+      <pre class="animate">
+// App.tsx — control components gate the UI
+import { SignedIn, SignedOut, SignInButton, UserButton } from '@clerk/clerk-react';
+
+function App() {
+  return (
+    &lt;header&gt;
+      &lt;SignedOut&gt;&lt;SignInButton mode="modal" /&gt;&lt;/SignedOut&gt;
+      &lt;SignedIn&gt;&lt;UserButton /&gt;&lt;/SignedIn&gt;
+    &lt;/header&gt;
+  );
+}
+      </pre>
+      <p class="animate" style="margin-top:8px;">The same component names &mdash; <code>SignedIn</code>, <code>UserButton</code> &mdash; exist across every frontend SDK. Learn them once.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Backend SDKs -->
+  <div class="slide">
+    <h2 class="animate">Quickstart &mdash; Backend SDKs</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Node / Express</h3>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+import { clerkMiddleware, requireAuth, getAuth }
+  from '@clerk/express';
+
+app.use(clerkMiddleware());
+
+app.get('/api/me', requireAuth(), (req, res) =&gt; {
+  const { userId } = getAuth(req);
+  res.json({ userId });
+});
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>Python / FastAPI</h3>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+from clerk_backend_api import Clerk
+
+clerk = Clerk(bearer_auth="sk_test_...")
+
+state = clerk.authenticate_request(
+    request,
+    AuthenticateRequestOptions(),
+)
+if state.is_signed_in:
+    user_id = state.payload["sub"]
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+// Go — verify a session token from any framework
+import "github.com/clerk/clerk-sdk-go/v2/jwt"
+
+claims, err := jwt.Verify(ctx, &amp;jwt.VerifyParams{Token: sessionToken})
+if err != nil { http.Error(w, "unauthorized", 401); return }
+userID := claims.Subject  // the Clerk user ID
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Prebuilt UI Components -->
+  <div class="slide">
+    <h2 class="animate">Prebuilt UI Components</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>&lt;SignIn /&gt; &amp; &lt;SignUp /&gt;</h3>
+          <p>Full authentication flows: identifiers, passwords, OAuth, MFA, verification. Drop them on a route and you're done.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;UserButton /&gt;</h3>
+          <p>The avatar menu in the corner of every app &mdash; account switching, profile, and sign-out built in.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;UserProfile /&gt;</h3>
+          <p>A full self-service account page: emails, password, connected accounts, MFA devices, active sessions.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;OrganizationSwitcher /&gt;</h3>
+          <p>Switch between personal account and organizations, create orgs, and manage members.</p>
+        </div>
+      </div>
+      <pre class="animate">
+// app/sign-in/[[...sign-in]]/page.tsx — catch-all route for the flow
+import { SignIn } from '@clerk/nextjs';
+export default function Page() {
+  return &lt;SignIn path="/sign-in" /&gt;;
+}
+// Point Clerk at it: NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Control Components -->
+  <div class="slide">
+    <h2 class="animate">Control Components</h2>
+    <div class="content">
+      <p class="animate">Declarative components that render children based on auth state &mdash; no <code>if</code> statements, no flashes of the wrong UI.</p>
+      <pre class="animate">
+import { SignedIn, SignedOut, Protect, ClerkLoaded, ClerkLoading } from '@clerk/nextjs';
+
+&lt;ClerkLoading&gt;&lt;Spinner /&gt;&lt;/ClerkLoading&gt;
+&lt;ClerkLoaded&gt;
+  &lt;SignedIn&gt;
+    &lt;Dashboard /&gt;
+  &lt;/SignedIn&gt;
+
+  &lt;SignedOut&gt;
+    &lt;LandingPage /&gt;
+  &lt;/SignedOut&gt;
+
+  {/* Gate by role or permission */}
+  &lt;Protect role="org:admin" fallback={&lt;p&gt;Admins only&lt;/p&gt;}&gt;
+    &lt;BillingSettings /&gt;
+  &lt;/Protect&gt;
+
+  &lt;Protect permission="org:invoices:create"&gt;
+    &lt;CreateInvoiceButton /&gt;
+  &lt;/Protect&gt;
+&lt;/ClerkLoaded&gt;
+      </pre>
+      <p class="animate" style="margin-top:8px;"><span class="highlight">&lt;Protect&gt;</span> is the UI twin of server-side <code>auth.protect()</code> &mdash; same role/permission checks on both sides.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Authentication Strategies -->
+  <div class="slide">
+    <h2 class="animate">Authentication Strategies</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Identifiers</h3>
+          <ul>
+            <li><strong>Email address</strong> &mdash; the default</li>
+            <li><strong>Phone number</strong> &mdash; SMS-based</li>
+            <li><strong>Username</strong> &mdash; classic handle</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Verification</h3>
+          <ul>
+            <li><strong>Password</strong> &mdash; with breach &amp; strength checks</li>
+            <li><strong>Email link</strong> &mdash; passwordless magic link</li>
+            <li><strong>Email / SMS code</strong> &mdash; one-time passcode (OTP)</li>
+            <li><strong>Passkeys</strong> &mdash; WebAuthn, phishing-resistant</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">All of these are toggles in the <span class="highlight">Clerk Dashboard</span> &mdash; flip on "Email code" and your <code>&lt;SignIn /&gt;</code> instantly offers passwordless OTP. No redeploy.</p>
+      <p class="animate"><strong>Passwordless</strong> flows (magic links + OTP) reduce password reuse and support burden, while <strong>passkeys</strong> eliminate phishing entirely.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Social / OAuth Connections -->
+  <div class="slide">
+    <h2 class="animate">Social &amp; OAuth Connections</h2>
+    <div class="content">
+      <p class="animate">Clerk supports <span class="highlight">20+ social providers</span> &mdash; Google, GitHub, Microsoft, Apple, Facebook, GitLab, LinkedIn, Discord, and more. Enable them with a click in the dashboard.</p>
+      <pre class="animate">
+// Trigger a specific provider from a custom button
+import { useSignIn } from '@clerk/clerk-react';
+
+const { signIn } = useSignIn();
+
+await signIn.authenticateWithRedirect({
+  strategy: 'oauth_google',
+  redirectUrl: '/sso-callback',
+  redirectUrlComplete: '/dashboard',
+});
+      </pre>
+      <pre class="animate">
+// Use the user's Google OAuth token to call Google APIs on their behalf
+import { clerkClient } from '@clerk/nextjs/server';
+
+const client = await clerkClient();
+const tokens = await client.users.getUserOauthAccessToken(userId, 'google');
+const googleToken = tokens.data[0].token;   // call Gmail, Calendar, Drive...
+      </pre>
+      <p class="animate" style="margin-top:8px;">For development, Clerk provides <strong>shared OAuth credentials</strong> so you can test social login instantly; bring your own client IDs for production.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: MFA & Passkeys -->
+  <div class="slide">
+    <h2 class="animate">Multi-Factor Auth &amp; Passkeys</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Authenticator (TOTP)</h3>
+          <p>Time-based codes from Google Authenticator, Authy, 1Password. The most common second factor.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>SMS Code</h3>
+          <p>One-time code sent to a verified phone number as a second factor.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Backup Codes</h3>
+          <p>Single-use recovery codes generated when MFA is enabled, for when a device is lost.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Passkeys (WebAuthn)</h3>
+          <p>Biometric / hardware login that is phishing-resistant. Can act as a primary factor or a second factor.</p>
+        </div>
+      </div>
+      <pre class="animate">
+// Let a user register a passkey from your custom UI
+import { useUser } from '@clerk/clerk-react';
+
+const { user } = useUser();
+await user?.createPasskey();   // browser prompts for Face ID / fingerprint / security key
+      </pre>
+      <p class="animate" style="margin-top:8px;">Enable MFA in the dashboard and the prebuilt components handle enrollment and challenge flows automatically.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Client Hooks -->
+  <div class="slide">
+    <h2 class="animate">Client-Side Hooks</h2>
+    <div class="content">
+      <pre class="animate">
+import { useUser, useAuth, useSession, useClerk } from '@clerk/nextjs';
+
+function Profile() {
+  // useUser — the loaded User object (reactive)
+  const { isLoaded, isSignedIn, user } = useUser();
+
+  // useAuth — lightweight auth state + token getter
+  const { userId, sessionId, orgId, getToken, signOut } = useAuth();
+
+  if (!isLoaded) return null;
+  if (!isSignedIn) return &lt;p&gt;Sign in to continue&lt;/p&gt;;
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Hello {user.firstName} ({user.primaryEmailAddress?.emailAddress})&lt;/p&gt;
+      &lt;button onClick={() =&gt; signOut()}&gt;Sign out&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+      </pre>
+      <pre class="animate">
+// Call your own API with a verified token
+const { getToken } = useAuth();
+const token = await getToken();              // default session JWT
+const res = await fetch('/api/secure', {
+  headers: { Authorization: `Bearer ${token}` },
+});
+      </pre>
+      <p class="animate" style="margin-top:8px;"><code>useClerk()</code> exposes the imperative SDK (<code>openSignIn()</code>, <code>signOut()</code>) for fully custom flows.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Sessions & JWTs -->
+  <div class="slide">
+    <h2 class="animate">Sessions &amp; JWTs</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>How sessions work</h3>
+          <ul>
+            <li>Sign-in creates a <strong>session</strong> tied to the client</li>
+            <li>Clerk issues a short-lived <strong>JWT (~60s)</strong> in a cookie</li>
+            <li>The SDK <strong>auto-refreshes</strong> it in the background</li>
+            <li>Your backend <strong>verifies</strong> the JWT statelessly &mdash; no DB lookup</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>JWT Templates</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Shape custom claims for third parties (Supabase, Hasura, Firebase) so they trust Clerk-issued tokens.</p>
+          <pre style="border:none; padding:12px; font-size:0.78rem;">
+{
+  "user_id": "{{user.id}}",
+  "email": "{{user.primary_email_address}}",
+  "org_role": "{{org.role}}"
+}
+          </pre>
+        </div>
+      </div>
+      <pre class="animate">
+// Get a token shaped by a named JWT template
+const token = await getToken({ template: 'supabase' });
+// Now Supabase RLS can read claims like auth.jwt() -&gt;&gt; 'user_id'
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Server-Side Auth -->
+  <div class="slide">
+    <h2 class="animate">Server-Side Auth</h2>
+    <div class="content">
+      <pre class="animate">
+// Next.js App Router — read auth in a Server Component or Route Handler
+import { auth, currentUser } from '@clerk/nextjs/server';
+
+export default async function Dashboard() {
+  const { userId, orgId, redirectToSignIn } = await auth();
+  if (!userId) return redirectToSignIn();
+
+  const user = await currentUser();   // full User object, server-side
+  return &lt;h1&gt;Welcome {user?.firstName}&lt;/h1&gt;;
+}
+      </pre>
+      <pre class="animate">
+// Route Handler — protect an API and enforce a permission
+import { auth } from '@clerk/nextjs/server';
+
+export async function POST() {
+  const { userId } = await auth.protect({ permission: 'org:invoices:create' });
+  // auth.protect() throws a 404/redirect if the check fails
+  return Response.json({ ok: true, userId });
+}
+      </pre>
+      <pre class="animate">
+// Manage users from the server with the Backend SDK
+import { clerkClient } from '@clerk/nextjs/server';
+const client = await clerkClient();
+await client.users.updateUser(userId, { publicMetadata: { plan: 'pro' } });
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Middleware & Route Protection -->
+  <div class="slide">
+    <h2 class="animate">Middleware &amp; Route Protection</h2>
+    <div class="content">
+      <pre class="animate">
+// middleware.ts — protect routes by pattern
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server';
+
+const isPublicRoute = createRouteMatcher(['/', '/sign-in(.*)', '/sign-up(.*)']);
+const isAdminRoute  = createRouteMatcher(['/admin(.*)']);
+
+export default clerkMiddleware(async (auth, req) =&gt; {
+  // Anything not public requires a signed-in user
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+  // Admin area additionally requires a role
+  if (isAdminRoute(req)) {
+    await auth.protect({ role: 'org:admin' });
+  }
+});
+
+export const config = {
+  matcher: ['/((?!_next|.*\\..*).*)', '/(api|trpc)(.*)'],
+};
+      </pre>
+      <p class="animate" style="margin-top:8px;">Middleware runs at the <span class="highlight">edge</span> before your pages render, so unauthorized users are redirected before any protected code executes.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Metadata -->
+  <div class="slide">
+    <h2 class="animate">User &amp; Session Metadata</h2>
+    <div class="content">
+      <p class="animate">Attach your own data to users and orgs without a separate database table. Three visibility scopes:</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>publicMetadata</h3>
+          <p>Readable on the frontend, writable only from the backend. Great for plan tier, roles, flags.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>privateMetadata</h3>
+          <p>Backend-only, never exposed to the client. For Stripe customer IDs, internal notes.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>unsafeMetadata</h3>
+          <p>Writable from the frontend by the user. For low-stakes preferences set during onboarding.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Session claims</h3>
+          <p>Promote <code>publicMetadata</code> into the JWT so checks are instant &mdash; no API call.</p>
+        </div>
+      </div>
+      <pre class="animate">
+// Set on the server; read instantly from the session token
+await client.users.updateUserMetadata(userId, {
+  publicMetadata: { plan: 'pro', onboarded: true },
+});
+const { sessionClaims } = await auth();   // sessionClaims.metadata.plan === 'pro'
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Organizations -->
+  <div class="slide">
+    <h2 class="animate">Organizations (B2B)</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">User</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Membership<br>(role)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Organization</div>
+      </div>
+      <ul>
+        <li class="animate"><strong>Multi-tenancy built in</strong> &mdash; model teams, companies, and workspaces without writing the data layer</li>
+        <li class="animate">A user can belong to <span class="highlight">many organizations</span> with a single login, and switch between them</li>
+        <li class="animate">Each org has its own <strong>members, roles, invitations, and settings</strong></li>
+        <li class="animate">The <strong>active organization</strong> is part of the session &mdash; <code>orgId</code> appears in <code>auth()</code> and the JWT</li>
+      </ul>
+      <pre class="animate">
+// Create an org and invite a member from the backend
+const client = await clerkClient();
+const org = await client.organizations.createOrganization({
+  name: 'Acme Inc', createdBy: userId,
+});
+await client.organizations.createOrganizationInvitation({
+  organizationId: org.id, emailAddress: 'teammate@acme.com', role: 'org:member',
+});
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Roles & Permissions -->
+  <div class="slide">
+    <h2 class="animate">Roles &amp; Permissions (RBAC)</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Roles</h3>
+          <ul>
+            <li>Default <code>org:admin</code> and <code>org:member</code></li>
+            <li>Define <strong>custom roles</strong> (e.g. <code>org:billing</code>)</li>
+            <li>Each member holds exactly one role per org</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Permissions</h3>
+          <ul>
+            <li>Granular, e.g. <code>org:invoices:create</code></li>
+            <li>Assigned to roles in the dashboard</li>
+            <li>Checked on client <em>and</em> server</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+// Server: enforce a permission
+const { has } = await auth();
+if (!has({ permission: 'org:invoices:create' })) {
+  return new Response('Forbidden', { status: 403 });
+}
+
+// Client: conditionally render
+const { has } = useAuth();
+{has?.({ role: 'org:admin' }) &amp;&amp; &lt;DeleteOrgButton /&gt;}
+      </pre>
+      <p class="animate" style="margin-top:8px;">Because roles and permissions ride in the <span class="highlight">session JWT</span>, authorization checks need no extra round trip.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Organization Components -->
+  <div class="slide">
+    <h2 class="animate">Organization UI Components</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>&lt;OrganizationSwitcher /&gt;</h3>
+          <p>Dropdown to switch active org, create new orgs, and jump to org management. The B2B equivalent of UserButton.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;OrganizationProfile /&gt;</h3>
+          <p>Self-service org admin: members, invitations, roles, domains, and SSO connections.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;CreateOrganization /&gt;</h3>
+          <p>A standalone form for spinning up a new organization during onboarding.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>useOrganization()</h3>
+          <p>Hook for the active org, its membership list, and pending invitations in custom UIs.</p>
+        </div>
+      </div>
+      <pre class="animate">
+import { useOrganization, useOrganizationList } from '@clerk/nextjs';
+
+const { organization, membership } = useOrganization();
+const { setActive, userMemberships } = useOrganizationList();
+
+// Programmatically switch the active organization
+await setActive({ organization: 'org_123' });
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Enterprise SSO & SCIM -->
+  <div class="slide">
+    <h2 class="animate">Enterprise SSO &amp; SCIM</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Enterprise Connections</strong> let an org's members sign in through their company IdP &mdash; <span class="highlight">Okta, Microsoft Entra ID, Google Workspace</span></li>
+        <li class="animate">Supports both <strong>SAML</strong> and <strong>OIDC</strong> protocols</li>
+        <li class="animate"><strong>SCIM provisioning</strong> auto-creates, updates, and deactivates users when the IdP changes &mdash; no manual offboarding</li>
+        <li class="animate">As of 2026, Clerk dropped the per-connection SSO fee &mdash; SAML/OIDC connections carry <span class="green">no usage charge</span></li>
+      </ul>
+      <div class="diagram animate" style="margin-top:10px;">
+        <div class="box">Employee</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Company IdP<br>(Okta / Entra)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Clerk<br>(SAML / OIDC)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Your App</div>
+      </div>
+      <p class="animate" style="margin-top:10px;">Combined with <strong>verified domains</strong>, anyone signing up with a company email is automatically routed into the right organization via its SSO connection.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Webhooks -->
+  <div class="slide">
+    <h2 class="animate">Webhooks &amp; Data Sync</h2>
+    <div class="content">
+      <p class="animate">Clerk owns the user store, but you often need users mirrored in your own database. <span class="highlight">Webhooks</span> (powered by Svix) push events to your backend.</p>
+      <pre class="animate">
+// app/api/webhooks/clerk/route.ts
+import { verifyWebhook } from '@clerk/nextjs/webhooks';
+
+export async function POST(req: Request) {
+  const evt = await verifyWebhook(req);   // validates the Svix signature
+
+  switch (evt.type) {
+    case 'user.created':
+      await db.user.create({ data: { clerkId: evt.data.id,
+        email: evt.data.email_addresses[0].email_address } });
+      break;
+    case 'user.updated':  /* sync changes */ break;
+    case 'user.deleted':  await db.user.delete({ where: { clerkId: evt.data.id } }); break;
+    case 'organization.created': /* ... */ break;
+  }
+  return new Response('ok', { status: 200 });
+}
+      </pre>
+      <p class="animate" style="margin-top:8px;">Always <strong>verify the signature</strong> with your signing secret &mdash; never trust an unverified payload. Make handlers <strong>idempotent</strong>; events can be delivered more than once.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Customization & Theming -->
+  <div class="slide">
+    <h2 class="animate">Customization &amp; Theming</h2>
+    <div class="content">
+      <pre class="animate">
+// Match Clerk components to your brand with the appearance prop
+import { dark } from '@clerk/themes';
+
+&lt;ClerkProvider
+  appearance={{
+    baseTheme: dark,
+    variables: {
+      colorPrimary: '#DA7756',
+      borderRadius: '10px',
+      fontFamily: 'Segoe UI, sans-serif',
+    },
+    elements: {
+      formButtonPrimary: 'bg-orange-600 hover:bg-orange-700',
+      card: 'shadow-xl',
+    },
+  }}
+&gt;
+      </pre>
+      <div class="two-col" style="margin-top:16px;">
+        <div class="card animate">
+          <h3>Appearance API</h3>
+          <ul>
+            <li><strong>variables</strong> &mdash; global colors, radius, fonts</li>
+            <li><strong>elements</strong> &mdash; per-element class/style overrides</li>
+            <li><strong>baseTheme</strong> &mdash; prebuilt themes like <code>dark</code></li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Localization</h3>
+          <ul>
+            <li>40+ languages via <code>@clerk/localizations</code></li>
+            <li>Override any string</li>
+            <li>Fully headless: build custom UIs with the hooks if you need total control</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Billing -->
+  <div class="slide">
+    <h2 class="animate">Clerk Billing</h2>
+    <div class="content">
+      <p class="animate">Beyond auth, Clerk offers <span class="highlight">Billing</span> &mdash; subscription plans tied directly to users and organizations, backed by Stripe.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Plans &amp; Features</h3>
+          <p>Define pricing plans and feature entitlements in the dashboard, for B2C users or B2B organizations.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;PricingTable /&gt;</h3>
+          <p>A drop-in component that renders your plans and handles checkout end-to-end.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Entitlement checks</h3>
+          <p>Gate features with the same <code>has()</code> API: <code>has(&#123; feature: 'premium_reports' &#125;)</code>.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>&lt;Protect&gt; by plan</h3>
+          <p>Wrap premium UI in <code>&lt;Protect plan="pro"&gt;</code> &mdash; auth and billing share one model.</p>
+        </div>
+      </div>
+      <pre class="animate">
+// Gate a feature behind a paid plan — server side
+const { has } = await auth();
+if (!has({ plan: 'pro' })) return redirect('/upgrade');
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 26: Security & Compliance -->
+  <div class="slide">
+    <h2 class="animate">Security &amp; Compliance</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Built-in Protections</h3>
+          <ul>
+            <li><strong>Bot &amp; abuse detection</strong> on sign-up</li>
+            <li><strong>Breach &amp; weak-password</strong> checks (HaveIBeenPwned)</li>
+            <li><strong>Brute-force lockout</strong> and rate limiting</li>
+            <li><strong>Session revocation</strong> &mdash; sign out a device remotely</li>
+            <li><strong>Short-lived JWTs</strong> limit token replay</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Compliance</h3>
+          <ul>
+            <li><strong>SOC 2 Type II</strong> certified</li>
+            <li><strong>GDPR</strong> &amp; <strong>CCPA</strong> aligned</li>
+            <li><strong>HIPAA</strong> support on enterprise</li>
+            <li><strong>SCIM</strong> for provisioning</li>
+            <li>Audit logs &amp; configurable session lifetimes</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+// Revoke a specific session from the backend (e.g. "log out everywhere")
+const client = await clerkClient();
+await client.sessions.revokeSession(sessionId);
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 27: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Keep <code>CLERK_SECRET_KEY</code> server-only &mdash; never expose it to the browser</div>
+      <div class="bp-item animate"><span>2</span> Protect routes in <strong>middleware</strong>, not just in components &mdash; defend at the edge</div>
+      <div class="bp-item animate"><span>3</span> Verify auth on the <strong>server</strong> for every sensitive action &mdash; the client is a hint, not a gate</div>
+      <div class="bp-item animate"><span>4</span> Store app data in <strong>publicMetadata</strong> and read it from session claims to avoid API calls</div>
+      <div class="bp-item animate"><span>5</span> Always <strong>verify webhook signatures</strong> and make handlers idempotent</div>
+      <div class="bp-item animate"><span>6</span> Use <strong>Organizations</strong> for B2B from day one &mdash; retrofitting multi-tenancy is painful</div>
+      <div class="bp-item animate"><span>7</span> Enforce auth with <strong>roles &amp; permissions</strong>, not hardcoded user IDs</div>
+      <div class="bp-item animate"><span>8</span> Enable <strong>MFA and passkeys</strong> &mdash; let users harden their own accounts</div>
+      <div class="bp-item animate"><span>9</span> Use a separate <strong>development instance</strong>; never test against production keys</div>
+      <div class="bp-item animate"><span>10</span> Sync users to your DB via webhooks, but treat <strong>Clerk as the source of truth</strong> for identity</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 28: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F510;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Clerk is a complete <span class="highlight">auth + user management</span> platform with drop-in UI</li>
+        <li class="animate">Master the components: <span class="tag">SignIn</span> <span class="tag">UserButton</span> <span class="tag">Protect</span> <span class="tag">OrganizationSwitcher</span></li>
+        <li class="animate">Auth flows: <strong>passwords, OAuth, OTP, magic links, MFA, passkeys</strong></li>
+        <li class="animate">Verify on the server with <strong>auth()</strong>, <strong>middleware</strong>, and <strong>roles &amp; permissions</strong></li>
+        <li class="animate"><strong>Organizations</strong> + <strong>Enterprise SSO/SCIM</strong> make B2B multi-tenancy easy</li>
+        <li class="animate">Sync data with <strong>webhooks</strong>, theme with the <strong>appearance API</strong>, monetize with <strong>Billing</strong></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 28</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
