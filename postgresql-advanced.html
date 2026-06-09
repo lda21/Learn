@@ -1,0 +1,1033 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>PostgreSQL Internals &amp; Performance</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h1 class="animate title-fire">PostgreSQL Internals &amp; Performance</h1>
+    <p class="subtitle animate">A deep dive into MVCC, the query planner, indexing, and tuning &mdash; for engineers who already know SQL</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">MVCC</span>
+      <span class="tag">Query Planner</span>
+      <span class="tag">Indexing</span>
+      <span class="tag">Tuning</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: Course scope + architecture -->
+  <div class="slide">
+    <h2 class="animate">Scope &amp; Architecture</h2>
+    <div class="content">
+      <p class="animate">This is the <span class="highlight">deep dive</span>. We assume you write SQL fluently and know what an index is. The focus is <strong>internals, performance, and operations</strong> on Postgres 17/18.</p>
+      <p class="animate" style="margin-top:8px;">Postgres is a <span class="highlight">process-per-connection</span> system. The <code>postmaster</code> supervisor forks a dedicated backend process for every client connection; shared memory and background workers tie them together.</p>
+      <div class="diagram animate">
+        <div class="box">Client</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">postmaster<br>(forks)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Backend<br>process</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Shared<br>memory</div>
+      </div>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>Per-backend</h3>
+          <ul>
+            <li>One OS process per connection</li>
+            <li>Private memory (<code>work_mem</code>, catalogs)</li>
+            <li>Parses, plans, and executes your query</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Background processes</h3>
+          <ul>
+            <li><strong>checkpointer</strong>, <strong>bgwriter</strong>, <strong>WAL writer</strong></li>
+            <li><strong>autovacuum launcher</strong> + workers</li>
+            <li>archiver, stats collector, walsenders</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Process & memory architecture -->
+  <div class="slide">
+    <h2 class="animate">Memory Architecture</h2>
+    <div class="content">
+      <p class="animate">Postgres memory splits into one big <span class="highlight">shared</span> region and many <span class="highlight">per-backend</span> allocations. Knowing which is which is the key to safe tuning.</p>
+      <table class="animate">
+        <tr><th>Area</th><th>Scope</th><th>Purpose</th></tr>
+        <tr><td><code>shared_buffers</code></td><td>Shared</td><td>Postgres's own page cache (typically 25% of RAM)</td></tr>
+        <tr><td><code>wal_buffers</code></td><td>Shared</td><td>WAL records staged before flush to disk</td></tr>
+        <tr><td><code>work_mem</code></td><td>Per operation</td><td>Sorts &amp; hashes; allocated <em>per node, per backend</em></td></tr>
+        <tr><td><code>maintenance_work_mem</code></td><td>Per backend</td><td>VACUUM, CREATE INDEX, ALTER TABLE</td></tr>
+      </table>
+      <p class="animate" style="margin-top:8px;"><span class="highlight">Critical gotcha:</span> <code>work_mem</code> is not a global limit. A single query with several sorts/hashes can use many multiples of it, and every concurrent backend multiplies it again. Size it against <code>max_connections</code>.</p>
+      <p class="animate"><strong>OS cache matters too:</strong> pages not in <code>shared_buffers</code> are often still hot in the kernel page cache. <code>effective_cache_size</code> tells the planner how much total cache (Postgres + OS) it can assume.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: MVCC deep dive -->
+  <div class="slide">
+    <h2 class="animate">MVCC: How Concurrency Works</h2>
+    <div class="content">
+      <p class="animate">Postgres never overwrites a row in place. Every <code>UPDATE</code>/<code>DELETE</code> creates a new <span class="highlight">tuple version</span> and marks the old one expired. Readers never block writers, and writers never block readers.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Hidden system columns</h3>
+          <ul>
+            <li><code>xmin</code> &mdash; the transaction ID that <em>inserted</em> the tuple</li>
+            <li><code>xmax</code> &mdash; the transaction that <em>deleted/updated</em> it (0 if live)</li>
+            <li><code>ctid</code> &mdash; the physical (page, offset) location</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Snapshots &amp; visibility</h3>
+          <ul>
+            <li>A transaction takes a <strong>snapshot</strong> of which XIDs are committed</li>
+            <li>A tuple is visible if its <code>xmin</code> committed before the snapshot and <code>xmax</code> did not</li>
+            <li>No read locks needed &mdash; visibility is computed per tuple</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:10px;">
+SELECT xmin, xmax, ctid, * FROM accounts WHERE id = 42;
+-- xmin/xmax expose the version history MVCC tracks under the hood</pre>
+      <p class="animate" style="margin-top:8px;">The cost of this elegance: <strong>old versions pile up</strong> as dead tuples that VACUUM must later reclaim.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Heap storage & page layout -->
+  <div class="slide">
+    <h2 class="animate">Heap Storage &amp; Page Layout</h2>
+    <div class="content">
+      <p class="animate">A table (the "heap") is an array of <span class="highlight">8 KB pages</span>. Each page holds a header, an array of item pointers, and tuples that grow inward from the end.</p>
+      <div class="diagram animate">
+        <div class="box">Page header</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Item pointers<br>(line ptrs)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Free space</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Tuples</div>
+      </div>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>TOAST</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;">A value too big for a page (&gt; ~2 KB) is compressed and/or sliced into a side <strong>TOAST table</strong>. Large <code>text</code>/<code>jsonb</code>/<code>bytea</code> live there transparently &mdash; reading them is extra I/O.</p>
+        </div>
+        <div class="card animate">
+          <h3>HOT updates</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;"><strong>Heap-Only Tuple</strong> updates: if no indexed column changes <em>and</em> the new version fits on the same page, Postgres chains it without touching any index. Far cheaper &mdash; design tables to keep updates HOT.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:8px;">A lower <code>fillfactor</code> (e.g. 90) leaves room on each page for future HOT updates on hot-write tables.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Dead tuples, bloat & VACUUM -->
+  <div class="slide">
+    <h2 class="animate">Dead Tuples, Bloat &amp; VACUUM</h2>
+    <div class="content">
+      <p class="animate">Because MVCC leaves dead versions behind, tables and indexes accumulate <span class="highlight">bloat</span> &mdash; space occupied by tuples no transaction can see anymore.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>VACUUM</h3>
+          <ul>
+            <li>Marks dead tuples' space <strong>reusable</strong> in place</li>
+            <li>Updates the <strong>visibility map</strong> &amp; free space map</li>
+            <li>Does <em>not</em> return disk to the OS &mdash; but online &amp; non-blocking</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>VACUUM FULL</h3>
+          <ul>
+            <li>Rewrites the whole table compactly</li>
+            <li><strong>Returns space</strong> to the OS</li>
+            <li>Takes an <span class="highlight">ACCESS EXCLUSIVE lock</span> &mdash; blocks all access</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:8px;">The <strong>visibility map</strong> tracks pages where every tuple is visible to all transactions. It powers <strong>index-only scans</strong> and lets VACUUM skip all-visible pages.</p>
+      <p class="animate">For online bloat removal without a heavy lock, prefer <code>pg_repack</code> or <code>VACUUM FULL</code> during a maintenance window. Monitor bloat with <code>pgstattuple</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Autovacuum tuning -->
+  <div class="slide">
+    <h2 class="animate">Autovacuum Tuning</h2>
+    <div class="content">
+      <p class="animate">Autovacuum runs VACUUM and ANALYZE automatically. A table is vacuumed when dead tuples exceed a <span class="highlight">threshold + scale factor</span> of its size.</p>
+      <pre class="animate">
+-- Trigger ~ threshold + scale_factor * reltuples
+-- Defaults: threshold = 50, scale_factor = 0.2 (20% of the table)
+-- On a 100M-row table, 20% = 20M dead rows before it fires — far too lax.
+
+ALTER TABLE events SET (
+  autovacuum_vacuum_scale_factor = 0.02,   -- vacuum at 2% dead
+  autovacuum_vacuum_cost_delay   = 2ms,    -- run more aggressively
+  autovacuum_vacuum_insert_scale_factor = 0.05
+);</pre>
+      <div class="two-col" style="margin-top:4px;">
+        <div class="card animate">
+          <h3>When it falls behind</h3>
+          <ul>
+            <li>Long-running transactions hold back the "oldest visible" XID</li>
+            <li>Cost-based delay throttles it too hard under heavy write load</li>
+            <li>Too few <code>autovacuum_max_workers</code> for many big tables</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Tune per-table</h3>
+          <ul>
+            <li>Lower scale factors on huge, churny tables</li>
+            <li>Raise <code>maintenance_work_mem</code> for faster index cleanup</li>
+            <li>Watch <code>pg_stat_user_tables.n_dead_tup</code> and <code>last_autovacuum</code></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Transaction ID wraparound -->
+  <div class="slide">
+    <h2 class="animate">XID Wraparound &amp; Freezing</h2>
+    <div class="content">
+      <p class="animate">Transaction IDs are <span class="highlight">32-bit</span> and wrap around. Postgres treats XIDs as a circular space ~2 billion wide. Old tuples must be <strong>frozen</strong> (marked "visible to everyone, forever") before their XID falls out of range.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>The horizon</h3>
+          <p>If unfrozen XIDs approach the 2-billion limit, Postgres refuses new writes to protect data &mdash; a database-down emergency.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Aggressive vacuum</h3>
+          <p>Once a table's age exceeds <code>autovacuum_freeze_max_age</code> (default 200M), an anti-wraparound vacuum is forced &mdash; even on idle tables.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Freezing</h3>
+          <p>VACUUM rewrites old tuples' visibility info so their XIDs can be recycled. Postgres 17+ tracks this more efficiently per page.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Monitor it</h3>
+          <p>Watch <code>age(datfrozenxid)</code> per database; alert well before <code>autovacuum_freeze_max_age</code>.</p>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:6px;">
+SELECT datname, age(datfrozenxid) AS xid_age
+FROM pg_database ORDER BY xid_age DESC;</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: WAL & durability -->
+  <div class="slide">
+    <h2 class="animate">WAL &amp; Durability</h2>
+    <div class="content">
+      <p class="animate">The <span class="highlight">Write-Ahead Log</span> is the heart of durability and replication. Every change is written to WAL <em>before</em> the data page hits disk, so a crash can be replayed.</p>
+      <div class="diagram animate">
+        <div class="box">Change in<br>shared_buffers</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">WAL record<br>(flushed)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">COMMIT<br>acknowledged</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Checkpoint<br>writes pages</div>
+      </div>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>Checkpoints</h3>
+          <ul>
+            <li>Flush all dirty pages so WAL before that point can be recycled</li>
+            <li>Spread out via <code>checkpoint_completion_target</code> to avoid I/O spikes</li>
+            <li>Tune <code>max_wal_size</code> to control checkpoint frequency</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Durability knobs</h3>
+          <ul>
+            <li><code>full_page_writes</code> &mdash; guards against torn pages</li>
+            <li><code>fsync</code> &mdash; never disable on real data</li>
+            <li><code>synchronous_commit</code> &mdash; <span class="highlight">off</span> = faster, may lose last few commits on crash</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Query planner / optimizer -->
+  <div class="slide">
+    <h2 class="animate">The Query Planner</h2>
+    <div class="content">
+      <p class="animate">Postgres uses a <span class="highlight">cost-based optimizer</span>. It enumerates candidate plans, estimates each one's cost in abstract units, and picks the cheapest. Costs come from statistics, not from running the query.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Statistics</h3>
+          <ul>
+            <li><code>ANALYZE</code> samples rows into <code>pg_statistic</code></li>
+            <li>Tracks <strong>n_distinct</strong>, most-common values, histograms, null fraction</li>
+            <li>Estimates row counts (cardinality) for each operation</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Cost knobs</h3>
+          <ul>
+            <li><code>seq_page_cost</code> = 1.0, <code>random_page_cost</code> = 4.0 (lower on SSD)</li>
+            <li><code>cpu_tuple_cost</code>, <code>cpu_index_tuple_cost</code></li>
+            <li><code>effective_cache_size</code> biases toward index plans</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:8px;"><span class="highlight">Bad estimates = bad plans.</span> Most "Postgres is slow" problems trace back to stale statistics or estimates that miss correlated columns &mdash; not the engine itself.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Reading EXPLAIN -->
+  <div class="slide">
+    <h2 class="animate">Reading EXPLAIN (ANALYZE, BUFFERS)</h2>
+    <div class="content">
+      <p class="animate"><code>EXPLAIN</code> shows the plan; <code>ANALYZE</code> actually runs it and reports real timing and rows; <code>BUFFERS</code> exposes the I/O. Read it <strong>inside-out, bottom-up</strong>.</p>
+      <pre class="animate">
+EXPLAIN (ANALYZE, BUFFERS, SETTINGS)
+SELECT * FROM orders o JOIN customers c ON c.id = o.customer_id
+WHERE o.created_at &gt;= now() - interval '7 days';
+
+ Hash Join  (cost=210.5..980.3 rows=1200 width=84)
+             (actual time=2.1..15.4 rows=48000 loops=1)
+   Buffers: shared hit=820 read=1340
+   -&gt;  Seq Scan on orders o  (rows=1200)  (actual rows=48000)   &lt;-- 40x off!
+         Filter: (created_at &gt;= ...)
+   -&gt;  Hash  -&gt;  Seq Scan on customers c</pre>
+      <p class="animate" style="margin-top:8px;"><span class="highlight">What to look for:</span> a large gap between <strong>estimated</strong> and <strong>actual rows</strong> (here 1200 vs 48000) signals stale stats or a missing index. High <code>read</code> buffers mean cache misses. Watch for unexpected Seq Scans and rows growing as you go up the tree.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Scan types -->
+  <div class="slide">
+    <h2 class="animate">Scan Types</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Scan</th><th>When chosen</th><th>Cost profile</th></tr>
+        <tr><td><strong>Seq Scan</strong></td><td>Reading a large fraction of the table</td><td>Sequential I/O; great for full reads</td></tr>
+        <tr><td><strong>Index Scan</strong></td><td>Highly selective predicate</td><td>Random I/O to heap per match</td></tr>
+        <tr><td><strong>Index-Only Scan</strong></td><td>All needed columns in the index &amp; page all-visible</td><td>No heap visit &mdash; fastest</td></tr>
+        <tr><td><strong>Bitmap Heap Scan</strong></td><td>Medium selectivity; combine multiple indexes</td><td>Builds a bitmap, then reads heap in page order</td></tr>
+      </table>
+      <p class="animate" style="margin-top:8px;">A <span class="highlight">Seq Scan is not always bad</span>. If a query touches 40% of rows, scanning sequentially beats millions of random index lookups. The planner picks based on estimated selectivity.</p>
+      <p class="animate"><strong>Bitmap scans</strong> bridge the gap: they collect matching tuple locations from one or more indexes into a bitmap, sort by physical page, then fetch the heap once per page &mdash; turning random I/O into near-sequential.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Join algorithms -->
+  <div class="slide">
+    <h2 class="animate">Join Algorithms</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Nested Loop</h3>
+          <p>For each outer row, probe the inner side. Wins when one side is tiny or the inner has a usable index. O(n&times;m) without an index.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Hash Join</h3>
+          <p>Build a hash table on the smaller side, probe with the larger. Best for big, unsorted, equality joins. Needs <code>work_mem</code>; spills to disk if it overflows.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Merge Join</h3>
+          <p>Both inputs sorted on the join key, then merged. Great when inputs are already ordered (e.g. by an index).</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Planner picks</h3>
+          <p>Selection is cost-driven by estimated row counts. A misestimate can pick a Nested Loop over millions of rows &mdash; a classic disaster.</p>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:6px;">
+-- A Nested Loop with huge "actual rows" on the inner side is a red flag:
+-> Nested Loop (actual rows=2000000 loops=4000)   -- should have been a Hash Join</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: B-tree indexes deep dive -->
+  <div class="slide">
+    <h2 class="animate">B-tree Indexes Deep Dive</h2>
+    <div class="content">
+      <p class="animate">B-tree is the default and the workhorse: balanced, sorted, supporting <code>=</code>, range, <code>ORDER BY</code>, and <code>IN</code>. Understanding multicolumn ordering is where engineers win.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Column order rule</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;">In <code>(a, b, c)</code>, the index helps queries on <code>a</code>, <code>a,b</code>, and <code>a,b,c</code> &mdash; a left-prefix. It cannot efficiently serve a query filtering only on <code>b</code>. Put equality columns first, range columns last.</p>
+        </div>
+        <div class="card animate">
+          <h3>INCLUDE columns</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;">Covering indexes add non-key payload columns so an <strong>index-only scan</strong> can return them without a heap visit &mdash; without bloating the tree's search keys.</p>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:6px;">
+-- Equality on customer_id, range on created_at, covering total:
+CREATE INDEX idx_orders ON orders (customer_id, created_at) INCLUDE (total);
+
+SELECT total FROM orders
+WHERE customer_id = 7 AND created_at &gt;= '2026-01-01';   -- index-only scan</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Specialized indexes -->
+  <div class="slide">
+    <h2 class="animate">Specialized Index Types</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Type</th><th>Best for</th><th>Example</th></tr>
+        <tr><td><strong>GIN</strong></td><td>Multi-value columns: arrays, <code>jsonb</code>, full-text</td><td><code>@&gt;</code>, <code>?</code>, <code>tsvector</code> search</td></tr>
+        <tr><td><strong>GiST</strong></td><td>Geometric, ranges, nearest-neighbor</td><td>PostGIS, range overlaps, KNN</td></tr>
+        <tr><td><strong>BRIN</strong></td><td>Huge tables with natural physical ordering</td><td>Append-only time-series on <code>created_at</code></td></tr>
+        <tr><td><strong>SP-GiST</strong></td><td>Non-balanced partitioned trees</td><td>Quadtrees, IP/prefix data</td></tr>
+        <tr><td><strong>Hash</strong></td><td>Equality only, large keys</td><td><code>WHERE token = ?</code></td></tr>
+      </table>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>GIN</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;">Inverts each contained element to a posting list. The right choice for <code>jsonb</code> containment and full-text. Larger and slower to update than B-tree.</p>
+        </div>
+        <div class="card animate">
+          <h3>BRIN</h3>
+          <p style="color:var(--text-muted); font-size:1.05rem;">Stores min/max summaries per block range. Tiny on disk, but only effective when rows are physically ordered by the indexed column.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Partial, expression & covering indexes -->
+  <div class="slide">
+    <h2 class="animate">Partial, Expression &amp; Maintenance</h2>
+    <div class="content">
+      <pre class="animate">
+-- Partial: index only the rows you actually query — smaller, faster
+CREATE INDEX idx_active ON users (last_login) WHERE status = 'active';
+
+-- Expression: match the exact expression used in WHERE
+CREATE INDEX idx_lower_email ON users (lower(email));
+SELECT * FROM users WHERE lower(email) = 'a@b.com';   -- uses the index</pre>
+      <div class="two-col" style="margin-top:4px;">
+        <div class="card animate">
+          <h3>Index bloat &amp; rebuilds</h3>
+          <ul>
+            <li>Indexes bloat from churn just like heaps</li>
+            <li><code>REINDEX CONCURRENTLY</code> rebuilds without an exclusive lock</li>
+            <li>Find unused indexes via <code>pg_stat_user_indexes</code> (<code>idx_scan = 0</code>)</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Build without blocking</h3>
+          <ul>
+            <li><code>CREATE INDEX CONCURRENTLY</code> avoids locking writes</li>
+            <li>Slower &amp; can leave an invalid index if it fails &mdash; drop &amp; retry</li>
+            <li>Every index is write overhead &mdash; audit and prune</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Extended statistics -->
+  <div class="slide">
+    <h2 class="animate">Extended Statistics</h2>
+    <div class="content">
+      <p class="animate">The planner assumes columns are <span class="highlight">independent</span>. When they're correlated, row estimates collapse and plans go wrong. <code>CREATE STATISTICS</code> teaches the planner about the relationship.</p>
+      <pre class="animate">
+-- city and state are correlated; the planner under-estimates the combo
+CREATE STATISTICS s_city_state (dependencies, ndistinct, mcv)
+  ON city, state FROM addresses;
+ANALYZE addresses;</pre>
+      <div class="metric-grid" style="margin-top:4px;">
+        <div class="metric-card animate">
+          <h3>dependencies</h3>
+          <p>Captures functional dependencies (zip &rarr; city) so combined-predicate estimates stop multiplying down to near-zero.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>ndistinct</h3>
+          <p>Tracks distinct counts for <em>groups</em> of columns &mdash; vital for <code>GROUP BY</code> on multiple columns.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>mcv</h3>
+          <p>Most-common <em>combinations</em> of values, improving estimates for skewed multi-column filters.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>n_distinct override</h3>
+          <p>You can also set <code>ALTER TABLE ... ALTER COLUMN ... SET (n_distinct = ...)</code> when ANALYZE samples poorly.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Table partitioning -->
+  <div class="slide">
+    <h2 class="animate">Table Partitioning</h2>
+    <div class="content">
+      <p class="animate">Declarative partitioning splits one logical table into physical child tables by <span class="highlight">RANGE</span>, <span class="highlight">LIST</span>, or <span class="highlight">HASH</span>. The win comes from <strong>partition pruning</strong>, not raw partition count.</p>
+      <pre class="animate">
+CREATE TABLE events (id bigint, ts timestamptz, payload jsonb)
+  PARTITION BY RANGE (ts);
+
+CREATE TABLE events_2026_06 PARTITION OF events
+  FOR VALUES FROM ('2026-06-01') TO ('2026-07-01');
+
+-- Planner prunes to a single partition using the ts predicate:
+EXPLAIN SELECT * FROM events WHERE ts &gt;= '2026-06-10';</pre>
+      <div class="two-col" style="margin-top:4px;">
+        <div class="card animate">
+          <h3>Why it helps</h3>
+          <ul>
+            <li><strong>Pruning</strong> skips irrelevant partitions entirely</li>
+            <li>Drop old data instantly via <code>DROP TABLE</code> on a partition</li>
+            <li>Smaller per-partition indexes &amp; faster vacuum</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Watch out</h3>
+          <ul>
+            <li>Queries without the partition key scan <em>all</em> partitions</li>
+            <li>Enable <strong>partition-wise joins/aggregates</strong> for big gains</li>
+            <li>Too many partitions inflates planning time</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Locking & concurrency -->
+  <div class="slide">
+    <h2 class="animate">Locking &amp; Concurrency</h2>
+    <div class="content">
+      <p class="animate">Readers and writers rarely conflict thanks to MVCC, but writers contend on the <span class="highlight">same rows</span>, and DDL takes heavy table locks. Knowing the lock modes prevents production stalls.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Row vs table locks</h3>
+          <ul>
+            <li><code>SELECT ... FOR UPDATE</code> locks rows for a write you're about to do</li>
+            <li><code>FOR NO KEY UPDATE</code> / <code>FOR SHARE</code> are lighter variants</li>
+            <li>DDL like <code>ALTER TABLE</code> grabs <strong>ACCESS EXCLUSIVE</strong> &mdash; blocks everything</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Deadlocks</h3>
+          <ul>
+            <li>Two txns lock rows in opposite order</li>
+            <li>Postgres detects the cycle and aborts one</li>
+            <li>Fix: lock rows in a consistent order; keep txns short</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate" style="margin-top:6px;">
+-- Find what's blocking what, right now:
+SELECT pid, mode, relation::regclass, granted FROM pg_locks
+JOIN pg_stat_activity USING (pid) WHERE NOT granted;</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Isolation levels -->
+  <div class="slide">
+    <h2 class="animate">Isolation Levels in Practice</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Level</th><th>Prevents</th><th>Behavior in Postgres</th></tr>
+        <tr><td><strong>Read Committed</strong> (default)</td><td>Dirty reads</td><td>Each statement sees a fresh snapshot; non-repeatable reads possible</td></tr>
+        <tr><td><strong>Repeatable Read</strong></td><td>+ non-repeatable &amp; phantom reads</td><td>One snapshot for the whole txn; may abort with a serialization error</td></tr>
+        <tr><td><strong>Serializable</strong> (SSI)</td><td>All anomalies</td><td>Acts as if txns ran one at a time; aborts on dangerous patterns</td></tr>
+      </table>
+      <p class="animate" style="margin-top:8px;">Postgres's <strong>Repeatable Read</strong> already blocks phantom reads (stronger than the SQL standard requires). <span class="highlight">Serializable Snapshot Isolation (SSI)</span> adds predicate-level conflict tracking with no extra locks.</p>
+      <p class="animate"><strong>Trade-off:</strong> RR and Serializable can throw <code>could not serialize access</code> errors &mdash; your app <strong>must retry</strong> the whole transaction. Use them for read-modify-write logic where correctness beats a retry loop.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Connection management & pooling -->
+  <div class="slide">
+    <h2 class="animate">Connection Management &amp; Pooling</h2>
+    <div class="content">
+      <p class="animate">Each connection is a <span class="highlight">full OS process</span> with its own memory. Thousands of connections crush a server even when mostly idle &mdash; pooling is not optional at scale.</p>
+      <div class="diagram animate">
+        <div class="box">App<br>(many clients)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">PgBouncer<br>(transaction mode)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Few Postgres<br>backends</div>
+      </div>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>Why pool</h3>
+          <ul>
+            <li>Backends cost RAM &amp; context-switching even when idle</li>
+            <li><code>max_connections</code> in the low hundreds is healthy, not thousands</li>
+            <li>Pool reuses a small set of real backends</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>PgBouncer modes</h3>
+          <ul>
+            <li><strong>Transaction</strong> pooling: backend returned after each txn &mdash; highest reuse</li>
+            <li>Beware: session-level features (prepared statements, <code>SET</code>) need care</li>
+            <li><strong>Session</strong> mode is safe but reuses less</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Replication & HA -->
+  <div class="slide">
+    <h2 class="animate">Replication &amp; High Availability</h2>
+    <div class="content">
+      <p class="animate">Replication ships the <span class="highlight">WAL stream</span> to standbys. This powers read scaling, failover, and zero-downtime upgrades.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Physical (streaming)</h3>
+          <ul>
+            <li>Byte-for-byte WAL replay to a standby</li>
+            <li><strong>Replication slots</strong> stop the primary recycling WAL a lagging standby still needs</li>
+            <li>Standbys serve read-only queries (hot standby)</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Logical</h3>
+          <ul>
+            <li>Decodes WAL into row-level changes (publications/subscriptions)</li>
+            <li>Selective tables, cross-version, different schemas</li>
+            <li>Ideal for upgrades &amp; data integration</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:8px;"><strong>Sync vs async:</strong> <code>synchronous_commit</code> with a sync standby guarantees no data loss on failover but adds commit latency. Async is faster but can lose the last few transactions. <strong>Failover</strong> promotes a standby; tools like Patroni automate it.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Performance tuning workflow -->
+  <div class="slide">
+    <h2 class="animate">Performance Tuning Workflow</h2>
+    <div class="content">
+      <p class="animate">Don't guess &mdash; measure. <code>pg_stat_statements</code> is the single most valuable tool for finding where time actually goes.</p>
+      <pre class="animate">
+-- Top queries by total time across the whole server:
+SELECT query, calls, total_exec_time, mean_exec_time, rows
+FROM pg_stat_statements
+ORDER BY total_exec_time DESC LIMIT 10;</pre>
+      <div class="metric-grid" style="margin-top:4px;">
+        <div class="metric-card animate">
+          <h3>pg_stat_statements</h3>
+          <p>Aggregates normalized queries by total/mean time, calls, and rows. Start here, optimize the top of the list.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>pg_stat_activity</h3>
+          <p>Live view of running queries, their state, and <code>wait_event</code> &mdash; what each backend is blocked on right now.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Wait events</h3>
+          <p>Lock waits, I/O waits, WAL waits &mdash; tell you whether you're CPU, I/O, or contention bound.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>EXPLAIN the worst</h3>
+          <p>Take the top offenders and run <code>EXPLAIN (ANALYZE, BUFFERS)</code> to find the bad node.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Server configuration tuning -->
+  <div class="slide">
+    <h2 class="animate">Server Configuration Tuning</h2>
+    <div class="content">
+      <p class="animate">A handful of GUCs drive most performance. Start from sane baselines for your RAM and storage, then tune from measurements.</p>
+      <table class="animate">
+        <tr><th>Setting</th><th>Typical</th><th>Effect</th></tr>
+        <tr><td><code>shared_buffers</code></td><td>~25% RAM</td><td>Postgres page cache size</td></tr>
+        <tr><td><code>effective_cache_size</code></td><td>~50-75% RAM</td><td>Planner's view of total cache &rarr; favors indexes</td></tr>
+        <tr><td><code>work_mem</code></td><td>Per-op, by concurrency</td><td>Bigger sorts/hashes in memory, avoid disk spills</td></tr>
+        <tr><td><code>random_page_cost</code></td><td>1.1 on SSD</td><td>Lower makes index scans more attractive</td></tr>
+        <tr><td><code>max_wal_size</code></td><td>Workload-dependent</td><td>Controls checkpoint frequency</td></tr>
+      </table>
+      <p class="animate" style="margin-top:8px;"><span class="highlight">Parallelism:</span> <code>max_parallel_workers_per_gather</code> lets large scans, joins, and aggregates use multiple cores. Raise it for analytical workloads; the planner only parallelizes when the estimated cost justifies the worker startup overhead.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> <strong>EXPLAIN before you optimize</strong> &mdash; verify the bottleneck instead of guessing</div>
+      <div class="bp-item animate"><span>2</span> Keep statistics fresh; add <strong>extended statistics</strong> for correlated columns</div>
+      <div class="bp-item animate"><span>3</span> Practice <strong>index hygiene</strong> &mdash; cover real queries, drop unused indexes</div>
+      <div class="bp-item animate"><span>4</span> Tune <strong>autovacuum per table</strong>; never let it fall behind on churny tables</div>
+      <div class="bp-item animate"><span>5</span> Monitor <strong>bloat and XID wraparound</strong> proactively with alerts</div>
+      <div class="bp-item animate"><span>6</span> Design updates to stay <strong>HOT</strong>; tune <code>fillfactor</code> on hot-write tables</div>
+      <div class="bp-item animate"><span>7</span> <strong>Batch writes</strong> and keep transactions short to limit dead tuples &amp; lock time</div>
+      <div class="bp-item animate"><span>8</span> Pick the <strong>right isolation level</strong> and add <strong>retry logic</strong> for serialization errors</div>
+      <div class="bp-item animate"><span>9</span> Put a <strong>connection pooler</strong> (PgBouncer) in front; keep <code>max_connections</code> modest</div>
+      <div class="bp-item animate"><span>10</span> Use <strong>replication slots</strong> for standbys, but monitor lag so WAL doesn't pile up</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 26: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x26A1;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate"><strong>MVCC</strong> drives concurrency &mdash; and creates dead tuples that <strong>VACUUM</strong> must reclaim</li>
+        <li class="animate">Master the planner: <span class="tag">Statistics</span> <span class="tag">EXPLAIN</span> <span class="tag">Scans</span> <span class="tag">Joins</span></li>
+        <li class="animate">Index deliberately: <strong>B-tree ordering, GIN/GiST/BRIN, partial &amp; covering</strong></li>
+        <li class="animate">Operate it: <strong>autovacuum, XID wraparound, WAL, checkpoints, partitioning</strong></li>
+        <li class="animate">Scale it: <strong>pooling, replication &amp; HA</strong>, the right <strong>isolation level</strong></li>
+        <li class="animate">Tune from data: <strong>pg_stat_statements</strong>, wait events, and the key GUCs</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 26</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
