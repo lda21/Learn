@@ -1,0 +1,1004 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>ClickHouse - Columnar OLAP Database for Real-Time Analytics</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F5C4;</span>
+    <h1 class="animate title-fire">ClickHouse</h1>
+    <p class="subtitle animate">The Open-Source Columnar OLAP Database for Real-Time Analytics at Scale</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">OLAP</span>
+      <span class="tag">Analytics</span>
+      <span class="tag">Columnar</span>
+      <span class="tag">SQL</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is ClickHouse -->
+  <div class="slide">
+    <h2 class="animate">What is ClickHouse?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An <span class="highlight">open-source, column-oriented database management system</span> (DBMS) built for online analytical processing (OLAP)</li>
+        <li class="animate">Designed for <strong>real-time analytics</strong> over huge datasets &mdash; aggregations and filters across billions of rows in milliseconds</li>
+        <li class="animate">Uses <strong>vectorized query execution</strong> and aggressive compression to process data at extreme speed</li>
+        <li class="animate">Speaks a rich, <strong>SQL dialect</strong> with hundreds of built-in functions, and exposes HTTP and native protocols plus JDBC/ODBC</li>
+        <li class="animate">Originated at Yandex to power web analytics; now a standalone company (ClickHouse Inc.) and a thriving open-source project under the <span class="highlight">Apache 2.0</span> license</li>
+      </ul>
+      <pre class="animate">
+-- A billion-row aggregation that returns in well under a second
+SELECT country, count() AS hits, avg(duration_ms) AS avg_ms
+FROM web_events
+WHERE event_date &gt;= today() - 7
+GROUP BY country
+ORDER BY hits DESC
+LIMIT 10;
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why ClickHouse -->
+  <div class="slide">
+    <h2 class="animate">Why ClickHouse?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Workload</th><th>ClickHouse</th><th>Postgres / MySQL</th><th>When it fits</th></tr>
+        <tr><td>Analytical scans &amp; aggregations</td><td><span class="green">Excellent</span></td><td>Slow on big tables</td><td>ClickHouse</td></tr>
+        <tr><td>High-volume inserts (append)</td><td><span class="green">Excellent</span></td><td>Good</td><td>ClickHouse</td></tr>
+        <tr><td>Point lookups by primary key</td><td>OK</td><td><span class="green">Excellent</span></td><td>Row store</td></tr>
+        <tr><td>Frequent single-row UPDATE / DELETE</td><td>Avoid</td><td><span class="green">Native (OLTP)</span></td><td>Row store</td></tr>
+        <tr><td>Transactions (ACID, multi-row)</td><td>Limited</td><td><span class="green">Full</span></td><td>Row store</td></tr>
+        <tr><td>Storage footprint (compression)</td><td><span class="green">10x+ smaller</span></td><td>Larger</td><td>ClickHouse</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;"><strong>Use ClickHouse for:</strong> dashboards, log/metric analytics, time-series, event analytics. <strong>Do NOT use it for:</strong> OLTP, high-frequency point updates, or as a transactional system of record.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Columnar storage -->
+  <div class="slide">
+    <h2 class="animate">Columnar Storage Explained</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Row store<br><small>row1 | row2 | row3</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Column store<br><small>colA | colB | colC</small></div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Read only<br>needed columns</div>
+      </div>
+      <div class="two-col" style="margin-top:10px;">
+        <div class="card animate">
+          <h3>Why columns win for OLAP</h3>
+          <ul>
+            <li>Queries touch only the columns they reference &mdash; far less I/O</li>
+            <li>Values of one column share a data type, so they <strong>compress brilliantly</strong></li>
+            <li>Tight columns fit in CPU cache and feed SIMD-friendly loops</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Vectorized execution</h3>
+          <ul>
+            <li>ClickHouse processes data in <strong>blocks of many rows at once</strong>, not row-by-row</li>
+            <li>Each operator runs over whole arrays, exploiting <strong>SIMD</strong> CPU instructions</li>
+            <li>Result: high throughput and excellent cache utilization</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Row stores are optimized to read and write <span class="highlight">whole rows</span> (great for OLTP). Column stores are optimized to scan <span class="highlight">a few columns across millions of rows</span> (great for analytics).</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Architecture -->
+  <div class="slide">
+    <h2 class="animate">Architecture Overview</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>MergeTree engine</h3>
+          <p>The core table engine family. Data is stored sorted by the <code>ORDER BY</code> key and written as immutable <strong>parts</strong> that merge in the background.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Parts &amp; granules</h3>
+          <p>Each part holds columns split into <strong>granules</strong> (default 8192 rows). Granules are the unit the sparse index points to.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Sparse primary index</h3>
+          <p>One index entry per granule, not per row. The index is tiny and lives in memory, letting ClickHouse skip whole ranges of data.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Shards &amp; replicas</h3>
+          <p>Scale out by <strong>sharding</strong> (split data across nodes) and ensure durability with <strong>replicas</strong> (copies kept in sync).</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">ClickHouse can run as a single binary on a laptop or as a large distributed cluster &mdash; the same engine, the same SQL.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Getting started -->
+  <div class="slide">
+    <h2 class="animate">Getting Started</h2>
+    <div class="content">
+      <pre class="animate">
+# Install (Linux/macOS) — single self-contained binary
+curl https://clickhouse.com/ | sh
+
+# Start the server
+./clickhouse server
+
+# Connect with the interactive client
+./clickhouse client
+      </pre>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>clickhouse local</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Run SQL over local or remote files without a server &mdash; great for ad-hoc analysis.</p>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+clickhouse local --query \
+  "SELECT count() FROM 'data.parquet'"
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>ClickHouse Cloud</h3>
+          <ul>
+            <li>Fully managed service from ClickHouse Inc.</li>
+            <li>Separated storage &amp; compute, autoscaling</li>
+            <li>Start free, no server ops required</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Creating tables -->
+  <div class="slide">
+    <h2 class="animate">Creating Tables &amp; MergeTree</h2>
+    <div class="content">
+      <pre class="animate">
+CREATE TABLE web_events
+(
+    event_date  Date,
+    event_time  DateTime,
+    user_id     UInt64,
+    country     LowCardinality(String),
+    url         String,
+    duration_ms UInt32
+)
+ENGINE = MergeTree
+PARTITION BY toYYYYMM(event_date)   -- coarse data chunks for pruning/TTL
+ORDER BY (country, event_time, user_id);  -- sort key = primary index
+      </pre>
+      <ul>
+        <li class="animate"><code>ORDER BY</code> defines the sort order of data on disk and, by default, the <span class="highlight">primary key</span> (sparse index)</li>
+        <li class="animate"><code>PARTITION BY</code> groups parts into partitions &mdash; usually by month or day &mdash; enabling fast pruning and easy data drops</li>
+        <li class="animate">Choose an <code>ORDER BY</code> that matches your most common filters; it is the single biggest performance lever</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Data types -->
+  <div class="slide">
+    <h2 class="animate">Data Types</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Scalars</h3>
+          <ul>
+            <li><code>Int8..Int256</code>, <code>UInt8..UInt256</code></li>
+            <li><code>Float32</code>, <code>Float64</code>, <code>Decimal(P, S)</code></li>
+            <li><code>String</code>, <code>FixedString(N)</code></li>
+            <li><code>Date</code>, <code>Date32</code>, <code>DateTime</code>, <code>DateTime64</code></li>
+            <li><code>Bool</code>, <code>UUID</code>, <code>Enum8</code> / <code>Enum16</code></li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Composite &amp; special</h3>
+          <ul>
+            <li><code>Array(T)</code> &mdash; e.g. <code>Array(String)</code></li>
+            <li><code>Tuple(...)</code>, <code>Map(K, V)</code>, <code>Nested</code></li>
+            <li><code>Nullable(T)</code> &mdash; adds a NULL bitmap (costs space)</li>
+            <li><code>LowCardinality(T)</code> &mdash; dictionary-encode repeated values</li>
+            <li><code>JSON</code>, <code>IPv4</code> / <code>IPv6</code>, geo types</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;"><span class="highlight">LowCardinality</span> dramatically shrinks columns with few distinct values (countries, statuses, event names) and speeds up filters &amp; GROUP BY. Prefer non-<code>Nullable</code> columns where you can.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: MergeTree deep dive -->
+  <div class="slide">
+    <h2 class="animate">MergeTree Engine Deep Dive</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">INSERT</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">New part<br>(sorted)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Background<br>merge</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Fewer, larger<br>parts</div>
+      </div>
+      <ul>
+        <li class="animate">Each insert creates a new immutable <strong>part</strong>; data inside a part is sorted by the <code>ORDER BY</code> key</li>
+        <li class="animate">A background process continuously <strong>merges</strong> small parts into larger ones (the "Merge" in MergeTree)</li>
+        <li class="animate">Columns are stored in <strong>granules</strong> (<code>index_granularity</code>, default 8192 rows); the <strong>sparse primary index</strong> stores one mark per granule</li>
+        <li class="animate">A query uses the index to find candidate granules, then reads only those &mdash; skipping the rest of the part</li>
+      </ul>
+      <p class="animate" style="margin-top:8px;">Because parts are immutable and merges are async, ClickHouse favors <span class="highlight">large batch inserts</span> over many tiny ones &mdash; too many small parts hurts performance.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: MergeTree variants -->
+  <div class="slide">
+    <h2 class="animate">MergeTree Family Variants</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Engine</th><th>What it does on merge</th><th>Use case</th></tr>
+        <tr><td>MergeTree</td><td>Just sorts &amp; merges parts</td><td>General analytics</td></tr>
+        <tr><td>ReplacingMergeTree</td><td>Keeps the last row per sort key (optional version col)</td><td>Deduplication / upserts</td></tr>
+        <tr><td>SummingMergeTree</td><td>Sums numeric columns for rows with the same key</td><td>Pre-aggregated counters</td></tr>
+        <tr><td>AggregatingMergeTree</td><td>Merges aggregate states (<code>-State</code> / <code>-Merge</code>)</td><td>Materialized-view rollups</td></tr>
+        <tr><td>CollapsingMergeTree</td><td>Cancels +1 / -1 rows by a sign column</td><td>Mutable state via inserts</td></tr>
+        <tr><td>VersionedCollapsing</td><td>Collapsing with an explicit version</td><td>Out-of-order updates</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;">Each <code>Replicated*</code> counterpart (e.g. <code>ReplicatedMergeTree</code>) adds replication via ClickHouse Keeper. Note: deduplication/collapsing happens <span class="highlight">at merge time</span> &mdash; use <code>FINAL</code> or aggregation to get fully merged results at query time.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Inserting data -->
+  <div class="slide">
+    <h2 class="animate">Inserting Data</h2>
+    <div class="content">
+      <pre class="animate">
+-- Batch insert: prefer thousands+ of rows per INSERT, not one at a time
+INSERT INTO web_events VALUES
+  ('2026-06-09', '2026-06-09 10:00:00', 42, 'US', '/home', 120),
+  ('2026-06-09', '2026-06-09 10:00:01', 43, 'DE', '/pricing', 85);
+
+-- Load files directly in many formats
+INSERT INTO web_events FORMAT CSV               -- or CSVWithNames
+INSERT INTO web_events FORMAT JSONEachRow        -- one JSON object per line
+INSERT INTO web_events FROM INFILE 'data.parquet' FORMAT Parquet;
+      </pre>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>Batching is the rule</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Each INSERT becomes a part. Aim for large batches (tens of thousands of rows) to avoid the "too many small parts" problem.</p>
+        </div>
+        <div class="card animate">
+          <h3>Async inserts</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Set <code>async_insert=1</code> and ClickHouse buffers many small client inserts server-side, flushing them as one part &mdash; ideal for many concurrent writers.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Querying & SQL -->
+  <div class="slide">
+    <h2 class="animate">Querying &amp; SQL Dialect</h2>
+    <div class="content">
+      <pre class="animate">
+SELECT
+    country,
+    toStartOfHour(event_time) AS hour,
+    count()                   AS hits,
+    uniq(user_id)             AS visitors
+FROM web_events
+WHERE event_date = today()
+GROUP BY country, hour
+HAVING hits &gt; 100
+ORDER BY hits DESC
+LIMIT 5 BY country;          -- ClickHouse extension: top-5 per country
+      </pre>
+      <ul>
+        <li class="animate">Standard SQL: <code>SELECT</code>, <code>WHERE</code>, <code>GROUP BY</code>, <code>JOIN</code>, <code>HAVING</code>, window functions, CTEs</li>
+        <li class="animate">Extensions: <code>LIMIT n BY expr</code>, <code>ARRAY JOIN</code>, <code>WITH ROLLUP/CUBE</code>, lambda &amp; higher-order array functions</li>
+        <li class="animate">Rich helpers for dates (<code>toStartOfHour</code>), arrays, strings, JSON, URLs, and approximate analytics</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Aggregate functions & combinators -->
+  <div class="slide">
+    <h2 class="animate">Aggregate Functions &amp; Combinators</h2>
+    <div class="content">
+      <pre class="animate">
+SELECT
+    count()                          AS total,
+    sum(duration_ms)                 AS total_ms,
+    uniq(user_id)                    AS approx_unique,    -- fast approximate
+    uniqExact(user_id)               AS exact_unique,
+    quantile(0.95)(duration_ms)      AS p95,
+    avgIf(duration_ms, country = 'US') AS us_avg,         -- -If combinator
+    sumArray(values)                 AS sum_of_arrays     -- -Array combinator
+FROM web_events;
+      </pre>
+      <ul>
+        <li class="animate"><span class="highlight">Combinators</span> are suffixes that transform any aggregate function:</li>
+        <li class="animate"><code>-If</code> applies a condition; <code>-Array</code> operates on array elements; <code>-Merge</code> / <code>-State</code> handle intermediate aggregate states</li>
+        <li class="animate"><code>-State</code> produces a partial aggregate you can store; <code>-Merge</code> combines those states later &mdash; the foundation of incremental rollups</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Materialized Views -->
+  <div class="slide">
+    <h2 class="animate">Materialized Views</h2>
+    <div class="content">
+      <p class="animate">A ClickHouse materialized view is an <span class="highlight">insert trigger</span>: as rows land in the source table, the view's query runs on that block and writes results into a target table &mdash; incremental aggregation, no scheduled batch job.</p>
+      <pre class="animate">
+-- Target: hourly rollups using aggregate states
+CREATE TABLE hits_by_hour
+(
+    hour DateTime,
+    country LowCardinality(String),
+    hits AggregateFunction(count),
+    visitors AggregateFunction(uniq, UInt64)
+) ENGINE = AggregatingMergeTree ORDER BY (hour, country);
+
+CREATE MATERIALIZED VIEW mv_hits TO hits_by_hour AS
+SELECT toStartOfHour(event_time) AS hour, country,
+       countState() AS hits, uniqState(user_id) AS visitors
+FROM web_events GROUP BY hour, country;
+
+-- Query: merge the states back into final numbers
+SELECT hour, country, countMerge(hits), uniqMerge(visitors)
+FROM hits_by_hour GROUP BY hour, country;
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Projections & skip indexes -->
+  <div class="slide">
+    <h2 class="animate">Projections &amp; Skip Indexes</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Data-skipping indexes</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Secondary indexes that let ClickHouse skip granules that cannot match a filter.</p>
+          <ul>
+            <li><code>minmax</code> &mdash; min/max per block</li>
+            <li><code>set(N)</code> &mdash; small distinct sets</li>
+            <li><code>bloom_filter</code> &mdash; membership tests</li>
+            <li><code>ngrambf_v1</code> / <code>tokenbf_v1</code> &mdash; text search</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Projections</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">An alternate physical ordering or pre-aggregation of the same table, stored inside it. The optimizer picks the projection automatically when it speeds a query up.</p>
+        </div>
+      </div>
+      <pre class="animate">
+ALTER TABLE web_events ADD INDEX url_bf url
+  TYPE bloom_filter GRANULARITY 4;
+
+ALTER TABLE web_events ADD PROJECTION by_user
+  (SELECT * ORDER BY user_id);
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Dictionaries -->
+  <div class="slide">
+    <h2 class="animate">Dictionaries</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Dictionaries</span> are in-memory key-value lookup structures sourced from external systems (Postgres, MySQL, files, HTTP, another ClickHouse table). They replace many JOINs with a fast <code>dictGet</code>.</p>
+      <pre class="animate">
+CREATE DICTIONARY country_names
+(
+    code   String,
+    name   String
+)
+PRIMARY KEY code
+SOURCE(CLICKHOUSE(TABLE 'countries'))
+LAYOUT(HASHED())
+LIFETIME(MIN 300 MAX 600);   -- auto-refresh window in seconds
+
+-- Use it like a function — no JOIN needed
+SELECT dictGet('country_names', 'name', country) AS country_name,
+       count()
+FROM web_events
+GROUP BY country_name;
+      </pre>
+      <p class="animate" style="margin-top:8px;">Dictionaries are cached in RAM and refreshed on a schedule, so lookups are extremely fast and stay current. Layouts include <code>flat</code>, <code>hashed</code>, <code>complex_key_hashed</code>, and <code>cache</code>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Sharding & replication -->
+  <div class="slide">
+    <h2 class="animate">Sharding &amp; Replication</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Distributed<br>table</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Shard 1<br>(replicas)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Shard 2<br>(replicas)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">ClickHouse<br>Keeper</div>
+      </div>
+      <ul>
+        <li class="animate"><strong>ReplicatedMergeTree</strong> keeps copies of data in sync across replicas for high availability and durability</li>
+        <li class="animate"><strong>ClickHouse Keeper</strong> (a faster, built-in alternative to ZooKeeper) coordinates replication and distributed DDL</li>
+        <li class="animate">The <strong>Distributed</strong> engine is a routing layer: it fans queries out to shards and merges results &mdash; it stores no data itself</li>
+        <li class="animate">Sharding scales <em>capacity &amp; throughput</em>; replication scales <em>availability &amp; read concurrency</em></li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: TTL & lifecycle -->
+  <div class="slide">
+    <h2 class="animate">TTL &amp; Data Lifecycle</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">TTL</span> (time-to-live) expressions let ClickHouse automatically delete or move data as it ages &mdash; essential for logs and metrics with retention policies.</p>
+      <pre class="animate">
+CREATE TABLE logs
+(
+    ts   DateTime,
+    msg  String
+)
+ENGINE = MergeTree
+ORDER BY ts
+TTL ts + INTERVAL 30 DAY DELETE,                 -- drop after 30 days
+    ts + INTERVAL 7  DAY TO VOLUME 'cold';        -- tier to cheaper disk
+
+-- Column-level TTL and aggregation-on-expire are also supported
+ALTER TABLE web_events
+  MODIFY TTL event_date + INTERVAL 90 DAY
+  GROUP BY country SET duration_ms = sum(duration_ms);
+      </pre>
+      <ul>
+        <li class="animate">TTL can <strong>DELETE</strong> rows, <strong>move</strong> parts between disks/volumes (hot/warm/cold tiers), or <strong>roll up</strong> data on expiry</li>
+        <li class="animate">Dropping a whole <strong>partition</strong> is the cheapest way to delete large date ranges</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Integrations & table engines -->
+  <div class="slide">
+    <h2 class="animate">Integrations &amp; Table Engines</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Kafka engine</h3>
+          <p>A table that consumes a Kafka topic; pair it with a materialized view to stream events straight into MergeTree.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>S3 &amp; object storage</h3>
+          <p>Read and write Parquet/CSV/JSON on S3, GCS, or Azure with the <code>S3</code> engine and table functions.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>MySQL / PostgreSQL</h3>
+          <p>Query external relational tables live, or replicate them with <code>MaterializedPostgreSQL</code>.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Wide ecosystem</h3>
+          <p>Connectors and integrations for Kafka Connect, dbt, Grafana, Superset, Spark, Airbyte, and BI tools.</p>
+        </div>
+      </div>
+      <pre class="animate">
+-- Query a Parquet file on S3 directly, no ingest required
+SELECT count() FROM s3('https://bucket.s3.amazonaws.com/events/*.parquet', Parquet);
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Performance tuning -->
+  <div class="slide">
+    <h2 class="animate">Performance Tuning</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Design the ORDER BY key</strong> around your filters &mdash; columns you filter on first should lead, low-cardinality first often helps</li>
+        <li class="animate"><strong>Partition pruning</strong>: filter on the partition expression so whole partitions are skipped</li>
+        <li class="animate"><strong>PREWHERE</strong> reads filter columns first to discard granules before reading the rest (the optimizer often applies it for you)</li>
+        <li class="animate">Inspect plans with <code>EXPLAIN</code> and profile with <code>system.query_log</code> &amp; <code>EXPLAIN indexes = 1</code></li>
+      </ul>
+      <pre class="animate">
+-- PREWHERE filters cheaply before reading wide columns
+SELECT url, duration_ms
+FROM web_events
+PREWHERE country = 'US' AND event_date = today()
+WHERE duration_ms &gt; 1000;
+
+-- See which granules/indexes a query uses
+EXPLAIN indexes = 1
+SELECT count() FROM web_events WHERE country = 'DE';
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Compression & codecs -->
+  <div class="slide">
+    <h2 class="animate">Compression &amp; Codecs</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>General compression</h3>
+          <ul>
+            <li><strong>LZ4</strong> &mdash; default; very fast, good ratio</li>
+            <li><strong>ZSTD</strong> &mdash; higher ratio, tunable level, a bit more CPU</li>
+            <li>Set per column or as the table/server default</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Specialized codecs</h3>
+          <ul>
+            <li><code>Delta</code> / <code>DoubleDelta</code> &mdash; monotonic / time-series values</li>
+            <li><code>Gorilla</code> &mdash; gauge-like floating point</li>
+            <li><code>T64</code> &mdash; truncate unused high bits of integers</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+CREATE TABLE metrics
+(
+    ts    DateTime CODEC(DoubleDelta, ZSTD(3)),  -- timestamps compress hugely
+    value Float64  CODEC(Gorilla),
+    host  LowCardinality(String)
+) ENGINE = MergeTree ORDER BY (host, ts);
+      </pre>
+      <p class="animate" style="margin-top:8px;">Codecs can be <span class="highlight">chained</span>: a transform codec (Delta) followed by a general codec (ZSTD) often yields the best ratios.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: Observability & system tables -->
+  <div class="slide">
+    <h2 class="animate">Observability &amp; System Tables</h2>
+    <div class="content">
+      <p class="animate">ClickHouse introspects itself through the <code>system</code> database &mdash; everything from running queries to part sizes is queryable with SQL.</p>
+      <table class="animate">
+        <tr><th>System table</th><th>What it shows</th></tr>
+        <tr><td><code>system.query_log</code></td><td>Every query: duration, rows read, memory, errors</td></tr>
+        <tr><td><code>system.parts</code></td><td>Parts per table: rows, bytes, compression ratio</td></tr>
+        <tr><td><code>system.processes</code></td><td>Currently running queries (live)</td></tr>
+        <tr><td><code>system.metrics</code> / <code>system.events</code></td><td>Real-time counters and cumulative events</td></tr>
+        <tr><td><code>system.mutations</code></td><td>Status of ALTER UPDATE/DELETE operations</td></tr>
+      </table>
+      <pre class="animate">
+-- Find the slowest queries in the last hour
+SELECT query_duration_ms, read_rows, formatReadableSize(memory_usage), query
+FROM system.query_log
+WHERE type = 'QueryFinish' AND event_time &gt; now() - INTERVAL 1 HOUR
+ORDER BY query_duration_ms DESC LIMIT 10;
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: ClickHouse Cloud & ecosystem -->
+  <div class="slide">
+    <h2 class="animate">ClickHouse Cloud &amp; Ecosystem</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Managed service</h3>
+          <p>ClickHouse Cloud runs and scales clusters for you on AWS, GCP, and Azure &mdash; backups, upgrades, and security handled.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Storage / compute split</h3>
+          <p>Data lives in object storage; stateless compute scales independently and can idle to zero, so you pay for what you use.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>chDB</h3>
+          <p>An embedded, in-process ClickHouse engine (think "SQLite for OLAP") usable from Python and other languages.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Tools</h3>
+          <p>Official clients for Python, Go, Node, Java; <code>clickhouse-client</code>, the Play UI, and BI integrations.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">The same open-source engine powers your laptop, a self-managed cluster, and the cloud &mdash; skills transfer everywhere.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Pricing / deployment -->
+  <div class="slide">
+    <h2 class="animate">Deployment &amp; Pricing Options</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Open source (self-hosted)</h3>
+          <ul>
+            <li><span class="green">Free</span> under Apache 2.0 &mdash; no license cost</li>
+            <li>Run on your own VMs, bare metal, or Kubernetes (Altinity operator)</li>
+            <li>You own scaling, replication, backups, and upgrades</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>ClickHouse Cloud</h3>
+          <ul>
+            <li><strong>Usage-based</strong>: pay for compute (running time) and storage separately</li>
+            <li>Free trial with credits to start</li>
+            <li>Compute can idle/scale down, reducing cost for spiky workloads</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Rule of thumb: choose <span class="highlight">self-hosted</span> for full control and fixed infrastructure, or <span class="highlight">Cloud</span> to skip operations and scale elastically. Pricing details change &mdash; always check current rates.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> <strong>Batch your inserts</strong> &mdash; thousands of rows per INSERT, never row-by-row</div>
+      <div class="bp-item animate"><span>2</span> Design the <strong>ORDER BY key</strong> around your real query filters &mdash; biggest lever there is</div>
+      <div class="bp-item animate"><span>3</span> <strong>Avoid too many small parts</strong>; use async inserts for many concurrent writers</div>
+      <div class="bp-item animate"><span>4</span> Use <strong>LowCardinality</strong> for repetitive string columns (status, country, name)</div>
+      <div class="bp-item animate"><span>5</span> <strong>Partition coarsely</strong> (by month/day), not by high-cardinality columns</div>
+      <div class="bp-item animate"><span>6</span> Prefer <strong>denormalized wide tables</strong> and dictionaries over heavy JOINs</div>
+      <div class="bp-item animate"><span>7</span> Don't use ClickHouse for <strong>OLTP</strong> or frequent single-row updates/deletes</div>
+      <div class="bp-item animate"><span>8</span> Use <strong>materialized views</strong> with AggregatingMergeTree for incremental rollups</div>
+      <div class="bp-item animate"><span>9</span> Add <strong>skip indexes / projections</strong> for filters the sort key doesn't cover</div>
+      <div class="bp-item animate"><span>10</span> Monitor with <strong>system tables</strong> &amp; pick the right <strong>codecs</strong> per column</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 26: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F5C4;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">ClickHouse is an <span class="highlight">open-source columnar OLAP database</span> for real-time analytics at scale</li>
+        <li class="animate">Built on the <strong>MergeTree</strong> family: <span class="tag">Parts</span> <span class="tag">Granules</span> <span class="tag">Sparse Index</span> <span class="tag">Background Merges</span></li>
+        <li class="animate">Speed comes from <strong>columnar storage, vectorized execution, and compression</strong></li>
+        <li class="animate">Model data with <strong>ORDER BY keys, LowCardinality, materialized views, and TTL</strong></li>
+        <li class="animate">Scale out with <strong>sharding, ReplicatedMergeTree, and ClickHouse Keeper</strong></li>
+        <li class="animate">Run it <strong>self-hosted</strong> or on <strong>ClickHouse Cloud</strong> &mdash; same engine, same SQL</li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 26</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

@@ -1,0 +1,1046 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Sentry - Application Monitoring &amp; Error Tracking</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h1 class="animate title-fire">Sentry</h1>
+    <p class="subtitle animate">Application Monitoring &mdash; Catch Errors, Trace Performance, Replay Sessions</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">Error Tracking</span>
+      <span class="tag">Observability</span>
+      <span class="tag">Performance</span>
+      <span class="tag">Tracing</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is Sentry -->
+  <div class="slide">
+    <h2 class="animate">What is Sentry?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An <span class="highlight">application monitoring platform</span> that tells you when your code breaks &mdash; and gives you the context to fix it fast</li>
+        <li class="animate">One product spanning <strong>error &amp; exception tracking, performance tracing, session replay, profiling, logs, and uptime/cron monitoring</strong></li>
+        <li class="animate">A lightweight <strong>SDK</strong> runs inside your app, captures events, and sends them to Sentry, where they are grouped into actionable <strong>issues</strong></li>
+        <li class="animate">Built developer-first: full <strong>stack traces</strong>, the exact line of code, request data, breadcrumbs, and the release that introduced the bug</li>
+        <li class="animate">Open source core (<code>getsentry/sentry</code>) &mdash; run the managed <span class="highlight">SaaS</span> at sentry.io or <strong>self-host</strong> it yourself</li>
+      </ul>
+      <pre class="animate">
+# The whole idea in one call — Sentry captures, groups, and alerts
+try:
+    process_payment(order)
+except Exception as err:
+    sentry_sdk.capture_exception(err)   # full traceback + context, sent to Sentry
+    raise
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why Sentry -->
+  <div class="slide">
+    <h2 class="animate">Why Sentry?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Need</th><th>Raw Logs</th><th>Traditional APM</th><th>Sentry</th></tr>
+        <tr><td>Full stack trace + source</td><td>Manual digging</td><td>Partial</td><td><span class="green">First-class</span></td></tr>
+        <tr><td>Error grouping into issues</td><td><span style="color:var(--text-muted)">None</span></td><td>Limited</td><td><span class="green">Automatic</span></td></tr>
+        <tr><td>Release health &amp; regressions</td><td>DIY</td><td>Add-on</td><td><span class="green">Built-in</span></td></tr>
+        <tr><td>Performance tracing</td><td><span style="color:var(--text-muted)">None</span></td><td><span class="green">Yes</span></td><td><span class="green">Yes</span></td></tr>
+        <tr><td>Session replay tied to errors</td><td><span style="color:var(--text-muted)">None</span></td><td>Rare</td><td><span class="green">Yes</span></td></tr>
+        <tr><td>Developer-first DX</td><td>Low</td><td>Ops-focused</td><td><span class="green">High</span></td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;"><strong>Choose Sentry when:</strong> you want to know about a crash before your users complain, see exactly which line and which release caused it, and connect frontend errors to slow backend queries in one trace.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Architecture & Core Concepts -->
+  <div class="slide">
+    <h2 class="animate">Architecture &amp; Core Concepts</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Your App<br>(SDK + DSN)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Ingestion<br>Pipeline</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Grouping &amp;<br>Processing</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Issues,<br>Alerts, UI</div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px;">
+        <div class="metric-card animate">
+          <h3>SDK &amp; DSN</h3>
+          <p>The SDK captures events; the <strong>DSN</strong> (Data Source Name) is the URL that tells it which project to send to. The DSN is public-safe &mdash; it can only write events.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Events</h3>
+          <p>A single error, transaction, or message. Events carry a stack trace, tags, breadcrumbs, user, and release. Similar events are grouped into one <strong>issue</strong>.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Projects</h3>
+          <p>One per application or service (frontend, API, worker). Each project has its own DSN, issues, alerts, and settings.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Orgs &amp; Environments</h3>
+          <p>An <strong>organization</strong> contains teams and projects. <strong>Environments</strong> (<code>production</code>, <code>staging</code>) tag events so you can filter by where they happened.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Getting Started / Quickstart -->
+  <div class="slide">
+    <h2 class="animate">Quickstart &mdash; Install &amp; Init</h2>
+    <div class="content">
+      <pre class="animate">
+npm install @sentry/browser     # or @sentry/react, @sentry/nextjs
+npm install @sentry/node        # backend
+      </pre>
+      <pre class="animate">
+// Browser / frontend — initialize as early as possible
+import * as Sentry from '@sentry/browser';
+
+Sentry.init({
+  dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+  environment: 'production',
+  release: 'my-app@1.4.2',
+  tracesSampleRate: 0.2,          // 20% of transactions for performance
+});
+      </pre>
+      <pre class="animate">
+// Node.js — instrument.js, imported before everything else
+const Sentry = require('@sentry/node');
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.2,
+});
+// Errors are now captured automatically; verify with a test throw
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: Error & Exception Monitoring -->
+  <div class="slide">
+    <h2 class="animate">Error &amp; Exception Monitoring</h2>
+    <div class="content">
+      <p class="animate">Once initialized, the SDK hooks global handlers and captures <span class="highlight">unhandled exceptions and rejections automatically</span>. You can also capture explicitly.</p>
+      <pre class="animate">
+import * as Sentry from '@sentry/browser';
+
+// 1. Capture a caught exception — keeps the full stack trace
+try {
+  riskyOperation();
+} catch (err) {
+  Sentry.captureException(err);
+}
+
+// 2. Capture a message with a severity level
+Sentry.captureMessage('Payment retried 3 times', 'warning');
+
+// 3. Wrap a block and grab the returned event ID (e.g. to show the user)
+const eventId = Sentry.captureException(new Error('Checkout failed'));
+      </pre>
+      <p class="animate" style="margin-top:8px;">Framework SDKs add automatic capture: React <span class="highlight">Error Boundaries</span>, Express/Next.js error middleware, and unhandled promise rejections &mdash; no manual <code>try/catch</code> needed for the common cases.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Issues & Grouping -->
+  <div class="slide">
+    <h2 class="animate">Issues &amp; Grouping</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>How grouping works</h3>
+          <ul>
+            <li>Sentry computes a <strong>fingerprint</strong> from the stack trace + exception type</li>
+            <li>Matching events roll up into one <strong>issue</strong> &mdash; not 10,000 duplicates</li>
+            <li>Override with a custom <code>fingerprint</code> when defaults are too broad or too narrow</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Issue lifecycle</h3>
+          <ul>
+            <li>States: <strong>Unresolved &rarr; Resolved &rarr; Ignored/Archived</strong></li>
+            <li><strong>Assign</strong> to a teammate; sync to Jira/GitHub</li>
+            <li><strong>Regression detection</strong> reopens an issue if it recurs after being resolved</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+// Force two distinct error messages into the same issue
+Sentry.captureException(err, {
+  fingerprint: ['database', 'connection-timeout'],
+});
+      </pre>
+      <p class="animate" style="margin-top:8px;">Resolve an issue and Sentry watches future releases &mdash; if it shows up again it is flagged as a <span class="highlight">regression</span> and reopened automatically.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: Context & Enrichment -->
+  <div class="slide">
+    <h2 class="animate">Context &amp; Enrichment</h2>
+    <div class="content">
+      <p class="animate">Raw stack traces are good; <span class="highlight">enriched</span> ones are great. Attach who, where, and what so you can reproduce the bug.</p>
+      <pre class="animate">
+import * as Sentry from '@sentry/browser';
+
+// Identify the affected user (drives "users impacted" counts)
+Sentry.setUser({ id: '42', email: 'jane@acme.com', username: 'jane' });
+
+// Tags are indexed & searchable/filterable in the UI
+Sentry.setTag('payment.provider', 'stripe');
+
+// Context is structured extra data shown on the event
+Sentry.setContext('order', { id: 'ord_991', total: 149.0, currency: 'USD' });
+      </pre>
+      <pre class="animate">
+// Scope a tag to a single event without polluting global state
+Sentry.withScope((scope) =&gt; {
+  scope.setTag('feature', 'checkout-v2');
+  scope.setLevel('fatal');
+  Sentry.captureException(err);
+});
+      </pre>
+      <p class="animate" style="margin-top:8px;"><strong>Tags</strong> are searchable and aggregable; <strong>context</strong> is detailed but not indexed; <strong>scopes</strong> control how long enrichment lives.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Breadcrumbs -->
+  <div class="slide">
+    <h2 class="animate">Breadcrumbs</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Breadcrumbs</span> are a trail of events leading up to an error &mdash; the &ldquo;what happened just before the crash&rdquo; timeline attached to every issue.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Captured automatically</h3>
+          <ul>
+            <li>Console logs &amp; network (XHR/fetch) requests</li>
+            <li>UI clicks and navigation/route changes</li>
+            <li>DB queries and HTTP calls on the backend</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Add your own</h3>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+Sentry.addBreadcrumb({
+  category: 'auth',
+  message: 'User completed 2FA',
+  level: 'info',
+  data: { method: 'totp' },
+});
+          </pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">When an error fires, the last ~100 breadcrumbs ship with it &mdash; so you see the click, the failed API call, and the exception as one story. Control volume with <code>maxBreadcrumbs</code> and the <code>beforeBreadcrumb</code> hook.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: Releases & Deploy Tracking -->
+  <div class="slide">
+    <h2 class="animate">Releases &amp; Deploy Tracking</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">Tag every event with a <span class="highlight">release</span> (a version string, often the git SHA) so each error is tied to the exact build that shipped it</li>
+        <li class="animate"><strong>Suspect commits</strong>: Sentry links an issue to the commit &mdash; and the author &mdash; that most likely introduced it</li>
+        <li class="animate"><strong>Release health</strong>: crash-free sessions/users, adoption, and regressions per release</li>
+        <li class="animate">Mark <strong>deploys</strong> so you can correlate a spike in errors with the moment a version went live</li>
+      </ul>
+      <pre class="animate">
+# Create the release, associate commits, and finalize — via sentry-cli
+export SENTRY_RELEASE="my-app@$(git rev-parse --short HEAD)"
+
+sentry-cli releases new "$SENTRY_RELEASE"
+sentry-cli releases set-commits "$SENTRY_RELEASE" --auto
+sentry-cli releases finalize "$SENTRY_RELEASE"
+sentry-cli releases deploys "$SENTRY_RELEASE" new -e production
+      </pre>
+      <p class="animate" style="margin-top:8px;">Pass the same value to <code>Sentry.init({ release })</code> so the SDK and CLI agree &mdash; that link powers source maps, suspect commits, and regression tracking.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Source Maps -->
+  <div class="slide">
+    <h2 class="animate">Source Maps</h2>
+    <div class="content">
+      <p class="animate">Minified production JS produces unreadable stack traces. Upload <span class="highlight">source maps</span> so Sentry un-minifies them back to your original code, with the exact line and column.</p>
+      <pre class="animate">
+// next.config.js / vite.config — bundler plugins automate upload at build time
+import { sentryVitePlugin } from '@sentry/vite-plugin';
+
+export default {
+  build: { sourcemap: true },        // emit source maps
+  plugins: [
+    sentryVitePlugin({
+      org: 'my-org',
+      project: 'my-app',
+      authToken: process.env.SENTRY_AUTH_TOKEN,
+    }),
+  ],
+};
+      </pre>
+      <pre class="animate">
+# Or upload manually with the CLI, keyed to the same release
+sentry-cli sourcemaps inject ./dist
+sentry-cli sourcemaps upload ./dist --release "$SENTRY_RELEASE"
+      </pre>
+      <p class="animate" style="margin-top:8px;">Modern SDKs use <strong>Debug IDs</strong> to match maps to bundles reliably. Plugins exist for Webpack, Vite, Rollup, esbuild, and the Next.js/Remix SDKs do it for you.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Performance Monitoring / Tracing -->
+  <div class="slide">
+    <h2 class="animate">Performance Monitoring &amp; Tracing</h2>
+    <div class="content">
+      <p class="animate">Sentry tracing captures <span class="highlight">transactions</span> (a unit of work like a page load or request) made of nested <span class="highlight">spans</span> (DB query, HTTP call, render).</p>
+      <pre class="animate">
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 0.2,            // sample 20% of transactions
+  // or sample dynamically:
+  tracesSampler: (ctx) =&gt; (ctx.name.includes('/checkout') ? 1.0 : 0.1),
+});
+      </pre>
+      <pre class="animate">
+// Create a custom span around a slow operation
+Sentry.startSpan(
+  { name: 'generate-report', op: 'task' },
+  async () =&gt; {
+    await buildPdf();              // timed automatically
+  },
+);
+      </pre>
+      <p class="animate" style="margin-top:8px;">Most spans are <strong>auto-instrumented</strong> &mdash; HTTP clients, database drivers, render frameworks &mdash; so you get a waterfall view of where time goes with minimal code.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Distributed Tracing -->
+  <div class="slide">
+    <h2 class="animate">Distributed Tracing</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Browser<br>(page load)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">API Gateway</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Service B</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Database</div>
+      </div>
+      <ul>
+        <li class="animate">A single <strong>trace</strong> follows one request across services, each contributing spans under a shared <code>trace_id</code></li>
+        <li class="animate">Propagated via the W3C <code>traceparent</code> and Sentry's <code>baggage</code> headers on outgoing requests</li>
+        <li class="animate">Connects a <span class="highlight">frontend click</span> to the <span class="highlight">slow backend query</span> that caused it &mdash; one connected waterfall</li>
+        <li class="animate">Built on <strong>OpenTelemetry</strong> conventions, so it interoperates with existing OTel instrumentation</li>
+      </ul>
+      <pre class="animate">
+// Wire frontend &amp; backend together via tracePropagationTargets
+Sentry.init({
+  tracePropagationTargets: ['localhost', /^https:\/\/api\.myapp\.com/],
+});
+// Outgoing fetch/XHR to those targets carry the trace headers automatically
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Span Metrics & Insights -->
+  <div class="slide">
+    <h2 class="animate">Span Metrics &amp; Insights</h2>
+    <div class="content">
+      <p class="animate">From trace spans Sentry derives <span class="highlight">Insights</span> &mdash; ready-made views that surface concrete performance problems without you building dashboards.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Web Vitals</h3>
+          <p>Core Web Vitals (LCP, CLS, INP, FCP, TTFB) per page, with scores and the spans behind a poor measurement.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Slow DB Queries</h3>
+          <p>Aggregated query performance: which statements are slowest, called most, and trending worse over time.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>N+1 Detection</h3>
+          <p>Performance issues auto-detect <strong>N+1 queries</strong>, render-blocking assets, and consecutive HTTP calls.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Resources &amp; HTTP</h3>
+          <p>Outbound API and asset timings &mdash; spot a third-party dependency dragging down your p95.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">These appear as <strong>Performance Issues</strong> alongside errors &mdash; same triage, assignment, and alerting workflow.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Session Replay -->
+  <div class="slide">
+    <h2 class="animate">Session Replay</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Session Replay</span> reconstructs a video-like DOM playback of what the user did &mdash; clicks, scrolls, network, and console &mdash; right up to the error.</p>
+      <pre class="animate">
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  integrations: [Sentry.replayIntegration({
+    maskAllText: true,         // privacy: mask text by default
+    blockAllMedia: true,       // don't record images/video
+  })],
+  replaysSessionSampleRate: 0.1,    // 10% of all sessions
+  replaysOnErrorSampleRate: 1.0,    // 100% of sessions that hit an error
+});
+      </pre>
+      <ul>
+        <li class="animate">Replays are <strong>tied to issues</strong> &mdash; jump from an error straight to the recording</li>
+        <li class="animate"><strong>Privacy-first</strong>: text and inputs are masked by default; add <code>.sentry-mask</code> / <code>.sentry-unmask</code> classes for fine control</li>
+        <li class="animate">Sample cheaply for all sessions, but capture <strong>every errored session</strong></li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Profiling -->
+  <div class="slide">
+    <h2 class="animate">Profiling</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Profiling</span> samples your code's call stack to show exactly which <strong>functions</strong> burn CPU &mdash; the function-level detail under a slow span.</p>
+      <pre class="animate">
+import * as Sentry from '@sentry/node';
+import { nodeProfilingIntegration } from '@sentry/profiling-node';
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  tracesSampleRate: 1.0,
+  integrations: [nodeProfilingIntegration()],
+  profileSessionSampleRate: 1.0,    // continuous profiling
+  profileLifecycle: 'trace',        // profile while traces run
+});
+      </pre>
+      <div class="two-col" style="margin-top:8px;">
+        <div class="card animate">
+          <h3>Flame Graphs</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Visualize the call tree; wide frames are where time is spent. Drill into the hottest path.</p>
+        </div>
+        <div class="card animate">
+          <h3>Continuous vs Transaction</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Profile always-on (continuous) or only while a transaction runs &mdash; available for Python, Node, Go, mobile, and more.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Logs -->
+  <div class="slide">
+    <h2 class="animate">Logs</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Sentry Logs</span> brings structured logging into the same platform &mdash; so logs sit next to the errors and traces they relate to, not in a separate tool.</p>
+      <pre class="animate">
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  enableLogs: true,                 // turn on log capture
+});
+
+const { logger } = Sentry;
+
+// Structured logs with template attributes
+logger.info('User %s checked out cart %s', [userId, cartId], {
+  total: 149.0,
+  itemCount: 3,
+});
+logger.error('Payment gateway timeout', { provider: 'stripe', attempt: 3 });
+      </pre>
+      <ul>
+        <li class="animate">Logs are <strong>correlated with traces</strong> &mdash; filter to the logs emitted during one request</li>
+        <li class="animate">Search and filter by attributes; build alerts on log volume or patterns</li>
+        <li class="animate">SDK integrations can also forward existing <code>console</code> / logging-framework output</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Alerts & Notifications -->
+  <div class="slide">
+    <h2 class="animate">Alerts &amp; Notifications</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Issue Alerts</h3>
+          <ul>
+            <li>Fire when <strong>a new issue appears</strong>, regresses, or crosses a frequency threshold</li>
+            <li>Conditions + filters (level, environment, tag) and actions</li>
+            <li>Great for &ldquo;tell me when something breaks&rdquo;</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Metric Alerts</h3>
+          <ul>
+            <li>Threshold on a <strong>metric over time</strong>: error rate, p95 latency, crash-free rate, failure rate, throughput</li>
+            <li>Static or anomaly-based thresholds</li>
+            <li>Great for &ldquo;tell me when the trend is bad&rdquo;</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Route notifications to <span class="highlight">Slack, PagerDuty, Microsoft Teams, Discord, email,</span> or any webhook. Use <strong>ownership rules</strong> to auto-route issues by code path to the right team.</p>
+      <p class="animate"><strong>Alert hygiene matters:</strong> too many alerts and people tune them out &mdash; alert on what is actionable.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Dashboards & Discover -->
+  <div class="slide">
+    <h2 class="animate">Dashboards &amp; Discover</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><span class="highlight">Discover</span> lets you query across events &mdash; errors, transactions, and spans &mdash; with a flexible search syntax and aggregations</li>
+        <li class="animate"><strong>Custom dashboards</strong> assemble widgets (charts, tables, big numbers) from those queries for an at-a-glance health view</li>
+        <li class="animate">Slice by any <strong>tag</strong>: by release, environment, browser, endpoint, customer &mdash; whatever you set</li>
+        <li class="animate">Save and share views; widgets can drive team-level overviews</li>
+      </ul>
+      <pre class="animate">
+# Sentry search query syntax — used in Discover, dashboards, and issue search
+is:unresolved environment:production release:my-app@1.4.2
+
+# Aggregate: 95th percentile transaction duration for the checkout route
+transaction:/checkout  p95(transaction.duration):&gt;2s
+
+# Errors affecting a specific customer, last 24h
+user.email:jane@acme.com  level:error
+      </pre>
+      <p class="animate" style="margin-top:8px;">The same query language powers <strong>issue search, alerts, and dashboard widgets</strong> &mdash; learn it once.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: Cron & Uptime Monitoring -->
+  <div class="slide">
+    <h2 class="animate">Cron &amp; Uptime Monitoring</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Cron Monitors</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Scheduled jobs send <strong>check-ins</strong>. Sentry alerts if a job is missed, runs too long, or fails &mdash; catching silent batch failures.</p>
+          <pre style="border:none; padding:12px; font-size:0.78rem;">
+const id = Sentry.captureCheckIn({
+  monitorSlug: 'nightly-billing',
+  status: 'in_progress',
+});
+// ... run the job ...
+Sentry.captureCheckIn({
+  monitorSlug: 'nightly-billing',
+  checkInId: id, status: 'ok',     // or 'error'
+});
+          </pre>
+        </div>
+        <div class="card animate">
+          <h3>Uptime Monitors</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Sentry periodically requests a URL from multiple regions and alerts on downtime, errors, or slow responses.</p>
+          <ul style="margin-top:8px;">
+            <li>Configurable interval &amp; expected status</li>
+            <li>Downtime creates an issue you can route &amp; assign</li>
+            <li>Pairs with error/perf data for full-stack visibility</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Define a cron monitor's <strong>schedule</strong> (crontab or interval) and grace period so a slightly-late job is not a false alarm.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Integrations -->
+  <div class="slide">
+    <h2 class="animate">Integrations</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Source Code</h3>
+          <p><strong>GitHub, GitLab, Bitbucket, Azure DevOps</strong> &mdash; powers suspect commits, stack-trace links to source, and code owners auto-assignment.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Issue Tracking</h3>
+          <p><strong>Jira, Linear, GitHub Issues, Asana</strong> &mdash; create and two-way <strong>sync</strong> tickets straight from a Sentry issue.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Alerting &amp; ChatOps</h3>
+          <p><strong>Slack, PagerDuty, Microsoft Teams, Discord, Opsgenie</strong> &mdash; notifications and triage actions where your team already works.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>CI/CD &amp; Platforms</h3>
+          <p><strong>GitHub Actions, Vercel, Netlify</strong> &mdash; create releases, upload source maps, and mark deploys as part of your pipeline.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Connecting your repo unlocks <span class="highlight">suspect commits</span> and <span class="highlight">stack-trace-to-source linking</span> &mdash; click a frame and jump to the exact line on GitHub.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: SDKs & Ecosystem -->
+  <div class="slide">
+    <h2 class="animate">SDKs &amp; Ecosystem</h2>
+    <div class="content">
+      <p class="animate">Sentry ships official, open-source SDKs for <span class="highlight">100+ platforms and frameworks</span> &mdash; the same concepts (DSN, init, capture, tracing) everywhere.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Languages</h3>
+          <ul>
+            <li>JavaScript / TypeScript, Python, Java / Kotlin</li>
+            <li>Go, .NET / C#, Ruby, PHP, Rust, Elixir</li>
+            <li>Native C/C++, Dart</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Frameworks &amp; Mobile</h3>
+          <ul>
+            <li>React, Next.js, Vue, Angular, Svelte, Remix</li>
+            <li>Node, Express, Django, Flask, Spring, Rails, Laravel</li>
+            <li>iOS (Swift), Android, React Native, Flutter</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Framework SDKs add <strong>auto-instrumentation</strong> &mdash; error boundaries, middleware, routing, and performance spans &mdash; so you wire in less by hand.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Data Management & Security -->
+  <div class="slide">
+    <h2 class="animate">Data Management &amp; Security</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Privacy &amp; PII</h3>
+          <ul>
+            <li><strong>Data scrubbing</strong> strips passwords, tokens, and credit cards server-side</li>
+            <li><code>sendDefaultPii: false</code> keeps PII out at the source</li>
+            <li><code>beforeSend</code> hook to redact or drop events client-side</li>
+            <li>Replay masking; advanced server-side scrubbing rules</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Volume &amp; Governance</h3>
+          <ul>
+            <li><strong>Sampling</strong> &amp; <strong>rate limiting</strong> control event volume and cost</li>
+            <li><strong>Inbound filters</strong> drop noise (browser extensions, bots)</li>
+            <li><strong>Quotas</strong> &amp; <strong>spike protection</strong>; configurable <strong>retention</strong></li>
+            <li><strong>SSO/SAML</strong>, audit logs, fine-grained roles</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  sendDefaultPii: false,
+  beforeSend(event) {
+    if (event.request?.headers) delete event.request.headers['Authorization'];
+    return event;                  // return null to drop the event entirely
+  },
+});
+      </pre>
+      <p class="animate" style="margin-top:8px;">Sentry is <span class="highlight">SOC 2 Type II</span> certified and supports GDPR/CCPA workflows, with EU and US data-residency options.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Pricing & Plans -->
+  <div class="slide">
+    <h2 class="animate">Pricing &amp; Plans</h2>
+    <div class="content">
+      <p class="animate">Sentry pricing is <span class="highlight">usage/quota-based per product category</span> (errors, spans/tracing, replays, profiling, cron/uptime, attachments) on top of a plan tier.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Developer (Free)</h3>
+          <p>Single user, modest monthly quotas across categories &mdash; perfect for side projects and trying Sentry out.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Team</h3>
+          <p>Unlimited members, more quota, longer retention, third-party integrations &mdash; small teams shipping to production.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Business</h3>
+          <p>Advanced quotas, dashboards, insights, custom roles, SSO, and finer data controls for larger orgs.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Enterprise</h3>
+          <p>Volume pricing, priority support, SLAs, advanced compliance and security options.</p>
+        </div>
+      </div>
+      <ul style="margin-top:16px;">
+        <li class="animate"><strong>Spike protection</strong> caps runaway event bursts so a bad deploy doesn't blow your quota</li>
+        <li class="animate">Pay-as-you-go (on-demand) budget covers overages; <strong>self-hosting</strong> is free but you run the infrastructure</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 25: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Initialize the SDK <strong>as early as possible</strong> &mdash; before app code runs &mdash; so nothing escapes capture</div>
+      <div class="bp-item animate"><span>2</span> Set a <strong>release</strong> and upload <strong>source maps</strong> every deploy &mdash; readable traces and suspect commits</div>
+      <div class="bp-item animate"><span>3</span> Tag the <strong>environment</strong> so you can separate production from staging noise</div>
+      <div class="bp-item animate"><span>4</span> Tune <code>tracesSampleRate</code> for cost vs visibility; sample high-value routes more</div>
+      <div class="bp-item animate"><span>5</span> Enrich events with <strong>user, tags, and context</strong> so issues are reproducible</div>
+      <div class="bp-item animate"><span>6</span> Scrub <strong>PII</strong> with <code>beforeSend</code> and keep <code>sendDefaultPii</code> off by default</div>
+      <div class="bp-item animate"><span>7</span> Use <strong>inbound filters</strong> &amp; <code>ignoreErrors</code> to silence known noise (extensions, bots)</div>
+      <div class="bp-item animate"><span>8</span> Practice <strong>alert hygiene</strong> &mdash; alert only on actionable issues, route by ownership</div>
+      <div class="bp-item animate"><span>9</span> <strong>Triage</strong> regularly: resolve, assign, and link issues to your tracker</div>
+      <div class="bp-item animate"><span>10</span> Capture <strong>replays on error</strong> (low session rate, 100% on error) for cheap, high-signal debugging</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 26: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Sentry is one platform for <span class="highlight">errors, performance, replay, profiling, logs, and uptime</span></li>
+        <li class="animate">Core model: <span class="tag">SDK</span> <span class="tag">DSN</span> <span class="tag">Events</span> <span class="tag">Issues</span> <span class="tag">Releases</span></li>
+        <li class="animate">Capture with <strong>captureException / captureMessage</strong>; enrich with <strong>tags, user, context, breadcrumbs</strong></li>
+        <li class="animate"><strong>Tracing</strong> connects frontend to backend; <strong>profiling</strong> finds the slow function; <strong>replay</strong> shows what the user did</li>
+        <li class="animate">Ship readable traces with <strong>releases + source maps</strong>; route work with <strong>alerts &amp; integrations</strong></li>
+        <li class="animate">Manage volume &amp; privacy with <strong>sampling, rate limits, and PII scrubbing</strong></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 26</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
