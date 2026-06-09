@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Metabase - Business Intelligence &amp; Analytics</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <!-- SLIDE 1: Title -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h1 class="animate title-fire">Metabase</h1>
+    <p class="subtitle animate">Open-Source Business Intelligence &amp; Self-Service Analytics</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">BI</span>
+      <span class="tag">Analytics</span>
+      <span class="tag">Dashboards</span>
+      <span class="tag">SQL</span>
+    </div>
+    <p class="subtitle animate" style="margin-top:20px; font-size:1rem; color:#666;">
+      Use <kbd>&larr;</kbd> <kbd>&rarr;</kbd> arrow keys or buttons to navigate
+    </p>
+  </div>
+
+
+  <!-- SLIDE 2: What is Metabase -->
+  <div class="slide">
+    <h2 class="animate">What is Metabase?</h2>
+    <div class="content">
+      <ul>
+        <li class="animate">An <span class="highlight">open-source business intelligence</span> tool that lets anyone ask questions about data and share the answers</li>
+        <li class="animate">Built for <strong>self-service analytics</strong> &mdash; non-technical users explore data through a point-and-click interface, no SQL required</li>
+        <li class="animate">Connects directly to your existing <strong>databases and data warehouses</strong> &mdash; it queries them live, it is not a data store</li>
+        <li class="animate">Power users still get a full <strong>native SQL editor</strong> with variables, parameters, and snippets</li>
+        <li class="animate">Available as <span class="highlight">Metabase Cloud</span> (hosted SaaS) or <strong>self-hosted</strong> (free open-source edition, plus paid Pro/Enterprise tiers)</li>
+      </ul>
+      <p class="animate" style="margin-top:16px;">The core loop: <span class="highlight">ask a question &rarr; visualize it &rarr; save it &rarr; pin it to a dashboard &rarr; share or schedule it</span>.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 3: Why Metabase -->
+  <div class="slide">
+    <h2 class="animate">Why Metabase?</h2>
+    <div class="content">
+      <table class="animate">
+        <tr><th>Capability</th><th>Metabase</th><th>Tableau / Power BI</th><th>Looker</th></tr>
+        <tr><td>Setup time</td><td><span class="green">Minutes</span></td><td>Hours / days</td><td>Days (modeling)</td></tr>
+        <tr><td>No-SQL query builder</td><td><span class="green">Yes (notebook)</span></td><td>Yes</td><td>Via LookML</td></tr>
+        <tr><td>Open source / self-host</td><td><span class="green">Yes</span></td><td>No</td><td>No</td></tr>
+        <tr><td>Modeling layer</td><td>Models &amp; metrics</td><td>Data model</td><td><span class="green">LookML (strong)</span></td></tr>
+        <tr><td>Embedding</td><td><span class="green">Built-in</span></td><td>Add-on</td><td>Yes</td></tr>
+        <tr><td>Entry cost</td><td><span class="green">Free / low</span></td><td>Per-seat $$$</td><td>Enterprise $$$</td></tr>
+      </table>
+      <p class="animate" style="margin-top:16px;"><strong>Choose Metabase when:</strong> you want fast, low-friction self-service BI, value open source and self-hosting, or need to embed analytics into a product without a heavyweight platform.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 4: Architecture & Deployment -->
+  <div class="slide">
+    <h2 class="animate">Architecture &amp; Deployment</h2>
+    <div class="content">
+      <div class="diagram animate">
+        <div class="box">Browser<br>(Metabase UI)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Metabase App<br>(Java / Clojure)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Your Data<br>(Postgres, BigQuery&hellip;)</div>
+      </div>
+      <div class="metric-grid" style="margin-top:20px;">
+        <div class="metric-card animate">
+          <h3>The Application</h3>
+          <p>A single JVM web app. It builds queries, renders charts, and manages users &mdash; but does not store your business data.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Application Database</h3>
+          <p>A separate metadata DB (use <strong>Postgres</strong> in production; the default H2 is for trials only) holds questions, dashboards, users, and settings.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Connected Data Sources</h3>
+          <p>Your warehouses and databases. Metabase queries them live; results are rendered (and optionally cached), never copied wholesale.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>How to Run It</h3>
+          <p><strong>Metabase Cloud</strong>, a <code>Docker</code> container, or the runnable <code>metabase.jar</code>. Cloud is the simplest; Docker is the common self-host path.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 5: Connecting Databases -->
+  <div class="slide">
+    <h2 class="animate">Connecting Databases</h2>
+    <div class="content">
+      <p class="animate">Add a data source in <span class="highlight">Admin &rarr; Databases</span> with host, port, credentials, and driver. Metabase ships drivers for many engines, with more as community plugins.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Common Sources</h3>
+          <ul>
+            <li>PostgreSQL, MySQL / MariaDB</li>
+            <li>BigQuery, Snowflake, Redshift</li>
+            <li>SQL Server, Oracle, ClickHouse</li>
+            <li>Databricks, Athena, SQLite</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Sync &amp; Scan</h3>
+          <ul>
+            <li><strong>Sync</strong> reads the schema &mdash; tables, columns, types</li>
+            <li><strong>Scan</strong> samples field values to power filters &amp; types</li>
+            <li>Both run on a schedule you control</li>
+            <li>Use a <strong>read-only</strong> DB user for safety</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:16px;">Tip: grant only <code>SELECT</code> on the schemas you want exposed, and prefer a dedicated reporting replica so analytics never strains production.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 6: The Data Model / Metadata -->
+  <div class="slide">
+    <h2 class="animate">The Data Model &amp; Metadata</h2>
+    <div class="content">
+      <p class="animate">In <span class="highlight">Admin &rarr; Table Metadata</span> you curate how raw tables appear to users &mdash; good metadata is what makes self-service actually work.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Semantic Types</h3>
+          <p>Tag fields beyond their raw type: <em>Currency</em>, <em>Category</em>, <em>Email</em>, <em>Latitude</em>. This drives formatting, filters, and chart choices.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Friendly Names &amp; Descriptions</h3>
+          <p>Rename <code>cust_id</code> to "Customer ID" and add descriptions, so business users understand each column.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Foreign Keys</h3>
+          <p>Declare FK relationships so the query builder can join and drill across tables automatically.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Hidden Tables</h3>
+          <p>Hide noisy staging or internal tables from the query builder to keep the data picker clean.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;"><strong>Segments</strong> are saved, reusable filter definitions (e.g. "Active Customers") that appear as one-click options across questions.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 7: Questions Overview -->
+  <div class="slide">
+    <h2 class="animate">Questions: The Building Block</h2>
+    <div class="content">
+      <p class="animate">A <span class="highlight">question</span> is a single query and its visualization. Everything in Metabase &mdash; dashboards, alerts, models &mdash; is built from questions. There are three ways to create one:</p>
+      <div class="diagram animate">
+        <div class="box">Query Builder<br>(no SQL)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Native SQL<br>(write queries)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Saved Question<br>(reuse / build on)</div>
+      </div>
+      <ul>
+        <li class="animate"><strong>Query Builder</strong> &mdash; the visual "notebook" editor for point-and-click queries</li>
+        <li class="animate"><strong>Native query</strong> &mdash; raw SQL (or the database's native language) for full power</li>
+        <li class="animate"><strong>Saved questions &amp; models</strong> &mdash; reuse an existing query as the <em>starting data</em> for a new one</li>
+      </ul>
+      <p class="animate" style="margin-top:12px;">Save a question into a <strong>collection</strong>, then pin it to dashboards or wire alerts to it.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 8: The Query Builder -->
+  <div class="slide">
+    <h2 class="animate">The Query Builder (Notebook)</h2>
+    <div class="content">
+      <p class="animate">The notebook editor builds queries as a stack of steps &mdash; it compiles down to SQL for you, so no SQL knowledge is needed.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Core Steps</h3>
+          <ul>
+            <li><strong>Filter</strong> &mdash; narrow rows by conditions</li>
+            <li><strong>Summarize</strong> &mdash; aggregate: count, sum, average&hellip;</li>
+            <li><strong>Group by</strong> &mdash; break out by a dimension</li>
+            <li><strong>Join</strong> &mdash; combine tables (uses FKs)</li>
+            <li><strong>Sort &amp; Row limit</strong></li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Custom Columns</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Add computed columns with an Excel-like expression language:</p>
+          <pre style="border:none; padding:12px; font-size:0.8rem;">
+[Total] - [Discount]
+
+case([Plan] = "pro", "Paid", "Free")
+
+datetimeDiff([Signup], [Churn], "day")</pre>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Click <strong>"View the SQL"</strong> on any notebook question to see (and learn from) the generated query.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 9: Native SQL Questions -->
+  <div class="slide">
+    <h2 class="animate">Native SQL Questions</h2>
+    <div class="content">
+      <p class="animate">When the query builder isn't enough &mdash; window functions, CTEs, complex joins &mdash; drop into the <span class="highlight">native SQL editor</span> and write the database's own language directly.</p>
+      <pre class="animate">
+-- Monthly revenue with a running total
+SELECT
+  date_trunc('month', o.created_at) AS month,
+  sum(o.total)                      AS revenue,
+  sum(sum(o.total)) OVER (
+    ORDER BY date_trunc('month', o.created_at)
+  )                                 AS running_total
+FROM orders o
+WHERE o.status = 'paid'
+GROUP BY 1
+ORDER BY 1;
+      </pre>
+      <ul>
+        <li class="animate">Results can be <strong>visualized</strong> just like notebook questions</li>
+        <li class="animate">Save <strong>SQL snippets</strong> to reuse common clauses across queries</li>
+        <li class="animate">A native question can be turned into a <strong>model</strong> so others build on it without seeing the SQL</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 10: SQL Variables & Parameters -->
+  <div class="slide">
+    <h2 class="animate">SQL Variables &amp; Parameters</h2>
+    <div class="content">
+      <p class="animate">Make SQL questions interactive with <span class="highlight">variables</span> in double braces. They render as filter widgets above the query.</p>
+      <pre class="animate">
+SELECT *
+FROM orders
+WHERE status = {{order_status}}        -- text / number / date variable
+  [[ AND created_at &gt; {{start_date}} ]]  -- optional clause: only applied if set
+      </pre>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Variable Types</h3>
+          <ul>
+            <li><strong>Text / Number / Date</strong> &mdash; simple inputs</li>
+            <li><strong>Field Filter</strong> &mdash; maps to a column; gives smart widgets (dropdowns, date ranges) and powers dashboard filters</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Optional Clauses</h3>
+          <p style="font-size:1.05rem; color:var(--text-muted);">Wrap a clause in <code>[[ &hellip; ]]</code> and it is included <strong>only</strong> when its variable has a value &mdash; perfect for optional filters.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:12px;"><strong>Field filters</strong> are the bridge: they let dashboard filters drive your native SQL questions.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 11: Visualizations -->
+  <div class="slide">
+    <h2 class="animate">Visualizations</h2>
+    <div class="content">
+      <p class="animate">Any question can be rendered as many chart types &mdash; Metabase suggests sensible defaults based on your data and semantic types.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Comparisons</h3>
+          <p>Bar, row, and combo charts to compare categories or stack series.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Trends Over Time</h3>
+          <p>Line and area charts, plus the single-number <strong>Trend</strong> with period-over-period deltas.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Composition &amp; Flow</h3>
+          <p>Pie / donut, funnel, and <strong>pivot tables</strong> for cross-tab breakdowns.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Geospatial &amp; Single Value</h3>
+          <p>Region and pin maps, gauges, progress bars, and big-number scalars for KPIs.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;"><strong>Pick the right one:</strong> time &rarr; line, categories &rarr; bar, one KPI &rarr; number/trend, part-of-whole &rarr; pie (sparingly), location &rarr; map.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 12: Models -->
+  <div class="slide">
+    <h2 class="animate">Models</h2>
+    <div class="content">
+      <p class="animate">A <span class="highlight">model</span> is a curated, reusable dataset that acts as a clean starting point &mdash; the closest Metabase comes to a lightweight modeling layer.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>What Models Do</h3>
+          <ul>
+            <li>Wrap a notebook or SQL query as a <strong>named, reusable table</strong></li>
+            <li>Join, rename, and clean fields once, centrally</li>
+            <li>Let users build new questions <strong>on top</strong> without touching raw tables</li>
+            <li>Carry their own <strong>metadata</strong> (types, descriptions, FKs)</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Why Use Them</h3>
+          <ul>
+            <li>Hide messy schemas behind business-friendly datasets</li>
+            <li>Encode <strong>business logic</strong> in one place</li>
+            <li>Surface curated data in the data picker, separate from raw tables</li>
+            <li>Can be <strong>persisted</strong> for speed (see caching)</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Treat models as your <strong>semantic foundation</strong>: define "Orders", "Customers", "Active Subscriptions" once, and have everyone analyze from there.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 13: Dashboards -->
+  <div class="slide">
+    <h2 class="animate">Dashboards</h2>
+    <div class="content">
+      <p class="animate">A <span class="highlight">dashboard</span> arranges saved questions (cards) on a grid to tell a story or monitor a process at a glance.</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Cards &amp; Layout</h3>
+          <p>Drag-and-drop questions onto a responsive grid; resize and arrange them into a coherent view.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Tabs</h3>
+          <p>Split a large dashboard into <strong>tabs</strong> (e.g. Overview, Revenue, Retention) to organize many cards.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Text &amp; Headings</h3>
+          <p>Add markdown text cards and section headings to give context and structure.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Auto-refresh &amp; Full-screen</h3>
+          <p>Set refresh intervals and present in full-screen &mdash; great for TV/wallboard displays.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Cards stay <strong>live</strong>: editing the underlying question updates it everywhere it is pinned.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 14: Dashboard Filters & Drill-Through -->
+  <div class="slide">
+    <h2 class="animate">Filters &amp; Drill-Through</h2>
+    <div class="content">
+      <ul>
+        <li class="animate"><strong>Dashboard filters</strong> &mdash; add a filter widget (date, category, ID) and <span class="highlight">map it to many cards</span> at once, so one control updates the whole page</li>
+        <li class="animate">Filters connect to query-builder columns directly, or to native SQL via <strong>field filter variables</strong></li>
+        <li class="animate"><strong>Linked filters</strong> &mdash; chain filters so one narrows the options of another (e.g. State &rarr; City)</li>
+        <li class="animate"><strong>Drill-through</strong> &mdash; click any data point to zoom in, break out by another dimension, or jump to the underlying rows</li>
+        <li class="animate"><strong>Click behavior</strong> &mdash; configure a card so clicking navigates to another dashboard, question, or external URL, passing filter values along</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:10px;">
+        <div class="box">Filter Widget</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Mapped to<br>Many Cards</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Click &rarr; Drill<br>or Navigate</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 15: Metrics & Semantic Layer -->
+  <div class="slide">
+    <h2 class="animate">Metrics &amp; the Semantic Layer</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">Metrics</span> are official, reusable definitions of a business measurement &mdash; defined once so everyone reports the same number.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>What a Metric Is</h3>
+          <ul>
+            <li>A named aggregation built on a model or table</li>
+            <li>e.g. <strong>"Net Revenue"</strong> = sum of paid order totals minus refunds</li>
+            <li>Reusable in the query builder and on dashboards</li>
+            <li>One source of truth &mdash; no more conflicting "revenue" numbers</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Semantic Layer</h3>
+          <ul>
+            <li><strong>Models</strong> define the curated tables</li>
+            <li><strong>Metrics</strong> define the trusted measures</li>
+            <li>Together they form a lightweight semantic layer</li>
+            <li>Governs definitions so self-service stays consistent</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Encoding key measures as metrics is what keeps a fast self-service culture from drifting into "every dashboard has its own definition of revenue."</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 16: Alerts & Subscriptions -->
+  <div class="slide">
+    <h2 class="animate">Alerts &amp; Subscriptions</h2>
+    <div class="content">
+      <p class="animate">Push results to people instead of making them check &mdash; via <span class="highlight">email or Slack</span>.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Dashboard Subscriptions</h3>
+          <ul>
+            <li>Schedule a dashboard to send on a cadence (daily, weekly&hellip;)</li>
+            <li>Delivered as email or to a Slack channel</li>
+            <li>Can apply specific <strong>filter values</strong> per subscription</li>
+            <li>Great for recurring exec / team reports</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Alerts</h3>
+          <ul>
+            <li>Attached to a single question</li>
+            <li><strong>When results exist</strong> &mdash; fire when a query returns rows</li>
+            <li><strong>Goal line</strong> &mdash; fire when a metric crosses a threshold</li>
+            <li>Send once, or every time the condition holds</li>
+          </ul>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Configure email (SMTP) and Slack once in Admin, and any user can wire up their own alerts and subscriptions.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 17: Collections, Permissions & Sandboxing -->
+  <div class="slide">
+    <h2 class="animate">Collections, Permissions &amp; Sandboxing</h2>
+    <div class="content">
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Collections</h3>
+          <p>Folders that organize questions, dashboards, and models. Nest them by team or topic; permissions are set per collection.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Groups</h3>
+          <p>Users belong to groups; permissions are granted to groups, not individuals. Two built-ins: <em>Administrators</em> and <em>All Users</em>.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Data &amp; Collection Permissions</h3>
+          <p><strong>Data permissions</strong> control which databases/tables a group can query; <strong>collection permissions</strong> control view/curate access to saved content.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Data Sandboxing (Pro)</h3>
+          <p>Row- and column-level security: filter a table so each user sees only their own rows (e.g. by <code>customer_id</code>) &mdash; key for multi-tenant access.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;">Sandboxing and granular data permissions are <strong>paid (Pro/Enterprise)</strong> features; collections and group permissions exist in the free edition.</p>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 18: Embedding -->
+  <div class="slide">
+    <h2 class="animate">Embedding Analytics</h2>
+    <div class="content">
+      <p class="animate">Surface Metabase content inside your own app. Three approaches, increasing in power:</p>
+      <div class="metric-grid">
+        <div class="metric-card animate">
+          <h3>Static Embedding</h3>
+          <p>Sign a question or dashboard with a JWT and drop it in an <code>iframe</code>. Locked parameters; read-only. Available in the free edition.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Interactive Embedding</h3>
+          <p>Embed the full app with drill-through and self-service, with SSO + your permissions/sandboxing applied. A Pro/Enterprise feature.</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>Embedded SDK for React</h3>
+          <p>Embed individual components into a React app for deep, native-feeling customer-facing analytics (Pro/Enterprise).</p>
+        </div>
+        <div class="metric-card animate">
+          <h3>White-Labeling</h3>
+          <p>Customize colors, logos, and fonts so embedded analytics match your product's brand.</p>
+        </div>
+      </div>
+      <pre class="animate" style="border:none; padding:12px; font-size:0.8rem; max-width:900px;">
+# Signed static embed: server mints a JWT, browser loads the iframe
+&lt;iframe src="https://mb.example.com/embed/dashboard/JWT_TOKEN#bordered=true"&gt;&lt;/iframe&gt;</pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 19: Caching & Performance -->
+  <div class="slide">
+    <h2 class="animate">Caching &amp; Performance</h2>
+    <div class="content">
+      <p class="animate">Because Metabase queries your live database, performance comes from <span class="highlight">caching and smart scoping</span>.</p>
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Query Caching</h3>
+          <ul>
+            <li>Cache query results so repeated loads don't re-hit the DB</li>
+            <li>Set policies globally, per-database, or per-question</li>
+            <li>Invalidate on a schedule or after a duration</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>Model Persistence</h3>
+          <ul>
+            <li>Materialize models into <strong>physical tables</strong> in your warehouse</li>
+            <li>Queries built on the model read the fast table</li>
+            <li>Refreshed on a schedule you set</li>
+          </ul>
+        </div>
+      </div>
+      <ul style="margin-top:8px;">
+        <li class="animate"><strong>Scale the app</strong> with adequate JVM memory and a Postgres app DB; run multiple instances behind a load balancer for HA</li>
+        <li class="animate"><strong>Avoid huge unfiltered scans</strong> &mdash; add default filters, row limits, and push heavy transforms into the warehouse</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 20: X-rays & Automated Insights -->
+  <div class="slide">
+    <h2 class="animate">X-rays &amp; Automated Insights</h2>
+    <div class="content">
+      <p class="animate"><span class="highlight">X-rays</span> auto-generate an exploratory dashboard from any table, column, segment, or single value &mdash; instant insight with zero setup.</p>
+      <ul>
+        <li class="animate">Click <strong>"X-ray this"</strong> on a table to get distributions, trends, and breakdowns in seconds</li>
+        <li class="animate">X-ray a <strong>single record or value</strong> to see related context and comparisons</li>
+        <li class="animate">New databases get <strong>auto-generated starter dashboards</strong> so there's something useful from day one</li>
+        <li class="animate">Use X-rays as a <strong>jumping-off point</strong> &mdash; "Save this" turns an exploration into real questions and dashboards you can refine</li>
+      </ul>
+      <div class="diagram animate" style="margin-top:10px;">
+        <div class="box">Pick a Table<br>or Value</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">X-ray<br>(auto-explore)</div>
+        <div class="arrow">&#x2192;</div>
+        <div class="box">Save &amp; Refine</div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 21: Administration -->
+  <div class="slide">
+    <h2 class="animate">Administration</h2>
+    <div class="content">
+      <div class="two-col">
+        <div class="card animate">
+          <h3>Authentication</h3>
+          <ul>
+            <li><strong>Google sign-in</strong> &amp; <strong>LDAP</strong> in the free edition</li>
+            <li><strong>SAML</strong> &amp; <strong>JWT SSO</strong> in Pro/Enterprise</li>
+            <li>Group <strong>mapping</strong> from your IdP</li>
+            <li>Session and password policies</li>
+          </ul>
+        </div>
+        <div class="card animate">
+          <h3>The Admin Panel</h3>
+          <ul>
+            <li>Databases, users &amp; groups, permissions</li>
+            <li>Localization, email (SMTP), Slack</li>
+            <li>Caching, appearance / white-label</li>
+            <li><strong>Audit logs</strong> &amp; usage analytics (Pro)</li>
+          </ul>
+        </div>
+      </div>
+      <pre class="animate">
+# Configure self-hosted Metabase via environment variables
+MB_DB_TYPE=postgres
+MB_DB_CONNECTION_URI=postgres://mb_user:secret@db:5432/metabase_app
+MB_JETTY_PORT=3000
+MB_SITE_URL=https://analytics.example.com
+      </pre>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 22: API & Tooling -->
+  <div class="slide">
+    <h2 class="animate">API &amp; Tooling</h2>
+    <div class="content">
+      <p class="animate">Metabase is automatable &mdash; the same actions the UI takes are exposed over a <span class="highlight">REST API</span>, and content can be version-controlled.</p>
+      <pre class="animate">
+# Authenticate, then list all dashboards
+SESSION=$(curl -s -X POST https://mb.example.com/api/session \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"admin@example.com","password":"secret"}' | jq -r .id)
+
+curl -s https://mb.example.com/api/dashboard \
+  -H "X-Metabase-Session: $SESSION"
+      </pre>
+      <ul>
+        <li class="animate"><strong>REST API</strong> &mdash; manage questions, dashboards, users, permissions, and run queries programmatically</li>
+        <li class="animate"><strong>Serialization</strong> (export/import) dumps content to YAML so you can put dashboards under <strong>version control</strong> and promote dev &rarr; prod</li>
+        <li class="animate">Wire serialization into <strong>CI/CD</strong> to review and deploy analytics content like code (Pro/Enterprise for the full workflow)</li>
+      </ul>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 23: Best Practices -->
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid">
+      <div class="bp-item animate"><span>1</span> Connect with a <strong>read-only user</strong> on a reporting replica &mdash; never let BI strain production</div>
+      <div class="bp-item animate"><span>2</span> Invest in <strong>table metadata</strong>: friendly names, descriptions, semantic types, and foreign keys</div>
+      <div class="bp-item animate"><span>3</span> Build <strong>models</strong> for curated, business-friendly datasets instead of exposing raw tables</div>
+      <div class="bp-item animate"><span>4</span> Define shared <strong>metrics</strong> so everyone reports the same numbers</div>
+      <div class="bp-item animate"><span>5</span> Use clear, consistent <strong>naming</strong> and organize content into team <strong>collections</strong></div>
+      <div class="bp-item animate"><span>6</span> Grant <strong>permissions to groups</strong>, not individuals; use sandboxing for row-level access</div>
+      <div class="bp-item animate"><span>7</span> Add <strong>caching</strong> and <strong>persist models</strong> for slow or popular queries</div>
+      <div class="bp-item animate"><span>8</span> Avoid <strong>huge unfiltered queries</strong> &mdash; add default filters and row limits</div>
+      <div class="bp-item animate"><span>9</span> Use <strong>Postgres</strong> for the app DB in production &mdash; never ship on the default H2</div>
+      <div class="bp-item animate"><span>10</span> <strong>Version content</strong> with serialization and promote changes through environments</div>
+    </div>
+  </div>
+
+
+  <!-- SLIDE 24: Course Complete -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4CA;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content" style="text-align:center;">
+      <ul style="display:inline-block; text-align:left;">
+        <li class="animate">Metabase is <span class="highlight">open-source self-service BI</span> that queries your databases live</li>
+        <li class="animate">Build questions three ways: <span class="tag">Query Builder</span> <span class="tag">Native SQL</span> <span class="tag">Saved / Models</span></li>
+        <li class="animate">Curate with <strong>metadata, models, and metrics</strong> for a trusted semantic layer</li>
+        <li class="animate">Assemble <strong>dashboards</strong> with filters, drill-through, alerts, and subscriptions</li>
+        <li class="animate">Govern with <strong>collections, group permissions, and data sandboxing</strong></li>
+        <li class="animate"><strong>Embed</strong> analytics, tune with <strong>caching</strong>, and automate via the <strong>REST API</strong></li>
+      </ul>
+      <p class="animate" style="margin-top:30px; color:var(--text-muted); font-size:1.1rem;">
+        Thank you! &nbsp; Questions?
+      </p>
+      <a href="index.html" class="back-link animate">&larr; Back to all courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 24</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
