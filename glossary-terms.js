@@ -463,6 +463,13 @@ const GLOSSARY_TERMS = [
   {t:"Metabase Model", d:"A curated, reusable dataset in Metabase built on a question or SQL, with cleaned-up metadata and semantic types, that serves as a trusted starting point for others' questions.", tags:["BI","Dashboards"]},
   {t:"Field Filter", d:"A Metabase SQL variable type that maps a parameter directly to a database column, enabling smart dashboard filters (dropdowns, date pickers) and optional <code>WHERE</code> clauses in native queries.", tags:["BI","Analytics"]},
   {t:"Data Sandboxing", d:"A Metabase (Pro/Enterprise) row- and column-level security feature that restricts what data a user group sees, enabling multi-tenant and customer-facing analytics from shared questions.", tags:["BI","Dashboards"]},
+  {t:"Shard", d:"A horizontal partition of an OpenSearch Index, implemented as a self-contained Lucene index. A primary shard holds the original data; replica shards are copies for high availability and read scaling.", tags:["Search","Analytics"]},
+  {t:"Mapping", d:"The schema of an OpenSearch Index, defining each field's type and how it is analyzed. The choice of <code>text</code> (tokenized for full-text search) vs <code>keyword</code> (exact value for filters and aggregations) is the most important mapping decision.", tags:["Search"]},
+  {t:"Query DSL", d:"OpenSearch's JSON-based query language. Combines leaf queries (<code>match</code>, <code>term</code>, <code>range</code>) with compound queries like <code>bool</code>, distinguishing scored query context from cached filter context.", tags:["Search"]},
+  {t:"Aggregation", d:"An OpenSearch framework for analytics over search results. Bucket aggregations group documents, metric aggregations compute values (sum, avg), and pipeline aggregations operate on other aggregations' output.", tags:["Search","Analytics"]},
+  {t:"BM25", d:"The default relevance-ranking function in OpenSearch and Lucene. Scores documents using term frequency (TF), inverse document frequency (IDF), and field-length normalization to order full-text search results.", tags:["Search"]},
+  {t:"ISM", d:"Index State Management &mdash; an OpenSearch plugin that automates the index lifecycle through states, actions, and transitions (e.g. rollover, force-merge, snapshot, delete), commonly paired with Data Streams for time-series data.", tags:["Search","Analytics"]},
+  {t:"k-NN", d:"k-Nearest-Neighbor vector search in OpenSearch. Stores embeddings in a <code>knn_vector</code> field and runs approximate search over HNSW graphs (Lucene/Faiss/nmslib), powering semantic search, hybrid ranking, and RAG.", tags:["Search","Vector Search"]},
 ];
 
 (function() {

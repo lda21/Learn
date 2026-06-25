@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>OpenSearch</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F50D;</span>
+    <h1 class="animate">OpenSearch</h1>
+    <p class="subtitle animate">Open-source search, analytics &amp; observability</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Search</span><span class="tag">Analytics</span><span class="tag">Dashboards</span><span class="tag">Vector</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is OpenSearch?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Project</h3>
+        <ul>
+          <li>Distributed search &amp; analytics engine</li>
+          <li>A community-driven, <span class="highlight">Apache 2.0</span> fork of Elasticsearch 7.10 + Kibana</li>
+          <li>Forked by AWS in 2021; donated to the <span class="highlight">Linux Foundation</span> in 2024</li>
+          <li>Two parts: <code>OpenSearch</code> (engine) + <code>OpenSearch Dashboards</code> (UI)</li>
+          <li>Built on Apache Lucene under the hood</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What It's For</h3>
+        <ul>
+          <li><span class="highlight">Full-text search</span> &mdash; products, docs, code</li>
+          <li><span class="highlight">Log analytics</span> &mdash; the open ELK stack</li>
+          <li><span class="highlight">Observability</span> &mdash; metrics, traces, alerts</li>
+          <li><span class="highlight">Security analytics</span> &mdash; SIEM use cases</li>
+          <li><span class="highlight">Vector search</span> &mdash; semantic / RAG</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cluster Architecture</h2>
+    <div class="diagram animate">
+      <div class="box">Client</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Coordinating<br>Node</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Data Nodes<br>(shards)</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Lucene<br>Segments</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Node Roles</h3>
+        <ul>
+          <li><span class="highlight">Cluster manager</span> &mdash; cluster state, allocation (formerly "master")</li>
+          <li><span class="highlight">Data</span> &mdash; stores shards, runs queries</li>
+          <li><span class="highlight">Ingest</span> &mdash; runs ingest pipelines</li>
+          <li><span class="highlight">Coordinating</span> &mdash; routes &amp; merges results</li>
+          <li><span class="highlight">ML</span> &mdash; runs ML / k-NN workloads</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Key Ideas</h3>
+        <ul>
+          <li>Dedicate 3 cluster-manager nodes for quorum</li>
+          <li>Cluster state gossiped to every node</li>
+          <li>Shards rebalance automatically on join/leave</li>
+          <li>Scale out horizontally by adding data nodes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Indices, Shards &amp; Replicas</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Hierarchy</h3>
+        <ul>
+          <li><span class="highlight">Index</span> &mdash; a collection of documents (like a table)</li>
+          <li><span class="highlight">Shard</span> &mdash; an index split into Lucene units</li>
+          <li><span class="highlight">Primary</span> &mdash; original copy of a shard</li>
+          <li><span class="highlight">Replica</span> &mdash; copy for HA + read scaling</li>
+          <li><span class="highlight">Segment</span> &mdash; immutable Lucene file inside a shard</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sizing Rules</h3>
+        <ul>
+          <li>Target <span class="highlight">10&ndash;50 GB</span> per shard</li>
+          <li>Primary count is fixed at creation &mdash; plan ahead</li>
+          <li>Replicas can change anytime (<code>number_of_replicas</code>)</li>
+          <li>Too many small shards = overhead ("oversharding")</li>
+          <li>Use <code>_split</code> / <code>_shrink</code> to re-shard</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Documents &amp; Mappings</h2>
+    <div class="content animate">
+<pre>
+# Create an index with an explicit mapping
+PUT /products
+{
+  "settings": { "number_of_shards": 3, "number_of_replicas": 1 },
+  "mappings": {
+    "properties": {
+      "name":        { "type": "text"    },   # analyzed, full-text
+      "sku":         { "type": "keyword" },   # exact match / aggregations
+      "price":       { "type": "float"   },
+      "in_stock":    { "type": "boolean" },
+      "created_at":  { "type": "date"    },
+      "description": { "type": "text", "analyzer": "english" }
+    }
+  }
+}
+</pre>
+      <p style="margin-top:10px"><span class="highlight">text vs keyword</span> is the most important choice: <code>text</code> is tokenized for search, <code>keyword</code> stays exact for filters, sorting, and aggregations. Use a multi-field to get both.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Indexing Documents</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Single &amp; Bulk</h3>
+<pre style="font-size:0.8rem">
+# Index one document (auto-generated _id)
+POST /products/_doc
+{ "name": "Trail Shoe", "sku": "TS-9", "price": 89.0 }
+
+# Upsert with a known id
+PUT /products/_doc/42
+{ "name": "Trail Shoe v2", "price": 99.0 }
+
+# Bulk: NDJSON, one action + one doc per line
+POST /_bulk
+{ "index": { "_index": "products", "_id": "1" } }
+{ "name": "Cap", "price": 19.0 }
+{ "index": { "_index": "products", "_id": "2" } }
+{ "name": "Socks", "price": 9.0 }
+</pre>
+      </div>
+      <div class="card">
+        <h3>How Writes Work</h3>
+        <ul>
+          <li>Doc routed to a primary by <code>hash(_id)</code></li>
+          <li>Written to an in-memory buffer + <span class="highlight">translog</span></li>
+          <li><code>refresh</code> (default 1s) makes it searchable</li>
+          <li><code>flush</code> commits segments to disk</li>
+          <li>Replicated to replica shards before ack</li>
+          <li>Always prefer <span class="highlight">_bulk</span> for throughput</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Query DSL</h2>
+    <div class="content animate">
+<pre>
+GET /products/_search
+{
+  "query": {
+    "bool": {
+      "must":   [ { "match": { "name": "trail shoe" } } ],   # relevance
+      "filter": [ { "range": { "price": { "lte": 100 } } },  # yes/no, cached
+                  { "term":  { "in_stock": true } } ],
+      "should": [ { "match": { "description": "waterproof" } } ],
+      "must_not":[ { "term": { "sku": "TS-0" } } ]
+    }
+  },
+  "from": 0, "size": 10,
+  "sort": [ { "_score": "desc" }, { "price": "asc" } ]
+}
+</pre>
+      <p style="margin-top:10px"><span class="highlight">query context</span> (<code>must</code>/<code>should</code>) scores relevance; <span class="highlight">filter context</span> (<code>filter</code>/<code>must_not</code>) is a cached yes/no with no scoring &mdash; faster, so push exact constraints there.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Text Analysis &amp; Relevance</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Analyzer Pipeline</h3>
+        <div class="diagram" style="margin:6px 0">
+          <div class="box" style="min-width:90px">Char<br>Filters</div>
+          <div class="arrow">&#8594;</div>
+          <div class="box" style="min-width:90px">Tokenizer</div>
+          <div class="arrow">&#8594;</div>
+          <div class="box" style="min-width:90px">Token<br>Filters</div>
+        </div>
+        <ul>
+          <li>Lowercasing, stop-words, stemming</li>
+          <li>Same analyzer at index &amp; query time</li>
+          <li>Test with the <code>_analyze</code> API</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Scoring (BM25)</h3>
+        <ul>
+          <li>Default similarity is <span class="highlight">BM25</span></li>
+          <li><span class="highlight">TF</span> &mdash; term frequency in the doc</li>
+          <li><span class="highlight">IDF</span> &mdash; rarer terms count more</li>
+          <li>Field length normalization</li>
+          <li>Tune with <code>boost</code>, <code>function_score</code></li>
+          <li>Debug with <code>"explain": true</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Aggregations</h2>
+    <div class="content animate">
+<pre>
+GET /orders/_search
+{
+  "size": 0,                       # only want aggregates, not hits
+  "aggs": {
+    "by_status": {                 # bucket aggregation
+      "terms": { "field": "status" },
+      "aggs": {
+        "revenue": { "sum": { "field": "total" } },     # metric
+        "avg_total": { "avg": { "field": "total" } }
+      }
+    },
+    "daily": {                     # time-series buckets
+      "date_histogram": { "field": "created_at", "calendar_interval": "day" }
+    }
+  }
+}
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Bucket</span> aggregations group documents; <span class="highlight">metric</span> aggregations compute numbers; <span class="highlight">pipeline</span> aggregations run on other aggregations' output. Nest them to build analytics in one request.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">OpenSearch Dashboards</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Explore &amp; Visualize</h3>
+        <ul>
+          <li><span class="highlight">Discover</span> &mdash; raw search + filtering</li>
+          <li><span class="highlight">Visualize</span> &mdash; charts, maps, metrics</li>
+          <li><span class="highlight">Dashboards</span> &mdash; composed panels</li>
+          <li><span class="highlight">Index patterns</span> map indices to fields</li>
+          <li>Query with <span class="highlight">DQL</span> or the Dev Tools console</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Built-in Plugins</h3>
+        <ul>
+          <li><span class="highlight">Observability</span> &mdash; trace analytics, PPL</li>
+          <li><span class="highlight">Alerting</span> &mdash; monitors &amp; notifications</li>
+          <li><span class="highlight">Anomaly Detection</span> &mdash; ML on streams</li>
+          <li><span class="highlight">Security Analytics</span> &mdash; SIEM detectors</li>
+          <li><span class="highlight">Maps</span> &amp; <span class="highlight">Reporting</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Ingest Pipelines</h2>
+    <div class="content animate">
+<pre>
+# Define a pipeline of processors that transform docs at index time
+PUT /_ingest/pipeline/weblogs
+{
+  "description": "Parse and enrich access logs",
+  "processors": [
+    { "grok":   { "field": "message",
+                  "patterns": ["%{COMBINEDAPACHELOG}"] } },
+    { "date":   { "field": "timestamp",
+                  "formats": ["dd/MMM/yyyy:HH:mm:ss Z"] } },
+    { "geoip":  { "field": "clientip", "target_field": "geo" } },
+    { "remove": { "field": "message" } }
+  ]
+}
+
+# Use it on write
+POST /weblogs/_doc?pipeline=weblogs
+{ "message": "127.0.0.1 - - [10/Oct/2024:13:55:36 +0000] ..." }
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Data Prepper</span> and Logstash/Fluent Bit handle heavier ETL upstream; ingest pipelines handle lightweight enrichment inside the cluster.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Index State Management (ISM)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Lifecycle Policies</h3>
+        <ul>
+          <li>Automate index lifecycle by <span class="highlight">state</span></li>
+          <li>States have <span class="highlight">actions</span> + <span class="highlight">transitions</span></li>
+          <li>hot &rarr; warm &rarr; cold &rarr; delete</li>
+          <li>Actions: <code>rollover</code>, <code>force_merge</code>, <code>replica_count</code>, <code>snapshot</code>, <code>delete</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Rollover &amp; Data Streams</h3>
+        <ul>
+          <li><span class="highlight">Rollover</span> &mdash; new index at a size/age/doc threshold</li>
+          <li><span class="highlight">Data streams</span> &mdash; append-only time series over backing indices</li>
+          <li>Write to one alias, read across all</li>
+          <li>Pairs with <span class="highlight">UltraWarm</span> + cold storage on managed services</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Vector &amp; Semantic Search (k-NN)</h2>
+    <div class="content animate">
+<pre>
+PUT /docs
+{
+  "settings": { "index.knn": true },
+  "mappings": { "properties": {
+    "embedding": {
+      "type": "knn_vector", "dimension": 768,
+      "method": { "name": "hnsw", "engine": "lucene",
+                  "space_type": "cosinesimil" }
+    }
+  }}
+}
+
+# Approximate nearest-neighbor query
+GET /docs/_search
+{ "query": { "knn": { "embedding": { "vector": [0.12, ...], "k": 10 } } } }
+</pre>
+      <p style="margin-top:10px"><span class="highlight">HNSW</span> graphs power approximate k-NN over Lucene/Faiss/nmslib engines. The <span class="highlight">ML Commons</span> + neural-search plugins auto-generate embeddings and run <span class="highlight">hybrid</span> (BM25 + vector) queries &mdash; the backbone of RAG on OpenSearch.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Security Plugin</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>AuthN &amp; AuthZ</h3>
+        <ul>
+          <li>TLS on transport + REST layers</li>
+          <li>Internal users, LDAP/AD, SAML, OpenID Connect</li>
+          <li><span class="highlight">Roles</span> map to cluster &amp; index permissions</li>
+          <li><span class="highlight">Role mapping</span> binds users/backend-roles to roles</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Fine-Grained Control</h3>
+        <ul>
+          <li><span class="highlight">Document-level security</span> &mdash; filter rows by query</li>
+          <li><span class="highlight">Field-level security</span> &mdash; hide fields</li>
+          <li><span class="highlight">Field masking</span> &mdash; anonymize values</li>
+          <li><span class="highlight">Tenants</span> isolate Dashboards objects</li>
+          <li>Full <span class="highlight">audit logging</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Snapshots &amp; Restore</h2>
+    <div class="content animate">
+<pre>
+# Register a snapshot repository (S3, fs, GCS, Azure)
+PUT /_snapshot/backups
+{ "type": "s3", "settings": { "bucket": "my-os-backups", "region": "us-east-1" } }
+
+# Take a snapshot (incremental after the first)
+PUT /_snapshot/backups/snap-2024-10-10?wait_for_completion=false
+{ "indices": "products,orders", "include_global_state": false }
+
+# Restore into the cluster
+POST /_snapshot/backups/snap-2024-10-10/_restore
+{ "indices": "products", "rename_pattern": "products",
+  "rename_replacement": "products_restored" }
+</pre>
+      <p style="margin-top:10px">Snapshots are <span class="highlight">incremental</span> at the segment level, so repeat backups are cheap. Automate them with the <span class="highlight">Snapshot Management</span> plugin or an ISM <code>snapshot</code> action.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Performance &amp; Sharding Strategy</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Shard Sizing</h3>
+        <p>Keep shards 10&ndash;50 GB. Aim for &lt; 25 shards per GB of JVM heap per node to avoid overhead.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Heap &amp; Memory</h3>
+        <p>Set JVM heap to ~50% of RAM, max ~32 GB. Leave the rest for the Lucene filesystem cache.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Bulk &amp; Refresh</h3>
+        <p>Batch with <code>_bulk</code>; raise <code>refresh_interval</code> (e.g. 30s) during heavy ingest to cut segment churn.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Read Path</h3>
+        <p>Use <code>filter</code> context for cacheable constraints, <code>force_merge</code> read-only indices, and <code>_search</code> profiling to find slow queries.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Operating a Cluster</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Health &amp; Monitoring</h3>
+<pre style="font-size:0.8rem">
+GET /_cluster/health           # green/yellow/red
+GET /_cat/nodes?v              # node roles, heap, CPU
+GET /_cat/shards?v             # shard allocation
+GET /_cat/indices?v&s=store.size:desc
+GET /_nodes/stats/jvm,os       # heap, GC, load
+</pre>
+        <ul>
+          <li><span class="green">green</span> all shards assigned</li>
+          <li><span class="highlight">yellow</span> replicas unassigned</li>
+          <li><span class="warning">red</span> a primary is missing</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Scaling &amp; Resilience</h3>
+        <ul>
+          <li>Add data nodes &rarr; shards rebalance</li>
+          <li>Use <span class="highlight">shard allocation awareness</span> across AZs</li>
+          <li><span class="highlight">Cross-cluster replication</span> for DR</li>
+          <li>Do rolling upgrades; one node at a time</li>
+          <li>Managed options: <span class="highlight">Amazon OpenSearch Service</span>, Aiven</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Client Libraries</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Python (opensearch-py)</h3>
+<pre style="font-size:0.8rem">
+from opensearchpy import OpenSearch
+
+client = OpenSearch(
+    hosts=[{"host": "localhost", "port": 9200}],
+    http_auth=("admin", "admin"),
+    use_ssl=True, verify_certs=False,
+)
+
+client.index(index="products",
+             body={"name": "Cap", "price": 19.0})
+
+res = client.search(index="products",
+    body={"query": {"match": {"name": "cap"}}})
+print(res["hits"]["total"]["value"])
+</pre>
+      </div>
+      <div class="card">
+        <h3>Node.js (@opensearch-project/opensearch)</h3>
+<pre style="font-size:0.8rem">
+import { Client } from "@opensearch-project/opensearch";
+
+const client = new Client({
+  node: "https://localhost:9200",
+  auth: { username: "admin", password: "admin" },
+  ssl: { rejectUnauthorized: false },
+});
+
+await client.index({
+  index: "products",
+  body: { name: "Cap", price: 19.0 },
+});
+
+const { body } = await client.search({
+  index: "products",
+  body: { query: { match: { name: "cap" } } },
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Design mappings explicitly &mdash; disable dynamic mapping in prod</div>
+      <div class="bp-item"><span>2.</span> Use <code>keyword</code> for filters/aggs, <code>text</code> for full-text</div>
+      <div class="bp-item"><span>3.</span> Always index in bulk; tune refresh during heavy ingest</div>
+      <div class="bp-item"><span>4.</span> Keep shards 10&ndash;50 GB; avoid oversharding</div>
+      <div class="bp-item"><span>5.</span> Put exact constraints in filter context for caching</div>
+      <div class="bp-item"><span>6.</span> Use ISM + data streams for time-series data</div>
+      <div class="bp-item"><span>7.</span> Run 3 dedicated cluster-manager nodes for quorum</div>
+      <div class="bp-item"><span>8.</span> Enable the security plugin &mdash; TLS, RBAC, audit logs</div>
+      <div class="bp-item"><span>9.</span> Automate snapshots to remote object storage</div>
+      <div class="bp-item"><span>10.</span> Watch heap, GC, and cluster health continuously</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F50D;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have explored OpenSearch:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Architecture</span><span class="tag">Shards</span><span class="tag">Mappings</span>
+        <span class="tag">Query DSL</span><span class="tag">Aggregations</span><span class="tag">Dashboards</span>
+        <span class="tag">Ingest</span><span class="tag">ISM</span><span class="tag">k-NN</span>
+        <span class="tag">Security</span><span class="tag">Snapshots</span><span class="tag">Ops</span>
+      </div>
+      <p style="color:var(--text-muted)">One engine for search, log analytics, observability, and semantic vector search &mdash; fully open source.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
