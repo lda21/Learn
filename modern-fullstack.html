@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Modern Full-Stack Web Dev</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F9E9;</span>
+    <h1 class="animate">Modern Full-Stack Web Dev</h1>
+    <p class="subtitle animate">React, Next.js, Vite &amp; the TypeScript ecosystem &mdash; from component to production</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">React</span><span class="tag">Next.js</span><span class="tag">Vite</span><span class="tag">TypeScript</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Modern Full-Stack Landscape</h2>
+    <div class="diagram animate">
+      <div class="box">Server pages<br>(PHP, Rails)</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">SPA era<br>(jQuery &#8594; React)</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">SSR frameworks<br>(Next.js)</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Server<br>Components</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Pendulum</h3>
+        <ul>
+          <li>2000s: HTML rendered on the server, sprinkle of JS</li>
+          <li>2010s: <span class="highlight">SPAs</span> moved everything to the browser</li>
+          <li>Cost: blank first paint, SEO pain, huge bundles</li>
+          <li>Today: frameworks <span class="highlight">blend server and client</span> per route &mdash; and even per component</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>One Language, Whole Stack</h3>
+        <ul>
+          <li><span class="highlight">TypeScript</span> from database schema to UI</li>
+          <li>UI library: <span class="highlight">React</span> (or Vue, Svelte, Solid)</li>
+          <li>Build tool: <span class="highlight">Vite</span> &mdash; the ecosystem default</li>
+          <li>Full-stack framework: <span class="highlight">Next.js</span> &mdash; routing, rendering, APIs in one</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Foundations: Node.js &amp; the Toolchain</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Runtimes</h3>
+        <ul>
+          <li><span class="highlight">Node.js</span> &mdash; V8-based, the default server runtime</li>
+          <li><span class="highlight">Bun</span> &mdash; fast all-in-one runtime + bundler + test runner</li>
+          <li><span class="highlight">Deno</span> &mdash; secure-by-default, web-standard APIs</li>
+          <li><span class="highlight">Edge runtimes</span> &mdash; V8 isolates (Cloudflare Workers, Vercel Edge) with a subset of Node APIs</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Packages &amp; Modules</h3>
+        <ul>
+          <li><code>package.json</code> declares deps, scripts, <code>"type": "module"</code></li>
+          <li><span class="highlight">ESM</span> (<code>import</code>/<code>export</code>) is the standard; CommonJS (<code>require</code>) is legacy</li>
+          <li>Package managers: <code>npm</code>, <span class="highlight"><code>pnpm</code></span> (fast, disk-efficient), <code>yarn</code>, <code>bun</code></li>
+          <li>Lockfiles pin the dependency tree &mdash; always commit them</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">TypeScript Everywhere</h2>
+    <div class="content animate">
+<pre>
+// Types flow across the stack: define once, reuse everywhere
+type User = { id: string; name: string; role: "admin" | "member" };
+
+// Zod: validate at runtime, infer the static type from the schema
+import { z } from "zod";
+const CreateUser = z.object({
+  name: z.string().min(2),
+  email: z.string().email(),
+});
+type CreateUserInput = z.infer&lt;typeof CreateUser&gt;;  // static type, for free
+
+async function createUser(raw: unknown) {
+  const input = CreateUser.parse(raw);   // throws on bad shape
+  // input is fully typed from here on
+}
+</pre>
+      <p style="margin-top:10px">TypeScript is the <span class="highlight">lingua franca</span> of the modern stack. Compile-time types catch mistakes in the editor; schema libraries like <span class="highlight">Zod</span> extend that safety to runtime boundaries &mdash; API bodies, env vars, form input.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">React Fundamentals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Components &amp; JSX</h3>
+<pre style="font-size:0.8rem">
+type Props = { name: string; count: number };
+
+function Badge({ name, count }: Props) {
+  return (
+    &lt;span className="badge"&gt;
+      {name}: {count &gt; 99 ? "99+" : count}
+    &lt;/span&gt;
+  );
+}
+
+// Compose like functions
+&lt;Card&gt;&lt;Badge name="Inbox" count={120} /&gt;&lt;/Card&gt;
+</pre>
+      </div>
+      <div class="card">
+        <h3>The Mental Model</h3>
+        <ul>
+          <li>UI is a <span class="highlight">pure function of state</span>: <code>view = f(state)</code></li>
+          <li>Components are functions returning JSX</li>
+          <li>Data flows <span class="highlight">one way</span>: props down, events up</li>
+          <li>State changes trigger a <span class="highlight">re-render</span>; React diffs and patches the DOM</li>
+          <li>Never mutate state &mdash; always replace it</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Hooks &amp; Modern React Patterns</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Core Hooks</h3>
+        <ul>
+          <li><code>useState</code> &mdash; local component state</li>
+          <li><code>useEffect</code> &mdash; sync with external systems (not for data transforms!)</li>
+          <li><code>useRef</code> &mdash; mutable value / DOM handle, no re-render</li>
+          <li><code>useContext</code> &mdash; read shared context</li>
+          <li><code>useMemo</code> / <code>useCallback</code> &mdash; caching (React Compiler is automating this)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Rules &amp; Patterns</h3>
+        <ul>
+          <li>Call hooks at the <span class="highlight">top level</span> only &mdash; never in loops or conditions</li>
+          <li>Extract reusable logic into <span class="highlight">custom hooks</span> (<code>useDebounce</code>, <code>useAuth</code>)</li>
+          <li>Derive values during render instead of mirroring state</li>
+          <li>Lift state up to the closest common parent &mdash; and no higher</li>
+          <li>React 19: <code>use()</code>, Actions, <code>useOptimistic</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">React Server Components</h2>
+    <div class="diagram animate">
+      <div class="box">Server Component<br><span style="font-weight:400;font-size:0.9rem">fetch data, render</span></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">RSC Payload<br><span style="font-weight:400;font-size:0.9rem">serialized UI</span></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Client Component<br><span style="font-weight:400;font-size:0.9rem">hydrated, interactive</span></div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Server Components (default)</h3>
+        <ul>
+          <li>Run <span class="highlight">only on the server</span> &mdash; zero JS shipped</li>
+          <li>Can be <code>async</code> and query the DB directly</li>
+          <li>Can hold secrets &mdash; code never reaches the browser</li>
+          <li>No <code>useState</code>, no event handlers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Client Components</h3>
+        <ul>
+          <li>Opt in with the <code>"use client"</code> directive</li>
+          <li>Handle interactivity: state, effects, browser APIs</li>
+          <li>Hydrated on load &mdash; their JS <span class="highlight">is</span> in the bundle</li>
+          <li>Rule of thumb: <span class="green">server by default</span>, client at the interactive leaves</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Vite: The Build Tool</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why It's Fast</h3>
+        <ul>
+          <li>Dev server serves <span class="highlight">native ESM</span> &mdash; no bundling before startup</li>
+          <li>Pre-bundles dependencies with <span class="highlight">esbuild</span> (Go, ~100&times; faster than JS tools)</li>
+          <li><span class="highlight">HMR</span> swaps modules in place, preserving component state</li>
+          <li>Production build via <span class="highlight">Rollup</span> &mdash; being replaced by Rust-based <span class="highlight">Rolldown</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Getting Started</h3>
+<pre style="font-size:0.8rem">
+npm create vite@latest my-app \
+  -- --template react-ts
+
+# vite.config.ts
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+
+export default defineConfig({
+  plugins: [react()],
+  server: { proxy: { "/api": "http://localhost:3000" } },
+});
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The SPA Path: Vite + a Router</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Client-Side Routing</h3>
+<pre style="font-size:0.8rem">
+// React Router (v7, library mode)
+import { createBrowserRouter } from "react-router";
+
+const router = createBrowserRouter([
+  { path: "/", Component: Home },
+  { path: "/users/:id", Component: UserPage,
+    loader: ({ params }) =&gt;
+      fetch(`/api/users/${params.id}`) },
+]);
+</pre>
+        <ul>
+          <li><span class="highlight">TanStack Router</span> &mdash; fully type-safe alternative</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>When a SPA Is Right</h3>
+        <ul>
+          <li>Dashboards, admin panels, internal tools</li>
+          <li>Apps behind a login &mdash; <span class="highlight">SEO irrelevant</span></li>
+          <li>Simple deploys: static files on any CDN</li>
+          <li>Pair with a separate API (Express, Hono, Fastify)</li>
+          <li>Trade-off: no server rendering, slower first paint, data fetched after JS loads</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Next.js: The Full-Stack Framework</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Adds to React</h3>
+        <ul>
+          <li><span class="highlight">File-based routing</span> &mdash; folders become URLs</li>
+          <li>Server-side rendering &amp; static generation built in</li>
+          <li><span class="highlight">API endpoints</span> in the same repo (Route Handlers)</li>
+          <li>Image, font &amp; script optimization</li>
+          <li>Middleware, caching, streaming out of the box</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>One Project, Whole App</h3>
+<pre style="font-size:0.8rem">
+npx create-next-app@latest my-app
+
+my-app/
+  app/            # routes (App Router)
+  public/         # static assets
+  next.config.ts
+  package.json
+</pre>
+        <p style="font-size:1.05rem">React is the <span class="highlight">library</span>; Next.js is the <span class="highlight">framework</span> that decides where and when your components run.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">App Router: File Conventions</h2>
+    <div class="content animate">
+<pre>
+app/
+  layout.tsx        # root layout — wraps every page (html, body, nav)
+  page.tsx          # /            — the home route
+  loading.tsx       # instant loading UI (Suspense fallback)
+  error.tsx         # error boundary for this segment
+  blog/
+    page.tsx        # /blog
+    [slug]/
+      page.tsx      # /blog/:slug   — dynamic segment
+  api/
+    users/
+      route.ts      # /api/users    — GET/POST handlers
+  (marketing)/      # route group — organizes without changing URLs
+    about/page.tsx  # /about
+</pre>
+      <p style="margin-top:10px">Layouts <span class="highlight">nest and persist</span> across navigation &mdash; a dashboard shell renders once while child pages swap. <code>loading.tsx</code> and <code>error.tsx</code> give every segment streaming and error states with zero wiring.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Rendering Strategies</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Strategy</th><th>When HTML is built</th><th>Best for</th></tr>
+        <tr><td><span class="highlight">SSG</span> &mdash; static</td><td>At build time</td><td>Marketing pages, docs, blogs</td></tr>
+        <tr><td><span class="highlight">ISR</span> &mdash; incremental</td><td>Build + revalidated on a timer or on demand</td><td>Product pages, CMS content</td></tr>
+        <tr><td><span class="highlight">SSR</span> &mdash; dynamic</td><td>On every request</td><td>Personalized, always-fresh pages</td></tr>
+        <tr><td><span class="highlight">CSR</span> &mdash; client</td><td>In the browser</td><td>Interactive widgets, dashboards</td></tr>
+      </table>
+      <p style="margin-top:6px"><span class="highlight">Streaming</span> cuts across all of them: the shell is sent immediately while slow parts render inside <code>&lt;Suspense&gt;</code> boundaries and stream in when ready. Next.js picks static vs dynamic <span class="highlight">per route</span>, based on what the route uses (cookies, headers, uncached fetches).</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data Fetching &amp; Mutations</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Reads: async Server Components</h3>
+<pre style="font-size:0.8rem">
+// app/posts/page.tsx — runs on the server
+export default async function Posts() {
+  const posts = await db.post.findMany();
+  return (
+    &lt;ul&gt;
+      {posts.map(p =&gt;
+        &lt;li key={p.id}&gt;{p.title}&lt;/li&gt;)}
+    &lt;/ul&gt;
+  );
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Writes: Server Actions</h3>
+<pre style="font-size:0.8rem">
+"use server";
+export async function createPost(fd: FormData) {
+  const input = PostSchema.parse({
+    title: fd.get("title"),
+  });
+  await db.post.create({ data: input });
+  revalidatePath("/posts");
+}
+
+// In a component:
+&lt;form action={createPost}&gt;...&lt;/form&gt;
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;max-width:1000px">For rich <span class="highlight">client-side</span> server-state &mdash; caching, refetching, optimistic updates &mdash; reach for <span class="highlight">TanStack Query</span> (React Query) or SWR.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">State Management</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Two Kinds of State</h3>
+        <ul>
+          <li><span class="highlight">Server state</span> &mdash; data owned by the backend: cache it (TanStack Query, RSC)</li>
+          <li><span class="highlight">Client state</span> &mdash; UI-owned: modals, filters, form drafts</li>
+          <li>Most "state management pain" is treating server state as client state</li>
+          <li>URL search params are state too &mdash; shareable and refresh-proof</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Client-State Options</h3>
+        <ul>
+          <li><code>useState</code> + props &mdash; the default; go further only when it hurts</li>
+          <li><span class="highlight">Context</span> &mdash; low-frequency shared values (theme, user)</li>
+          <li><span class="highlight">Zustand</span> &mdash; tiny store, no boilerplate, today's popular pick</li>
+          <li><span class="highlight">Redux Toolkit</span> &mdash; structured, devtools-rich, large teams</li>
+          <li><span class="highlight">Jotai</span> &mdash; atom-based, fine-grained updates</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Styling the Frontend</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Tailwind CSS</h3>
+<pre style="font-size:0.8rem">
+&lt;button className="rounded-lg bg-orange-600
+  px-4 py-2 font-semibold text-white
+  hover:bg-orange-700 disabled:opacity-50"&gt;
+  Save
+&lt;/button&gt;
+</pre>
+        <ul>
+          <li>Utility classes, no naming, no dead CSS</li>
+          <li>v4: CSS-first config, built on native cascade layers</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Ecosystem</h3>
+        <ul>
+          <li><span class="highlight">CSS Modules</span> &mdash; scoped classes, zero runtime</li>
+          <li><span class="highlight">shadcn/ui</span> &mdash; copy-paste components you own, built on Radix primitives + Tailwind</li>
+          <li><span class="highlight">Radix / Headless UI</span> &mdash; unstyled, accessible behavior</li>
+          <li>Avoid runtime CSS-in-JS with Server Components &mdash; prefer zero-runtime approaches</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The API Layer</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Route Handlers (REST)</h3>
+<pre style="font-size:0.8rem">
+// app/api/users/route.ts
+import { NextResponse } from "next/server";
+
+export async function GET() {
+  const users = await db.user.findMany();
+  return NextResponse.json(users);
+}
+
+export async function POST(req: Request) {
+  const input = CreateUser.parse(await req.json());
+  const user = await db.user.create({ data: input });
+  return NextResponse.json(user, { status: 201 });
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Beyond Plain REST</h3>
+        <ul>
+          <li><span class="highlight">tRPC</span> &mdash; end-to-end typesafe RPC; client types inferred from server code, no codegen</li>
+          <li><span class="highlight">GraphQL</span> &mdash; client-driven queries for many-consumer APIs</li>
+          <li><span class="highlight">Hono / Fastify / Express</span> &mdash; standalone API servers</li>
+          <li>Validate every boundary with <span class="highlight">Zod</span> &mdash; never trust the client</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Databases &amp; ORMs</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Prisma</h3>
+<pre style="font-size:0.8rem">
+// schema.prisma
+model Post {
+  id     String @id @default(cuid())
+  title  String
+  author User   @relation(fields: [authorId],
+                          references: [id])
+  authorId String
+}
+
+// Fully typed client
+const posts = await prisma.post.findMany({
+  where: { title: { contains: "react" } },
+  include: { author: true },
+});
+</pre>
+      </div>
+      <div class="card">
+        <h3>The Data Landscape</h3>
+        <ul>
+          <li><span class="highlight">PostgreSQL</span> &mdash; the default relational choice</li>
+          <li><span class="highlight">Drizzle</span> &mdash; SQL-first, lightweight, edge-friendly ORM</li>
+          <li>Serverless Postgres: <span class="highlight">Neon</span>, <span class="highlight">Supabase</span></li>
+          <li>Serverless needs <span class="highlight">connection pooling</span> (PgBouncer, HTTP drivers) &mdash; each function is a new client</li>
+          <li>Migrations live in git: <code>prisma migrate</code>, <code>drizzle-kit</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Authentication</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Concepts</h3>
+        <ul>
+          <li><span class="highlight">Sessions</span> &mdash; server-stored, cookie holds only an ID; easy to revoke</li>
+          <li><span class="highlight">JWTs</span> &mdash; stateless signed tokens; scale easily, harder to revoke</li>
+          <li>Store tokens in <span class="highlight">httpOnly cookies</span>, not localStorage (XSS)</li>
+          <li><span class="highlight">OAuth</span> &mdash; "Sign in with Google/GitHub" delegation</li>
+          <li>Protect routes in <span class="highlight">middleware</span> + verify again in the data layer</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Tools</h3>
+        <ul>
+          <li><span class="highlight">Auth.js</span> (NextAuth) &mdash; open-source, many providers, self-hosted</li>
+          <li><span class="highlight">Clerk</span> &mdash; hosted auth with prebuilt React components</li>
+          <li><span class="highlight">Better Auth</span> &mdash; TypeScript-native, fast-growing option</li>
+          <li><span class="highlight">Supabase Auth</span> &mdash; bundled with the DB platform</li>
+          <li>Rule: <span class="green">buy or adopt</span> &mdash; never hand-roll password storage</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Testing the Stack</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Unit &amp; Component: Vitest</h3>
+<pre style="font-size:0.8rem">
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+
+test("increments the counter", async () =&gt; {
+  render(&lt;Counter /&gt;);
+  await userEvent.click(
+    screen.getByRole("button", { name: /add/i }));
+  expect(screen.getByText("1")).toBeInTheDocument();
+});
+</pre>
+        <ul>
+          <li>Vite-native, Jest-compatible API, fast watch mode</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>End-to-End: Playwright</h3>
+<pre style="font-size:0.8rem">
+test("signup flow", async ({ page }) =&gt; {
+  await page.goto("/signup");
+  await page.getByLabel("Email")
+            .fill("a@b.co");
+  await page.getByRole("button",
+    { name: "Create account" }).click();
+  await expect(page).toHaveURL("/dashboard");
+});
+</pre>
+        <ul>
+          <li>Test <span class="highlight">behavior users see</span>, not implementation details</li>
+          <li>Mock APIs at the network edge with <span class="highlight">MSW</span></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tooling &amp; Developer Experience</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Lint &amp; Format</h3>
+        <p><span class="highlight">ESLint</span> (flat config) catches bugs; <span class="highlight">Prettier</span> formats. <span class="highlight">Biome</span> does both in one Rust-fast tool.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Monorepos</h3>
+        <p><span class="highlight">pnpm workspaces</span> + <span class="highlight">Turborepo</span> share code between web, API, and packages with cached, parallel task runs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Env &amp; Config</h3>
+        <p>Secrets in <code>.env.local</code> (gitignored). Validate <code>process.env</code> with Zod at boot &mdash; fail fast, not in production.</p>
+      </div>
+      <div class="metric-card">
+        <h3>CI</h3>
+        <p>GitHub Actions running <code>lint</code>, <code>typecheck</code>, <code>test</code>, <code>build</code> on every PR &mdash; the merge gate for the whole stack.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deployment</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Managed Platforms</h3>
+        <ul>
+          <li><span class="highlight">Vercel</span> &mdash; built by the Next.js team; git push &#8594; preview deploy per PR</li>
+          <li>Pages become <span class="highlight">serverless / edge functions</span> automatically</li>
+          <li>Netlify, Cloudflare, Railway, Fly.io &mdash; strong alternatives</li>
+          <li>Vite SPAs deploy anywhere static files are served</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Self-Hosting</h3>
+<pre style="font-size:0.8rem">
+# next.config.ts: output "standalone"
+FROM node:22-alpine
+WORKDIR /app
+COPY .next/standalone ./
+COPY .next/static ./.next/static
+COPY public ./public
+EXPOSE 3000
+CMD ["node", "server.js"]
+</pre>
+        <ul>
+          <li><code>next build</code> + Docker on any VPS or Kubernetes</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Performance &amp; Core Web Vitals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Metrics</h3>
+        <ul>
+          <li><span class="highlight">LCP</span> &mdash; Largest Contentful Paint &lt; 2.5s</li>
+          <li><span class="highlight">INP</span> &mdash; Interaction to Next Paint &lt; 200ms</li>
+          <li><span class="highlight">CLS</span> &mdash; Cumulative Layout Shift &lt; 0.1</li>
+          <li>Measure with Lighthouse + real-user monitoring</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Levers</h3>
+        <ul>
+          <li>Ship less JS: Server Components, code-splitting, <code>next/dynamic</code> / <code>React.lazy</code></li>
+          <li><code>next/image</code> &mdash; sized, lazy, modern formats (kills CLS)</li>
+          <li>Cache aggressively: CDN, ISR, <code>fetch</code> caching, TanStack Query</li>
+          <li>Stream slow data behind <code>&lt;Suspense&gt;</code></li>
+          <li>Audit bundles &mdash; a dashboard lib on the homepage is a bug</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Choosing Your Stack</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>If you're building&hellip;</th><th>Reach for</th></tr>
+        <tr><td>Internal tool, dashboard, app behind a login</td><td><span class="highlight">Vite + React</span> SPA + separate API</td></tr>
+        <tr><td>Product site, SaaS app, anything SEO-facing</td><td><span class="highlight">Next.js</span> (App Router)</td></tr>
+        <tr><td>Web-standards-first full-stack React</td><td><span class="highlight">React Router v7</span> (Remix) or <span class="highlight">TanStack Start</span></td></tr>
+        <tr><td>Content-heavy site with islands of interactivity</td><td><span class="highlight">Astro</span></td></tr>
+        <tr><td>Different UI taste, same ideas</td><td><span class="highlight">SvelteKit</span> / <span class="highlight">Nuxt</span> (Vue)</td></tr>
+      </table>
+      <p style="margin-top:6px">The concepts transfer: every option has file routing, a server/client split, loaders and actions, and a Vite-based toolchain. <span class="green">Learn the ideas once; the frameworks are dialects.</span></p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> TypeScript everywhere &mdash; strict mode on, <code>any</code> is a code smell</div>
+      <div class="bp-item"><span>2.</span> Server Components by default; <code>"use client"</code> only at interactive leaves</div>
+      <div class="bp-item"><span>3.</span> Validate every boundary (API, forms, env) with Zod</div>
+      <div class="bp-item"><span>4.</span> Treat server state and client state as different problems</div>
+      <div class="bp-item"><span>5.</span> Keep secrets server-side &mdash; never in client bundles or localStorage</div>
+      <div class="bp-item"><span>6.</span> Adopt an auth library; never hand-roll password storage</div>
+      <div class="bp-item"><span>7.</span> Test behavior: Vitest + Testing Library for units, Playwright for flows</div>
+      <div class="bp-item"><span>8.</span> Watch the bundle &mdash; every dependency is a download for your users</div>
+      <div class="bp-item"><span>9.</span> Migrations, lockfiles, and env schemas belong in git</div>
+      <div class="bp-item"><span>10.</span> Measure Core Web Vitals in production, not just Lighthouse locally</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F9E9;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You have explored the modern full-stack:</p>
+      <div style="margin:20px 0">
+        <span class="tag">React</span><span class="tag">Hooks</span><span class="tag">Server Components</span>
+        <span class="tag">Vite</span><span class="tag">Next.js</span><span class="tag">Rendering</span>
+        <span class="tag">Server Actions</span><span class="tag">State</span><span class="tag">Tailwind</span>
+        <span class="tag">tRPC</span><span class="tag">Prisma</span><span class="tag">Auth</span>
+        <span class="tag">Testing</span><span class="tag">Deployment</span><span class="tag">Web Vitals</span>
+      </div>
+      <p style="color:var(--text-muted)">One TypeScript codebase from database to pixel &mdash; server by default, client where it counts.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 25</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>

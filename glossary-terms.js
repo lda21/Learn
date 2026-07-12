@@ -470,6 +470,14 @@ const GLOSSARY_TERMS = [
   {t:"BM25", d:"The default relevance-ranking function in OpenSearch and Lucene. Scores documents using term frequency (TF), inverse document frequency (IDF), and field-length normalization to order full-text search results.", tags:["Search"]},
   {t:"ISM", d:"Index State Management &mdash; an OpenSearch plugin that automates the index lifecycle through states, actions, and transitions (e.g. rollover, force-merge, snapshot, delete), commonly paired with Data Streams for time-series data.", tags:["Search","Analytics"]},
   {t:"k-NN", d:"k-Nearest-Neighbor vector search in OpenSearch. Stores embeddings in a <code>knn_vector</code> field and runs approximate search over HNSW graphs (Lucene/Faiss/nmslib), powering semantic search, hybrid ranking, and RAG.", tags:["Search","Vector Search"]},
+  {t:"Vite", d:"The de-facto frontend build tool. Serves source as native ESM in development (near-instant startup, fast HMR) and bundles for production with Rollup — being replaced by the Rust-based Rolldown.", tags:["Vite","React"]},
+  {t:"HMR", d:"Hot Module Replacement — swapping an edited module into a running app without a full page reload, preserving component state. A core feature of Vite's dev server.", tags:["Vite","React"]},
+  {t:"Hydration", d:"Attaching React event listeners and state to server-rendered HTML so a static page becomes interactive. Happens after the client bundle loads; mismatches between server and client output cause hydration errors.", tags:["React","Next.js"]},
+  {t:"SSR", d:"Server-Side Rendering — generating a page's HTML on the server per request, giving fast first paint and SEO. Contrast with CSR (render in the browser), SSG (render at build time), and ISR.", tags:["Next.js","React"]},
+  {t:"ISR", d:"Incremental Static Regeneration — a Next.js strategy where static pages are rebuilt in the background after a revalidation interval or on demand, combining static speed with fresh content.", tags:["Next.js"]},
+  {t:"Server Action", d:"A Next.js/React function marked with the <code>\"use server\"</code> directive that runs on the server but can be called from client code or a <code>&lt;form action&gt;</code> — the built-in way to handle mutations without writing API endpoints.", tags:["Next.js","React"]},
+  {t:"App Router", d:"Next.js's routing system built on React Server Components. Folders under <code>app/</code> become URLs, with special files — <code>page.tsx</code>, <code>layout.tsx</code>, <code>loading.tsx</code>, <code>error.tsx</code>, <code>route.ts</code> — defining each segment's UI and API.", tags:["Next.js"]},
+  {t:"tRPC", d:"A TypeScript library for end-to-end typesafe APIs: the client infers input and output types directly from server procedure definitions, with no code generation or schema files.", tags:["Next.js","TypeScript","Full-Stack"]},
 ];
 
 (function() {
