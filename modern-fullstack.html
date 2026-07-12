@@ -312,7 +312,7 @@ type User = { id: string; name: string; role: "admin" | "member" };
 import { z } from "zod";
 const CreateUser = z.object({
   name: z.string().min(2),
-  email: z.string().email(),
+  email: z.email(),
 });
 type CreateUserInput = z.infer&lt;typeof CreateUser&gt;;  // static type, for free
 
@@ -387,11 +387,11 @@ function Badge({ name, count }: Props) {
   <div class="slide">
     <h2 class="animate">React Server Components</h2>
     <div class="diagram animate">
-      <div class="box">Server Component<br><span style="font-weight:400;font-size:0.9rem">fetch data, render</span></div>
+      <div class="box">Server Component<br><small>fetch data, render</small></div>
       <div class="arrow">&#8594;</div>
-      <div class="box">RSC Payload<br><span style="font-weight:400;font-size:0.9rem">serialized UI</span></div>
+      <div class="box">RSC Payload<br><small>serialized UI</small></div>
       <div class="arrow">&#8594;</div>
-      <div class="box">Client Component<br><span style="font-weight:400;font-size:0.9rem">hydrated, interactive</span></div>
+      <div class="box">Client Component<br><small>hydrated, interactive</small></div>
     </div>
     <div class="two-col animate">
       <div class="card">
@@ -422,7 +422,7 @@ function Badge({ name, count }: Props) {
         <h3>Why It's Fast</h3>
         <ul>
           <li>Dev server serves <span class="highlight">native ESM</span> &mdash; no bundling before startup</li>
-          <li>Pre-bundles dependencies with <span class="highlight">esbuild</span> (Go, ~100&times; faster than JS tools)</li>
+          <li>Pre-bundles dependencies with <span class="highlight">esbuild</span> (Go, 10&ndash;100&times; faster than JS tools)</li>
           <li><span class="highlight">HMR</span> swaps modules in place, preserving component state</li>
           <li>Production build via <span class="highlight">Rollup</span> &mdash; being replaced by Rust-based <span class="highlight">Rolldown</span></li>
         </ul>
@@ -452,7 +452,7 @@ export default defineConfig({
       <div class="card">
         <h3>Client-Side Routing</h3>
 <pre style="font-size:0.8rem">
-// React Router (v7, library mode)
+// React Router (v7, data mode)
 import { createBrowserRouter } from "react-router";
 
 const router = createBrowserRouter([
