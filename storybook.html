@@ -1,0 +1,1245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Storybook</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4DA;</span>
+    <h1 class="animate">Storybook</h1>
+    <p class="subtitle animate">The frontend workshop &mdash; build, document, and test UI components in isolation</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Storybook 10</span><span class="tag">CSF</span><span class="tag">Component Testing</span><span class="tag">Design Systems</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What is Storybook?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Overview</h3>
+        <ul>
+          <li>A dev server that renders components <span class="highlight">in isolation</span></li>
+          <li>Each state of a component is a <span class="highlight">story</span></li>
+          <li>Stories are plain ES modules &mdash; no DSL to learn</li>
+          <li>Same stories power docs, tests, and review</li>
+          <li>Framework-agnostic: React, Vue, Angular, Svelte, more</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What It Replaces</h3>
+        <ul>
+          <li>Clicking through the real app to reach one edge case</li>
+          <li>Seeding a database just to see an empty state</li>
+          <li>Hand-written component docs that go stale</li>
+          <li>Separate test files that duplicate setup</li>
+          <li>Screenshot-by-hand design review</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;text-align:center;max-width:900px">
+      One story file becomes a <span class="highlight">sandbox</span>, a <span class="highlight">doc page</span>, an <span class="highlight">interaction test</span>, an <span class="highlight">a11y check</span>, and a <span class="highlight">visual snapshot</span>.
+    </p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Component-Driven Development</h2>
+    <div class="content animate">
+      <p style="text-align:center">Build from the bottom up. Small pieces are easy to reason about, easy to test, and easy to reuse.</p>
+      <div class="diagram">
+        <div class="box">Atoms<br><span style="font-weight:400;font-size:0.9rem">Button, Input</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Molecules<br><span style="font-weight:400;font-size:0.9rem">SearchBar</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Organisms<br><span style="font-weight:400;font-size:0.9rem">Header</span></div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Pages<br><span style="font-weight:400;font-size:0.9rem">Dashboard</span></div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>Why Isolation Wins</h3>
+          <ul>
+            <li>No routing, no auth, no seed data to reach a state</li>
+            <li>Error and loading states are <span class="highlight">trivially reachable</span></li>
+            <li>Renders in milliseconds, not a full app boot</li>
+            <li>Forces components to take props, not read globals</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Who Uses the Output</h3>
+          <ul>
+            <li><span class="highlight">Engineers</span> &mdash; build and debug states</li>
+            <li><span class="highlight">Designers</span> &mdash; review real components, not mockups</li>
+            <li><span class="highlight">QA</span> &mdash; every story is a test case</li>
+            <li><span class="highlight">Product</span> &mdash; browse a published catalog</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Installation &amp; Setup</h2>
+    <div class="content animate">
+<pre>
+# Run inside an existing project — Storybook detects your framework,
+# builder, TypeScript setup, and package manager
+npm create storybook@latest
+
+# Requirements: Node 20.19+ or 22.12+ (Storybook 10 is ESM-only)
+</pre>
+<pre style="margin-top:12px">
+# What it adds
+.storybook/
+  main.ts          # framework, story globs, addons
+  preview.ts       # global decorators, parameters, tags, mocks
+  vitest.setup.ts  # created when the test addon is installed
+src/stories/       # sample stories you can delete
+
+# package.json scripts
+"storybook":       "storybook dev -p 6006"
+"build-storybook": "storybook build"
+</pre>
+<pre style="margin-top:12px">
+npm run storybook              # dev server on http://localhost:6006
+npm run build-storybook        # static site → storybook-static/
+
+npx storybook add @storybook/addon-a11y   # installs + registers an addon
+npx storybook@latest upgrade              # upgrade + run codemods
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">.storybook/main.ts</h2>
+    <div class="content animate">
+      <p>The build-time config: what to load, how to build it, which addons to register.</p>
+<pre>
+import type { StorybookConfig } from '@storybook/react-vite';
+
+const config: StorybookConfig = {
+  // Glob patterns, relative to this file
+  stories: [
+    '../src/**/*.mdx',
+    '../src/**/*.stories.@(js|jsx|ts|tsx)',
+  ],
+
+  addons: [
+    '@storybook/addon-docs',     // MDX + autodocs
+    '@storybook/addon-a11y',     // accessibility checks
+    '@storybook/addon-vitest',   // run stories as Vitest tests
+    '@storybook/addon-links',    // link between stories
+  ],
+
+  framework: {
+    name: '@storybook/react-vite',
+    options: {},
+  },
+
+  staticDirs: ['../public'],        // served at the Storybook root
+  docs: { defaultName: 'Docs' },
+  typescript: { reactDocgen: 'react-docgen-typescript' },
+
+  // Escape hatch: mutate the underlying builder config
+  async viteFinal(config) {
+    config.resolve.alias['@'] = '/src';
+    return config;
+  },
+};
+
+export default config;
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Note:</span> controls, actions, viewport, backgrounds, measure, outline, highlight, and toolbars are <span class="green">built into core</span> &mdash; no addon entry needed.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">.storybook/preview.ts</h2>
+    <div class="content animate">
+      <p>The runtime config: applied to <em>every</em> story in the project.</p>
+<pre>
+import type { Preview } from '@storybook/react-vite';
+import { ThemeProvider } from '../src/theme';
+import '../src/index.css';
+
+const preview: Preview = {
+  // Default parameters for every story
+  parameters: {
+    layout: 'centered',                    // 'padded' | 'fullscreen' | 'centered'
+    controls: { expanded: true },
+    backgrounds: {
+      options: {
+        light: { name: 'Light', value: '#FAF9F7' },
+        dark:  { name: 'Dark',  value: '#1A1915' },
+      },
+    },
+  },
+
+  // Default args merged into every story
+  args: { locale: 'en' },
+
+  // Applied to every story, outermost first
+  decorators: [
+    (Story) =&gt; (
+      &lt;ThemeProvider&gt;&lt;Story /&gt;&lt;/ThemeProvider&gt;
+    ),
+  ],
+
+  // Tags applied project-wide
+  tags: ['autodocs'],
+
+  initialGlobals: { backgrounds: { value: 'light' } },
+};
+
+export default preview;
+</pre>
+      <p style="margin-top:10px">Rename to <code>preview.tsx</code> when a decorator uses JSX.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Component Story Format (CSF 3)</h2>
+    <div class="content animate">
+      <p>A story file is an ES module: a <span class="highlight">default export</span> describing the component, and <span class="highlight">named exports</span> for each state.</p>
+<pre>
+// Button.stories.ts
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { fn } from 'storybook/test';
+import { Button } from './Button';
+
+const meta = {
+  component: Button,
+  // title is optional — inferred from the file path when omitted
+  args: { onClick: fn() },        // shared by every story below
+  tags: ['autodocs'],
+} satisfies Meta&lt;typeof Button&gt;;
+
+export default meta;
+type Story = StoryObj&lt;typeof meta&gt;;
+
+// Each named export is a story
+export const Primary: Story = {
+  args: { variant: 'primary', label: 'Save changes' },
+};
+
+export const Disabled: Story = {
+  args: { ...Primary.args, disabled: true },
+};
+
+export const Loading: Story = {
+  args: { variant: 'primary', label: 'Saving…', loading: true },
+};
+</pre>
+      <p style="margin-top:10px"><code>satisfies Meta&lt;typeof Button&gt;</code> plus <code>StoryObj&lt;typeof meta&gt;</code> gives you fully typed <code>args</code> with autocomplete and errors on typos.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Args &amp; ArgTypes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Args &mdash; the inputs</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">Args are the component's props for a story. They merge across three levels.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+// preview.ts  → project args
+args: { locale: 'en' }
+
+// meta        → component args
+args: { size: 'md', onClick: fn() }
+
+// story       → story args (wins)
+args: { size: 'lg', label: 'Go' }
+</pre>
+      </div>
+      <div class="card">
+        <h3>ArgTypes &mdash; the metadata</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">Inferred from TypeScript or PropTypes. Override to fine-tune the control and docs.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+argTypes: {
+  variant: {
+    control: 'select',
+    options: ['primary', 'ghost'],
+    description: 'Visual style',
+    table: { defaultValue: { summary: 'primary' } },
+  },
+  onClick: { table: { disable: true } },
+}
+</pre>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Render Functions &amp; Composed Args</h3>
+<pre style="font-size:0.85rem">
+// When the component needs wrapping or state, use `render`
+export const Interactive: Story = {
+  args: { checked: false },
+  render: (args) =&gt; {
+    const [checked, setChecked] = useState(args.checked);
+    return &lt;Toggle {...args} checked={checked} onChange={setChecked} /&gt;;
+  },
+};
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Controls &amp; Actions</h2>
+    <div class="content animate">
+      <p><span class="highlight">Controls</span> let anyone edit args live in the UI. <span class="highlight">Actions</span> log the callbacks a component fires.</p>
+      <table>
+        <tr><th>Arg Type</th><th>Default Control</th><th>Override</th></tr>
+        <tr><td><code>boolean</code></td><td>Toggle</td><td><code>control: 'boolean'</code></td></tr>
+        <tr><td><code>number</code></td><td>Number input</td><td><code>control: { type: 'range', min: 0, max: 10 }</code></td></tr>
+        <tr><td><code>string</code></td><td>Text field</td><td><code>control: 'color'</code> / <code>'date'</code></td></tr>
+        <tr><td>Union of strings</td><td>Radio / select</td><td><code>control: 'inline-radio'</code></td></tr>
+        <tr><td><code>object</code> / array</td><td>JSON editor</td><td><code>control: 'object'</code></td></tr>
+        <tr><td>Function</td><td>&mdash;</td><td>Assign <code>fn()</code> to spy on it</td></tr>
+      </table>
+<pre style="margin-top:12px">
+import { fn } from 'storybook/test';
+import { action } from 'storybook/actions';
+
+// Preferred: fn() logs to the Actions panel AND is a spy you can assert on
+const meta = { component: Button, args: { onClick: fn() } };
+
+// Direct alternative when the handler isn't an arg
+&lt;Button onClick={action('clicked')} /&gt;
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Story Organization &amp; Tags</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Sidebar Hierarchy</h3>
+<pre style="font-size:0.85rem">
+// Explicit title — slashes create nesting
+const meta = {
+  title: 'Design System/Forms/Button',
+  component: Button,
+};
+
+// Or omit `title` and let the file path
+// drive the tree (recommended):
+// src/components/Button.stories.ts
+//   → Components / Button
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Story export names are humanized: <code>PrimaryLarge</code> renders as "Primary Large".</p>
+      </div>
+      <div class="card">
+        <h3>Tags</h3>
+<pre style="font-size:0.85rem">
+// meta or story level; '!' removes an
+// inherited tag
+tags: ['autodocs', 'stable'],
+
+export const Experimental: Story = {
+  tags: ['!autodocs', 'wip'],
+};
+
+// Hide from the sidebar but keep testable
+tags: ['!dev'],
+// Skip in the test runner
+tags: ['!test'],
+</pre>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Built-in Tag Meanings</h3>
+      <table style="margin:0">
+        <tr><th>Tag</th><th>Effect</th></tr>
+        <tr><td><code>autodocs</code></td><td>Generate a Docs page for the component</td></tr>
+        <tr><td><code>dev</code></td><td>Show in the sidebar (applied by default)</td></tr>
+        <tr><td><code>test</code></td><td>Include in test runs (applied by default)</td></tr>
+        <tr><td>Custom (e.g. <code>wip</code>)</td><td>Filter the sidebar &mdash; Storybook 10 supports include <em>and</em> exclude filters</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Decorators</h2>
+    <div class="content animate">
+      <p>Decorators wrap a story with extra markup or context &mdash; providers, routers, layout padding, mock stores.</p>
+<pre>
+// Story-level: only this story
+export const Wide: Story = {
+  decorators: [(Story) =&gt; &lt;div style={{ width: 600 }}&gt;&lt;Story /&gt;&lt;/div&gt;],
+};
+
+// Component-level: every story in the file
+const meta = {
+  component: UserCard,
+  decorators: [
+    (Story) =&gt; (
+      &lt;QueryClientProvider client={queryClient}&gt;
+        &lt;Story /&gt;
+      &lt;/QueryClientProvider&gt;
+    ),
+  ],
+} satisfies Meta&lt;typeof UserCard&gt;;
+
+// Reading context inside a decorator
+const withTheme = (Story, context) =&gt; {
+  const theme = context.globals.theme ?? 'light';
+  return &lt;ThemeProvider theme={theme}&gt;&lt;Story /&gt;&lt;/ThemeProvider&gt;;
+};
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Order:</span> project decorators wrap component decorators, which wrap story decorators &mdash; outermost to innermost.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Parameters &amp; Globals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Parameters &mdash; static config</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">Metadata read by Storybook and addons. Merged project &rarr; component &rarr; story.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+parameters: {
+  layout: 'fullscreen',
+  docs: { description: { story: 'Empty state.' } },
+  a11y: { config: { rules: [
+    { id: 'color-contrast', enabled: false },
+  ]}},
+  backgrounds: { disable: true },
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Globals &mdash; dynamic state</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">User-switchable values that apply across all stories, driven from the toolbar.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+// preview.ts
+globalTypes: {
+  theme: {
+    description: 'Global theme',
+    toolbar: {
+      icon: 'circlehollow',
+      items: ['light', 'dark'],
+      dynamicTitle: true,
+    },
+  },
+},
+initialGlobals: { theme: 'light' },
+</pre>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Story Globals &mdash; pin a value per story</h3>
+<pre style="font-size:0.85rem">
+export const DarkOnly: Story = {
+  globals: { theme: 'dark' },   // forces dark regardless of the toolbar
+};
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Viewports, Backgrounds &amp; Themes</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Viewport</h3>
+<pre style="font-size:0.82rem;margin-top:6px">
+import { INITIAL_VIEWPORTS }
+  from 'storybook/viewport';
+
+parameters: {
+  viewport: {
+    options: INITIAL_VIEWPORTS,
+  },
+},
+globals: {
+  viewport: { value: 'iphone14',
+              isRotated: false },
+},
+</pre>
+      </div>
+      <div class="metric-card">
+        <h3>Backgrounds</h3>
+<pre style="font-size:0.82rem;margin-top:6px">
+parameters: {
+  backgrounds: {
+    options: {
+      light: { name: 'Light',
+               value: '#FAF9F7' },
+      dark:  { name: 'Dark',
+               value: '#1A1915' },
+    },
+  },
+},
+globals: { backgrounds: { value: 'dark' } },
+</pre>
+      </div>
+      <div class="metric-card">
+        <h3>Themes Addon</h3>
+<pre style="font-size:0.82rem;margin-top:6px">
+import { withThemeByClassName }
+  from '@storybook/addon-themes';
+
+decorators: [withThemeByClassName({
+  themes: { light: '', dark: 'dark' },
+  defaultTheme: 'light',
+})],
+</pre>
+      </div>
+      <div class="metric-card">
+        <h3>Measure &amp; Outline</h3>
+        <p>Built into core. Press <code>M</code> to inspect box-model spacing and <code>O</code> to outline every element &mdash; catches layout drift instantly.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Documentation: Autodocs &amp; MDX</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Autodocs</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">Tag a component and get a docs page: description, props table from types, and a live preview of every story.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+const meta = {
+  component: Button,
+  tags: ['autodocs'],
+};
+
+// Or enable project-wide in preview.ts
+tags: ['autodocs'],
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">JSDoc comments above the component and its props flow straight into the table.</p>
+      </div>
+      <div class="card">
+        <h3>MDX &mdash; full control</h3>
+<pre style="font-size:0.8rem">
+{/* Button.mdx */}
+import { Meta, Story, Canvas, Controls }
+  from '@storybook/addon-docs/blocks';
+import * as ButtonStories
+  from './Button.stories';
+
+&lt;Meta of={ButtonStories} /&gt;
+
+# Button
+
+Use for the primary action on a screen.
+
+&lt;Canvas of={ButtonStories.Primary} /&gt;
+&lt;Controls of={ButtonStories.Primary} /&gt;
+
+## Do not
+Never place two primaries side by side.
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Doc blocks available: <code>Meta</code>, <code>Story</code>, <code>Canvas</code>, <code>Controls</code>, <code>ArgTypes</code>, <code>Source</code>, <code>Description</code>, <code>Primary</code>, <code>Stories</code>, <code>ColorPalette</code>, <code>IconGallery</code>, <code>Typeset</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Play Functions &amp; Interaction Tests</h2>
+    <div class="content animate">
+      <p>A <code>play</code> function runs after the story renders &mdash; it drives the component and asserts the result.</p>
+<pre>
+import type { Meta, StoryObj } from '@storybook/react-vite';
+import { expect, fn } from 'storybook/test';
+import { LoginForm } from './LoginForm';
+
+const meta = {
+  component: LoginForm,
+  args: { onSubmit: fn() },
+} satisfies Meta&lt;typeof LoginForm&gt;;
+export default meta;
+type Story = StoryObj&lt;typeof meta&gt;;
+
+export const SubmitsCredentials: Story = {
+  play: async ({ canvas, userEvent, args }) =&gt; {
+    await userEvent.type(canvas.getByLabelText('Email'), 'a@test.com');
+    await userEvent.type(canvas.getByLabelText('Password'), 'hunter2');
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
+
+    await expect(args.onSubmit).toHaveBeenCalledWith({
+      email: 'a@test.com', password: 'hunter2',
+    });
+  },
+};
+
+export const ShowsValidationError: Story = {
+  play: async ({ canvas, userEvent }) =&gt; {
+    await userEvent.click(canvas.getByRole('button', { name: 'Sign in' }));
+    await expect(await canvas.findByText('Email is required')).toBeVisible();
+  },
+};
+</pre>
+      <p style="margin-top:10px">The <span class="highlight">Interactions panel</span> replays every step, lets you pause and scrub, and highlights the exact assertion that failed.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Component Testing with Vitest</h2>
+    <div class="content animate">
+      <p>The Vitest addon turns every story into a real test &mdash; run in the Storybook UI, the terminal, or CI.</p>
+<pre>
+npx storybook add @storybook/addon-vitest
+</pre>
+<pre style="margin-top:10px">
+// vitest.config.ts
+import { defineConfig } from 'vitest/config';
+import { storybookTest } from '@storybook/addon-vitest/vitest-plugin';
+
+export default defineConfig({
+  test: {
+    projects: [{
+      plugins: [storybookTest({ configDir: '.storybook' })],
+      test: {
+        name: 'storybook',
+        setupFiles: ['.storybook/vitest.setup.ts'],
+        browser: {
+          enabled: true,
+          provider: 'playwright',
+          instances: [{ browser: 'chromium' }],
+        },
+      },
+    }],
+  },
+});
+</pre>
+<pre style="margin-top:10px">
+# package.json
+"test-storybook": "vitest --project=storybook"
+
+npm run test-storybook              # headless run
+npm run test-storybook -- --coverage
+</pre>
+      <div class="two-col" style="margin-top:14px">
+        <div class="card">
+          <h3>What Gets Tested</h3>
+          <ul>
+            <li>Every story renders without throwing (smoke test)</li>
+            <li>Every <code>play</code> function runs as an interaction test</li>
+            <li>A11y violations surface as failures (opt-in)</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Why a Real Browser</h3>
+          <ul>
+            <li>Real layout, real CSS, real focus behavior</li>
+            <li>No jsdom gaps around <code>ResizeObserver</code>, portals, media queries</li>
+            <li>Same rendering path as the dev server</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Accessibility Testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The a11y Addon</h3>
+        <p style="font-size:1.05rem;color:var(--text-muted)">Runs <span class="highlight">axe-core</span> against the rendered story &mdash; contrast, roles, labels, focus order, ARIA misuse.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+npx storybook add @storybook/addon-a11y
+
+// main.ts
+addons: ['@storybook/addon-a11y'],
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Violations appear per story in the Accessibility panel, with the offending node and a fix link.</p>
+      </div>
+      <div class="card">
+        <h3>Per-Story Configuration</h3>
+<pre style="font-size:0.85rem">
+parameters: {
+  a11y: {
+    // 'error' fails the test run,
+    // 'todo' logs, 'off' skips
+    test: 'error',
+    config: {
+      rules: [
+        { id: 'color-contrast',
+          enabled: false },
+      ],
+    },
+    context: '#root',
+  },
+},
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;max-width:900px">
+      Automated checks catch roughly a third of real issues. Still do keyboard-only passes and screen-reader spot checks &mdash; but catching the mechanical third <span class="highlight">on every commit</span> is what keeps a design system honest.
+    </p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Visual Regression Testing</h2>
+    <div class="content animate">
+      <p>Interaction tests prove behavior. Visual tests prove <span class="highlight">appearance</span> &mdash; the padding nobody meant to change.</p>
+      <div class="diagram">
+        <div class="box">Push commit</div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Build Storybook</div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Snapshot<br>every story</div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Diff vs<br>baseline</div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Review &amp;<br>accept</div>
+      </div>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Chromatic</h3>
+          <p style="font-size:1.05rem;color:var(--text-muted)">Built by the Storybook maintainers. Cloud snapshots across browsers and viewports, with a UI review workflow.</p>
+<pre style="font-size:0.85rem;margin-top:8px">
+npx storybook add @chromatic-com/storybook
+npx chromatic --project-token=&lt;token&gt;
+</pre>
+          <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Accepted diffs become the new baseline. Failures post back to the PR.</p>
+        </div>
+        <div class="card">
+          <h3>Self-Hosted Options</h3>
+          <ul>
+            <li>Playwright <code>toHaveScreenshot()</code> over the built Storybook</li>
+            <li>Vitest browser-mode snapshots</li>
+            <li>Loki, BackstopJS, Percy, Applitools</li>
+          </ul>
+          <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Pin fonts, disable animations, and freeze dates &mdash; otherwise every run diffs.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mocking Network, Modules &amp; Context</h2>
+    <div class="content animate">
+      <p>Isolation only works if the component's dependencies can be faked. Storybook 10 covers all three layers.</p>
+<pre>
+// 1 — Modules: register mocks in .storybook/preview.ts
+import { sb } from 'storybook/test';
+
+sb.mock(import('../src/lib/session.ts'));            // full automock
+sb.mock(import('uuid'), { spy: true });              // keep behavior, add a spy
+</pre>
+<pre style="margin-top:10px">
+// Drive the mock from a story
+import { mocked } from 'storybook/test';
+import { getUserFromSession } from '../src/lib/session';
+
+export const LoggedIn: Story = {
+  beforeEach: async () =&gt; {
+    mocked(getUserFromSession).mockReturnValue({ name: 'Ada Lovelace' });
+  },
+};
+</pre>
+<pre style="margin-top:10px">
+// 2 — Network: MSW addon intercepts fetch/XHR
+import { http, HttpResponse } from 'msw';
+
+export const WithProjects: Story = {
+  parameters: {
+    msw: { handlers: [
+      http.get('/api/projects', () =&gt;
+        HttpResponse.json([{ id: 1, name: 'Apollo' }])),
+    ]},
+  },
+};
+
+// 3 — Context: wrap in a decorator (see the Decorators slide)
+</pre>
+      <p style="margin-top:10px">Mocks must be registered in <code>preview.*</code>, not in story files. Local paths need a file extension and are resolved relative to the preview config.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Frameworks &amp; Builders</h2>
+    <div class="content animate">
+      <p>Pick the <span class="highlight">framework package</span> that matches your app &mdash; it bundles the renderer and the builder together.</p>
+      <table>
+        <tr><th>Framework</th><th>Vite Package</th><th>Webpack Package</th></tr>
+        <tr><td>React</td><td><code>@storybook/react-vite</code></td><td><code>@storybook/react-webpack5</code></td></tr>
+        <tr><td>Next.js</td><td><code>@storybook/nextjs-vite</code></td><td><code>@storybook/nextjs</code></td></tr>
+        <tr><td>Vue 3</td><td><code>@storybook/vue3-vite</code></td><td><code>@storybook/vue3-webpack5</code></td></tr>
+        <tr><td>Svelte</td><td><code>@storybook/svelte-vite</code></td><td><code>@storybook/svelte-webpack5</code></td></tr>
+        <tr><td>SvelteKit</td><td><code>@storybook/sveltekit</code></td><td>&mdash;</td></tr>
+        <tr><td>Angular</td><td>&mdash;</td><td><code>@storybook/angular</code></td></tr>
+        <tr><td>Web Components</td><td><code>@storybook/web-components-vite</code></td><td><code>@storybook/web-components-webpack5</code></td></tr>
+        <tr><td>Preact</td><td><code>@storybook/preact-vite</code></td><td><code>@storybook/preact-webpack5</code></td></tr>
+        <tr><td>HTML</td><td><code>@storybook/html-vite</code></td><td><code>@storybook/html-webpack5</code></td></tr>
+      </table>
+      <p style="margin-top:12px">Also supported: <code>@storybook/qwik-vite</code>, <code>@storybook/solid-vite</code>, <code>@storybook/nuxt</code>, <code>@storybook/ember</code>, and React Native via <code>@storybook/react-native-web-vite</code>. Storybook 10 ships day-one support for <span class="highlight">Next.js 16</span> and <span class="highlight">Vitest 4</span>.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CSF Factories (Storybook 10)</h2>
+    <div class="content animate">
+      <p>A typesafe authoring API that removes the <code>satisfies</code> / <code>StoryObj</code> boilerplate. In <span class="highlight">preview for React</span> in Storybook 10 &mdash; CSF 3 remains fully supported.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>CSF 3</h3>
+<pre style="font-size:0.82rem">
+import type { Meta, StoryObj }
+  from '@storybook/react-vite';
+import { Button } from './Button';
+
+const meta = {
+  component: Button,
+} satisfies Meta&lt;typeof Button&gt;;
+
+export default meta;
+type Story = StoryObj&lt;typeof meta&gt;;
+
+export const Primary: Story = {
+  args: { label: 'Button' },
+};
+</pre>
+        </div>
+        <div class="card">
+          <h3>CSF Factories</h3>
+<pre style="font-size:0.82rem">
+import preview from '#.storybook/preview';
+import { Button } from './Button';
+
+const meta = preview.meta({
+  component: Button,
+});
+
+export const Primary = meta.story({
+  args: { label: 'Button' },
+});
+</pre>
+          <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Types flow from the preview config &mdash; no generics, no separate <code>Story</code> alias.</p>
+        </div>
+      </div>
+      <p class="animate" style="margin-top:14px;text-align:center">
+        <code>npx storybook@latest upgrade</code> ships codemods that convert existing files. Vue, Angular, and Web Components support is landing across 10.x.
+      </p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Build, Publish &amp; Compose</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Static Build</h3>
+<pre style="font-size:0.85rem">
+npm run build-storybook
+# → storybook-static/
+
+# Custom output + a quick preview
+storybook build -o dist/sb
+npx http-server storybook-static
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Plain static files &mdash; host on Chromatic, Vercel, Netlify, GitHub Pages, or S3 behind your SSO.</p>
+      </div>
+      <div class="card">
+        <h3>Composition</h3>
+<pre style="font-size:0.85rem">
+// .storybook/main.ts
+refs: {
+  design_system: {
+    title: 'Design System',
+    url: 'https://ds.example.com',
+  },
+  mobile: {
+    title: 'Mobile',
+    url: 'https://mobile-sb.example.com',
+  },
+},
+</pre>
+        <p style="margin-top:8px;font-size:1rem;color:var(--text-muted)">Pull other teams' published Storybooks into one sidebar &mdash; independently versioned, browsed together.</p>
+      </div>
+    </div>
+    <div class="card animate" style="margin-top:16px;max-width:1000px;width:100%">
+      <h3>Sharing a Single Story</h3>
+      <p style="font-size:1.1rem">Every story has a permalink: <code>?path=/story/components-button--primary</code>. Add <code>/iframe.html?id=…</code> to embed the bare component. Storybook 10 adds <span class="highlight">QR-code sharing</span> for opening a story on a phone, and <span class="highlight">Open in editor</span> to jump straight to the source.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CI/CD Pipeline</h2>
+    <div class="content animate">
+<pre>
+# .github/workflows/ui.yml
+name: UI
+on: [push, pull_request]
+
+jobs:
+  storybook:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }        # Chromatic needs full history
+      - uses: actions/setup-node@v4
+        with: { node-version: 22, cache: npm }
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+
+      # Render + interaction + a11y tests for every story
+      - run: npm run test-storybook
+
+      # Static build, uploaded for reviewers
+      - run: npm run build-storybook
+      - uses: actions/upload-artifact@v4
+        with:
+          name: storybook-static
+          path: storybook-static/
+
+      # Visual regression (optional)
+      - uses: chromaui/action@latest
+        with:
+          projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
+          exitZeroOnChanges: true
+</pre>
+      <p style="margin-top:10px"><span class="highlight">Tip:</span> publish the build on every PR so reviewers open the actual component instead of reading the diff.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Co-locate stories with components &mdash; <code>Button.stories.tsx</code> next to <code>Button.tsx</code></div>
+      <div class="bp-item"><span>2.</span> Cover the unhappy paths: empty, loading, error, long text, RTL</div>
+      <div class="bp-item"><span>3.</span> Let the file path drive the sidebar title instead of hardcoding <code>title</code></div>
+      <div class="bp-item"><span>4.</span> Put shared args and decorators on <code>meta</code>, not in every story</div>
+      <div class="bp-item"><span>5.</span> Assign <code>fn()</code> to callback args so they log <em>and</em> assert</div>
+      <div class="bp-item"><span>6.</span> Keep stories deterministic &mdash; mock clocks, IDs, and network</div>
+      <div class="bp-item"><span>7.</span> Prefer accessible queries (<code>getByRole</code>) in play functions</div>
+      <div class="bp-item"><span>8.</span> Enable <code>autodocs</code> project-wide; write MDX only for guidance pages</div>
+      <div class="bp-item"><span>9.</span> Run <code>test-storybook</code> in CI &mdash; stories are worthless once they rot</div>
+      <div class="bp-item"><span>10.</span> Publish the build per PR and treat it as the design review surface</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4DA;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now have a working model of Storybook:</p>
+      <div style="margin:20px 0">
+        <span class="tag">CSF 3</span><span class="tag">Args &amp; Controls</span><span class="tag">Decorators</span>
+        <span class="tag">Globals</span><span class="tag">Autodocs &amp; MDX</span><span class="tag">Play Functions</span>
+        <span class="tag">Vitest</span><span class="tag">A11y</span><span class="tag">Visual Tests</span>
+        <span class="tag">Mocking</span><span class="tag">Composition</span><span class="tag">CI/CD</span>
+      </div>
+      <p style="color:var(--text-muted)">Run <code>npm create storybook@latest</code>, write one story for your messiest component, then wire <code>test-storybook</code> into CI.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 25</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
