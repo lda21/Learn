@@ -1,0 +1,1085 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Wazuh</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h1 class="animate">Wazuh</h1>
+    <p class="subtitle animate">Open-source SIEM &amp; XDR &mdash; from raw logs to real alerts</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">SIEM</span><span class="tag">XDR</span><span class="tag">Security</span><span class="tag">Open Source</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Is a SIEM?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Every server, firewall, and laptop writes its own logs</li>
+          <li>Those logs live in a hundred different places</li>
+          <li>Nobody reads them until <em>after</em> something goes wrong</li>
+          <li>An attacker who gets in can sit unnoticed for weeks</li>
+          <li>Auditors ask "prove it" and you have nothing to show</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What a SIEM Does</h3>
+        <ul>
+          <li><span class="highlight">Collect</span> &mdash; pull logs from everywhere into one place</li>
+          <li><span class="highlight">Normalize</span> &mdash; turn messy text into structured fields</li>
+          <li><span class="highlight">Correlate</span> &mdash; spot patterns across many events</li>
+          <li><span class="highlight">Alert</span> &mdash; tell a human when it matters</li>
+          <li><span class="highlight">Retain</span> &mdash; keep searchable history for audits</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">SIEM</span> watches the logs. <span class="highlight">XDR</span> also watches the endpoint itself &mdash; files, processes, configuration &mdash; and can act. Wazuh does both.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Is Wazuh?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Short Version</h3>
+        <ul>
+          <li>Free and open source, licensed <span class="highlight">GPLv2</span></li>
+          <li>Forked from the <span class="highlight">OSSEC</span> host-IDS project in 2015</li>
+          <li>Grew into a unified <span class="highlight">SIEM + XDR</span> platform</li>
+          <li><span class="highlight">Agent-based</span> &mdash; a small daemon runs on each endpoint</li>
+          <li>No per-GB licence fee &mdash; you pay in hardware and time</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What You Get Out of the Box</h3>
+        <ul>
+          <li>Log collection and rule-based detection</li>
+          <li>File Integrity Monitoring (FIM)</li>
+          <li>Vulnerability detection</li>
+          <li>Security Configuration Assessment (CIS benchmarks)</li>
+          <li>Rootkit and malware detection</li>
+          <li>Active Response &mdash; automatic countermeasures</li>
+          <li>MITRE ATT&amp;CK and compliance mapping</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Four Components</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Wazuh Agent</h3>
+        <p>Runs on the endpoint you want to watch &mdash; Linux, Windows, macOS, AIX, Solaris. Reads logs, checks files, inventories software, and ships it all to the server. Lightweight, typically a few tens of MB of RAM.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Wazuh Server</h3>
+        <p>Also called the <em>manager</em>. Receives agent data, runs it through decoders and rules, and generates alerts. Config lives in <code>/var/ossec/</code>. Can be clustered as master + workers.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Wazuh Indexer</h3>
+        <p>A fork of <span class="highlight">OpenSearch</span>. Stores and indexes alerts so they can be searched fast. This is where your retention and disk sizing live.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Wazuh Dashboard</h3>
+        <p>A fork of <span class="highlight">OpenSearch Dashboards</span>. The web UI for hunting through alerts, viewing compliance reports, and managing agents.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">How Data Flows</h2>
+    <div class="diagram animate">
+      <div class="box">Endpoint<br><small>logs, files</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Agent<br><small>collects</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Server<br><small>decode + rules</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Indexer<br><small>stores</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Dashboard<br><small>you look</small></div>
+    </div>
+    <div class="content animate">
+<pre>
+# The path a single event takes
+raw log line on the endpoint
+  -> agent reads it, forwards over an encrypted channel  (tcp/1514)
+  -> server decodes it into fields          (analysisd)
+  -> server matches it against the ruleset  (rule fires -> alert)
+  -> alert written to /var/ossec/logs/alerts/alerts.json
+  -> Filebeat ships alerts.json to the indexer            (tcp/9200)
+  -> indexed into wazuh-alerts-4.x-YYYY.MM.DD
+  -> you search it in the dashboard                       (tcp/443)
+
+# Other ports worth knowing
+tcp/1515   agent enrollment (wazuh-authd)
+tcp/1516   cluster traffic between master and workers
+tcp/55000  Wazuh RESTful API
+</pre>
+    </div>
+    <p class="animate" style="margin-top:10px;text-align:center">If an event never fires a rule, <span class="highlight">no alert is stored</span>. Detection happens on the server, not in the dashboard.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deploying Wazuh</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Pick a Topology</h3>
+        <ul>
+          <li><span class="highlight">All-in-one</span> &mdash; server, indexer, dashboard on one box. Fine for labs and small estates.</li>
+          <li><span class="highlight">Distributed</span> &mdash; each component on its own host. The normal production choice.</li>
+          <li><span class="highlight">Clustered</span> &mdash; one master plus workers for many agents; indexer gets multiple nodes.</li>
+          <li><span class="highlight">Docker / Kubernetes</span> &mdash; official compose files and Helm charts.</li>
+        </ul>
+        <p style="margin-top:8px">Rough starting point: 4 vCPU / 8&nbsp;GB is enough to try it. Plan real capacity from events per second and how long you must retain.</p>
+      </div>
+      <div class="card">
+        <h3>Quickstart (All-in-One)</h3>
+<pre style="font-size:0.8rem">
+# On a clean Ubuntu/RHEL host, as root
+curl -sO https://packages.wazuh.com/4.x/wazuh-install.sh
+bash ./wazuh-install.sh -a
+
+# The script prints the admin password at the end.
+# Then browse to https://&lt;server-ip&gt;
+
+# Check the services
+/var/ossec/bin/wazuh-control status
+systemctl status wazuh-indexer wazuh-dashboard
+</pre>
+        <p style="margin-top:8px">The assistant installs all four components, generates certificates, and wires them together.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Wazuh Agent</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Actually Does</h3>
+        <ul>
+          <li>Tails log files and Windows event channels</li>
+          <li>Hashes watched files to detect changes (FIM)</li>
+          <li>Inventories installed packages, ports, processes</li>
+          <li>Runs configuration checks against benchmarks</li>
+          <li>Executes Active Response scripts when told to</li>
+        </ul>
+        <p style="margin-top:8px">Each capability is a <span class="highlight">module</span>, switched on or off in <code>ossec.conf</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Where Things Live</h3>
+<pre style="font-size:0.8rem">
+/var/ossec/etc/ossec.conf      # main config
+/var/ossec/etc/rules/          # custom rules
+/var/ossec/etc/decoders/       # custom decoders
+/var/ossec/logs/ossec.log      # agent's own log
+/var/ossec/bin/wazuh-control   # start/stop/status
+
+# Windows
+C:\Program Files (x86)\ossec-agent\ossec.conf
+</pre>
+        <p style="margin-top:8px">On Windows the agent is a service; on Linux it is a set of daemons under <code>wazuh-control</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Enrolling &amp; Grouping Agents</h2>
+    <div class="content animate">
+<pre>
+# 1. Install the agent, pointing it at the manager
+WAZUH_MANAGER="10.0.0.5" apt install wazuh-agent
+
+# 2. Enroll it (the agent asks the manager for a key, over tcp/1515)
+/var/ossec/bin/agent-auth -m 10.0.0.5
+systemctl restart wazuh-agent
+
+# 3. Confirm on the manager
+/var/ossec/bin/agent_control -l
+#   ID: 001, Name: web-01, IP: any, Active
+
+# 4. Put agents into groups so they share configuration
+/var/ossec/bin/agent_groups -a -g linux-servers -i 001
+</pre>
+      <p style="margin-top:10px">A group's shared config lives in <code>/var/ossec/etc/shared/&lt;group&gt;/agent.conf</code> and is pushed to every member automatically.</p>
+<pre style="margin-top:10px">
+&lt;!-- agent.conf for the linux-servers group --&gt;
+&lt;agent_config&gt;
+  &lt;syscheck&gt;
+    &lt;directories check_all="yes" realtime="yes"&gt;/etc,/usr/bin&lt;/directories&gt;
+  &lt;/syscheck&gt;
+&lt;/agent_config&gt;
+</pre>
+    </div>
+    <p class="animate" style="margin-top:10px;text-align:center">Configure by <span class="highlight">group</span>, not by hand on each box. It is the difference between managing 10 agents and 1,000.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Collecting Logs</h2>
+    <div class="content animate">
+<pre>
+&lt;!-- Each source is a &lt;localfile&gt; block in ossec.conf --&gt;
+
+&lt;!-- A plain text log --&gt;
+&lt;localfile&gt;
+  &lt;log_format&gt;syslog&lt;/log_format&gt;
+  &lt;location&gt;/var/log/auth.log&lt;/location&gt;
+&lt;/localfile&gt;
+
+&lt;!-- Anything that writes JSON lines --&gt;
+&lt;localfile&gt;
+  &lt;log_format&gt;json&lt;/log_format&gt;
+  &lt;location&gt;/var/log/myapp/events.json&lt;/location&gt;
+&lt;/localfile&gt;
+
+&lt;!-- Windows: read an event channel directly --&gt;
+&lt;localfile&gt;
+  &lt;log_format&gt;eventchannel&lt;/log_format&gt;
+  &lt;location&gt;Security&lt;/location&gt;
+&lt;/localfile&gt;
+
+&lt;!-- Run a command and treat its output as a log --&gt;
+&lt;localfile&gt;
+  &lt;log_format&gt;command&lt;/log_format&gt;
+  &lt;command&gt;df -P&lt;/command&gt;
+  &lt;frequency&gt;360&lt;/frequency&gt;
+&lt;/localfile&gt;
+</pre>
+      <p style="margin-top:10px">Devices that cannot run an agent &mdash; firewalls, switches, appliances &mdash; can send <span class="highlight">syslog over the network</span> to the manager instead, configured with a <code>&lt;remote&gt;</code> block.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Decoders &mdash; From Raw Log to Fields</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">A decoder's only job is to pull <span class="highlight">named fields</span> out of a line of text. Rules then match on those fields.</p>
+<pre>
+# The raw line
+Jan 14 09:12:44 web-01 sshd[2211]: Failed password for root from 203.0.113.9 port 55123 ssh2
+
+# After decoding
+program_name : sshd
+srcuser      : root
+srcip        : 203.0.113.9
+srcport      : 55123
+
+# Test it yourself &mdash; paste a log line into:
+/var/ossec/bin/wazuh-logtest
+</pre>
+      <p style="margin-top:12px">Wazuh ships with hundreds of decoders already. You only write one when your application's format is not recognised:</p>
+<pre style="margin-top:8px">
+&lt;!-- /var/ossec/etc/decoders/local_decoder.xml --&gt;
+&lt;decoder name="myapp"&gt;
+  &lt;prematch&gt;^myapp: &lt;/prematch&gt;
+&lt;/decoder&gt;
+
+&lt;decoder name="myapp-login-fail"&gt;
+  &lt;parent&gt;myapp&lt;/parent&gt;
+  &lt;regex&gt;login failed for (\w+) from (\d+.\d+.\d+.\d+)&lt;/regex&gt;
+  &lt;order&gt;srcuser, srcip&lt;/order&gt;
+&lt;/decoder&gt;
+</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Rules &amp; Alert Levels</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:10px">Every rule carries a <span class="highlight">level from 0 to 16</span>. The level is how you say "how much should a human care?"</p>
+      <table>
+        <tr><th>Level</th><th>Meaning</th><th>Example</th></tr>
+        <tr><td><span class="green">0</span></td><td>Ignored &mdash; no alert at all</td><td>Noise you have deliberately silenced</td></tr>
+        <tr><td>3</td><td>Successful / authorised event</td><td>A user logged in normally</td></tr>
+        <tr><td>5</td><td>User-generated error</td><td>One failed password</td></tr>
+        <tr><td>7</td><td>Suspicious pattern in the message</td><td>Known-bad string appears in a log</td></tr>
+        <tr><td>10</td><td>Repeated errors from one source</td><td>Several failed logins in a row</td></tr>
+        <tr><td>12</td><td>High-importance event</td><td>System error, config change</td></tr>
+        <tr><td><span class="highlight">14</span></td><td>High-importance security event</td><td>Brute-force pattern confirmed</td></tr>
+        <tr><td><span class="highlight">15</span></td><td>Severe attack</td><td>Active exploitation indicators</td></tr>
+      </table>
+      <p style="margin-top:12px">By default the manager stores alerts at <span class="highlight">level 3 and above</span> (<code>&lt;log_alert_level&gt;3&lt;/log_alert_level&gt;</code>). Raise it if you are drowning; lower it if you are hunting.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Writing Your First Custom Rule</h2>
+    <div class="content animate">
+<pre>
+&lt;!-- /var/ossec/etc/rules/local_rules.xml
+     Use IDs from 100000 upward. Everything below is reserved
+     for the official ruleset and will be overwritten on upgrade. --&gt;
+
+&lt;group name="myapp,"&gt;
+
+  &lt;!-- Fire on a single failed login --&gt;
+  &lt;rule id="100001" level="5"&gt;
+    &lt;decoded_as&gt;myapp&lt;/decoded_as&gt;
+    &lt;match&gt;login failed&lt;/match&gt;
+    &lt;description&gt;myapp: failed login for $(srcuser)&lt;/description&gt;
+  &lt;/rule&gt;
+
+  &lt;!-- Correlate: 6 of those from one IP within 2 minutes --&gt;
+  &lt;rule id="100002" level="10" frequency="6" timeframe="120"&gt;
+    &lt;if_matched_sid&gt;100001&lt;/if_matched_sid&gt;
+    &lt;same_source_ip /&gt;
+    &lt;description&gt;myapp: brute force from $(srcip)&lt;/description&gt;
+  &lt;/rule&gt;
+
+&lt;/group&gt;
+</pre>
+      <p style="margin-top:12px">Then always test before restarting:</p>
+<pre style="margin-top:8px">
+/var/ossec/bin/wazuh-logtest        # paste a sample line, see which rule fires
+systemctl restart wazuh-manager
+</pre>
+      <p style="margin-top:10px"><code>frequency</code> + <code>timeframe</code> + <code>same_source_ip</code> is the whole idea of correlation: <span class="highlight">one failure is noise, six is an attack.</span></p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">File Integrity Monitoring</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What FIM Watches</h3>
+        <ul>
+          <li>Files created, modified, or deleted</li>
+          <li>Changes to size, permissions, owner, and hashes</li>
+          <li><span class="highlight">Who</span> made the change, if <code>whodata</code> is on</li>
+          <li>Windows registry keys as well as files</li>
+        </ul>
+        <p style="margin-top:8px">Alert IDs to remember: <code>550</code> modified, <code>553</code> deleted, <code>554</code> added.</p>
+      </div>
+      <div class="card">
+        <h3>Configuring It</h3>
+<pre style="font-size:0.8rem">
+&lt;syscheck&gt;
+  &lt;frequency&gt;43200&lt;/frequency&gt;
+
+  &lt;!-- scan on a schedule --&gt;
+  &lt;directories check_all="yes"&gt;/etc,/bin&lt;/directories&gt;
+
+  &lt;!-- react the instant it changes --&gt;
+  &lt;directories check_all="yes" realtime="yes"&gt;
+    /var/www
+  &lt;/directories&gt;
+
+  &lt;!-- also record which user did it --&gt;
+  &lt;directories check_all="yes" whodata="yes"&gt;
+    /etc/ssh
+  &lt;/directories&gt;
+
+  &lt;ignore&gt;/etc/mtab&lt;/ignore&gt;
+  &lt;ignore type="sregex"&gt;.log$&lt;/ignore&gt;
+&lt;/syscheck&gt;
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center"><span class="highlight">realtime</span> uses inotify on Linux. <span class="highlight">whodata</span> hooks auditd, which costs more but answers "who changed it" &mdash; usually the question you actually have.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Security Configuration Assessment</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Idea</h3>
+        <ul>
+          <li>Most breaches start with a <span class="highlight">bad setting</span>, not a zero-day</li>
+          <li>SCA checks each endpoint against a hardening policy</li>
+          <li>Policies ship for CIS benchmarks: Linux distros, Windows, Docker</li>
+          <li>Each check is pass / fail / not applicable, with a remediation note</li>
+          <li>Runs on the agent, on a schedule &mdash; no separate scanner needed</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Turning It On</h3>
+<pre style="font-size:0.8rem">
+&lt;sca&gt;
+  &lt;enabled&gt;yes&lt;/enabled&gt;
+  &lt;scan_on_start&gt;yes&lt;/scan_on_start&gt;
+  &lt;interval&gt;12h&lt;/interval&gt;
+&lt;/sca&gt;
+</pre>
+        <p style="margin-top:10px">Policy files live in <code>/var/ossec/ruleset/sca/</code>. Results appear per-agent in the dashboard with an overall score.</p>
+        <p style="margin-top:8px">Typical findings: SSH root login permitted, no password ageing, world-writable directories, unnecessary services running.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Vulnerability Detection</h2>
+    <div class="content animate">
+      <div class="diagram" style="margin-bottom:16px">
+        <div class="box">Syscollector<br><small>inventories packages</small></div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Server<br><small>matches inventory<br>against CVE feed</small></div>
+        <div class="arrow">&#8594;</div>
+        <div class="box">Dashboard<br><small>CVE list per agent</small></div>
+      </div>
+      <p style="text-align:center">Wazuh does <span class="highlight">not</span> scan your network. The agent reports what is installed; the server compares that inventory against vulnerability data and tells you which CVEs apply.</p>
+<pre style="margin-top:14px">
+&lt;!-- The agent must inventory software for this to work --&gt;
+&lt;wodle name="syscollector"&gt;
+  &lt;disabled&gt;no&lt;/disabled&gt;
+  &lt;interval&gt;1h&lt;/interval&gt;
+  &lt;packages&gt;yes&lt;/packages&gt;
+  &lt;os&gt;yes&lt;/os&gt;
+  &lt;ports all="no"&gt;yes&lt;/ports&gt;
+&lt;/wodle&gt;
+
+&lt;!-- And the server must have detection enabled --&gt;
+&lt;vulnerability-detection&gt;
+  &lt;enabled&gt;yes&lt;/enabled&gt;
+&lt;/vulnerability-detection&gt;
+</pre>
+      <p style="margin-top:12px">Because it is inventory-based it is <span class="green">quiet and cheap</span> &mdash; no scanning traffic, no credentialed scans, no scan windows. The trade-off is that it only sees packages the OS knows about.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Malware &amp; Rootkit Detection</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Rootcheck</h3>
+        <p>The built-in anomaly scanner. Looks for hidden processes and ports, files owned by root in odd places, and known rootkit signatures.</p>
+      </div>
+      <div class="metric-card">
+        <h3>VirusTotal</h3>
+        <p>Chain it to FIM: when a new file appears, send its hash to VirusTotal and alert if it is flagged. Needs an API key.</p>
+      </div>
+      <div class="metric-card">
+        <h3>YARA</h3>
+        <p>Run YARA rules against files that FIM reports, triggered through Active Response. Catches known malware families by content, not hash.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Command Monitoring</h3>
+        <p>Schedule any command and alert when its output changes &mdash; a simple way to watch for things the built-in modules miss.</p>
+      </div>
+    </div>
+<pre class="animate" style="margin-top:14px;font-size:0.85rem">
+&lt;!-- VirusTotal lookup on every file FIM reports --&gt;
+&lt;integration&gt;
+  &lt;name&gt;virustotal&lt;/name&gt;
+  &lt;api_key&gt;YOUR_API_KEY&lt;/api_key&gt;
+  &lt;group&gt;syscheck&lt;/group&gt;
+  &lt;alert_format&gt;json&lt;/alert_format&gt;
+&lt;/integration&gt;
+</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Active Response</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">Active Response lets Wazuh <span class="highlight">act</span> on an alert, not just record it &mdash; block an IP, disable an account, kill a process.</p>
+<pre>
+&lt;!-- 1. Declare the command --&gt;
+&lt;command&gt;
+  &lt;name&gt;firewall-drop&lt;/name&gt;
+  &lt;executable&gt;firewall-drop&lt;/executable&gt;
+  &lt;timeout_allowed&gt;yes&lt;/timeout_allowed&gt;
+&lt;/command&gt;
+
+&lt;!-- 2. Bind it to a trigger --&gt;
+&lt;active-response&gt;
+  &lt;command&gt;firewall-drop&lt;/command&gt;
+  &lt;location&gt;local&lt;/location&gt;      &lt;!-- run on the agent that alerted --&gt;
+  &lt;rules_id&gt;5712&lt;/rules_id&gt;       &lt;!-- SSH brute force --&gt;
+  &lt;timeout&gt;600&lt;/timeout&gt;          &lt;!-- undo after 10 minutes --&gt;
+&lt;/active-response&gt;
+</pre>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>Built-in Scripts</h3>
+          <ul>
+            <li><code>firewall-drop</code> &mdash; block the source IP</li>
+            <li><code>host-deny</code> &mdash; add to hosts.deny</li>
+            <li><code>disable-account</code> &mdash; lock the user</li>
+            <li><code>restart-wazuh</code> &mdash; restart the agent</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Use It Carefully</h3>
+          <ul>
+            <li>A false positive now becomes an <span class="highlight">outage</span></li>
+            <li>Always set a <code>timeout</code> so blocks expire</li>
+            <li>Whitelist your own admin and monitoring IPs</li>
+            <li>Start in a test group before rolling out</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">MITRE ATT&amp;CK &amp; Compliance</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">Rules can be <span class="highlight">tagged</span>. Those tags are what turn a pile of alerts into a report an auditor or a threat hunter can read.</p>
+<pre>
+&lt;rule id="100010" level="10"&gt;
+  &lt;if_sid&gt;5716&lt;/if_sid&gt;
+  &lt;description&gt;SSH authentication failure&lt;/description&gt;
+
+  &lt;mitre&gt;
+    &lt;id&gt;T1110&lt;/id&gt;              &lt;!-- Brute Force --&gt;
+  &lt;/mitre&gt;
+
+  &lt;group&gt;authentication_failed,&lt;/group&gt;
+  &lt;pci_dss&gt;10.2.4,10.2.5&lt;/pci_dss&gt;
+  &lt;gdpr&gt;IV_35.7.d&lt;/gdpr&gt;
+  &lt;hipaa&gt;164.312.b&lt;/hipaa&gt;
+  &lt;nist_800_53&gt;AU.14,AC.7&lt;/nist_800_53&gt;
+&lt;/rule&gt;
+</pre>
+      <div class="two-col" style="margin-top:16px">
+        <div class="card">
+          <h3>MITRE ATT&amp;CK</h3>
+          <p style="font-size:1.05rem">A public catalogue of attacker techniques (T-numbers). The dashboard shows which techniques your alerts map to &mdash; and, more usefully, which ones you have <span class="highlight">no coverage for</span>.</p>
+        </div>
+        <div class="card">
+          <h3>Compliance Frameworks</h3>
+          <p style="font-size:1.05rem">Built-in mappings for <span class="highlight">PCI DSS, GDPR, HIPAA, NIST 800-53, TSC</span> and GPG13. Each has a ready-made dashboard, so "show me evidence for control X" is a filter, not a project.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Indexer &amp; Retention</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Gets Stored</h3>
+        <ul>
+          <li><code>wazuh-alerts-4.x-*</code> &mdash; alerts, one index per day</li>
+          <li><code>wazuh-archives-4.x-*</code> &mdash; <em>every</em> event, off by default</li>
+          <li><code>wazuh-states-vulnerabilities-*</code> &mdash; current CVE state</li>
+        </ul>
+        <p style="margin-top:8px">Turning archives on is how you keep events that fired no rule. It is also how you fill a disk. Enable it deliberately, size it first.</p>
+      </div>
+      <div class="card">
+        <h3>Retention with ISM</h3>
+<pre style="font-size:0.8rem">
+# Index State Management policy
+hot    0-7 days    fast disk, searchable
+warm   7-30 days   moved, still searchable
+cold   30-90 days  minimal resources
+delete after 90 days
+
+# Check what you are using
+curl -k -u admin:pass \
+  https://localhost:9200/_cat/indices/wazuh-alerts-*?v
+</pre>
+        <p style="margin-top:8px">Your retention window is a <span class="highlight">compliance decision first</span> and a disk decision second. Agree it before you build.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Dashboard &mdash; Threat Hunting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Getting Around</h3>
+        <ul>
+          <li><span class="highlight">Modules</span> &mdash; one view per capability: FIM, SCA, vulnerabilities, MITRE</li>
+          <li><span class="highlight">Agents</span> &mdash; per-endpoint drill-down</li>
+          <li><span class="highlight">Discover</span> &mdash; raw alert search, where hunting really happens</li>
+          <li><span class="highlight">Management</span> &mdash; rules, decoders, groups, config</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Queries to Start With</h3>
+<pre style="font-size:0.8rem">
+# Everything serious in the last 24h
+rule.level >= 12
+
+# Brute force against one host
+rule.groups: authentication_failed
+  and agent.name: "web-01"
+
+# Files changed outside a maintenance window
+rule.groups: syscheck
+  and syscheck.event: modified
+
+# One attacker's whole footprint
+data.srcip: "203.0.113.9"
+
+# Everything mapped to a technique
+rule.mitre.id: "T1110"
+</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:12px;text-align:center">Hunting is mostly <span class="highlight">pivoting</span>: start from one alert, pull the source IP or username, and ask what else that identifier touched.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Wazuh API &amp; RBAC</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">Everything the dashboard does, it does through the REST API on <code>tcp/55000</code>. So can your scripts.</p>
+<pre>
+# 1. Get a token (valid ~15 minutes by default)
+TOKEN=$(curl -sk -u wazuh-wui:PASSWORD -X POST \
+  "https://localhost:55000/security/user/authenticate?raw=true")
+
+# 2. Use it
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "https://localhost:55000/agents?status=active&limit=5"
+
+# List agents that stopped reporting
+curl -sk -H "Authorization: Bearer $TOKEN" \
+  "https://localhost:55000/agents?status=disconnected"
+
+# Restart an agent
+curl -sk -X PUT -H "Authorization: Bearer $TOKEN" \
+  "https://localhost:55000/agents/001/restart"
+</pre>
+      <p style="margin-top:14px"><span class="highlight">RBAC</span> is built on three pieces: a <span class="highlight">policy</span> says what may be done to which resources, a <span class="highlight">role</span> bundles policies, and a <span class="highlight">user</span> holds roles. Give your SOC analysts read-only roles and keep agent deletion to admins.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cloud, Containers &amp; Integrations</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Beyond the Server</h3>
+        <ul>
+          <li><span class="highlight">AWS</span> &mdash; pull CloudTrail, GuardDuty, VPC Flow Logs from S3</li>
+          <li><span class="highlight">Azure</span> &mdash; Activity Logs and Entra ID sign-ins</li>
+          <li><span class="highlight">GCP</span> &mdash; ingest via Pub/Sub</li>
+          <li><span class="highlight">Docker</span> &mdash; the listener watches container lifecycle events</li>
+          <li><span class="highlight">Kubernetes</span> &mdash; audit logs plus an agent on each node</li>
+        </ul>
+<pre style="font-size:0.78rem;margin-top:10px">
+&lt;wodle name="aws-s3"&gt;
+  &lt;disabled&gt;no&lt;/disabled&gt;
+  &lt;interval&gt;10m&lt;/interval&gt;
+  &lt;bucket type="cloudtrail"&gt;
+    &lt;name&gt;my-cloudtrail-bucket&lt;/name&gt;
+  &lt;/bucket&gt;
+&lt;/wodle&gt;
+</pre>
+      </div>
+      <div class="card">
+        <h3>Getting Alerts Out</h3>
+        <ul>
+          <li><span class="highlight">Slack</span> / <span class="highlight">PagerDuty</span> &mdash; notify a human</li>
+          <li><span class="highlight">TheHive</span> &mdash; open a case per alert</li>
+          <li><span class="highlight">Shuffle</span> &mdash; run a full SOAR playbook</li>
+          <li>Email, or any script you write yourself</li>
+        </ul>
+<pre style="font-size:0.78rem;margin-top:10px">
+&lt;integration&gt;
+  &lt;name&gt;slack&lt;/name&gt;
+  &lt;hook_url&gt;https://hooks.slack.com/...&lt;/hook_url&gt;
+  &lt;level&gt;12&lt;/level&gt;
+  &lt;alert_format&gt;json&lt;/alert_format&gt;
+&lt;/integration&gt;
+</pre>
+        <p style="margin-top:8px">Set <code>&lt;level&gt;</code> high. An integration that pages on every level-3 alert gets muted within a week.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tuning &amp; Reducing False Positives</h2>
+    <div class="content animate">
+      <p style="text-align:center;margin-bottom:12px">A fresh Wazuh install is <span class="highlight">loud</span>. Tuning is not optional &mdash; an ignored dashboard detects nothing.</p>
+<pre>
+&lt;!-- Silence a noisy rule without editing the official ruleset:
+     override it at level 0 in local_rules.xml --&gt;
+&lt;rule id="100050" level="0"&gt;
+  &lt;if_sid&gt;5715&lt;/if_sid&gt;
+  &lt;srcip&gt;10.0.0.0/8&lt;/srcip&gt;
+  &lt;description&gt;Ignore SSH logins from the internal network&lt;/description&gt;
+&lt;/rule&gt;
+
+&lt;!-- Or raise the bar for what gets stored at all --&gt;
+&lt;alerts&gt;
+  &lt;log_alert_level&gt;5&lt;/log_alert_level&gt;
+&lt;/alerts&gt;
+</pre>
+      <div class="bp-grid" style="margin-top:16px">
+        <div class="bp-item"><span>&#9656;</span> Never edit files in <code>/var/ossec/ruleset/</code> &mdash; upgrades overwrite them</div>
+        <div class="bp-item"><span>&#9656;</span> Override in <code>local_rules.xml</code> using <code>if_sid</code> instead</div>
+        <div class="bp-item"><span>&#9656;</span> Exclude backup and log paths from FIM before it floods you</div>
+        <div class="bp-item"><span>&#9656;</span> Tune the top 5 noisiest rules each week until it is quiet</div>
+        <div class="bp-item"><span>&#9656;</span> Suppress by <em>context</em> (source IP, agent group), not by deleting rules</div>
+        <div class="bp-item"><span>&#9656;</span> Always <code>wazuh-logtest</code> before restarting the manager</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Wazuh vs Other SIEMs</h2>
+    <div class="content animate">
+      <table>
+        <tr><th>Platform</th><th>Licensing</th><th>Best At</th><th>Watch Out For</th></tr>
+        <tr><td><span class="highlight">Wazuh</span></td><td>Free, GPLv2</td><td>Endpoint visibility, FIM, compliance, no data cap</td><td>You operate it yourself; tuning takes real effort</td></tr>
+        <tr><td>Splunk</td><td>Commercial, by volume</td><td>Search power, huge app ecosystem</td><td>Cost scales hard with ingest</td></tr>
+        <tr><td>Elastic Security</td><td>Free tier + paid</td><td>Search, ML, detection rules</td><td>Key features sit behind paid tiers</td></tr>
+        <tr><td>Graylog</td><td>Open core</td><td>Log management and pipelines</td><td>Thinner endpoint/XDR story</td></tr>
+        <tr><td>Security Onion</td><td>Free</td><td>Network monitoring, packet capture</td><td>Network-first; heavier to run</td></tr>
+      </table>
+      <p style="margin-top:16px;text-align:center">Wazuh's real advantage is that <span class="highlight">ingest is free</span>, so you are never deciding which logs you can afford to keep. Its real cost is <span class="highlight">your time</span> &mdash; budget for an owner, not just a server.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Start with one agent group and a handful of log sources &mdash; expand once it is quiet</div>
+      <div class="bp-item"><span>2.</span> Configure by group via <code>agent.conf</code>, never box by box</div>
+      <div class="bp-item"><span>3.</span> Keep all custom work in <code>local_rules.xml</code> and <code>local_decoder.xml</code></div>
+      <div class="bp-item"><span>4.</span> Use rule IDs 100000+ so upgrades never clobber them</div>
+      <div class="bp-item"><span>5.</span> Test every rule with <code>wazuh-logtest</code> before restarting</div>
+      <div class="bp-item"><span>6.</span> Decide retention from compliance requirements, then size disk to match</div>
+      <div class="bp-item"><span>7.</span> Enable FIM <code>whodata</code> only where you need attribution &mdash; it costs</div>
+      <div class="bp-item"><span>8.</span> Route only level 12+ to Slack or PagerDuty; hunt the rest in the dashboard</div>
+      <div class="bp-item"><span>9.</span> Give Active Response a timeout and an allowlist before enabling it</div>
+      <div class="bp-item"><span>10.</span> Version-control your rules, decoders, and <code>ossec.conf</code> in Git</div>
+      <div class="bp-item"><span>11.</span> Back up <code>/var/ossec/etc/</code> and the agent key store</div>
+      <div class="bp-item"><span>12.</span> Treat the dashboard as a habit &mdash; review weekly, or it stops being a control</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F6A8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how Wazuh works end to end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Architecture</span><span class="tag">Agents</span><span class="tag">Decoders</span>
+        <span class="tag">Rules</span><span class="tag">FIM</span><span class="tag">SCA</span>
+        <span class="tag">Vulnerabilities</span><span class="tag">Active Response</span><span class="tag">MITRE ATT&amp;CK</span>
+        <span class="tag">Compliance</span><span class="tag">Indexer</span><span class="tag">API &amp; RBAC</span>
+        <span class="tag">Tuning</span>
+      </div>
+      <p style="color:var(--text-muted)">A SIEM is only as good as its tuning. Install it in an afternoon, then spend the first month making it quiet &mdash; that is the work that turns alerts into detection.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 26</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
