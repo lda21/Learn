@@ -1,0 +1,1317 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>monday.com</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4C5;</span>
+    <h1 class="animate">monday.com</h1>
+    <p class="subtitle animate">The Work OS &mdash; from a board of coloured squares to a platform you can build on</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Work OS</span><span class="tag">No-Code</span><span class="tag">Automation</span><span class="tag">GraphQL API</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Is a Work OS?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Problem</h3>
+        <ul>
+          <li>Every team wants software shaped like <em>their</em> process</li>
+          <li>Buying a tool per team leaves data stranded in silos</li>
+          <li>Building custom apps needs engineers you do not have</li>
+          <li>Spreadsheets fill the gap &mdash; then break at scale</li>
+          <li>Leadership can never see across the whole business</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Work OS Answer</h3>
+        <ul>
+          <li><span class="highlight">One data model</span> &mdash; boards, items, columns</li>
+          <li><span class="highlight">Composed, not coded</span> &mdash; teams assemble their own workflow</li>
+          <li><span class="highlight">Connected</span> &mdash; boards link to each other across departments</li>
+          <li><span class="highlight">Automated</span> &mdash; recipes replace the manual chasing</li>
+          <li><span class="highlight">Extensible</span> &mdash; a real API and app framework underneath</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">Think of it as a <span class="highlight">database, a UI builder, and a workflow engine</span> fused into one product &mdash; where the person who owns the process is also the person who builds it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Product Suite</h2>
+    <p class="animate" style="text-align:center;margin-bottom:16px">Four standalone products, all built on the same Work OS. They can be bought separately and still share one account.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>monday work management</h3>
+        <p>The general-purpose product. Tasks, projects, and cross-team processes &mdash; scales from simple tracking to complex execution.</p>
+      </div>
+      <div class="metric-card">
+        <h3>monday CRM</h3>
+        <p>Leads, contacts, pipelines, and customer relationships, with workflows shaped around how sales teams actually work.</p>
+      </div>
+      <div class="metric-card">
+        <h3>monday dev</h3>
+        <p>Product and engineering teams &mdash; sprints, roadmaps, release plans, backlogs, and product feedback.</p>
+      </div>
+      <div class="metric-card">
+        <h3>monday service</h3>
+        <p>Ticketing and ITSM &mdash; ticket boards, SLA tracking, incident management, and a Customer Portal.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Work Management and dev sell Basic / Standard / Pro / Enterprise. CRM tops out at Ultimate. Bundled products may sit on different plans and seat counts, but must share one billing cycle.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Account Anatomy</h2>
+    <div class="diagram animate">
+      <div class="box">Account</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Workspace</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Folder</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Board / Doc / Dashboard</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Workspaces</h3>
+        <ul>
+          <li>The top-level container &mdash; usually one per department or major program</li>
+          <li>Hold boards, dashboards, docs, and workflows</li>
+          <li>Can be <span class="highlight">open</span> or <span class="highlight">closed</span> to control who even sees them</li>
+          <li>The right unit for permissions and for onboarding a new team</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Getting the Hierarchy Right</h3>
+        <ul>
+          <li>Too few workspaces &mdash; the left pane becomes unnavigable</li>
+          <li>Too many &mdash; nobody can find anything and boards get duplicated</li>
+          <li>Folders group related boards <em>inside</em> a workspace &mdash; use them freely</li>
+          <li>Decide the convention <span class="highlight">before</span> the first hundred boards exist</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Boards: Groups, Items &amp; Columns</h2>
+    <p class="animate" style="text-align:center;margin-bottom:16px">The board is the core building block. Everything else in the platform is either feeding a board, reading a board, or reacting to one.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Board = Table</h3>
+        <p>One board per process or entity type: <code>Tasks</code>, <code>Deals</code>, <code>Tickets</code>, <code>Candidates</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Group = Section</h3>
+        <p>A coloured horizontal band. Commonly a sprint, a month, a stage, or a status bucket.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Item = Row</h3>
+        <p>The unit of work. A task, a deal, a request, a ticket. Each item carries its own Updates thread.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Column = Field</h3>
+        <p>The typed attribute. Status, People, Date, Numbers &mdash; this is where the schema lives.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">The mental shortcut that makes everything click: a board is a <span class="highlight">typed table</span>, a group is a <span class="highlight">visual GROUP BY</span>, and a column is a <span class="highlight">column</span>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Subitems &amp; Item Hierarchy</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How Subitems Work</h3>
+        <ul>
+          <li>Every item can expand into a nested list of <span class="highlight">subitems</span></li>
+          <li>Subitems live on their own hidden board with their own columns</li>
+          <li>Parent columns can <span class="highlight">roll up</span> subitem values &mdash; sum hours, show combined status</li>
+          <li>Exactly <span class="highlight">one</span> level of nesting &mdash; there are no sub-subitems</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>When Not to Use Them</h3>
+        <ul>
+          <li>If subitems need their own dashboard, they should be a real board</li>
+          <li>Automations on subitems are more limited than on items</li>
+          <li>Thousands of subitems per parent will hurt board load</li>
+          <li>Rule of thumb: subitems for <em>checklists</em>, boards for <em>entities</em></li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">The single-level limit is the most common wall new builders hit. If you find yourself wanting a third level, you want a connected board instead.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Column Center &mdash; Essentials</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Columns are grouped into <span class="highlight">Essentials</span>, <span class="highlight">Board Power-Ups</span>, and <span class="highlight">Combo</span> categories. Start here.</p>
+    <table class="animate">
+      <tr><th>Column</th><th>What It Holds</th><th>Why It Matters</th></tr>
+      <tr><td><strong>Status</strong></td><td>A coloured label from a fixed set</td><td>The single most automated column &mdash; most recipes trigger on it</td></tr>
+      <tr><td><strong>People</strong></td><td>Users and teams</td><td>Drives assignment, notifications, and "My Work"</td></tr>
+      <tr><td><strong>Date</strong></td><td>A date, optionally with time</td><td>Powers deadline automations, Calendar and Gantt views</td></tr>
+      <tr><td><strong>Timeline</strong></td><td>A start and end date</td><td>The bar you actually see on a Gantt chart</td></tr>
+      <tr><td><strong>Numbers</strong></td><td>A numeric value with a unit</td><td>Aggregates in group footers and dashboard widgets</td></tr>
+      <tr><td><strong>Text / Long Text</strong></td><td>Free-form strings</td><td>Notes &mdash; deliberately unstructured, so never filter on it</td></tr>
+      <tr><td><strong>Dropdown</strong></td><td>Multiple labels at once</td><td>Tags and categories, where Status is single-select</td></tr>
+    </table>
+    <p class="animate" style="margin-top:10px;text-align:center;color:var(--text-muted)">Status, Label, and Priority are the same underlying column type wearing different default labels.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Power-Ups &amp; Combo Columns</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Board Power-Ups</h3>
+        <ul>
+          <li><span class="highlight">Button</span> &mdash; a clickable cell that fires an automation</li>
+          <li><span class="highlight">Dependency</span> &mdash; ties one item's dates to another's</li>
+          <li><span class="highlight">Formula</span> &mdash; computed values (not on Basic)</li>
+          <li><span class="highlight">Time Tracking</span> &mdash; start/stop timers (not on Basic)</li>
+          <li><span class="highlight">Progress</span> &mdash; a weighted bar over other columns</li>
+          <li><span class="highlight">Week</span>, <span class="highlight">World Clock</span>, <span class="highlight">Rating</span>, <span class="highlight">Vote</span></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Combo Columns</h3>
+        <ul>
+          <li>Merge two signals into one narrower cell</li>
+          <li><span class="highlight">Date + Status</span> &mdash; the deadline and where it stands</li>
+          <li><span class="highlight">Timeline + Status</span></li>
+          <li><span class="highlight">Timeline + Numeric</span></li>
+          <li>Useful when a board has grown too wide to read</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Design note:</span> every column you add is a column every user must scroll past. Boards rot by accretion &mdash; prune them the way you would prune a database schema.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Connect Boards &mdash; The Relational Layer</h2>
+    <div class="diagram animate">
+      <div class="box">Tasks board</div>
+      <div class="arrow">&#8596;</div>
+      <div class="box">Connect Boards column</div>
+      <div class="arrow">&#8596;</div>
+      <div class="box">Clients board</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Does</h3>
+        <ul>
+          <li>Links one or many items on <em>another</em> board to this item</li>
+          <li>This is monday's <span class="highlight">foreign key</span></li>
+          <li>Can be one-directional or two-way (the other board gets a matching column)</li>
+          <li>Automations and integrations can create links, not just people</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Changes Everything</h3>
+        <ul>
+          <li>Stops the copy-paste of client names into every board</li>
+          <li>One <code>Clients</code> board becomes the source of truth</li>
+          <li>Enables portfolio roll-ups across departments</li>
+          <li>Unlocks the Mirror column &mdash; see the next slide</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Modelling tip: normalize the nouns of your business into their own boards &mdash; clients, products, people, contracts &mdash; then connect processes to them.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mirror Columns &amp; Rollups</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Mirror Column</h3>
+        <ul>
+          <li>Sits <em>on top of</em> a Connect Boards column</li>
+          <li>Displays a column from the connected item, live</li>
+          <li>For Status it can show <span class="highlight">all labels</span> or just <span class="highlight">what's done</span></li>
+          <li>Numeric mirrors can sum, average, or count across many linked items</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Catch</h3>
+        <ul>
+          <li>Mirrors are <span class="highlight">read-only</span> &mdash; edit at the source board</li>
+          <li>Not every automation can trigger on a mirrored value</li>
+          <li>Mirrors of mirrors get slow and fragile &mdash; avoid chains</li>
+          <li>Some dashboard widgets treat mirrors differently than native columns</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">The classic pattern: a <span class="highlight">Projects</span> board connects to <span class="highlight">Tasks</span>, then mirrors task status as a rollup &mdash; so the project bar moves without anyone updating it by hand.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Formula Column</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Spreadsheet-style computed values, evaluated per item. Supported inputs include Number, Text, Date, Status, People, and Time Tracking columns.</p>
+    <pre class="animate">ROUND({Hours Logged} * {Rate}, 2)
+
+IF({Status} = "Done", "&#x2713;", DAYS_DIFF({Due Date}, TODAY()) &amp; " days left")
+
+IF(AND({Priority} = "High", DAYS_DIFF({Due Date}, TODAY()) &lt; 3), "ESCALATE", "OK")</pre>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>What It Is Good For</h3>
+        <ul>
+          <li>Derived money: margin, forecast, weighted pipeline</li>
+          <li>Derived time: age, days-to-due, cycle time</li>
+          <li>Human-readable health flags on a wide board</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Hard Limits</h3>
+        <ul>
+          <li>Not available on the <span class="highlight">Basic</span> plan</li>
+          <li>Results are <span class="highlight">not stored</span> &mdash; they are computed on read</li>
+          <li>You generally <em>cannot</em> trigger an automation from a formula result</li>
+          <li>Need automation? Write to a real column instead</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Board Views &mdash; Table, Kanban &amp; Cards</h2>
+    <p class="animate" style="text-align:center;margin-bottom:16px">Views are saved lenses over the <em>same</em> underlying items. Adding a view never duplicates data.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Table (Main)</h3>
+        <p>The default grid. Every board has one, and it cannot be deleted. Best for bulk editing.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Kanban</h3>
+        <p>Columns of cards grouped by a Status column. Drag a card to change the status &mdash; which fires the automations.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cards</h3>
+        <p>A visual grid, good for boards where an image column carries the meaning.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Files</h3>
+        <p>Every file uploaded on the board in one place, as a list or thumbnails &mdash; preview, download, or jump to its update.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Each view carries its own filters and sort. A shared filter changes the view for everyone; a personal filter changes it only for you &mdash; a distinction worth teaching every new user.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Timeline, Gantt &amp; Calendar</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Time-Based Views</h3>
+        <ul>
+          <li><span class="highlight">Timeline</span> &mdash; horizontal bars from a Timeline column</li>
+          <li><span class="highlight">Gantt</span> &mdash; Timeline plus dependency arrows and a critical path</li>
+          <li><span class="highlight">Calendar</span> &mdash; items placed by a Date column, month or week</li>
+          <li><span class="highlight">Workload</span> &mdash; capacity per person over a period</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What They Need</h3>
+        <ul>
+          <li>Gantt is only as good as the <span class="highlight">Dependency column</span> behind it</li>
+          <li>Dependencies can be set to push dates automatically when one slips</li>
+          <li>Workload needs a numeric effort column to mean anything</li>
+          <li>Empty date columns silently drop items out of these views</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">A Gantt chart in monday.com is not a separate plan &mdash; it is a <span class="highlight">rendering of the board</span>. Move a bar and you have edited the item.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Forms &amp; WorkForms</h2>
+    <div class="diagram animate">
+      <div class="box">Public form</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Submission</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">New item on board</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Automation routes it</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How Intake Works</h3>
+        <ul>
+          <li>Turn any board into a form in one click</li>
+          <li>Each submission lands as a <span class="highlight">new item</span></li>
+          <li>Form questions map onto real columns &mdash; typed from the start</li>
+          <li>Share by link or embed; respondents need no monday account</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why It Is the Best Front Door</h3>
+        <ul>
+          <li>Kills "just Slack me and I'll add it" intake chaos</li>
+          <li>Guarantees the required fields are actually filled</li>
+          <li>Conditional questions keep long forms short</li>
+          <li>Pairs perfectly with a routing automation on arrival</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Dashboards, Charts &amp; Widgets</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Dashboards read across <em>many</em> boards. A board view answers "what is on my plate"; a dashboard answers "how are we doing".</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Chart</h3>
+        <p>Bar, line, pie, stacked. Group by any column and aggregate any numeric one.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Numbers &amp; Battery</h3>
+        <p>A single headline figure, or a status-distribution bar &mdash; the fastest health read in the product.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Workload &amp; Timeline</h3>
+        <p>Capacity and schedule rolled up across every connected team board.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Table &amp; Gantt</h3>
+        <p>A filtered, cross-board list or plan &mdash; useful for portfolio and exec views.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">How many boards one dashboard can pull from is a plan limit &mdash; Basic allows a single board, higher tiers allow far more. Plan your reporting tier before you promise an exec dashboard.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Updates, Docs &amp; Collaboration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Updates Section</h3>
+        <ul>
+          <li>Every item has its own thread &mdash; open it from the item</li>
+          <li><code>@mention</code> a person or team to notify them in context</li>
+          <li>Files, replies, and likes live with the work, not in email</li>
+          <li>Inbound email can be routed into an item's updates</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>monday workdocs</h3>
+        <ul>
+          <li>Collaborative documents that live beside boards</li>
+          <li>Embed a live board or widget <em>inside</em> the doc</li>
+          <li>Turn a line of a doc straight into an item on a board</li>
+          <li>Real-time multi-user editing, with an AI assistant built in</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">The point of both: <span class="highlight">the conversation stays attached to the work</span>. If the decision is in Slack, the item is lying to you six months later.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">monday CRM</h2>
+    <div class="diagram animate">
+      <div class="box">Leads</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Contacts &amp; Accounts</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Deals pipeline</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Won / Lost</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What It Adds</h3>
+        <ul>
+          <li>Pre-built connected boards for leads, contacts, accounts, and deals</li>
+          <li>Pipeline stages as a Status column &mdash; so Kanban <em>is</em> the pipeline</li>
+          <li>Email &amp; activity capture against the contact record</li>
+          <li>Forecasting from deal value, stage, and probability</li>
+          <li>AI deal and risk insights on the record</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The Trade-off</h3>
+        <ul>
+          <li>Far more configurable than a classic CRM &mdash; and far easier to misconfigure</li>
+          <li>Core CRM boards cannot simply be moved to another product</li>
+          <li>Plans run Basic / Standard / Pro / <span class="highlight">Ultimate</span></li>
+          <li>Great fit if sales and delivery must share one system</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">monday dev</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Built for Product Teams</h3>
+        <ul>
+          <li><span class="highlight">Sprints</span> &mdash; a sprint board with velocity and burndown</li>
+          <li><span class="highlight">Roadmap</span> &mdash; epics on a timeline, connected to the work</li>
+          <li><span class="highlight">Backlog</span> &mdash; groomed items feeding the sprint</li>
+          <li><span class="highlight">Bugs &amp; feedback</span> &mdash; intake boards wired to the roadmap</li>
+          <li>Release plans that stay connected to the rest of the business</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Developer Integrations</h3>
+        <ul>
+          <li>GitHub and GitLab &mdash; link branches, commits, and PRs to items</li>
+          <li>Move an item to Done when its PR merges</li>
+          <li>Figma and Slack embeds on the item</li>
+          <li>Sprint data is queryable through the API like any other board</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">The honest positioning: monday dev trades Jira's deep engineering ritual for visibility that non-engineers can actually read. That is the whole point of it living on the same Work OS.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">monday service</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Ticketing and ITSM, with features that exist <em>only</em> in this product.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Ticket Boards &amp; SLA</h3>
+        <p>One board for incoming, open, and closed tickets, with a dedicated <span class="highlight">SLA column</span> tracking time-to-response and time-to-resolution.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Customer Portal &amp; My Tickets</h3>
+        <p>A centralized place for internal knowledge and help, where requesters raise and follow their own tickets.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Channels &amp; Inbox</h3>
+        <p>Custom monday Inbox, Outlook shared mailbox, and email automation &mdash; every channel lands on the Tickets board.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Incident Management</h3>
+        <p>Escalation paths, mandatory fields for resolution, and AI-powered columns for triage and categorisation.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">This is where monday's AI agents landed first &mdash; ticket triage is a well-bounded problem with a clear escalation path to a human.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Automations &mdash; The Recipe Model</h2>
+    <div class="diagram animate">
+      <div class="box">Trigger</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Condition</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Action</div>
+    </div>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Every automation is a <span class="highlight">recipe</span>: a sentence with blanks you fill in. No code, no scheduler to manage.</p>
+    <pre class="animate">When  Status  changes to  Done
+Then  notify  the item's  Owner
+And   move item to group  Completed
+
+When  Date  arrives
+And   Status  is not  Done
+Then  create an item in  Escalations</pre>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Triggers fire on column changes, date arrivals, item creation, group moves, button clicks, form submissions, and a recurring schedule. Actions create, update, move, archive, notify, and assign.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Custom Automations &amp; Conditions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Beyond the Templates</h3>
+        <ul>
+          <li>The recipe builder composes your own trigger + conditions + multiple actions</li>
+          <li>Chain several actions in one recipe instead of stacking recipes</li>
+          <li>Add <span class="highlight">only if</span> conditions so a recipe stays narrow</li>
+          <li>Save a custom recipe as a reusable <span class="highlight">template</span> across boards</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Debugging Discipline</h3>
+        <ul>
+          <li>Check the <span class="highlight">activity log</span> first &mdash; it shows what actually fired</li>
+          <li>Automations run as the person who <em>created</em> them &mdash; permissions follow that user</li>
+          <li>A deactivated recipe stays configured &mdash; deactivate before deleting</li>
+          <li>Name recipes for their intent; a board with 30 unnamed recipes is unmaintainable</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Watch this one:</span> a custom template that mixes automation <em>and</em> integration blocks counts entirely against your <span class="highlight">Automation</span> limit &mdash; regardless of which blocks it contains.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cross-Board Automations &amp; Dependencies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Working Across Boards</h3>
+        <ul>
+          <li>Trigger on board A, act on board B</li>
+          <li>Create a connected item and link it in the same recipe</li>
+          <li>Sync a status change up from tasks to the parent project</li>
+          <li>The backbone of intake &#8594; triage &#8594; delivery pipelines</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Dependency Automations</h3>
+        <ul>
+          <li>When a predecessor's dates move, push the dependent items</li>
+          <li>Choose <span class="highlight">strict</span> (always shift) or <span class="highlight">flexible</span> (only if overlapping)</li>
+          <li>Block a status change until dependencies are done</li>
+          <li>This is what makes the Gantt view self-maintaining</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">Cross-board recipes are also where infinite loops are born. Board A updates B, B updates A, and your monthly action budget is gone by Tuesday.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Integrations &mdash; Third-Party Recipes</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">Integrations are recipes whose trigger or action lives in <em>another</em> product. Same builder, same mental model.</p>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Communication</h3>
+        <p>Slack, Teams, Gmail, Outlook &mdash; post on status change, or turn an email into an item.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Engineering</h3>
+        <p>GitHub, GitLab, Jira, Sentry &mdash; link PRs and issues, sync state both ways.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Business Systems</h3>
+        <p>Salesforce, HubSpot, Zendesk, Stripe, Shopify, Google Drive, Dropbox.</p>
+      </div>
+      <div class="metric-card">
+        <h3>The Escape Hatch</h3>
+        <p>No native recipe? Use a webhook, the GraphQL API, or a custom integration app of your own.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center"><span class="highlight">Important:</span> integration rate limits are usually set by the <em>third party</em>, not by monday.com. Outlook decides how fast you may send Outlook mail.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Action Limits, Rate Limits &amp; Loops</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Monthly Action Limits</h3>
+        <ul>
+          <li>Every account gets an Automation and an Integration action quota by plan tier</li>
+          <li>Quotas <span class="highlight">refresh monthly</span></li>
+          <li>Standard, for example, includes 250 actions per month</li>
+          <li>Mapping extra columns on item creation costs <span class="highlight">one action each</span></li>
+          <li>Actions consumed by monday apps count against your <span class="highlight">Automation</span> limit</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Per-Minute Rate Limits</h3>
+        <ul>
+          <li>Separate from the monthly quota &mdash; a ceiling on triggers/actions per minute</li>
+          <li>Commonly hit by: automation loops, API- or webhook-driven triggers, and Batch Actions</li>
+          <li>Integration rate limits are imposed by the third-party API</li>
+        </ul>
+      </div>
+    </div>
+    <div class="bp-grid animate" style="margin-top:16px">
+      <div class="bp-item"><span>&#x26A0;</span> Never let recipe A's action satisfy recipe B's trigger, and vice versa</div>
+      <div class="bp-item"><span>&#x26A0;</span> Add an "only if status is not X" condition to break the cycle</div>
+      <div class="bp-item"><span>&#x26A0;</span> Test on a duplicated board before enabling on the live one</div>
+      <div class="bp-item"><span>&#x26A0;</span> Audit action usage monthly &mdash; a runaway loop is silent until the quota dies</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">monday AI &mdash; Sidekick &amp; Magic</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">The 2025&ndash;26 AI wave went generally available at Elevate in September 2025. Four surfaces, each solving a different problem.</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>monday Sidekick</h3>
+        <ul>
+          <li>In-context assistance wherever you are working</li>
+          <li>Generate item updates and summarise long threads</li>
+          <li>Build a formula from a plain-English description</li>
+          <li>Suggest the automation you were about to build by hand</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>monday Magic</h3>
+        <ul>
+          <li>Prompt &#8594; a ready-to-use, customised work solution</li>
+          <li>Describe the process; get boards, columns, and views scaffolded</li>
+          <li>Collapses the blank-page problem for new teams</li>
+          <li>Treat the output as a <span class="highlight">first draft</span>, then prune</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">The Formula Builder, Docs Assistant, Deal Insights, and Risk Insights are free and consume no AI credits.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">monday Vibe</h2>
+    <div class="diagram animate">
+      <div class="box">Describe it</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Vibe generates</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Custom view / dashboard / mini-app</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Vibe Does</h3>
+        <ul>
+          <li>You describe what you need in words</li>
+          <li>Vibe generates custom views, dashboards, and mini-apps</li>
+          <li>Lives directly in the platform &mdash; no code written</li>
+          <li>Output appears as an App View on the board</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Where the Line Is</h3>
+        <ul>
+          <li>Excellent for internal, single-team tooling</li>
+          <li>Not a replacement for a real app when logic gets complex</li>
+          <li>Apps built primarily with no-code or AI-generated "vibe code" are <span class="highlight">not eligible</span> for Marketplace approval</li>
+          <li>Build with Vibe internally; build with the Apps Framework to ship</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI Blocks in Workflows</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">An <span class="highlight">AI block</span> is an AI step you drop into a recipe, between the trigger and the action. The workflow engine stays in charge; the model just does one job.</p>
+    <pre class="animate">When  a form submission  creates an item
+Then  [AI block]  categorise the request text
+And   [AI block]  extract the customer name and urgency
+And   set Status from the category
+And   assign to the team that owns it
+And   notify that team</pre>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Good AI Block Jobs</h3>
+        <ul>
+          <li>Classify free text into your existing labels</li>
+          <li>Extract structured fields from a messy paragraph</li>
+          <li>Summarise a long update thread</li>
+          <li>Translate, or detect sentiment on inbound tickets</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Design Rules</h3>
+        <ul>
+          <li>Constrain output to a fixed label set &mdash; never free text into a Status</li>
+          <li>Write the AI result to a real column so it is auditable</li>
+          <li>Keep a human review step for anything customer-facing</li>
+          <li>AI workflow runs consume credits &mdash; budget them</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI Agents &amp; the Credit Model</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>monday Agents</h3>
+        <ul>
+          <li>No-code AI agents that own a slice of a workflow</li>
+          <li><span class="highlight">Service Agent</span> &mdash; reads incoming tickets, categorises them, answers common issues, escalates the rest</li>
+          <li><span class="highlight">SDR Agent</span> &mdash; qualifies and works inbound leads in CRM</li>
+          <li>Agents act as a digital teammate on the board, with an audit trail</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Credits &amp; Governance</h3>
+        <ul>
+          <li>AI moved to a <span class="highlight">credit-based</span> model in late 2025</li>
+          <li>As of 20 July 2026 credits also cover Sidekick, Sidekick image generation, and AI workflow runs</li>
+          <li>Free and creditless: Formula Builder, Docs Assistant, Deal Insights, Risk Insights</li>
+          <li>Enterprise AI governance controls which features are enabled account-wide</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">Start an agent on the <span class="green">high-volume, low-risk</span> tail of your queue. Measure escalation rate for a month before widening its remit.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Permissions &amp; Board Types</h2>
+    <table class="animate">
+      <tr><th>Board Type</th><th>Who Can See It</th><th>Use For</th></tr>
+      <tr><td><strong>Main</strong></td><td>Everyone in the workspace</td><td>The default &mdash; normal team work</td></tr>
+      <tr><td><strong>Private</strong></td><td>Only invited members; admins cannot browse in</td><td>HR, compensation, legal, sensitive investigations</td></tr>
+      <tr><td><strong>Shareable</strong></td><td>Invited members plus <span class="highlight">guests</span> from outside the account</td><td>Clients, agencies, contractors</td></tr>
+    </table>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Finer-Grained Control</h3>
+        <ul>
+          <li><span class="highlight">Board permissions</span> &mdash; who can edit items, or only their own</li>
+          <li><span class="highlight">Column permissions</span> &mdash; restrict a single column (salary, cost) to specific roles</li>
+          <li><span class="highlight">View permissions</span> &mdash; lock a view's configuration from casual edits</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>User Types</h3>
+        <ul>
+          <li><span class="highlight">Admin</span> &mdash; account settings, security, billing</li>
+          <li><span class="highlight">Member</span> &mdash; a full seat</li>
+          <li><span class="highlight">Viewer</span> &mdash; read and comment, no edits</li>
+          <li><span class="highlight">Guest</span> &mdash; external, shareable boards only</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Admin, Governance &amp; Enterprise</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Identity</h3>
+        <p>SAML SSO, SCIM provisioning, two-factor enforcement, session and IP restrictions, and Google/Okta/Entra directories.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Audit &amp; Compliance</h3>
+        <p>Account-level audit log, content directory, HIPAA support, and private-region data residency on Enterprise.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Managed Templates</h3>
+        <p>Central templates that keep columns, views, and validation consistent &mdash; and can push changes to new instances.</p>
+      </div>
+      <div class="metric-card">
+        <h3>AI Governance</h3>
+        <p>Decide which AI features are enabled account-wide, and where credits may be spent.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center;color:var(--text-muted)">The governance problem at scale is rarely security &mdash; it is <span class="highlight">sprawl</span>. Twelve near-identical "Q3 Projects" boards with slightly different status labels make cross-account reporting impossible. Managed templates and a naming convention are the cure.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">mondayDB &amp; Scale</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The Data Architecture</h3>
+        <ul>
+          <li>The purpose-built engine underneath every board</li>
+          <li><span class="highlight">Schemaless</span> &mdash; it must store any column type a user invents</li>
+          <li>Data kept in both <span class="highlight">row and columnar</span> stores; queries route to whichever fits</li>
+          <li>Storage and compute separated, so each scales on its own</li>
+          <li>mondayDB 3.0 adds a DuckDB columnar engine for analytics-style queries</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why You Should Care</h3>
+        <ul>
+          <li>Board loads, large boards, and aggregations all got dramatically faster</li>
+          <li>Boards that used to cap around 100K items now stretch into the millions</li>
+          <li>Filtering and grouping on huge boards is viable &mdash; it once was not</li>
+          <li>You still pay for width: many columns and deep mirror chains cost load time</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:14px;text-align:center">This is the answer to the old objection that monday.com "falls over past a few thousand rows". It is why the platform can now credibly host operational systems, not just team to-do lists.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The GraphQL API &mdash; Getting Started</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">One endpoint, one schema, POST only. Everything you can do in the UI you can do here.</p>
+    <pre class="animate">curl --location 'https://api.monday.com/v2/' \
+  --header 'Authorization: YOUR_API_KEY_HERE' \
+  --header 'API-Version: 2026-07' \
+  --header 'Content-Type: application/json' \
+  --data '{"query":"query { boards (ids: 1234567890) { name } }"}'</pre>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>The Non-Negotiables</h3>
+        <ul>
+          <li>Endpoint is always <code>https://api.monday.com/v2</code></li>
+          <li>Always <span class="highlight">POST</span>, always <code>Content-Type: application/json</code></li>
+          <li>Token goes in the <code>Authorization</code> header &mdash; no <code>Bearer</code> prefix</li>
+          <li>Pass an explicit <code>API-Version</code> header in production</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Getting a Token</h3>
+        <ul>
+          <li>Personal token from your account's Developers section &mdash; fine for scripts</li>
+          <li><span class="highlight">OAuth</span> for anything multi-user or distributed</li>
+          <li>Scopes are granular: <code>boards:read</code>, <code>boards:write</code>, <code>users:read</code>, <code>webhooks:write</code>, and more</li>
+          <li>Add scopes incrementally as the app grows</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Queries &amp; Mutations in Practice</h2>
+    <pre class="animate">query {
+  boards (ids: 1234567890) {
+    name
+    items_page (limit: 50) {
+      cursor
+      items { id name column_values { id text value } }
+    }
+  }
+}
+
+mutation {
+  create_item (board_id: 1234567890, item_name: "New request") { id name }
+}</pre>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Writing Column Values</h3>
+        <p style="margin-bottom:8px">Column values are typed JSON keyed by column id &mdash; not by title.</p>
+        <pre style="font-size:0.8rem">mutation {
+  change_multiple_column_values (
+    board_id: 123, item_id: 456,
+    column_values: "{\"status\":{\"label\":\"Done\"},
+                     \"date4\":{\"date\":\"2026-08-01\"}}"
+  ) { id }
+}</pre>
+      </div>
+      <div class="card">
+        <h3>Batching with Aliases</h3>
+        <p style="margin-bottom:8px">Send several operations in one request instead of N round trips.</p>
+        <pre style="font-size:0.8rem">query {
+  a: boards(ids: 111) { id name }
+  b: boards(ids: 222) { id name }
+}</pre>
+        <p style="margin-top:8px">Query the schema itself to discover column ids before you hardcode any.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Complexity, Pagination &amp; Rate Limits</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">monday bills API load in <span class="highlight">complexity points</span>, not just request counts. A nested query can be expensive even if you only sent one.</p>
+    <table class="animate">
+      <tr><th>Limit</th><th>Free</th><th>Pro</th><th>Enterprise</th></tr>
+      <tr><td>Complexity</td><td>5M pts/min</td><td>5M pts/min</td><td>5M pts/min</td></tr>
+      <tr><td>Daily calls</td><td>1,000</td><td>10,000</td><td>25,000</td></tr>
+      <tr><td>Queries / minute</td><td>1,000</td><td>2,500</td><td>5,000</td></tr>
+      <tr><td>Concurrency</td><td>40</td><td>100</td><td>250</td></tr>
+    </table>
+    <p class="animate" style="margin-top:12px;text-align:center">Measure before you optimise &mdash; ask the API what your own query costs:</p>
+    <pre class="animate">mutation {
+  complexity { query before after }
+  create_item (board_id: 1234567890, item_name: "test item") { id }
+}</pre>
+    <p class="animate" style="margin-top:12px;text-align:center;color:var(--text-muted)">To bring cost down: request only the fields you need, flatten nesting, and page with <code>limit</code> and the <code>cursor</code> returned by <code>items_page</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">API Versioning &amp; Webhooks</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Quarterly Versioning</h3>
+        <ul>
+          <li>Versions are named <code>yyyy-mm</code> &mdash; for example <code>2026-07</code></li>
+          <li>Selected per request via the <code>API-Version</code> header</li>
+          <li>Lifecycle: <code>current</code> &#8594; <code>release_candidate</code> &#8594; <code>maintenance</code> &#8594; <code>deprecated</code></li>
+          <li>Omit the header and you drift onto whatever is current &mdash; <span class="highlight">always pin it in production</span></li>
+        </ul>
+        <pre style="font-size:0.8rem">query { version { kind value } }</pre>
+      </div>
+      <div class="card">
+        <h3>Webhooks</h3>
+        <ul>
+          <li>Push instead of poll &mdash; monday calls your URL on board events</li>
+          <li>Events include item created, column value changed, item moved, update posted</li>
+          <li>Registration handshake: echo back the <code>challenge</code> field on the first request</li>
+          <li>Respond fast and queue the work &mdash; do not do real processing inline</li>
+          <li>Remember: webhook-triggered automations count against rate limits</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building Apps &amp; the Ecosystem</h2>
+    <p class="animate" style="text-align:center;margin-bottom:12px">App <span class="highlight">features</span> declare where your code appears inside monday.com.</p>
+    <table class="animate">
+      <tr><th>Feature</th><th>Where It Lives</th><th>Scope</th></tr>
+      <tr><td><strong>Board view</strong></td><td>A tab under the board title</td><td>One board</td></tr>
+      <tr><td><strong>Item view</strong></td><td>The item's updates section</td><td>One item</td></tr>
+      <tr><td><strong>Dashboard widget</strong></td><td>Added from a dashboard</td><td>Many boards</td></tr>
+      <tr><td><strong>Integration recipe</strong></td><td>Custom trigger &amp; action blocks</td><td>Workflows</td></tr>
+      <tr><td><strong>Board menu / doc actions</strong></td><td>Context menus</td><td>Items, groups, docs</td></tr>
+      <tr><td><strong>AI assistant</strong></td><td>The AI surfaces</td><td>Account</td></tr>
+    </table>
+    <div class="two-col animate" style="margin-top:16px">
+      <div class="card">
+        <h3>Runtime &amp; SDK</h3>
+        <ul>
+          <li><span class="highlight">monday Code</span> hosts your server-side code on a region-based <code>*.monday.app</code> URL</li>
+          <li>The JS SDK's <code>monday.api()</code> queries as the connected user &mdash; no token juggling in the client</li>
+          <li>Register features and OAuth scopes in the Developer Center</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Marketplace &amp; MCP</h3>
+        <ul>
+          <li>Marketplace demands guest/viewer support, pagination for large boards, onboarding, and the value-created event</li>
+          <li>No-code and AI-generated "vibe code" apps are not eligible</li>
+          <li>The hosted <span class="highlight">monday MCP</span> server exposes 60+ tools so AI agents can read and act on your workspace</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best Practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Model the <em>nouns</em> of your business as boards, then connect processes to them</div>
+      <div class="bp-item"><span>2.</span> One board per entity type &mdash; never one board per month or per client</div>
+      <div class="bp-item"><span>3.</span> Standardise Status labels account-wide, or cross-board reporting is impossible</div>
+      <div class="bp-item"><span>4.</span> Use Connect Boards instead of retyping the same name into five boards</div>
+      <div class="bp-item"><span>5.</span> Subitems for checklists, connected boards for anything you need to report on</div>
+      <div class="bp-item"><span>6.</span> Make forms the front door &mdash; typed intake beats a Slack message every time</div>
+      <div class="bp-item"><span>7.</span> Name every automation for its intent, and check the activity log when debugging</div>
+      <div class="bp-item"><span>8.</span> Add an <code>only if</code> condition to any cross-board recipe to break loops</div>
+      <div class="bp-item"><span>9.</span> Watch monthly action usage &mdash; a runaway loop is silent until the quota is gone</div>
+      <div class="bp-item"><span>10.</span> Never trigger an automation from a formula &mdash; write to a real column instead</div>
+      <div class="bp-item"><span>11.</span> Constrain AI block output to a fixed label set, and keep a human in the loop</div>
+      <div class="bp-item"><span>12.</span> Pin the <code>API-Version</code> header in production and read the deprecation notes</div>
+      <div class="bp-item"><span>13.</span> Page with <code>items_page</code> and its cursor; never assume a board is small</div>
+      <div class="bp-item"><span>14.</span> Reference columns by <code>id</code> in code &mdash; titles get renamed, ids do not</div>
+      <div class="bp-item"><span>15.</span> Use managed templates to fight board sprawl before it starts</div>
+      <div class="bp-item"><span>16.</span> Archive dead boards. A findable workspace is a used workspace</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4C5;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know monday.com end to end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Work OS</span><span class="tag">Products</span><span class="tag">Boards &amp; Items</span>
+        <span class="tag">Columns</span><span class="tag">Connect &amp; Mirror</span><span class="tag">Formulas</span>
+        <span class="tag">Views</span><span class="tag">Forms</span><span class="tag">Dashboards</span>
+        <span class="tag">Automations</span><span class="tag">Integrations</span><span class="tag">Action Limits</span>
+        <span class="tag">monday AI</span><span class="tag">Vibe</span><span class="tag">AI Blocks</span><span class="tag">Agents</span>
+        <span class="tag">Permissions</span><span class="tag">Governance</span><span class="tag">mondayDB</span>
+        <span class="tag">GraphQL API</span><span class="tag">Webhooks</span><span class="tag">Apps &amp; MCP</span>
+      </div>
+      <p style="color:var(--text-muted)">The platform is easy to start and easy to sprawl. The teams that succeed with it treat boards like a schema they own &mdash; named deliberately, connected rather than copied, and pruned on purpose.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 38</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
