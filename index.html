@@ -260,6 +260,131 @@
       .course-table td.desc-cell { display: none; }
     }
 
+    .net-banner {
+      display: none;
+      text-align: center;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 12px 72px;
+    }
+
+    .net-banner.show { display: block; }
+
+    .offline-bar {
+      max-width: 1100px;
+      margin: 0 auto;
+      padding: 0 32px 24px;
+    }
+
+    .offline-panel {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 14px;
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 14px 18px;
+      box-shadow: 0 2px 12px var(--shadow);
+      transition: border-color 0.2s;
+    }
+
+    .offline-panel.on { border-color: var(--accent); }
+
+    .offline-icon { font-size: 1.5rem; line-height: 1; }
+
+    .offline-copy { flex: 1 1 240px; min-width: 0; }
+    .offline-copy strong { display: block; font-size: 1rem; }
+
+    .offline-copy span {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.9rem;
+      color: var(--text-muted);
+    }
+
+    .offline-action {
+      background: none;
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 7px 16px;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .offline-action:hover { border-color: var(--accent); color: var(--accent); }
+    .offline-action[hidden] { display: none; }
+
+    .offline-progress {
+      display: none;
+      flex: 1 1 100%;
+      height: 6px;
+      background: var(--accent2);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .offline-progress.show { display: block; }
+
+    .offline-progress i {
+      display: block;
+      width: 0;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--accent);
+      transition: width 0.2s;
+    }
+
+    .switch { position: relative; flex: none; width: 52px; height: 30px; }
+
+    .switch input {
+      position: absolute;
+      inset: 0;
+      z-index: 2;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .switch .track {
+      position: absolute;
+      inset: 0;
+      border: 2px solid var(--border-color);
+      border-radius: 999px;
+      background: var(--accent2);
+      transition: background 0.2s, border-color 0.2s;
+    }
+
+    .switch .thumb {
+      position: absolute;
+      top: 4px;
+      left: 4px;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--text-muted);
+      transition: transform 0.2s, background 0.2s;
+    }
+
+    .switch input:checked ~ .track { background: var(--accent); border-color: var(--accent); }
+    .switch input:checked ~ .track .thumb { transform: translateX(22px); background: #fff; }
+    .switch input:focus-visible ~ .track { outline: 2px solid var(--accent); outline-offset: 3px; }
+    .switch input:disabled { cursor: not-allowed; }
+    .switch input:disabled ~ .track { opacity: 0.5; }
+
+    @media (max-width: 768px) {
+      .offline-bar { padding: 0 20px 20px; }
+      .net-banner { padding: 12px 64px; font-size: 0.9rem; }
+      /* The controls wrap onto their own row — keep the switch thumb-side. */
+      .offline-panel .switch { margin-left: auto; }
+    }
+
     .theme-toggle {
       position: fixed;
       top: 16px;
@@ -306,6 +431,8 @@
     })();
   </script>
 
+  <div class="net-banner" id="netBanner"></div>
+
   <header>
     <h1>Learning Hub</h1>
     <p>Short courses on modern engineering tools and frameworks</p>
@@ -318,6 +445,22 @@
   <div class="view-toggle">
     <button id="btnCards" class="active" onclick="setView('cards')">Cards</button>
     <button id="btnTable" onclick="setView('table')">Table</button>
+  </div>
+
+  <div class="offline-bar">
+    <div class="offline-panel" id="offlinePanel">
+      <span class="offline-icon">&#x2708;&#xFE0F;</span>
+      <div class="offline-copy">
+        <strong>Offline mode</strong>
+        <span id="offlineStatus">Save every course to this device so the hub works with no connection.</span>
+      </div>
+      <button class="offline-action" id="offlineRefresh" hidden onclick="refreshOffline()">Update</button>
+      <label class="switch">
+        <input type="checkbox" id="offlineToggle" aria-describedby="offlineStatus" aria-label="Offline mode" onchange="onOfflineToggle(this.checked)">
+        <span class="track"><span class="thumb"></span></span>
+      </label>
+      <div class="offline-progress" id="offlineProgress"><i id="offlineProgressBar"></i></div>
+    </div>
   </div>
 
   <div class="course-count" id="courseCount"></div>
@@ -469,6 +612,223 @@ function filterCourses() {
   document.getElementById('btnTable').classList.toggle('active', currentView === 'table');
 })();
 filterCourses();
+
+/* ---------------- Offline mode ----------------
+   Saves the whole hub into the browser's cache via sw.js so the courses can
+   be read with no connection (on a plane, underground, abroad). The service
+   worker is only registered once the reader opts in, and unregistering it
+   plus dropping the cache is all that turning it off does. */
+
+const OFFLINE_PREF = 'offlineMode';
+const OFFLINE_META = 'offlineMeta';
+const SW_PATH = 'sw.js';
+const RESPONSE_TIMEOUT = 60000;
+const OFFLINE_PITCH = 'Save every course to this device so the hub works with no connection.';
+
+// Pages that belong in the offline bundle but are not entries in COURSES.
+const EXTRA_PAGES = ['./', 'index.html', 'glossary.html', 'glossary-terms.js', 'favicon.svg', 'claw-code-diagrams.html'];
+
+// The highlight.js bundle that glossary-terms.js lazy-loads on every course
+// page. Without these, code blocks lose their syntax colours offline.
+// 'hcl' is deliberately absent: it is not part of highlight.js 11.9.0 on the
+// CDN, so glossary-terms.js already falls through its onerror path for it.
+const HLJS = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/';
+const VENDOR_ASSETS = [HLJS + 'highlight.min.js',
+  ...['rust', 'dockerfile', 'nginx', 'yaml', 'protobuf', 'x86asm', 'armasm']
+    .map(lang => HLJS + 'languages/' + lang + '.min.js')];
+
+const offlineSupported = 'serviceWorker' in navigator && 'caches' in window &&
+  (location.protocol === 'https:' || location.hostname === 'localhost' || location.hostname === '127.0.0.1');
+
+const offlineEl = {
+  panel: document.getElementById('offlinePanel'),
+  toggle: document.getElementById('offlineToggle'),
+  status: document.getElementById('offlineStatus'),
+  refresh: document.getElementById('offlineRefresh'),
+  progress: document.getElementById('offlineProgress'),
+  bar: document.getElementById('offlineProgressBar'),
+  banner: document.getElementById('netBanner')
+};
+
+function offlineUrls() {
+  return [...new Set([...EXTRA_PAGES, ...COURSES.map(c => c.href), ...VENDOR_ASSETS])];
+}
+
+function formatBytes(n) {
+  if (n >= 1048576) return (n / 1048576).toFixed(1) + ' MB';
+  if (n >= 1024) return Math.round(n / 1024) + ' KB';
+  return (n || 0) + ' B';
+}
+
+function readMeta() {
+  try { return JSON.parse(localStorage.getItem(OFFLINE_META)); } catch (e) { return null; }
+}
+
+function savedText() {
+  const meta = readMeta() || {};
+  const parts = [];
+  parts.push(meta.courses ? meta.courses + ' courses saved' : 'Saved on this device');
+  if (meta.bytes) parts.push(formatBytes(meta.bytes));
+  if (meta.at) parts.push('updated ' + new Date(meta.at).toLocaleDateString());
+  return parts.join(' · ') + ' — ready for takeoff';
+}
+
+function renderOffline(text, opts) {
+  opts = opts || {};
+  offlineEl.status.textContent = text;
+  offlineEl.panel.classList.toggle('on', !!opts.on);
+  offlineEl.refresh.hidden = !opts.on || !!opts.busy;
+  offlineEl.toggle.disabled = !offlineSupported || !!opts.busy;
+  offlineEl.progress.classList.toggle('show', opts.pct != null);
+  if (opts.pct != null) offlineEl.bar.style.width = opts.pct + '%';
+}
+
+async function activeWorker() {
+  await navigator.serviceWorker.register(SW_PATH);
+  const reg = await navigator.serviceWorker.ready;
+  if (!reg.active) throw new Error('the service worker did not start');
+  return reg.active;
+}
+
+// Talks to the service worker over a private channel: PROGRESS messages stream
+// in, and the first non-progress message settles the promise.
+function askWorker(worker, message, onProgress) {
+  return new Promise((resolve, reject) => {
+    const channel = new MessageChannel();
+    let timer;
+
+    const arm = () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        channel.port1.close();
+        reject(new Error('the service worker stopped responding'));
+      }, RESPONSE_TIMEOUT);
+    };
+
+    channel.port1.onmessage = event => {
+      const data = event.data || {};
+      if (data.type === 'PROGRESS') {
+        arm();
+        if (onProgress) onProgress(data);
+        return;
+      }
+      clearTimeout(timer);
+      channel.port1.close();
+      if (data.error) reject(new Error(data.error)); else resolve(data);
+    };
+
+    arm();
+    worker.postMessage(message, [channel.port2]);
+  });
+}
+
+async function saveForOffline() {
+  const urls = offlineUrls();
+  renderOffline('Preparing…', {on: true, busy: true, pct: 0});
+  // Recorded up front so that closing the tab mid-download leaves the feature
+  // on with an incomplete set, rather than on-disk data nobody owns.
+  localStorage.setItem(OFFLINE_PREF, 'on');
+
+  try {
+    const worker = await activeWorker();
+    const result = await askWorker(worker, {type: 'CACHE_ALL', urls}, p => {
+      renderOffline('Saving courses… ' + p.done + ' / ' + p.total + ' (' + formatBytes(p.bytes) + ')',
+        {on: true, busy: true, pct: Math.round(p.done / p.total * 100)});
+    });
+
+    const failed = result.failed || [];
+    const saved = result.total - failed.length;
+    localStorage.setItem(OFFLINE_META, JSON.stringify({
+      courses: COURSES.length, files: saved, bytes: result.bytes, at: new Date().toISOString()
+    }));
+
+    if (failed.length) {
+      renderOffline(saved + ' of ' + result.total + ' files saved — ' + failed.length +
+        ' could not be downloaded. Press Update once the connection is steady.', {on: true});
+    } else {
+      renderOffline(savedText(), {on: true});
+    }
+  } catch (err) {
+    await removeSavedCopy();
+    offlineEl.toggle.checked = false;
+    renderOffline('Could not save for offline: ' + err.message + '.', {});
+  }
+}
+
+// Off means off: no worker registered and nothing left in the cache.
+async function removeSavedCopy() {
+  try {
+    const reg = await navigator.serviceWorker.getRegistration();
+    if (reg) await reg.unregister();
+    const names = await caches.keys();
+    await Promise.all(names.filter(n => n.startsWith('learning-hub')).map(n => caches.delete(n)));
+  } catch (err) {
+    /* nothing left to remove */
+  }
+  localStorage.removeItem(OFFLINE_PREF);
+  localStorage.removeItem(OFFLINE_META);
+}
+
+async function dropOfflineCopy() {
+  renderOffline('Removing saved copies…', {busy: true});
+  await removeSavedCopy();
+  renderOffline(OFFLINE_PITCH, {});
+  updateNetBanner();
+}
+
+function onOfflineToggle(on) {
+  if (on) saveForOffline().then(updateNetBanner); else dropOfflineCopy();
+}
+
+function refreshOffline() {
+  saveForOffline();
+}
+
+function updateNetBanner() {
+  const offline = !navigator.onLine;
+  offlineEl.banner.classList.toggle('show', offline);
+  if (!offline) return;
+  offlineEl.banner.textContent = localStorage.getItem(OFFLINE_PREF) === 'on'
+    ? '✈️ You’re offline — reading your saved copy of the hub.'
+    : '⚠️ You’re offline — turn on Offline mode next time you have a connection to read these courses on a flight.';
+}
+
+(async function initOffline() {
+  window.addEventListener('online', updateNetBanner);
+  window.addEventListener('offline', updateNetBanner);
+  updateNetBanner();
+
+  if (!offlineSupported) {
+    renderOffline('Unavailable here — offline mode needs the hub served over https (or localhost).', {});
+    return;
+  }
+
+  if (localStorage.getItem(OFFLINE_PREF) !== 'on') {
+    renderOffline(OFFLINE_PITCH, {});
+    // Clear anything a half-finished session left behind, so a hub that says
+    // "off" is never quietly being served by a stale worker.
+    await removeSavedCopy();
+    return;
+  }
+
+  offlineEl.toggle.checked = true;
+  renderOffline(savedText(), {on: true});
+
+  // Confirm the saved copy is still complete: browsers evict caches under
+  // storage pressure, and courses published since the last save are missing
+  // from it. Either way the fix is the same — press Update.
+  try {
+    const result = await askWorker(await activeWorker(), {type: 'STATUS'});
+    const expected = offlineUrls().length;
+    if (result.count < expected) {
+      renderOffline(result.count + ' of ' + expected + ' files saved — press Update to complete the set.', {on: true});
+    } else {
+      renderOffline(savedText(), {on: true});
+    }
+  } catch (err) {
+    /* keep the stored summary */
+  }
+})();
 </script>
 
 </body>
