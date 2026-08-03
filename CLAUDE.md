@@ -8,9 +8,10 @@ This is a **Learning Hub** - a collection of slide-based HTML courses covering m
 
 ```
 /
-├── index.html              # Course catalog (cards + table view, search, theme toggle)
+├── index.html              # Course catalog (cards + table view, search, theme + offline toggle)
 ├── glossary.html           # Shared glossary page
 ├── glossary-terms.js       # Glossary term definitions (loaded by every course)
+├── sw.js                   # Service worker backing Offline mode
 ├── favicon.svg             # Shared favicon
 ├── *.html                  # Individual course files (one per topic)
 └── CLAUDE.md               # This file
@@ -138,6 +139,32 @@ Add an entry to the `COURSES` array in `index.html`:
 - Use 3-4 tags maximum
 - Set `published` to the current date
 - Courses sort by published date (newest first), then alphabetically
+
+## Offline Mode (sw.js)
+
+The catalog has an **Offline mode** toggle that saves every course into the
+browser cache so the hub can be read with no connection (flights, tunnels,
+roaming). Turning it on registers `sw.js`; turning it off unregisters it and
+deletes the cache. Nothing is registered until the reader opts in.
+
+The cache is a deliberate snapshot — only the toggle and the **Update** button
+write to it. The worker serves from the network whenever the device is online,
+so an online visit always shows current content, and falls back to the snapshot
+only when the network is gone.
+
+**Adding a course needs no work here**: the URL list is built from the `COURSES`
+array in `index.html`, so a new entry is included automatically, and readers
+are prompted to press Update when their saved set is behind.
+
+Two lists in `index.html` do need updating by hand:
+
+| Constant | When to add to it |
+|----------|-------------------|
+| `EXTRA_PAGES` | A new page that is not a `COURSES` entry (e.g. `claw-code-diagrams.html`) |
+| `VENDOR_ASSETS` | A new third-party URL that course pages load at runtime |
+
+Requires an https (or localhost) origin; on anything else the toggle disables
+itself and says so. Everything else on the page works unchanged.
 
 ## Glossary (glossary-terms.js)
 
