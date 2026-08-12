@@ -1,0 +1,865 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Multi-Model LLM APIs</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F500;</span>
+    <h1 class="animate">Multi-Model LLM APIs</h1>
+    <p class="subtitle animate">One interface, many models &mdash; Bedrock, Vertex, Foundry, OpenRouter, LiteLLM and the gateways in between</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Bedrock</span><span class="tag">LiteLLM</span><span class="tag">Gateways</span><span class="tag">Routing</span><span class="tag">FinOps</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The fragmentation tax</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it looks like in code</h3>
+        <p>Every provider once had its own request envelope. Claude wants <code>messages</code> + <code>max_tokens</code>. Gemini wants <code>contents</code> + <code>parts</code>. Cohere, Mistral and Titan each invented something else.</p>
+        <p>Supporting two models side by side means a serializer <em>and</em> a parser per family &mdash; plus per-provider auth, retry semantics, error codes, rate-limit headers and streaming formats.</p>
+      </div>
+      <div class="card">
+        <h3>What it costs you</h3>
+        <p><span class="highlight">Switching cost.</span> A better/cheaper model ships and you can't adopt it in a sprint.</p>
+        <p><span class="highlight">Blast radius.</span> One provider outage takes the product down because there is no second path.</p>
+        <p><span class="highlight">No cost ownership.</span> Five teams, five API keys, five invoices, zero attribution.</p>
+        <p><span class="highlight">Governance drift.</span> PII filtering lives in whichever prompt someone remembered to write it into.</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The multi-model API layer exists to turn <strong>model choice</strong> into a config change instead of a refactor.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Four lanes, not one market</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>1. Hyperscaler platform</h3>
+        <p>Bedrock &middot; Vertex AI &middot; Azure AI Foundry</p>
+        <p style="color:var(--text-muted)">Models inside your existing cloud boundary. IAM, VPC, audit trail, one invoice.</p>
+      </div>
+      <div class="metric-card">
+        <h3>2. Aggregator</h3>
+        <p>OpenRouter &middot; Together &middot; Fireworks</p>
+        <p style="color:var(--text-muted)">Hundreds of models, one key, one balance. Fastest path to breadth.</p>
+      </div>
+      <div class="metric-card">
+        <h3>3. Self-hosted gateway</h3>
+        <p>LiteLLM &middot; Portkey &middot; Kong AI GW &middot; Bifrost</p>
+        <p style="color:var(--text-muted)">You own the control plane: keys, budgets, fallbacks, logs. Providers stay yours.</p>
+      </div>
+      <div class="metric-card">
+        <h3>4. Self-hosted inference</h3>
+        <p>vLLM &middot; SGLang &middot; TGI &middot; Ollama</p>
+        <p style="color:var(--text-muted)">Open weights on your GPUs, exposed as an OpenAI-shaped endpoint.</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">These <span class="green">stack</span>: vLLM behind LiteLLM, with Bedrock and OpenRouter as fallback pools.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What "unified" actually normalizes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="green">Normalized reliably</h3>
+        <p>&#x2713; Message/turn structure and system prompts</p>
+        <p>&#x2713; Common inference params &mdash; <code>maxTokens</code>, <code>temperature</code>, <code>topP</code>, stop sequences</p>
+        <p>&#x2713; Token usage and stop reason</p>
+        <p>&#x2713; Streaming envelope</p>
+        <p>&#x2713; Basic tool/function-call schemas</p>
+        <p>&#x2713; Multimodal image + document blocks</p>
+      </div>
+      <div class="card">
+        <h3 class="highlight">Leaks through anyway</h3>
+        <p>&#x2717; Extended thinking / reasoning-effort controls</p>
+        <p>&#x2717; Prompt-cache breakpoints and TTL rules</p>
+        <p>&#x2717; Citations, structured outputs, JSON-schema modes</p>
+        <p>&#x2717; Context limits and per-model tokenizers</p>
+        <p>&#x2717; Safety-refusal behaviour and error taxonomies</p>
+        <p>&#x2717; Prompts themselves &mdash; a prompt tuned for one family is <em>not</em> portable</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center"><span class="highlight">Design rule:</span> the API is portable, the behaviour is not. Budget for re-evaluation on every model swap.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Amazon Bedrock &mdash; the surface</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Two planes</h3>
+        <p><code>bedrock</code> &mdash; control plane. Model access, guardrails, custom models, provisioned throughput, batch jobs.</p>
+        <p><code>bedrock-runtime</code> &mdash; data plane. <code>Converse</code>, <code>ConverseStream</code>, <code>InvokeModel</code>, <code>InvokeModelWithResponseStream</code>.</p>
+        <p style="color:var(--text-muted)">IAM permission that matters: <code>bedrock:InvokeModel</code> &mdash; Converse rides on it.</p>
+      </div>
+      <div class="card">
+        <h3>Why teams pick it</h3>
+        <p><span class="highlight">No new trust boundary.</span> Same IAM, VPC endpoints, CloudTrail, KMS, Organizations SCPs you already audit.</p>
+        <p><span class="highlight">One contract.</span> Anthropic, Meta, Mistral, Cohere, DeepSeek, Stability and Amazon's own Nova/Titan on one bill.</p>
+        <p><span class="highlight">Swappability.</span> <code>modelId</code> is a string. Changing models is a config change, not a rewrite.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Converse API</h2>
+    <p class="animate">AWS's answer to per-provider payloads: one request shape, one response envelope, any model.</p>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Request</h3>
+        <pre style="font-size:0.8rem">{
+  "modelId": "&lt;id | profile | ARN&gt;",   // URI param
+  "messages": [ {role, content[]} ],
+  "system":   [ {text} ],
+  "inferenceConfig": {
+    "maxTokens": 2048, "temperature": 0.2
+  },
+  "toolConfig": { "tools": [...],
+                  "toolChoice": {...} },
+  "guardrailConfig": {
+    "guardrailIdentifier": "...",
+    "guardrailVersion": "1", "trace": "enabled"
+  },
+  "additionalModelRequestFields": { ... }
+}</pre>
+      </div>
+      <div class="card">
+        <h3>Response</h3>
+        <pre style="font-size:0.8rem">{
+  "output": { "message": {role, content[]} },
+  "stopReason": "end_turn | tool_use |
+                 max_tokens | guardrail_intervened",
+  "usage":   { inputTokens, outputTokens,
+               cacheReadInputTokens, ... },
+  "metrics": { "latencyMs": 812 }
+}</pre>
+        <p style="font-size:0.95rem"><span class="highlight">The escape hatch:</span> <code>additionalModelRequestFields</code> passes model-native params the common schema doesn't cover. Reach for it knowingly &mdash; it is where portability ends.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Converse in three languages</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Python (boto3)</h3>
+        <pre style="font-size:0.78rem">import boto3
+br = boto3.client("bedrock-runtime",
+                  region_name="eu-central-1")
+
+r = br.converse(
+  modelId="eu.anthropic.claude-sonnet-4-5-v1:0",
+  messages=[{"role": "user",
+             "content": [{"text": "Summarise this ticket"}]}],
+  system=[{"text": "You are a support triage assistant."}],
+  inferenceConfig={"maxTokens": 512, "temperature": 0.2},
+)
+print(r["output"]["message"]["content"][0]["text"])
+print(r["usage"], r["metrics"]["latencyMs"])</pre>
+      </div>
+      <div class="card">
+        <h3>.NET (AWS SDK v3)</h3>
+        <pre style="font-size:0.78rem">var client = new AmazonBedrockRuntimeClient();
+
+var resp = await client.ConverseAsync(new ConverseRequest {
+  ModelId = "eu.anthropic.claude-sonnet-4-5-v1:0",
+  Messages = { new Message {
+      Role = ConversationRole.User,
+      Content = { new ContentBlock { Text = "Summarise this ticket" } }
+  }},
+  InferenceConfig = new InferenceConfiguration {
+      MaxTokens = 512, Temperature = 0.2f }
+});
+
+Console.WriteLine(resp.Output.Message.Content[0].Text);</pre>
+        <p style="font-size:0.95rem"><code>ConverseStreamAsync</code> returns the same envelope as an async event stream &mdash; identical field names, chunked.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">modelId is not just a model</h2>
+    <p class="animate">The single most misunderstood field in Bedrock. It accepts five different kinds of identifier.</p>
+    <div class="animate">
+      <table>
+        <tr><th>Value</th><th>What it does</th><th>Use when</th></tr>
+        <tr><td><code>anthropic.claude-...-v1:0</code></td><td>Base model, single region</td><td>Dev, pinned region</td></tr>
+        <tr><td><code>eu.anthropic.claude-...</code></td><td><strong>Cross-region inference profile</strong> &mdash; AWS spreads traffic across a geo's regions</td><td>Production. Higher effective throughput, fewer throttles</td></tr>
+        <tr><td>Provisioned-throughput ARN</td><td>Reserved capacity, committed hourly</td><td>Predictable high volume, latency SLOs</td></tr>
+        <tr><td>Custom-model deployment ARN</td><td>Fine-tuned / distilled model</td><td>Domain-adapted workloads</td></tr>
+        <tr><td>Prompt ARN (Prompt Management)</td><td>Versioned prompt + variables, resolved server-side</td><td>Prompt lifecycle owned outside app code</td></tr>
+      </table>
+    </div>
+    <p class="animate"><span class="highlight">Gotcha:</span> the geo prefix (<code>us.</code>, <code>eu.</code>, <code>apac.</code>) determines <em>where inference may run</em>. That is a data-residency decision, not a performance tweak &mdash; get legal to sign off before you flip it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Bedrock production levers</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Guardrails</h3>
+        <p>Content filters, denied topics, PII redaction, contextual grounding &mdash; enforced at the API layer, not in a prompt. Attach via <code>guardrailConfig</code>; <code>stopReason</code> tells you when it fired.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prompt caching</h3>
+        <p>Cache stable prefixes across calls. Order matters: longer-TTL breakpoints must appear before shorter ones. Stable content early, dynamic content late.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Batch inference</h3>
+        <p>Since Feb 2026 batch accepts the <strong>Converse format</strong> too &mdash; same request shape for realtime and offline. Big discount, hours of latency.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Provisioned throughput</h3>
+        <p>Committed model units for guaranteed TPS. Expensive and inflexible &mdash; only after you have a measured, steady load curve.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Intelligent Prompt Routing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it is</h3>
+        <p>Point <code>modelId</code> at a <strong>router ARN</strong> instead of a model. Bedrock predicts per-request which of two models in a family will answer acceptably and sends the easy ones to the cheap model.</p>
+        <p>GA since April 2025: pick any two models from a family and set the routing criteria. AWS quotes up to ~30% cost reduction on mixed workloads.</p>
+      </div>
+      <div class="card">
+        <h3>When it is the wrong tool</h3>
+        <p>&#x2717; <strong>Cross-family</strong> routing &mdash; it routes within a family only. Claude&#x2194;Llama needs your own layer.</p>
+        <p>&#x2717; <strong>Deterministic behaviour</strong> &mdash; two models means two prompt sensitivities and two eval baselines.</p>
+        <p>&#x2717; <strong>Tight latency SLOs</strong> &mdash; classification adds a hop.</p>
+        <p class="green">Cheaper first move: a static cascade you control. Small model attempts, escalate on low confidence or schema-validation failure.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Google Vertex AI Model Garden</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Shape of it</h3>
+        <p>~200+ curated models &mdash; Gemini first-party, Gemma open weights, plus Claude, Llama and Mistral as partner models.</p>
+        <p>Native <code>generateContent</code> API, plus an <strong>OpenAI-compatible endpoint</strong> that makes the OpenAI SDK work unchanged.</p>
+        <p>Auth via Google Cloud IAM / service accounts; DLP for data controls.</p>
+      </div>
+      <div class="card">
+        <h3>Where it wins</h3>
+        <p><span class="highlight">Data gravity.</span> BigQuery, Vertex AI Search and GCS in the same project &mdash; grounding pipelines are short.</p>
+        <p><span class="highlight">Long-context multimodal.</span> Gemini's video/audio handling has no direct Bedrock equivalent.</p>
+        <p><span class="highlight">Tuning path.</span> Fastest managed custom-training loop of the three.</p>
+        <p style="color:var(--text-muted)">Trade-off: no OpenAI frontier models, ever.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Azure AI Foundry</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Shape of it</h3>
+        <p>The renamed Azure AI Studio. Largest catalog of the three by a wide margin &mdash; GPT family, Llama, Mistral, DeepSeek, Qwen, Phi, Cohere, Grok, Stability, plus Anthropic via partnership.</p>
+        <p>Two deployment shapes: <em>serverless</em> per-token endpoints and <em>managed compute</em> for open weights you host in your subscription.</p>
+      </div>
+      <div class="card">
+        <h3>Where it wins</h3>
+        <p><span class="highlight">OpenAI depth.</span> Frontier GPT releases land on Foundry at or near launch &mdash; and for many regulated enterprises Azure-OpenAI is approved where OpenAI-direct is not.</p>
+        <p><span class="highlight">Identity + governance.</span> Entra ID, Purview, Defender. If your org already runs on Microsoft 365, the approval path is already paved.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Hyperscaler comparison</h2>
+    <div class="animate">
+      <table>
+        <tr><th></th><th>Bedrock</th><th>Vertex AI</th><th>Foundry</th></tr>
+        <tr><td>Catalog</td><td>~100+, curated to what ships in prod</td><td>~200+, Gemini-anchored</td><td>1,700+, broadest</td></tr>
+        <tr><td>OpenAI frontier</td><td>No</td><td>No</td><td class="green">Yes (exclusive-ish)</td></tr>
+        <tr><td>Anthropic</td><td class="green">Day-zero</td><td>Yes</td><td>Yes</td></tr>
+        <tr><td>Unified call</td><td><code>Converse</code></td><td><code>generateContent</code> + OpenAI-compat</td><td>OpenAI-compat / Inference API</td></tr>
+        <tr><td>Identity</td><td>IAM</td><td>Cloud IAM</td><td>Entra ID</td></tr>
+        <tr><td>Guardrails</td><td>Bedrock Guardrails</td><td>Safety filters + DLP</td><td>Content Safety + Purview</td></tr>
+        <tr><td>Best fit</td><td>AWS-first, model swappability</td><td>GCP-native, data-heavy, multimodal</td><td>Microsoft-heavy, OpenAI-led</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="color:var(--text-muted);text-align:center">Capability gaps between top models now sit in the 5&ndash;15% band. The durable differentiator is the <span class="highlight">identity and governance plane</span>, not the catalog.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">OpenRouter &mdash; the aggregator lane</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Mechanics</h3>
+        <p>One OpenAI-compatible base URL, one key, one balance, 300+ models. Change <code>model</code> from <code>anthropic/claude-...</code> to <code>google/gemini-...</code> and you are done.</p>
+        <pre style="font-size:0.78rem">{
+  "model": "openai/gpt-5.5",
+  "models": ["anthropic/claude-...", "..."],  // fallbacks
+  "provider": {
+    "order": ["openai", "azure"],
+    "allow_fallbacks": false,
+    "max_price": { "prompt": 3, "completion": 15 }
+  }
+}</pre>
+      </div>
+      <div class="card">
+        <h3>Read the fine print</h3>
+        <p><span class="highlight">Fees.</span> Credit-purchase fee on top of token cost; BYOK is free up to a monthly request threshold, then a percentage of the equivalent platform cost.</p>
+        <p><span class="highlight">BYOK reorders routing.</span> Your own key takes priority over the <code>order</code> array you set. Pin with "always use for this provider" if that matters.</p>
+        <p><span class="highlight">Governance ceiling.</span> No public SLA, and a third party sits in the prompt path. Verify ZDR settings before regulated traffic.</p>
+        <p class="green">Best use: evaluation and breadth. Weakest use: your one high-volume production path.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">LiteLLM &mdash; the open-source gateway</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>config.yaml is the product</h3>
+        <pre style="font-size:0.75rem">model_list:
+  - model_name: fast          # alias your apps call
+    litellm_params:
+      model: bedrock/eu.anthropic.claude-haiku-...
+      aws_region_name: eu-central-1
+  - model_name: fast          # same alias = load balanced
+    litellm_params:
+      model: azure/gpt-5-mini
+      api_base: os.environ/AZURE_BASE
+  - model_name: local
+    litellm_params:
+      model: hosted_vllm/qwen3-32b
+      api_base: http://vllm.internal:8000/v1
+
+router_settings:
+  routing_strategy: latency-based-routing
+  fallbacks: [{ "fast": ["local"] }]
+  num_retries: 2</pre>
+      </div>
+      <div class="card">
+        <h3>What you get</h3>
+        <p>&#x2713; One OpenAI-shaped endpoint over 100+ providers &mdash; apps change <code>base_url</code> and nothing else</p>
+        <p>&#x2713; <strong>Virtual keys</strong> per team with hard budgets; 429 on exhaustion</p>
+        <p>&#x2713; Load balancing, fallback chains, retries, Redis caching</p>
+        <p>&#x2713; Cost attribution per key/team/tag, exportable for chargeback</p>
+        <p>&#x2713; MIT-licensed, self-hosted &mdash; only providers see prompts, only you see provider credentials</p>
+        <p style="color:var(--text-muted)">Cost of ownership: Postgres for keys/spend, Redis for routing state, and you own the patching.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Self-hosted inference</h2>
+    <div class="diagram animate">
+      <div class="box">Open weights<br><small>Llama / Qwen / Mistral</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">vLLM / SGLang<br><small>paged attention, batching</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">OpenAI-compatible<br><code>/v1/chat/completions</code></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Gateway<br><small>same alias as cloud models</small></div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why bother</h3>
+        <p>Data never leaves your network. Marginal cost per token approaches zero once GPUs are paid for. No rate limits, no deprecation notices, full control of the model version.</p>
+        <p><strong>Ollama</strong> for laptops and single-node dev; <strong>vLLM</strong> or <strong>SGLang</strong> for serving throughput; <strong>TGI</strong> if you are already in the HF ecosystem.</p>
+      </div>
+      <div class="card">
+        <h3>Why it hurts</h3>
+        <p>GPU capacity planning, quantization trade-offs, KV-cache tuning, model-version rollouts, and someone on call for it. Utilization below ~40% and the hyperscaler was cheaper.</p>
+        <p class="green">The winning pattern is hybrid: cheap high-volume classification local, frontier reasoning in the cloud, one alias namespace over both.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Gateway feature matrix</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Capability</th><th>LiteLLM</th><th>Portkey</th><th>Kong AI GW</th><th>Bedrock alone</th></tr>
+        <tr><td>Self-hostable</td><td class="green">Yes (MIT)</td><td>Hybrid</td><td class="green">Yes</td><td>n/a &mdash; managed</td></tr>
+        <tr><td>Virtual keys + budgets</td><td class="green">Yes</td><td class="green">Yes</td><td>Partial</td><td>IAM roles, no budgets</td></tr>
+        <tr><td>Cross-provider fallback</td><td class="green">Yes</td><td class="green">Yes</td><td class="green">Yes</td><td>No</td></tr>
+        <tr><td>Semantic cache</td><td>With vector store</td><td class="green">Built in</td><td>Plugin</td><td>Prefix cache only</td></tr>
+        <tr><td>Cost attribution</td><td class="green">Per key/team/tag</td><td class="green">Yes</td><td>Via plugins</td><td>Cost Explorer tags</td></tr>
+        <tr><td>Ops burden</td><td>Postgres + Redis + you</td><td>Low</td><td>Existing Kong estate</td><td class="green">None</td></tr>
+      </table>
+    </div>
+    <p class="animate"><span class="highlight">Sequencing that works:</span> start on the hyperscaler API directly. Add a gateway the day you have a <em>second</em> provider or a <em>third</em> team &mdash; not before.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Routing strategies</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Static alias</h3>
+        <p>App calls <code>fast</code> / <code>smart</code> / <code>cheap</code>; config maps them to models. Boring, debuggable, covers ~80% of real need.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Load balance</h3>
+        <p>Multiple deployments under one alias, picked by lowest latency, least busy, or weighted RPM. Also your throttle escape valve.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cascade</h3>
+        <p>Cheap model first; escalate on schema-validation failure, low self-reported confidence, or a judge check. Largest reliable cost win.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Classifier / semantic</h3>
+        <p>A small model or embedding lookup picks the target per request. Real gains, real complexity &mdash; measure before you build it.</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Every routing layer is a new failure mode. Prove the savings with a spend report before adding one.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Failure handling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What actually breaks</h3>
+        <p><code>429</code> throttling &mdash; the most common by far. Regional capacity, not your account, is usually the constraint.</p>
+        <p><code>5xx</code> / stream aborts mid-generation &mdash; partial output already sent to the user.</p>
+        <p>Context-window overrun on a model swap that has a smaller window.</p>
+        <p>Guardrail interventions returning a non-answer that your parser wasn't expecting.</p>
+      </div>
+      <div class="card">
+        <h3>The pattern</h3>
+        <p><strong>1.</strong> Cross-region inference profile before anything else &mdash; free throughput.</p>
+        <p><strong>2.</strong> Retry with jitter on 429/503; cap at 2&ndash;3.</p>
+        <p><strong>3.</strong> Fallback chain <em>across providers</em>, not just models &mdash; an outage is rarely one model.</p>
+        <p><strong>4.</strong> Per-request timeout budget, and degrade gracefully: cached answer, smaller model, or an honest error.</p>
+        <p><strong>5.</strong> Circuit-break a provider after N consecutive failures instead of retrying into a wall.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cost governance</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Controls that hold</h3>
+        <p><span class="highlight">Virtual keys per team</span> with a hard monthly cap. Exhaustion returns 429, not a surprise invoice.</p>
+        <p><span class="highlight">Tag every request</span> with team, feature and environment &mdash; attribution is impossible to retrofit.</p>
+        <p><span class="highlight">Prompt caching</span> on stable system prompts and retrieved documents. The single biggest lever on RAG-shaped traffic.</p>
+        <p><span class="highlight">Batch</span> anything not user-facing.</p>
+      </div>
+      <div class="card">
+        <h3>Measure the right unit</h3>
+        <p>Cost per <em>session</em> or per <em>resolved task</em>, not per request. An agent loop is 20 calls; a request-level dashboard will lie to you.</p>
+        <p>Watch the ratio of cache-read to fresh input tokens &mdash; it tells you whether your caching is actually landing.</p>
+        <p style="color:var(--text-muted)">Rough rule of thumb: below ~5M requests/month a managed gateway usually beats self-hosting once labour is priced in. Above ~50M the maths inverts hard.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Observability and evals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Instrument at the gateway</h3>
+        <p>OpenTelemetry GenAI semantic conventions give you spans with model, token counts, latency and cost as attributes &mdash; feeding the same Grafana/Datadog you already run.</p>
+        <p>Per-call trace: alias requested &#x2192; model actually served &#x2192; retries &#x2192; fallback taken &#x2192; guardrail verdict. Without that chain, "why was this answer bad" is unanswerable.</p>
+        <p>Langfuse / Phoenix / MLflow for prompt-level traces and datasets.</p>
+      </div>
+      <div class="card">
+        <h3>Evals are the real portability test</h3>
+        <p>A model swap is only safe if you can prove it. Keep a golden set of 100&ndash;500 real cases per critical path, versioned with the prompt, run in CI.</p>
+        <p>Gate on task success, not vibes: schema validity, factual match, refusal rate, p95 latency, cost per task.</p>
+        <p class="green">Rule: no model change ships without an eval diff. This is the discipline that makes the whole multi-model story worth having.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Reference architecture</h2>
+    <div class="diagram animate">
+      <div class="box">Apps / agents<br><small>one base_url</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Gateway<br><small>keys, budgets, routing</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Alias resolution<br><small>fast / smart / local</small></div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">Bedrock<br><small>primary</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Second cloud<br><small>fallback</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">vLLM cluster<br><small>bulk / private</small></div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Aggregator<br><small>eval + long tail</small></div>
+    </div>
+    <div class="animate" style="margin-top:10px">
+      <div class="card">
+        <p><span class="highlight">Cross-cutting:</span> OTel traces and spend logs from the gateway &#x2192; your existing observability stack. Guardrails enforced at the gateway <em>and</em> at the provider &mdash; defence in depth, because a direct-to-provider call will eventually get written by someone.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Choosing, in order</h2>
+    <div class="animate">
+      <table>
+        <tr><th>If this is true...</th><th>Start here</th></tr>
+        <tr><td>Already AWS-first, one team, one model</td><td>Bedrock Converse, direct. No gateway.</td></tr>
+        <tr><td>Microsoft-heavy org, need GPT frontier</td><td>Azure AI Foundry</td></tr>
+        <tr><td>Data lives in BigQuery, multimodal-heavy</td><td>Vertex AI</td></tr>
+        <tr><td>Evaluating models weekly, breadth matters</td><td>OpenRouter (dev/eval only)</td></tr>
+        <tr><td>Two+ providers, several teams, chargeback needed</td><td>LiteLLM self-hosted</td></tr>
+        <tr><td>High-volume, low-complexity, data-sensitive</td><td>vLLM behind the gateway</td></tr>
+        <tr><td>Regulated, multi-region residency constraints</td><td>Hyperscaler + regional inference profiles, gateway for policy</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center"><span class="highlight">The anti-pattern:</span> building a routing abstraction on day one for a product that calls one model. Abstract when you have the second provider, not before.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Call models by <strong>alias</strong> (<code>fast</code>, <code>smart</code>) &mdash; never hardcode a model ID in application code</div>
+      <div class="bp-item"><span>2.</span> Use cross-region inference profiles in production; it is the cheapest throughput you will ever get</div>
+      <div class="bp-item"><span>3.</span> Treat <code>additionalModelRequestFields</code> as a portability debt marker &mdash; log every use</div>
+      <div class="bp-item"><span>4.</span> Version prompts alongside the golden eval set; gate model swaps on the eval diff in CI</div>
+      <div class="bp-item"><span>5.</span> Enforce guardrails at the API layer, not inside prompts &mdash; prompts are not a security boundary</div>
+      <div class="bp-item"><span>6.</span> Give every team a virtual key with a hard budget before the first invoice, not after</div>
+      <div class="bp-item"><span>7.</span> Fallback across <em>providers</em>, not just models &mdash; correlated failures are the norm</div>
+      <div class="bp-item"><span>8.</span> Structure prompts cache-first: stable system + documents early, user turn last</div>
+      <div class="bp-item"><span>9.</span> Track cost per resolved task; request-level dashboards hide agent-loop blowups</div>
+      <div class="bp-item"><span>10.</span> Re-run the decision every two quarters &mdash; pricing, catalogs and capability gaps all move faster than your architecture does</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F500;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know the multi-model LLM API layer end to end:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Converse API</span><span class="tag">Inference profiles</span><span class="tag">Guardrails</span>
+        <span class="tag">Prompt caching</span><span class="tag">Vertex</span><span class="tag">Foundry</span>
+        <span class="tag">OpenRouter</span><span class="tag">LiteLLM</span><span class="tag">vLLM</span>
+        <span class="tag">Routing</span><span class="tag">Fallbacks</span><span class="tag">FinOps</span><span class="tag">Evals</span>
+      </div>
+      <p style="color:var(--text-muted)">The API is the easy part. The durable work is aliases, budgets, guardrails and an eval suite &mdash; the things that let you change your mind about a model without changing your product.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 25</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
