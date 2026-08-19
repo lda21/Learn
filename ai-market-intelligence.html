@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>AI Market Intelligence & Content Strategy</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3AF;</span>
+    <h1 class="animate">AI Market Intelligence & Content Strategy</h1>
+    <p class="subtitle animate">ICPs, opportunity spaces, and the AI content factory &mdash; from research to hyper-personalized content that earns its keep</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">ICP</span><span class="tag">Market Intelligence</span><span class="tag">Content Strategy</span><span class="tag">Hyper-Personalization</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The ICP is the whole strategy, compressed</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What an ICP actually is</h3>
+        <p>An <span class="highlight">Ideal Customer Profile</span> is a specific description of the accounts or people who get disproportionate value from your product &mdash; not everyone who could conceivably buy it.</p>
+        <p>Firmographics (size, industry, tech stack), behavioral signals (usage patterns, buying triggers), and psychographics (values, priorities) combine into a profile you can actually target.</p>
+      </div>
+      <div class="card">
+        <h3>Why it comes first</h3>
+        <p>Every downstream decision &mdash; channel mix, message, content format, personalization rules &mdash; inherits errors from a fuzzy ICP. A wrong ICP doesn't fail loudly; it just quietly wastes budget on low-fit audiences.</p>
+        <p class="green">AI changes the economics of building one: research that took analysts weeks now runs continuously, on live data.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building ICPs with AI</h2>
+    <div class="diagram animate">
+      <div class="box">Best-fit customers<br><small>CRM &amp; win/loss data</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI pattern mining<br><small>shared traits, triggers</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Candidate ICPs<br><small>ranked by LTV &amp; fit</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Validation<br><small>sales &amp; CS interviews</small></div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Inputs worth feeding in</h3>
+        <p>Closed-won and closed-lost records, product usage/adoption data, support ticket themes, NPS verbatims, and sales-call transcripts.</p>
+      </div>
+      <div class="card">
+        <h3>The AI's job here</h3>
+        <p>Cluster accounts by outcome, surface the traits that correlate with retention and expansion, and flag look-alike prospects &mdash; not to replace judgment, but to narrow the search space fast.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Segmentation beyond one ICP</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Firmographic</h3>
+        <p>Industry, headcount, revenue band, geography, tech stack. The easiest segment to target, the weakest predictor of value on its own.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Behavioral</h3>
+        <p>Feature adoption, usage frequency, in-product triggers, content consumption. Strongest real-time signal for intent and expansion risk.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Needs-based</h3>
+        <p>The job the buyer is hiring the product to do. Same firmographic segment can split into very different needs-based groups.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Opportunity space</h3>
+        <p>Underserved needs at the intersection of a segment and a market gap &mdash; where AI-assisted clustering earns its keep across large, messy datasets.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Common ICP mistakes</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">What goes wrong</h3>
+        <p>Building the ICP from who <em>bought</em> instead of who <em>succeeded</em> &mdash; a logo count, not a health-score cohort.</p>
+        <p>Writing one ICP for a multi-segment product, then wondering why the messaging feels generic everywhere.</p>
+        <p>Freezing the ICP at launch and never revisiting it as the product and market both move.</p>
+      </div>
+      <div class="card">
+        <h3 class="green">The fix</h3>
+        <p>Anchor on retention and expansion data, not just acquisition. A customer who churns in month two was never a fit, regardless of how the deal closed.</p>
+        <p>Split ICPs where the buying journey genuinely diverges; keep it unified where messaging only needs a channel tweak.</p>
+        <p>Put a quarterly ICP review on the calendar, fed by the same AI-assisted research pipeline.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Where market intelligence lives</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Source</th><th>What it surfaces</th><th>AI-assisted method</th></tr>
+        <tr><td>Search behavior</td><td>Rising queries, unmet intent, question phrasing</td><td>Trend and query-cluster mining</td></tr>
+        <tr><td>Social listening</td><td>Sentiment shifts, emerging complaints, informal language</td><td>LLM summarization of thousands of posts</td></tr>
+        <tr><td>Review sites (G2, Capterra)</td><td>Feature gaps, switching reasons, competitor weaknesses</td><td>Theme extraction across star ratings</td></tr>
+        <tr><td>Industry &amp; analyst reports</td><td>Market sizing, category shifts, forward-looking bets</td><td>Synthesis across long-form sources</td></tr>
+        <tr><td>Support &amp; sales transcripts</td><td>Real objections, purchase barriers, in-the-moment language</td><td>Topic modeling on unstructured text</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">No single source is sufficient. Triangulate &mdash; a pain point that shows up in reviews <em>and</em> support tickets <em>and</em> search is a pain point worth building a campaign around.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mining voice of customer with AI</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The old way</h3>
+        <p>An analyst reads a sample of reviews and calls, tags them manually, and reports back weeks later on a sample too small to trust.</p>
+      </div>
+      <div class="card">
+        <h3>The AI-assisted way</h3>
+        <p>LLMs classify and cluster <em>every</em> review, ticket, and call transcript by pain point, purchase barrier, and emerging need &mdash; continuously, with source citations back to the original text.</p>
+        <p class="green">The output is a living map of what customers actually say, not what the team assumes they say.</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center"><span class="highlight">Guardrail:</span> always keep a human spot-checking the clusters. LLMs over-index on frequent phrasing and can miss a low-volume but high-value signal.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Trend and signal detection</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Signals worth watching</h3>
+        <p>Search volume inflections on category-adjacent terms, sudden review-sentiment shifts after a competitor release, and spikes in a specific objection language across support tickets.</p>
+      </div>
+      <div class="card">
+        <h3>From signal to action</h3>
+        <p>A signal only matters if it changes a decision. Route trend alerts into three buckets: <span class="highlight">content brief</span> (new topic worth covering), <span class="highlight">product signal</span> (worth a PM), or <span class="highlight">noise</span> (log and move on).</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Continuous monitoring beats quarterly research reports &mdash; markets move faster than the reporting cadence most teams still run on.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">From research to a content plan</h2>
+    <div class="diagram animate">
+      <div class="box">Topic clusters<br><small>from search + VoC</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Gap analysis<br><small>vs. competitor coverage</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Prioritized briefs<br><small>ranked by intent &amp; fit</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Editorial calendar</div>
+    </div>
+    <p class="animate">A <span class="highlight">topic cluster</span> groups related queries and pain points under one pillar theme. A <span class="highlight">content gap</span> is an intent your ICP has that no page you own currently answers &mdash; and often none of your competitors' pages answer it well either.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The AI content factory</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it produces</h3>
+        <p><span class="highlight">Hooks</span> &mdash; headline and opening-line variants tested against the pain points from research.</p>
+        <p><span class="highlight">Marketing copy</span> &mdash; landing pages, ad copy, email sequences drafted against the same brief.</p>
+        <p><span class="highlight">Product imagery</span> &mdash; on-brand visuals generated per segment, reviewed before ship.</p>
+        <p><span class="highlight">Content variants</span> &mdash; the same core message reshaped per channel and audience.</p>
+      </div>
+      <div class="card">
+        <h3>What keeps it from being slop</h3>
+        <p>A written brief per piece &mdash; audience, pain point, proof points, tone &mdash; sourced directly from the research, not a one-line prompt.</p>
+        <p>A brand-voice guide the model is grounded on, and a human review gate before anything ships.</p>
+        <p class="green">The AI collapses drafting time, not the editorial standard.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building the monthly editorial calendar</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Input</th><th>Feeds into</th></tr>
+        <tr><td>Prioritized content briefs</td><td>Which pieces get made this month</td></tr>
+        <tr><td>Funnel stage (capture / create / retain)</td><td>Format and channel per piece</td></tr>
+        <tr><td>Seasonal &amp; product-launch calendar</td><td>Timing and sequencing</td></tr>
+        <tr><td>Owned-channel cadence limits</td><td>Volume caps so quality doesn't erode</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">AI can draft the calendar from the prioritized brief list in minutes &mdash; the judgment call is sequencing and cadence, not generation.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Hyper-personalization, defined narrowly</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it is not</h3>
+        <p>Not a first-name merge tag. Not one extra segment on top of a generic campaign. Not personalization for its own sake when the underlying offer is identical for everyone.</p>
+      </div>
+      <div class="card">
+        <h3>What it is</h3>
+        <p>Content, offer, and sequencing that adapt to a segment's <em>specific</em> pain point and stage &mdash; built from the same ICP and VoC research, not bolted on after the fact.</p>
+        <p class="green">The spectrum runs from segment-level variants (cheap, most of the value) to true 1:1 dynamic content (expensive, reserved for high-value accounts).</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Generating content variants at scale</h2>
+    <div class="diagram animate">
+      <div class="box">Core message<br><small>from the brief</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Segment inputs<br><small>pain point, stage, channel</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI variant generation</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Brand &amp; claims review</div>
+    </div>
+    <p class="animate"><span class="highlight">Guardrail that matters most:</span> variants change framing and proof points per segment, not the underlying facts. A claim true for the enterprise segment must not silently become a claim about the SMB segment.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mapping content to demand capture, creation &amp; retention</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Demand capture</h3>
+        <p>High-intent search, comparison pages, bottom-funnel case studies. The buyer already knows the category &mdash; content wins the evaluation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Demand creation</h3>
+        <p>Educational and point-of-view content for buyers who don't yet know they have the problem. Slower payoff, builds the category.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Retention</h3>
+        <p>Onboarding sequences, adoption nudges, and expansion content triggered by in-product behavior signals.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cross-cutting</h3>
+        <p>The same VoC research and ICP definitions feed all three &mdash; a pain point mined for capture content often becomes a retention trigger later.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Value-based content vs. vanity metrics</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">Vanity</h3>
+        <p>&#x2717; Pageviews and impressions with no intent qualifier</p>
+        <p>&#x2717; Social follower counts</p>
+        <p>&#x2717; Content pieces published per month</p>
+        <p>&#x2717; Time on page in isolation</p>
+      </div>
+      <div class="card">
+        <h3 class="green">Value-based</h3>
+        <p>&#x2713; Pipeline or signups influenced per piece</p>
+        <p>&#x2713; Content-assisted retention or expansion</p>
+        <p>&#x2713; Cost per qualified lead by content type</p>
+        <p>&#x2713; Time-to-value for content-led users</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">If a metric doesn't trace back to a business outcome the ICP work identified, it's a distraction dressed as a KPI.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Governance in an AI content pipeline</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Where things go wrong</h3>
+        <p>Ungrounded claims slipping past review, brand voice drifting across hundreds of AI-generated variants, and duplicate or near-duplicate content cannibalizing SEO.</p>
+      </div>
+      <div class="card">
+        <h3>What holds it together</h3>
+        <p>A brand-voice and claims reference the model is grounded on, a mandatory human approval gate before publish, and a variant registry so nobody re-generates the same brief twice.</p>
+        <p class="green">Speed comes from the research and drafting stages, not from skipping review.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Tooling landscape</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Category</th><th>What it's for</th></tr>
+        <tr><td>Search &amp; trend intelligence</td><td>Ahrefs, SEMrush, Google Trends, Exploding Topics</td></tr>
+        <tr><td>Social &amp; review listening</td><td>Brandwatch, Sprinklr, G2 and Capterra review exports</td></tr>
+        <tr><td>Audience research</td><td>SparkToro, first-party CRM and product analytics</td></tr>
+        <tr><td>AI content generation</td><td>LLM APIs behind a brief-and-brand-voice layer, not raw prompting</td></tr>
+        <tr><td>Personalization delivery</td><td>CDP-driven web/email personalization platforms wired to segment rules</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The tools change fast; the pipeline &mdash; research &#x2192; brief &#x2192; generate &#x2192; review &#x2192; measure &mdash; doesn't.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Putting it together: a 90-day rollout</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Phase</th><th>Focus</th><th>Output</th></tr>
+        <tr><td>Days 1&ndash;30</td><td>Build and validate the ICP; stand up VoC and trend monitoring on live data</td><td>Validated ICP, first opportunity-space map</td></tr>
+        <tr><td>Days 31&ndash;60</td><td>Stand up the content factory: briefs, brand-voice grounding, review gate</td><td>First editorial calendar, first content variants</td></tr>
+        <tr><td>Days 61&ndash;90</td><td>Layer in segment-level personalization; wire metrics to pipeline and retention</td><td>Live personalization rules, a value-based scorecard</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Resist the urge to sequence in parallel &mdash; a content factory built on an unvalidated ICP just produces well-written content for the wrong audience, faster.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Ground every ICP in closed-won <em>and</em> closed-lost data &mdash; lost deals reveal the boundary as clearly as won ones</div>
+      <div class="bp-item"><span>2.</span> Triangulate signals across at least two independent sources before building a campaign on them</div>
+      <div class="bp-item"><span>3.</span> Write a real brief per content piece &mdash; audience, pain point, proof points &mdash; before generating anything</div>
+      <div class="bp-item"><span>4.</span> Keep a human review gate on every AI-generated piece before it ships</div>
+      <div class="bp-item"><span>5.</span> Personalize framing and proof points, never the underlying facts, across segment variants</div>
+      <div class="bp-item"><span>6.</span> Revisit ICPs and segments quarterly &mdash; markets and product-market fit both drift</div>
+      <div class="bp-item"><span>7.</span> Tie every content metric back to pipeline, retention, or expansion &mdash; not reach alone</div>
+      <div class="bp-item"><span>8.</span> Maintain one brand-voice and claims reference every generation pass is grounded on</div>
+      <div class="bp-item"><span>9.</span> Log every trend signal and its disposition &mdash; content brief, product signal, or noise &mdash; to build institutional memory</div>
+      <div class="bp-item"><span>10.</span> Start segment-level personalization before reaching for 1:1 &mdash; it captures most of the value at a fraction of the cost</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3AF;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how to turn continuous AI-powered research into content that earns its keep:</p>
+      <div style="margin:20px 0">
+        <span class="tag">ICP Building</span><span class="tag">Segmentation</span><span class="tag">Market Intelligence</span>
+        <span class="tag">Voice of Customer</span><span class="tag">Content Factory</span><span class="tag">Editorial Calendar</span>
+        <span class="tag">Hyper-Personalization</span><span class="tag">Content Governance</span><span class="tag">Value-Based Metrics</span>
+      </div>
+      <p style="color:var(--text-muted)">The durable skill isn't the AI tooling &mdash; it's the discipline of research feeding a brief, feeding content, feeding a metric that traces back to the business.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
