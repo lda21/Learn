@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Performance Marketing II: Meta AI, Paid Social &amp; Creative Systems</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F3AC;</span>
+    <h1 class="animate">Performance Marketing II</h1>
+    <p class="subtitle animate">Meta AI, Paid Social, B2B Platforms &amp; Creative Systems &mdash; Advantage+ delivery, full-funnel measurement, synthetic audience testing, and AI creative systems built to outrun fatigue</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Meta Ads</span><span class="tag">Paid Social</span><span class="tag">Creative AI</span><span class="tag">B2B</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Meta advertising ecosystem</h2>
+    <div class="diagram animate">
+      <div class="box">Feed, Stories &amp;<br>Reels</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Facebook, Instagram,<br>Messenger, Audience Network</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Ads Manager<br><small>campaign build</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Andromeda &amp; GEM<br><small>AI ranking</small></div>
+    </div>
+    <p class="animate">Meta runs one ad auction across every surface in its family of apps. <span class="highlight">Ads Manager</span> is where campaigns are built; <span class="highlight">Meta Business Suite</span> is where organic presence, inbox, and insights live alongside it. Both feed the same AI ranking stack that decides which ad wins which placement.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Custom, Lookalike &amp; CRM-based audiences</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Custom Audiences</h3>
+        <p>Built from a business's own data: website visitors reported by the <span class="highlight">Meta Pixel</span>, customer lists uploaded from a CRM, app activity, or people who engaged with a Page or its content. This is the first-party seed everything else grows from.</p>
+      </div>
+      <div class="card">
+        <h3>Lookalike Audiences &amp; CRM matching</h3>
+        <p>A Lookalike Audience takes a Custom Audience as a seed and algorithmically finds new people who share its traits, at a chosen size-vs-similarity tradeoff. CRM-based audiences upload high-value segments &mdash; closed deals, top LTV customers &mdash; directly as the seed, so the lookalike expansion targets people who resemble a business's <em>best</em> customers, not just any converter.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Advantage+ Shopping Campaigns</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it automates</h3>
+        <p>A single Advantage+ Shopping Campaign (ASC) replaces the old model of many manually-split ad sets per audience. One campaign structure lets the AI handle audience targeting, placement, budget distribution, and creative combination testing toward a purchase-value goal.</p>
+      </div>
+      <div class="card">
+        <h3>What the marketer still controls</h3>
+        <p>Creative assets, catalog feed quality, budget ceiling, and optional audience suggestions to nudge early delivery. The tradeoff is real: less manual audience control in exchange for optimization across a search space no human could manage ad-set by ad-set.</p>
+        <p class="green">ASC performance is bounded by catalog and Pixel/Conversions API data quality &mdash; feed it well before judging the results.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Remarketing, warm audiences &amp; signal feeding</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Remarketing on Meta</h3>
+        <p>Custom Audiences built from site visitors, cart abandoners, or past purchasers let campaigns re-engage people who already showed intent &mdash; consistently the cheapest, highest-converting audience a Meta account has access to.</p>
+      </div>
+      <div class="card">
+        <h3>Feeding the model, not just the audience</h3>
+        <p>Every Pixel event, Conversions API call, and CRM upload doesn't just build an audience &mdash; it's also a training signal for delivery. Thin or delayed signal starves both remarketing precision and the ranking models' ability to find similar new users.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Andromeda &amp; GEM: the AI ad-ranking stack</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Andromeda &mdash; retrieval</h3>
+        <p>Meta's AI-powered retrieval system uses deep neural embeddings and high-throughput vector search to pull a far larger, more relevant pool of candidate ads into each auction than earlier keyword- and rule-based retrieval could evaluate.</p>
+      </div>
+      <div class="card">
+        <h3>GEM &mdash; ranking</h3>
+        <p>The Generative Ads Model (GEM) scores that candidate pool with a unified generative foundation model, replacing separate hand-tuned predictors for clicks, conversions, and value with one model that shares learning across objectives.</p>
+        <p class="green">Together they explain why signal quality now matters more than manual targeting precision: the AI does the matching once it has good signal to work from.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Meta Pixel &amp; the Conversions API</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Meta Pixel</h3>
+        <p>A JavaScript snippet placed on a website that reports visitor actions &mdash; page views, add-to-cart, purchase &mdash; back to Ads Manager, powering both Custom Audience creation and campaign optimization.</p>
+      </div>
+      <div class="card">
+        <h3>Why server-side matters now</h3>
+        <p>Browser tracking prevention, ad blockers, and cookie restrictions all cause the Pixel to miss events. The <span class="highlight">Conversions API</span> sends the same events server-to-server, deduplicated against the Pixel, restoring signal the browser alone can no longer guarantee.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Events Manager &amp; event quality</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What Events Manager does</h3>
+        <p>The control center for every data source feeding an ad account &mdash; Pixel, Conversions API, app SDK &mdash; showing which events are firing, in what volume, and with how much overlap between sources.</p>
+      </div>
+      <div class="card">
+        <h3>Event Match Quality</h3>
+        <p>A diagnostic score that rewards richer, more matchable parameters (hashed email, phone, external ID) on every event. Low match quality quietly degrades attribution and optimization long before a campaign's reported results look wrong.</p>
+        <p class="green">Fixing event quality is almost always higher-leverage than adjusting bids or budgets.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Meta Business Suite</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Where organic and paid meet</h3>
+        <p>One interface for Facebook and Instagram Page management &mdash; publishing, the unified inbox, comment moderation, and audience insights &mdash; sitting alongside, not inside, Ads Manager's campaign tools.</p>
+      </div>
+      <div class="card">
+        <h3>Why it matters for paid</h3>
+        <p>Organic engagement data and creative performance surfaced in Business Suite routinely point to which posts are worth boosting or adapting into paid creative &mdash; a cheap signal for what a cold audience will respond to before spending media budget to find out.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Full-funnel metrics: cold vs. warm</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Cold audiences</h3>
+        <p>People with no prior relationship to the brand. Judged on reach efficiency, thumb-stop rate, and CPM &mdash; the ad's job is to earn attention before it earns intent.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Warm audiences</h3>
+        <p>Engagers, site visitors, cart abandoners. Judged on CTR and cost per landing-page view &mdash; the ad's job is to convert intent that already exists.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Acquisition</h3>
+        <p>New-customer cost per result, typically the most expensive and most scrutinized number in the account, since it funds every audience downstream of it.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Remarketing</h3>
+        <p>ROAS on warm audiences, almost always the strongest number in the account &mdash; and a poor proxy for whether the acquisition layer is healthy.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Budget allocation &amp; campaign optimization</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Splitting cold and warm spend</h3>
+        <p>Acquisition campaigns need enough budget to keep exiting the Learning Phase with fresh conversion volume; remarketing campaigns are usually audience-capped, so overfunding them just wastes frequency on the same small pool.</p>
+      </div>
+      <div class="card">
+        <h3>Campaign Budget Optimization</h3>
+        <p>Meta can distribute a single campaign-level budget across its ad sets automatically, shifting spend toward whichever is delivering the best results in real time &mdash; useful once ad sets have comparable audiences, risky when they serve very different funnel stages.</p>
+        <p class="green">Optimize toward the value event that actually predicts revenue, not the cheapest event available.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Ads Manager account hierarchy</h2>
+    <div class="diagram animate">
+      <div class="box">Business<br>Manager</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Ad Account</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Campaign<br><small>objective &amp; budget</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Ad Set<br><small>audience &amp; placement</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Ad<br><small>creative</small></div>
+    </div>
+    <p class="animate">Business Manager holds one or more ad accounts, asset permissions, and users. Each level below it inherits from the one above &mdash; a campaign objective constrains what its ad sets can optimize for, and every edit at any level can restart the Learning Phase for the ad sets beneath it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Learning Phase logic</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What happens during learning</h3>
+        <p>After an ad set is created or significantly edited, delivery is unstable while the algorithm explores audiences and placements, gathering optimization events toward the target of roughly <span class="highlight">50 per week</span> needed to exit learning.</p>
+      </div>
+      <div class="card">
+        <h3>What resets it</h3>
+        <p>Meaningful edits &mdash; audience, creative, bid strategy, or budget changes past a threshold &mdash; restart the Learning Phase. Frequent small edits made to "optimize" a campaign often do the opposite, keeping it perpetually unstable.</p>
+        <p class="green">Let an ad set exit learning before judging its cost per result; day-three numbers are not the campaign's real numbers.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Campaign Manager: B2C, B2B &amp; mobile-first</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>B2C</h3>
+        <p>Optimizes for volume against a large addressable audience &mdash; purchase or lead objectives, Advantage+ Shopping for catalog-driven businesses, and Lookalikes doing most of the top-of-funnel expansion work.</p>
+        <h3 style="margin-top:16px">B2B</h3>
+        <p>Smaller, higher-value audiences: CRM-based Custom Audiences of target accounts, LinkedIn-style firmographic overlap where available, and lead-gen or website-conversion objectives feeding a sales pipeline rather than a checkout.</p>
+      </div>
+      <div class="card">
+        <h3>Mobile-first</h3>
+        <p>App install and app-event objectives, deep links into the exact in-app destination, and Reels/Stories-native vertical creative built for how the placement is actually consumed &mdash; not a repurposed desktop banner.</p>
+        <p class="green">The objective and the audience should match how that customer actually buys &mdash; a B2B account run on B2C playbook logic burns budget on the wrong signal.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Synthetic audiences &amp; digital-twin A/B testing</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it is</h3>
+        <p>AI-generated personas &mdash; digital twins of defined audience segments &mdash; used to simulate reactions to creative concepts, hooks, and messaging before any of it reaches a live audience or spends media budget.</p>
+      </div>
+      <div class="card">
+        <h3>Where it fits in the process</h3>
+        <p>Synthetic testing narrows a wide set of creative directions down to the strongest candidates cheaply and fast; it's a directional filter, not a replacement for live A/B testing against real audiences, which still decides what actually ships at scale.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI creative systems: modular by design</h2>
+    <div class="diagram animate">
+      <div class="box">Modular concept<br><small>hook, body, CTA</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Format variants<br><small>Feed, Stories, Reels</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Short-form video cuts</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Automated<br>combination testing</div>
+    </div>
+    <p class="animate">Instead of one finished ad, a modular creative system produces interchangeable pieces &mdash; hooks, body copy, visuals, CTAs &mdash; that AI recombines into dozens of format-native variants for Feed, Stories, Reels, and short-form video, so testing happens on components instead of one-off assets.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">UGC, AI co-creation &amp; brand-consistent generative media</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>UGC &amp; AI co-creation</h3>
+        <p>User-generated content still outperforms polished brand video on trust and thumb-stop rate. AI now co-creates alongside it &mdash; drafting scripts, storyboarding shot sequences, and generating variant cuts &mdash; compressing a production cycle that used to take weeks into days.</p>
+      </div>
+      <div class="card">
+        <h3>Keeping generative media on-brand</h3>
+        <p>Generative image and video tools need brand guardrails &mdash; locked logos, color, tone, and claims &mdash; enforced through templates and review gates, or AI-scaled creative volume just scales inconsistency along with it.</p>
+        <p class="green">Speed is only a win if what ships still looks and sounds like the brand.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Creative Fatigue management</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>The early warning signs</h3>
+        <p>Rising frequency, falling CTR, and a slowly climbing cost per result on an ad set that hasn't changed &mdash; fatigue setting in before the topline numbers look obviously broken.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Frequency caps</h3>
+        <p>A ceiling on how often the same person sees an ad within a window, trading some reach for protecting response rates on the audience already reached.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Creative refresh cadence</h3>
+        <p>Rotating in new modular variants on a schedule tied to spend velocity and audience size, not a fixed calendar &mdash; small audiences fatigue faster than large ones at the same budget.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Why a modular system helps</h3>
+        <p>A library of interchangeable hooks and cuts turns "refresh the creative" from a production fire drill into swapping components already built and approved.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Feed the Pixel and Conversions API together &mdash; server-side signal is no longer optional</div>
+      <div class="bp-item"><span>2.</span> Seed Lookalikes from your highest-value CRM segment, not just any converter</div>
+      <div class="bp-item"><span>3.</span> Let ad sets exit the Learning Phase before judging cost per result</div>
+      <div class="bp-item"><span>4.</span> Fix Event Match Quality before touching bids or budgets</div>
+      <div class="bp-item"><span>5.</span> Separate acquisition and remarketing budget logic &mdash; one needs volume, the other is capped</div>
+      <div class="bp-item"><span>6.</span> Match the objective and audience model to how the customer actually buys: B2C, B2B, or mobile-first</div>
+      <div class="bp-item"><span>7.</span> Use synthetic audience testing to narrow creative directions, not to replace live A/B tests</div>
+      <div class="bp-item"><span>8.</span> Build creative modularly so a refresh is a swap, not a reshoot</div>
+      <div class="bp-item"><span>9.</span> Watch frequency and CTR trend, not just cost per result, to catch fatigue early</div>
+      <div class="bp-item"><span>10.</span> Put brand guardrails around generative and AI co-created media before scaling volume</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F3AC;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now understand how Meta's AI ranking stack, full-funnel measurement, and modular creative systems fit together across B2C, B2B, and mobile-first campaigns:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Advantage+</span><span class="tag">Custom &amp; Lookalike Audiences</span><span class="tag">Andromeda &amp; GEM</span>
+        <span class="tag">Pixel &amp; Events Manager</span><span class="tag">Learning Phase</span><span class="tag">B2B Targeting</span>
+        <span class="tag">Synthetic Audiences</span><span class="tag">AI Creative Systems</span><span class="tag">Creative Fatigue</span>
+      </div>
+      <p style="color:var(--text-muted)">Paired with Performance Marketing I, which covers Search, Performance Max, and the app economy.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
