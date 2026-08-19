@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Performance Marketing I: Search, Performance &amp; App Economy</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F4C8;</span>
+    <h1 class="animate">Performance Marketing I</h1>
+    <p class="subtitle animate">Search, Performance Max &amp; the App Economy &mdash; AI-driven bidding, mobile attribution, monetization and agentic campaign management</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Google Ads</span><span class="tag">App Growth</span><span class="tag">Mobile Attribution</span><span class="tag">AI Automation</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The Google Ads ecosystem</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The channels</h3>
+        <p><span class="highlight">Search</span> &mdash; text ads against explicit intent, the highest-intent channel in the stack.</p>
+        <p><span class="highlight">Performance Max</span> &mdash; one goal-based campaign spanning every Google surface.</p>
+        <p><span class="highlight">Demand Gen</span> &mdash; visually rich ads across YouTube, Discover, and Gmail for mid-funnel discovery.</p>
+        <p><span class="highlight">YouTube &amp; Display</span> &mdash; video and banner reach for awareness and remarketing.</p>
+      </div>
+      <div class="card">
+        <h3>The shift underneath</h3>
+        <p>Every one of these channels now runs on the same underlying shift: <span class="highlight">manual, keyword-level control</span> is being replaced by <span class="highlight">signal-fed, AI-driven automation</span> that optimizes bids, creative, and targeting continuously.</p>
+        <p class="green">The marketer's job moves from setting levers to feeding the model good signals and auditing what it does with them.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Search &amp; intent capture</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why Search still anchors the funnel</h3>
+        <p>A search query is a stated intent &mdash; the closest thing to a raised hand in digital advertising. Match types (exact, phrase, broad) control how tightly an ad's targeting hugs that stated intent.</p>
+        <p>Ad Rank still blends bid, Quality Score, and expected impact &mdash; but Quality Score itself is increasingly shaped by AI-predicted relevance rather than static keyword-level history.</p>
+      </div>
+      <div class="card">
+        <h3>Broad match, reframed</h3>
+        <p>Broad match paired with smart bidding lets the auction system match queries by <em>meaning</em> rather than string overlap &mdash; trading precise control for reach the algorithm can price correctly in real time.</p>
+        <p class="green">The tradeoff only pays off with tight conversion tracking; broad match on weak signals just buys noisy traffic.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Performance Max: one campaign, every surface</h2>
+    <div class="diagram animate">
+      <div class="box">Asset groups<br><small>text, image, video</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Audience signals<br><small>first-party data, intent</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI auction-time decisioning</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Search, Display, YouTube,<br>Gmail, Maps, Discover</div>
+    </div>
+    <p class="animate">Performance Max campaigns bid toward a single conversion goal across every Google inventory source at once. Marketers supply <span class="highlight">asset groups</span> and <span class="highlight">audience signals</span>; the system decides, per auction, which surface and creative combination to serve.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Smart bidding &amp; AI-powered optimization</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Target CPA / tROAS</h3>
+        <p>Bids set per-auction against a target cost-per-acquisition or return-on-ad-spend, using real-time signals no manual rule set can match.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Maximize Conversions</h3>
+        <p>Spends the full budget while bidding to get the most conversions the model can find &mdash; useful pre-tROAS, when there isn't yet enough data to target a return.</p>
+      </div>
+      <div class="metric-card">
+        <h3>AI Max for Search</h3>
+        <p>Layers AI-expanded query matching, automatically generated assets, and URL expansion on top of existing Search campaigns.</p>
+      </div>
+      <div class="metric-card">
+        <h3>What it needs to work</h3>
+        <p>Accurate, complete conversion signals. Smart bidding optimizes ruthlessly toward whatever it's told to value &mdash; garbage conversion data becomes garbage bidding decisions, fast.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Asset generation inside Performance Max</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What the system generates</h3>
+        <p>Headlines and descriptions assembled from a brand's assets and landing pages, image and video variants for surfaces the marketer never manually designed for, and auto-generated combinations tested continuously in production.</p>
+      </div>
+      <div class="card">
+        <h3>Keeping it on-brand</h3>
+        <p>Asset group inputs &mdash; strong images, video, and copy variety &mdash; are the real lever. A thin asset group forces the system to generate more on its own, with less control over the result.</p>
+        <p class="green">Review generated combinations in Asset Group reporting; pause anything off-brand before it scales.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Event-based optimization for downstream actions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The problem with optimizing on clicks</h3>
+        <p>A click or a form-fill is a weak proxy for revenue. Bidding toward it optimizes for volume of the cheapest, lowest-quality version of that action.</p>
+      </div>
+      <div class="card">
+        <h3>Feeding the model what matters</h3>
+        <p>Offline conversion imports and value-based conversion actions &mdash; qualified lead, trial-to-paid, purchase value &mdash; let smart bidding optimize toward the event that actually predicts revenue, days or weeks after the click.</p>
+        <p class="green">The tighter the loop between a real downstream outcome and the signal Google sees, the better the auction-time decisions get.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Demand Gen &amp; YouTube: full-funnel video</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Demand Gen</h3>
+        <p>Visually rich, feed-native ads across YouTube in-stream/Shorts, Discover, and Gmail &mdash; built for mid-funnel discovery, look-alike audiences, and Lookalike-style AI expansion off a seed list.</p>
+      </div>
+      <div class="card">
+        <h3>YouTube for the full funnel</h3>
+        <p>Awareness formats (bumper, non-skippable) build reach; skippable in-stream drives consideration; and video action campaigns bid directly toward conversions, reusing the same AI bidding stack as Search and PMax.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The app economy &amp; growth funnel</h2>
+    <div class="diagram animate">
+      <div class="box">Impression</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Store visit<br><small>ASO &amp; presence</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Install</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Onboarding &amp; activation</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Engagement &amp; monetization</div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Mobile app economics run on a different unit than web: cost-per-install buys attention, but Lifetime Value earned <em>after</em> the install is what actually pays for it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Store presence &amp; App Store Optimization (ASO)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What ASO controls</h3>
+        <p>Title, subtitle, and keyword fields; icon, screenshots, and preview video; ratings and review velocity &mdash; the on-store conversion rate from listing view to install.</p>
+      </div>
+      <div class="card">
+        <h3>App Store vs. Google Play</h3>
+        <p>Apple's App Store weights title/subtitle keyword relevance and in-app events; Google Play's algorithm leans more on the long-form description, engagement, and retention signals fed back from install cohorts.</p>
+        <p class="green">Paid install campaigns and organic ASO compound each other &mdash; paid volume feeds the ranking signals that improve organic discovery.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Deep linking</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it solves</h3>
+        <p>A tap on an ad or an email should land the user on the exact in-app screen the creative promised &mdash; not the app's generic home screen, which quietly kills conversion.</p>
+      </div>
+      <div class="card">
+        <h3>Deferred deep linking</h3>
+        <p>For a user who doesn't have the app yet, a deferred deep link routes through the store install, then still opens to the right in-app destination on first launch &mdash; carrying campaign and content context across the install itself.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mobile attribution: install vs. in-app events</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Install attribution</h3>
+        <p>Which click or impression gets credit for the install &mdash; the entry point into every downstream mobile measurement question.</p>
+      </div>
+      <div class="card">
+        <h3>In-app event attribution</h3>
+        <p>The events that follow &mdash; registration, first purchase, subscription &mdash; matter more for LTV than the install itself, and require their own attribution windows and event-value definitions to optimize campaigns correctly.</p>
+        <p class="green">A campaign optimized purely on install volume can still be unprofitable if it drives installs that never convert past onboarding.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Attribution models: last-click vs. multi-touch</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Model</th><th>What it credits</th><th>Where it breaks down</th></tr>
+        <tr><td>Last-click</td><td>The final touchpoint before install/conversion</td><td>Ignores every upper-funnel channel that built the intent</td></tr>
+        <tr><td>First-click</td><td>The first touchpoint that introduced the user</td><td>Ignores everything that closed the conversion</td></tr>
+        <tr><td>Multi-touch (linear, position-based, time-decay)</td><td>Credit split across the observed path</td><td>Only as good as the paths it can actually observe</td></tr>
+        <tr><td>Data-driven / algorithmic</td><td>Model-learned credit from converting vs. non-converting paths</td><td>Needs volume; opaque to audit at low conversion counts</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">On mobile, every model above sits on top of a harder problem first: whether the underlying touchpoints can even be observed.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">MMPs, SRNs &amp; privacy constraints</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Mobile Measurement Partners (MMPs)</h3>
+        <p>Third-party attribution layers (AppsFlyer, Adjust, Branch) that sit between ad networks and the app, deduplicating install credit across channels the way no single network can on its own.</p>
+      </div>
+      <div class="card">
+        <h3>Self-Reporting Networks (SRNs)</h3>
+        <p>Large platforms (Google, Meta, TikTok) that attribute and report their own performance, graded against MMP data for consistency rather than taken as ground truth alone.</p>
+        <p class="green">SKAdNetwork and Privacy Sandbox push measurement toward aggregated, delayed, and probabilistic signals &mdash; deterministic, per-user tracking is no longer the default assumption.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Onboarding, activation psychology &amp; friction reduction</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why the first session decides everything</h3>
+        <p>Most uninstalls and abandonment happen in the first session. Every extra field, permission prompt, or forced sign-up before the user reaches value is a point of drop-off.</p>
+      </div>
+      <div class="card">
+        <h3>Reducing friction without losing signal</h3>
+        <p>Defer account creation until after an "aha" moment, request permissions in context rather than up front, and use progressive profiling to collect data over multiple sessions instead of one long form.</p>
+        <p class="green">Activation &mdash; reaching a defined moment of value &mdash; is the metric that predicts retention, not the install itself.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Monetization models, LTV &amp; ROAS</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>IAA (In-App Advertising)</h3>
+        <p>Revenue from ads shown inside the app &mdash; scales with engaged time, not purchase intent.</p>
+      </div>
+      <div class="metric-card">
+        <h3>IAP &amp; subscriptions</h3>
+        <p>One-time in-app purchases and recurring subscriptions &mdash; higher revenue per user, more sensitive to onboarding friction.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Off-app monetization</h3>
+        <p>Value captured outside the app itself &mdash; e-commerce purchases, in-store visits, or web conversions the app influenced.</p>
+      </div>
+      <div class="metric-card">
+        <h3>LTV &amp; ROAS</h3>
+        <p>Lifetime Value predicts what a cohort is worth over time; Return on Ad Spend compares that value against acquisition cost &mdash; the two numbers that decide whether a campaign should scale.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cross-channel orchestration</h2>
+    <div class="diagram animate">
+      <div class="box">Push &amp; in-app messages</div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Email &amp; SMS</div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Web</div>
+      <div class="arrow">&#x2194;</div>
+      <div class="box">Ad retargeting</div>
+    </div>
+    <p class="animate">A single user journey now spans every one of these channels. <span class="highlight">AI-agent coordination</span> sequences the next-best message across all of them &mdash; suppressing a push notification if an email already landed, or triggering retargeting only after in-app nudges have failed to re-engage.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Agentic campaign management</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What AI agents do here</h3>
+        <p>Continuous, real-time auditing of spend and pacing, anomaly detection on conversion rate or cost drops, and optimization recommendations surfaced faster than a weekly manual review could catch them.</p>
+      </div>
+      <div class="card">
+        <h3>Where humans stay in control</h3>
+        <p>Budget ceilings, brand and creative decisions, and strategic priorities remain human calls. Agents flag and recommend; they don't get standing authority to reallocate budget or ship creative without a review gate.</p>
+        <p class="green">The value is catching a problem in hours instead of days &mdash; not removing the marketer from the loop.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Feed smart bidding accurate, complete conversion signals before trusting it with budget</div>
+      <div class="bp-item"><span>2.</span> Keep asset groups rich &mdash; the input quality bounds what Performance Max can generate</div>
+      <div class="bp-item"><span>3.</span> Optimize toward downstream value events, not clicks or form-fills alone</div>
+      <div class="bp-item"><span>4.</span> Pair paid install campaigns with ASO &mdash; each compounds the other's signal</div>
+      <div class="bp-item"><span>5.</span> Use deferred deep links so paid traffic lands on the promised in-app screen</div>
+      <div class="bp-item"><span>6.</span> Cross-check SRN-reported results against MMP data rather than trusting either alone</div>
+      <div class="bp-item"><span>7.</span> Design onboarding around the first-session activation moment, not feature completeness</div>
+      <div class="bp-item"><span>8.</span> Size campaigns on LTV and ROAS, never cost-per-install in isolation</div>
+      <div class="bp-item"><span>9.</span> Sequence push, email, SMS, and retargeting so channels suppress rather than duplicate each other</div>
+      <div class="bp-item"><span>10.</span> Let AI agents flag anomalies and recommend &mdash; keep budget, brand, and priority calls human</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F4C8;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now understand how AI-driven Search and Performance Max campaigns connect to the app growth funnel, from impression to install to monetization:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Search &amp; PMax</span><span class="tag">Smart Bidding</span><span class="tag">ASO</span>
+        <span class="tag">Deep Linking</span><span class="tag">Mobile Attribution</span><span class="tag">MMPs &amp; SRNs</span>
+        <span class="tag">Activation</span><span class="tag">LTV &amp; ROAS</span><span class="tag">Agentic Campaigns</span>
+      </div>
+      <p style="color:var(--text-muted)">Next in the series: Performance Marketing II covers Meta AI delivery, paid social measurement, and AI creative systems.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
