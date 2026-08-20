@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>B2B AI-First Playbooks: LinkedIn, Podcasts, Thought Leadership & Executive Presence</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F399;</span>
+    <h1 class="animate">B2B AI-First Playbooks</h1>
+    <p class="subtitle animate">LinkedIn, podcasts, thought leadership, and executive presence &mdash; AI-assisted production without losing the human voice underneath it</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">LinkedIn</span><span class="tag">Thought Leadership</span><span class="tag">Podcasts</span><span class="tag">Executive Presence</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">LinkedIn is B2B's home platform</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Demand creation vs. demand capture</h3>
+        <p><span class="highlight">Demand capture</span> content meets buyers who already know they have the problem &mdash; comparison posts, case studies, bottom-funnel proof.</p>
+        <p><span class="highlight">Demand creation</span> content builds category awareness before the buyer has a name for the problem &mdash; point-of-view posts, frameworks, contrarian takes.</p>
+      </div>
+      <div class="card">
+        <h3>Why LinkedIn specifically</h3>
+        <p>It's the one major platform where professional identity, company affiliation, and buying authority are all native to the profile &mdash; so targeting and credibility signals arrive for free.</p>
+        <p class="green">The feed rewards commentary and original point of view over polished corporate copy.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Account targeting &amp; the buying committee</h2>
+    <div class="diagram animate">
+      <div class="box">Target account list<br><small>firmographic + intent</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Buying committee map<br><small>champion, user, economic buyer</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Role-specific messaging</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Multi-touch sequencing</div>
+    </div>
+    <p class="animate">A B2B deal is rarely one person &mdash; it's a committee with different stakes. <span class="highlight">Account-based content</span> speaks to the champion's internal case, the economic buyer's risk tolerance, and the end user's daily friction, not one generic pitch to all three.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Company pages, personal brands &amp; employee advocacy</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Company page</h3>
+        <p>Reach and distribution ceiling is real &mdash; company page posts get a fraction of the organic reach personal profiles do. Best for announcements, proof points, and paid amplification.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Personal brand</h3>
+        <p>Founders and execs posting as themselves consistently outperform the company page on reach and trust. The account, not the logo, is the unit that compounds.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Employee advocacy</h3>
+        <p>A structured program &mdash; suggested posts, easy resharing, light coaching &mdash; multiplies reach through employees' own networks without looking like coordinated spam.</p>
+      </div>
+      <div class="metric-card">
+        <h3>How they fit together</h3>
+        <p>Company page anchors credibility and search presence; personal brands and advocacy drive the actual feed reach and pipeline-influencing engagement.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pipeline-focused content on LinkedIn</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Format</th><th>Best for</th></tr>
+        <tr><td>Thought Leader Ads</td><td>Boosting an exec's organic post to a targeted account list &mdash; ad reach, personal-voice trust</td></tr>
+        <tr><td>Document/carousel posts</td><td>Frameworks and how-tos that reward saves and shares</td></tr>
+        <tr><td>Native video</td><td>Product walkthroughs, POV commentary, event recaps</td></tr>
+        <tr><td>Polls &amp; questions</td><td>Low-effort engagement that surfaces audience pain points</td></tr>
+        <tr><td>Long-form articles</td><td>SEO-adjacent authority pieces, less feed reach but longer shelf life</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Pick the format to fit the message &mdash; a framework wants a carousel, a hot take wants a text post, a launch wants video.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Working with the LinkedIn algorithm</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">What suppresses reach</h3>
+        <p>External links in the body of a post (put them in the first comment instead), engagement-bait phrasing, and edits made shortly after publishing.</p>
+      </div>
+      <div class="card">
+        <h3 class="green">What the feed rewards</h3>
+        <p>Comments over likes, especially in the first 60&ndash;90 minutes; dwell time on native video and carousels; and creators who reply to their own comment threads.</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The mechanics change often &mdash; the constant is that the algorithm optimizes for time spent in-app, so anything that keeps the conversation native wins.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The uncopiable-voice thesis</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The argument</h3>
+        <p>As AI makes generic content nearly free to produce, the only content that stays scarce is content grounded in a real person's <span class="highlight">lived experience</span> &mdash; the specific decisions, failures, and judgment calls a competitor can't fabricate.</p>
+        <p>Freepik's Joaquin Cuenca Abela has made this case publicly: an executive's authentic voice and track record are a moat AI content can't replicate, because the substance being copied would be a lie.</p>
+      </div>
+      <div class="card">
+        <h3>What it means for the content plan</h3>
+        <p>The exec's actual opinions, war stories, and reasoning are the raw material. AI's job is to help capture, structure, and distribute that material &mdash; never to invent a substitute for it.</p>
+        <p class="green">Volume without a real point of view is exactly the commodity content AI made cheap &mdash; and readers can tell.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building the thought leadership engine</h2>
+    <div class="diagram animate">
+      <div class="box">Capture the voice<br><small>interviews, voice memos</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI-assisted drafting<br><small>structure, not substance</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Exec review &amp; edit</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Publish &amp; distribute</div>
+    </div>
+    <p class="animate">The engine starts with a real conversation &mdash; a recorded interview, a voice memo after a client call, a rant in Slack worth saving &mdash; not a blank prompt box. AI turns raw material into a draft; the exec's edit is what keeps the voice theirs.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Podcasts as a B2B channel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why podcasts work for B2B</h3>
+        <p>Long-form audio is where a buyer spends 30&ndash;60 uninterrupted minutes with an exec's actual reasoning &mdash; a depth of trust-building no feed post reaches.</p>
+        <p>Guesting on other shows extends reach into an audience you didn't build; hosting your own builds a durable owned asset and a reason to interview prospects and partners.</p>
+      </div>
+      <div class="card">
+        <h3>What makes an episode worth clipping</h3>
+        <p>Specific stories with numbers, disagreements with conventional wisdom, and answers that would get an exec in trouble at a normal press interview &mdash; the moments a generic blog post would never contain.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Video, audio &amp; written &mdash; one voice, three streams</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Video</h3>
+        <p>Talking-head commentary, product walkthroughs, event recaps. Highest production cost, highest trust signal &mdash; a face and voice are hard to fake convincingly.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Audio</h3>
+        <p>Podcast episodes and voice-note-style commentary. Lower production cost than video, same authenticity signal, works during commutes and gym time.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Written</h3>
+        <p>LinkedIn posts, bylined articles, newsletters. Cheapest to produce and distribute, easiest for AI to assist with &mdash; and easiest to let drift from the exec's real voice if unchecked.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Cross-pollination</h3>
+        <p>Every format should trace back to the same underlying opinions and stories &mdash; not three unrelated content calendars run by three different teams.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI-assisted ideation &amp; drafting</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Where AI genuinely helps</h3>
+        <p>Turning a messy 40-minute interview transcript into a structured first draft, generating headline and hook variants to test, and surfacing which stories from a back-catalog are underused.</p>
+      </div>
+      <div class="card">
+        <h3>Where it doesn't</h3>
+        <p>Inventing an opinion the exec doesn't hold, fabricating a statistic or anecdote to fill a gap, or drafting a take on a topic the exec has never actually engaged with.</p>
+        <p class="green">If the AI's output couldn't survive the exec reading it out loud in their own voice, it needs another pass.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scripting &amp; show notes</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Task</th><th>AI's role</th><th>Human's role</th></tr>
+        <tr><td>Episode outline</td><td>Draft from a one-line topic + past episode patterns</td><td>Confirm the actual angle and any lines to avoid</td></tr>
+        <tr><td>Interview questions</td><td>Generate a longer list than needed</td><td>Cut to the ones that fit the guest and the story</td></tr>
+        <tr><td>Show notes &amp; timestamps</td><td>Summarize the transcript, mark chapter breaks</td><td>Spot-check for misattributed quotes</td></tr>
+        <tr><td>SEO description</td><td>Draft from show notes</td><td>Approve before publish</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Clips &amp; repurposing</h2>
+    <div class="diagram animate">
+      <div class="box">Long-form episode<br><small>video or audio</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI clip detection<br><small>strong moments, quotes</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Vertical &amp; square clips</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Native posts per channel</div>
+    </div>
+    <p class="animate">One hour of recorded conversation reasonably produces a dozen clips, a written recap, three quote graphics, and a newsletter section &mdash; the repurposing multiplier is where AI production time pays for itself fastest.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Multi-channel distribution</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Native beats cross-posted</h3>
+        <p>A clip resized for LinkedIn, captioned for the platform, and posted natively will always outperform the same file linked out from another app &mdash; every platform suppresses off-platform links.</p>
+      </div>
+      <div class="card">
+        <h3>Sequencing a drop</h3>
+        <p>Stagger the episode, clips, quote posts, and newsletter recap across 1&ndash;2 weeks instead of dumping everything on release day &mdash; it turns one recording into a sustained presence, not a single spike.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Governance: keeping the voice authentic</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">Where it breaks</h3>
+        <p>A ghostwriting team optimizes for engagement metrics until the posts stop sounding like the exec at all. Facts and anecdotes drift as they're recycled across formats.</p>
+      </div>
+      <div class="card">
+        <h3 class="green">What holds it together</h3>
+        <p>The exec reviews and signs off on anything published under their name &mdash; no exceptions for volume. A living fact-and-story reference keeps recycled anecdotes accurate across every reuse.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Measuring what matters</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">Vanity</h3>
+        <p>&#x2717; Impressions and follower counts in isolation</p>
+        <p>&#x2717; Podcast downloads with no completion or click-through data</p>
+        <p>&#x2717; Posting cadence as a KPI on its own</p>
+      </div>
+      <div class="card">
+        <h3 class="green">Value-based</h3>
+        <p>&#x2713; Inbound meetings or replies traceable to a specific post or episode</p>
+        <p>&#x2713; Save/share rate &mdash; a stronger buying-intent signal than likes</p>
+        <p>&#x2713; Pipeline touched by exec content, tracked the same way any other channel is attributed</p>
+      </div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Thought leadership rarely shows up as last-touch attribution &mdash; track it as an influence signal across the deal, not a standalone conversion.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Social B2B: TikTok, Instagram &amp; Facebook</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Platform</th><th>B2B use case</th><th>Best practice</th></tr>
+        <tr><td>TikTok</td><td>Behind-the-scenes, culture, quick explainers reaching a younger buying-committee member</td><td>Native, unpolished, hook in the first 2 seconds</td></tr>
+        <tr><td>Instagram</td><td>Employer brand, event coverage, visual proof of product/culture</td><td>Reels for reach, Stories for real-time, feed for polish</td></tr>
+        <tr><td>Facebook</td><td>Community groups, local/regional B2B, retargeting audiences already familiar with the brand</td><td>Groups and events outperform organic page posts</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">None of these replace LinkedIn as the primary B2B channel &mdash; they extend reach to buying-committee members who spend attention elsewhere.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices &amp; case study patterns</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What works</h3>
+        <p>Repurposing the same podcast clip natively across TikTok, Reels, and Shorts with platform-specific captions and pacing.</p>
+        <p>Employer-brand content on TikTok/IG driving inbound candidate and partner interest that indirectly feeds pipeline.</p>
+      </div>
+      <div class="card">
+        <h3>Common mistakes</h3>
+        <p>Posting the exact same asset unedited across all three platforms &mdash; each has different native pacing and caption norms.</p>
+        <p>Treating these channels as lead-gen when their real job in a B2B mix is brand and talent reach.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Start every piece from a real conversation or opinion, never a blank prompt</div>
+      <div class="bp-item"><span>2.</span> Map content to the buying committee's roles, not one generic message for the whole account</div>
+      <div class="bp-item"><span>3.</span> Let personal brands and employee advocacy carry the reach the company page can't</div>
+      <div class="bp-item"><span>4.</span> Keep external links out of the post body &mdash; first comment instead</div>
+      <div class="bp-item"><span>5.</span> Require exec sign-off on anything published under their name, at any volume</div>
+      <div class="bp-item"><span>6.</span> Repurpose one long-form recording into a dozen native, platform-specific pieces</div>
+      <div class="bp-item"><span>7.</span> Sequence a content drop over 1&ndash;2 weeks instead of dumping it all on release day</div>
+      <div class="bp-item"><span>8.</span> Maintain one fact-and-story reference so recycled anecdotes stay accurate</div>
+      <div class="bp-item"><span>9.</span> Treat TikTok/IG/Facebook as brand and talent reach, not primary B2B lead-gen</div>
+      <div class="bp-item"><span>10.</span> If AI's draft couldn't survive being read aloud in the exec's own voice, revise it again</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F399;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how to build an AI-assisted B2B content engine that amplifies a real voice instead of manufacturing a fake one:</p>
+      <div style="margin:20px 0">
+        <span class="tag">LinkedIn Strategy</span><span class="tag">Account Targeting</span><span class="tag">Employee Advocacy</span>
+        <span class="tag">Thought Leadership</span><span class="tag">Podcasting</span><span class="tag">AI Production</span>
+        <span class="tag">Repurposing</span><span class="tag">Distribution</span><span class="tag">Social B2B</span>
+      </div>
+      <p style="color:var(--text-muted)">The durable skill isn't the AI tooling &mdash; it's protecting the one thing AI can't manufacture: a real person's lived experience and judgment.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
