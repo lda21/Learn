@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Marketing Operations, Lifecycle, CRM, CRO &amp; Agentic Automation</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F504;</span>
+    <h1 class="animate">Marketing Operations, Lifecycle, CRM, CRO &amp; Agentic Automation</h1>
+    <p class="subtitle animate">The RevOps mindset, CRM architecture, and AI agent fleets running the B2B SaaS lifecycle engine &mdash; plus CRO as a continuous growth discipline</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">RevOps</span><span class="tag">CRM</span><span class="tag">CRO</span><span class="tag">Agentic Automation</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The RevOps mindset</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>One motion, not three teams</h3>
+        <p><span class="highlight">Revenue Operations</span> treats Marketing, Sales, and Customer Success as stages of one connected revenue process, not three departments handing off a lead and losing context at every seam.</p>
+        <p>The unit of work shifts from department-level campaigns and quotas to a shared view of the customer's entire path to and through revenue.</p>
+      </div>
+      <div class="card">
+        <h3>Why it exists</h3>
+        <p>Siloed teams optimize their own stage locally &mdash; Marketing for MQL volume, Sales for close rate, CS for renewal &mdash; and the handoffs between them are where deals and customers quietly leak out.</p>
+        <p class="green">RevOps owns the process, the data model, and the tooling that connects the stages, so no team optimizes itself into someone else's problem.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The B2B SaaS lifecycle</h2>
+    <div class="diagram animate">
+      <div class="box">Acquisition</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Onboarding</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Activation</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Adoption</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Monetization</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Retention</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Expansion</div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Each stage has its own owner, its own risk of drop-off, and its own definition of success &mdash; but the customer experiences it as one continuous relationship, not seven handoffs.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Stage-specific KPIs</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Acquisition &amp; onboarding</h3>
+        <p>Cost per lead/opportunity, time-to-first-value, onboarding completion rate, and time-to-activation.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Activation &amp; adoption</h3>
+        <p>% reaching the activation milestone, feature adoption depth, weekly/monthly active usage, and habit-forming action frequency.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Monetization &amp; retention</h3>
+        <p>Net revenue retention (NRR), gross churn, logo retention, and time-to-value realized vs. promised.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Expansion</h3>
+        <p>Expansion revenue rate, upsell/cross-sell conversion, and account health score trend ahead of renewal.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CRM architecture fundamentals</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Objects</h3>
+        <p>The nouns of the system: <span class="highlight">Contact</span>, <span class="highlight">Company/Account</span>, <span class="highlight">Lead</span>, <span class="highlight">Opportunity/Deal</span>. Every automation, report, and integration is built on how these objects relate to each other.</p>
+      </div>
+      <div class="card">
+        <h3>Events</h3>
+        <p>The verbs: page views, email opens/clicks, form fills, product usage signals, and support interactions &mdash; timestamped and attached to a contact or account so behavior over time becomes queryable.</p>
+        <p class="green">A clean object model with rich event data is what makes scoring, segmentation, and automation possible at all.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scoring, segments &amp; triggers</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Lead &amp; account scoring</h3>
+        <p>Points assigned for fit (firmographics matching the ICP) and engagement (behavior indicating intent), combined into a score that ranks who Sales should talk to first.</p>
+      </div>
+      <div class="card">
+        <h3>Segments &amp; triggers</h3>
+        <p><span class="highlight">Segments</span> are saved, reusable filters on the object/event data (e.g. "enterprise accounts, no login in 14 days"). <span class="highlight">Triggers</span> are automations that fire when a contact enters or exits a segment &mdash; a score crossing a threshold, a usage signal dropping, a form submitted.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">MQL &#x2192; SAL &#x2192; SQL</h2>
+    <div class="diagram animate">
+      <div class="box">MQL<br><small>Marketing Qualified Lead</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">SAL<br><small>Sales Accepted Lead</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">SQL<br><small>Sales Qualified Lead</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Opportunity</div>
+    </div>
+    <p class="animate">A <span class="highlight">MQL</span> hits Marketing's scoring threshold. A <span class="highlight">SAL</span> is a MQL Sales has reviewed and accepted as worth working. A <span class="highlight">SQL</span> is a SAL that Sales has qualified against budget, authority, need, and timing. Each transition needs an explicit, agreed definition &mdash; not a vibe &mdash; or the funnel numbers stop meaning anything.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Routing, ownership, SLAs &amp; pipeline governance</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Routing &amp; ownership</h3>
+        <p>Rules that assign a lead or account to the right rep &mdash; by territory, segment, round-robin, or account-based ownership &mdash; the instant it qualifies, before it goes stale.</p>
+        <p><span class="highlight">SLAs</span> bound how fast that handoff has to be worked: a 5-minute follow-up SLA on an inbound SQL is a common, high-leverage standard.</p>
+      </div>
+      <div class="card">
+        <h3>Pipeline governance</h3>
+        <p>Stage-exit criteria that keep deals honest (a deal can't reach "Proposal" without a documented next step and close date), regular pipeline reviews, and dashboards showing stage conversion, velocity, and aging.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Platform landscape</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Platform</th><th>Strength</th><th>Typical fit</th></tr>
+        <tr><td>HubSpot</td><td>Unified marketing/sales/service hub, fast to configure</td><td>SMB &amp; mid-market, teams wanting one system</td></tr>
+        <tr><td>Salesforce Marketing Cloud</td><td>Deep customization, journey builder, enterprise scale</td><td>Large orgs already on Salesforce CRM</td></tr>
+        <tr><td>Marketo (Adobe)</td><td>Sophisticated lead scoring &amp; nurture logic</td><td>Complex B2B demand gen with long sales cycles</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The platform matters less than whether the object model, scoring rules, and routing logic are actually maintained &mdash; a well-run HubSpot instance beats a neglected Marketo one every time.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The agentic marketing orchestrator</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>A new role, not a new title</h3>
+        <p>Non-technical marketers increasingly manage a <span class="highlight">fleet of AI agents</span> instead of a fleet of tools &mdash; agents that score leads, draft nurture emails, flag at-risk accounts, and route work, all under human-set goals and guardrails.</p>
+      </div>
+      <div class="card">
+        <h3>What the orchestrator actually does</h3>
+        <p>Defines what each agent is allowed to decide autonomously vs. what needs approval, monitors agent output for drift, and keeps the connective tissue between CRM, automation platform, and downstream teams coherent as agents change it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Designing an AI-powered lifecycle engine</h2>
+    <div class="diagram animate">
+      <div class="box">CRM<br><small>object &amp; event data</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Automation agents<br><small>scoring, nurture, routing</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Sales handoff<br><small>SAL/SQL, SLAs</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">CS metrics<br><small>health, retention, expansion</small></div>
+    </div>
+    <p class="animate">The engine is only as good as the loop closing back to the top: CS health signals should feed the same CRM that scored the account in the first place, so the model of a "good fit" account keeps improving with real outcomes.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Managing an agent fleet as a non-technical marketer</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Set up for success</h3>
+        <p>Give each agent a narrow, well-defined job (score this, draft that, flag this pattern) rather than an open-ended mandate. Write the guardrails &mdash; what it can send without review, what always needs a human &mdash; before turning it on.</p>
+      </div>
+      <div class="card">
+        <h3>Where it goes wrong</h3>
+        <p>Stacking agents without a shared source of truth, so two agents "correct" the same record in opposite directions. The fix is one owned data model everything reads from and writes back to.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CRO as a growth engine</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it is</h3>
+        <p><span class="highlight">Conversion Rate Optimization</span> run as continuous experimentation across marketing, product, and the business &mdash; not a one-off landing-page redesign project.</p>
+      </div>
+      <div class="card">
+        <h3>Why continuous beats one-off</h3>
+        <p>A single redesign captures whatever the team already believed. A running experimentation program keeps testing after launch, catching regressions and finding gains a one-time project would miss entirely.</p>
+        <p class="green">The output isn't a prettier page &mdash; it's a compounding rate of learning about what actually moves the number.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Evidence-based hypotheses &amp; prioritization</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Writing a real hypothesis</h3>
+        <p>"Because [evidence], we believe [change] will cause [effect], measured by [metric]." Evidence comes from analytics, session recordings, surveys, or support themes &mdash; not intuition alone.</p>
+      </div>
+      <div class="card">
+        <h3>Prioritizing the backlog</h3>
+        <p>Score each test on potential impact, confidence in the evidence, and ease of implementation (an ICE-style framework), then run the highest-scoring tests first instead of whichever stakeholder asked loudest.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Common CRO pitfalls</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3 class="highlight">What goes wrong</h3>
+        <p>Calling a test early on a promising but not-yet-significant result. Testing a button color when the real problem is a mismatched value proposition. Running too many tests at once on the same traffic and confusing which one moved the number.</p>
+      </div>
+      <div class="card">
+        <h3 class="green">The fix</h3>
+        <p>Pre-register the sample size and duration before launch. Prioritize hypotheses that address a documented friction point, not cosmetic tweaks. Sequence or properly isolate concurrent tests.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Measurement: A/B, multivariate &amp; bandits</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Method</th><th>Tests</th><th>Best for</th></tr>
+        <tr><td>A/B test</td><td>One variable, two variants</td><td>Clear, isolated hypotheses; simplest to interpret</td></tr>
+        <tr><td>Multivariate test (MVT)</td><td>Multiple variables &amp; combinations at once</td><td>High-traffic pages where interaction effects matter</td></tr>
+        <tr><td>Multi-armed bandit</td><td>Continuously shifts traffic to the winning variant</td><td>Time-sensitive tests where exploiting a winner early matters more than a clean p-value</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Bandits trade statistical rigor for speed &mdash; the right call for a two-week promo, the wrong call for a decision that will stand for a year.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI-powered CRO workflows</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Research &amp; analysis</h3>
+        <p>AI summarizes session recordings and support tickets into friction themes, clusters open-text survey responses, and flags UX issues from heatmap and scroll-depth data at a scale manual review can't match.</p>
+      </div>
+      <div class="card">
+        <h3>Generation</h3>
+        <p>AI drafts conversion copy variants, generates hypotheses directly from the research summaries, and proposes experiment designs and variant builds for a human to review before anything ships live.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI-powered CRO in application</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Landing pages</h3>
+        <p>AI-generated headline and layout variants tested against traffic source and stated intent.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Pricing pages</h3>
+        <p>Framing and plan-comparison experiments informed by objection themes mined from sales and support data.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Product pages</h3>
+        <p>On-page personalization by segment &mdash; different proof points and CTAs for a first-time visitor vs. a returning evaluator.</p>
+      </div>
+      <div class="metric-card">
+        <h3>The constant</h3>
+        <p>Every variant still needs a human review gate for brand voice and factual accuracy before it goes live.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Define MQL/SAL/SQL transitions explicitly and get Marketing and Sales to agree on them in writing</div>
+      <div class="bp-item"><span>2.</span> Route qualified leads and enforce follow-up SLAs &mdash; speed-to-lead is one of the highest-leverage RevOps levers</div>
+      <div class="bp-item"><span>3.</span> Keep one CRM object model as the shared source of truth every agent and dashboard reads from</div>
+      <div class="bp-item"><span>4.</span> Feed CS health signals back into the same scoring model that qualified the account, closing the loop</div>
+      <div class="bp-item"><span>5.</span> Give every AI agent a narrow scope and explicit guardrails before turning it on</div>
+      <div class="bp-item"><span>6.</span> Write hypotheses from evidence, not intuition, and prioritize by impact, confidence, and ease</div>
+      <div class="bp-item"><span>7.</span> Pre-register sample size and test duration before launch &mdash; never call a test early</div>
+      <div class="bp-item"><span>8.</span> Match the testing method to the stakes: A/B for clarity, MVT for interaction effects, bandits for time-sensitive wins</div>
+      <div class="bp-item"><span>9.</span> Keep a human review gate on every AI-generated variant before it reaches production traffic</div>
+      <div class="bp-item"><span>10.</span> Review pipeline stage-exit criteria and dashboards on a fixed cadence, not only when numbers look wrong</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F504;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how to connect the RevOps lifecycle, CRM architecture, agentic automation, and continuous CRO into one system:</p>
+      <div style="margin:20px 0">
+        <span class="tag">RevOps Mindset</span><span class="tag">Lifecycle Stages</span><span class="tag">CRM Architecture</span>
+        <span class="tag">Lead Scoring</span><span class="tag">MQL/SAL/SQL</span><span class="tag">Pipeline Governance</span>
+        <span class="tag">Agentic Orchestration</span><span class="tag">CRO</span><span class="tag">Experimentation</span>
+      </div>
+      <p style="color:var(--text-muted)">The durable skill isn't any single platform &mdash; it's a shared data model and a closed feedback loop that Marketing, Sales, CS, and AI agents all read from and write back to.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
