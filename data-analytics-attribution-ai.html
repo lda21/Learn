@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Data, Analytics, Attribution &amp; AI Co-Analysts</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F9EE;</span>
+    <h1 class="animate">Data, Analytics, Attribution &amp; AI Co-Analysts</h1>
+    <p class="subtitle animate">From measurement planning to AI-assisted analysis, predictive scoring, data governance, and the return of Marketing Mix Modeling</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Measurement</span><span class="tag">GA4</span><span class="tag">Predictive AI</span><span class="tag">Attribution</span><span class="tag">MMM</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The AI-powered measurement workflow</h2>
+    <div class="diagram animate">
+      <div class="box">Strategy</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Measurement<br><small>planning</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">GTM<br><small>implementation</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">GA4<br><small>analysis</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI-assisted<br><small>coding &amp; interpretation</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Human-validated<br><small>decisions</small></div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Each stage feeds the next, but the chain only holds if a human closes the loop at the end &mdash; AI accelerates every step except the final judgment call.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Measurement planning</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Start from the business question</h3>
+        <p>A measurement plan begins with the decisions the business needs to make &mdash; where to shift budget, which channel to scale &mdash; and works backward to the events, dimensions, and KPIs that answer them.</p>
+      </div>
+      <div class="card">
+        <h3>The measurement plan artifact</h3>
+        <p>A living document mapping business objective &rarr; KPI &rarr; GA4 event &rarr; parameters &rarr; owner. Built before any tagging work starts, so implementation has a spec instead of a guess.</p>
+        <p class="green">Skipping this step is the single most common cause of an analytics setup that tracks everything and answers nothing.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">GTM implementation</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Tags, triggers &amp; variables</h3>
+        <p><span class="highlight">Google Tag Manager</span> fires <span class="highlight">tags</span> (what to send) on <span class="highlight">triggers</span> (when to send it), using <span class="highlight">variables</span> (values pulled from the page or the dataLayer) &mdash; all editable without a code deploy.</p>
+      </div>
+      <div class="card">
+        <h3>The dataLayer contract</h3>
+        <p>A structured JavaScript object that developers push events and parameters into, and GTM reads from &mdash; the agreed contract between engineering and analytics that keeps tagging stable across site changes.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">GA4 analysis fundamentals</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Event-based model</h3>
+        <p>Every interaction is an event with parameters, not a rigid pageview/session hierarchy &mdash; sessions and engagement are derived, not primary.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Explorations</h3>
+        <p>Free-form, funnel, path, and cohort exploration techniques for ad-hoc analysis beyond the standard reports.</p>
+      </div>
+      <div class="metric-card">
+        <h3>BigQuery export</h3>
+        <p>Raw, unsampled event-level data exported daily (or streaming) into BigQuery &mdash; the foundation for anything AI-assisted below.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Predictive metrics</h3>
+        <p>GA4's native purchase probability and churn probability scores, built on the same event stream, ready to feed audiences and campaigns.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI-assisted coding &amp; interpretation with Gemini</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Gemini in BigQuery</h3>
+        <p>Natural-language prompts generate SQL against the GA4 export schema, explain existing queries, and suggest next questions &mdash; collapsing the gap between "I have a question" and "I have a query."</p>
+      </div>
+      <div class="card">
+        <h3>Gemini in Looker &amp; Sheets</h3>
+        <p>Conversational analytics over dashboards and connected sheets: ask for a trend, a breakdown, or an anomaly explanation in plain language and get a chart or summary back.</p>
+        <p class="green">The AI drafts the query and the narrative &mdash; the analyst still owns whether the SQL matches the actual business question.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Human-validated marketing decisions</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Where the loop closes</h3>
+        <p>AI-generated SQL, summaries, and forecasts are a draft, not a decision. Before an insight moves budget or changes a campaign, a human checks it against context the model doesn't have.</p>
+      </div>
+      <div class="card">
+        <h3>What validation actually checks</h3>
+        <p>Does the query match the stated question? Is the sample size large enough to act on? Does the result contradict something the team already knows to be true, and if so, why?</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">AI as a co-analyst</h2>
+    <div class="diagram animate">
+      <div class="box">Score &amp; predict</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Detect anomalies</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Generate hypotheses</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Draft the narrative</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Brief the exec</div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The same shift as the measurement workflow: AI does the first pass on volume and pattern-finding, a human decides what the pattern means.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Predicting churn &amp; upsell propensity</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Churn propensity</h3>
+        <p>Models trained on engagement decay, support ticket volume, usage-feature breadth, and billing signals to output a per-account probability of churn within a defined window &mdash; ranked, not binary.</p>
+      </div>
+      <div class="card">
+        <h3>Upsell propensity</h3>
+        <p>The mirror model: usage hitting plan limits, feature adoption patterns matching past upgraders, and seat growth, scored to surface accounts ready for an expansion conversation before they ask.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Scoring accounts &amp; detecting anomalies</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Account scoring</h3>
+        <p>Fit and engagement signals combined into a single score used to prioritize outreach, renewal risk review, or expansion motion &mdash; the same scoring logic behind lead scoring, applied post-sale.</p>
+      </div>
+      <div class="card">
+        <h3>Anomaly detection</h3>
+        <p>Statistical or ML models flag metric movements that fall outside expected variance &mdash; a traffic drop, a conversion rate spike, a spend anomaly &mdash; before a human would notice scanning a dashboard.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Generating hypotheses &amp; narratives</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Hypothesis generation</h3>
+        <p>Given an anomaly or a trend, AI proposes candidate explanations drawn from correlated signals in the data &mdash; a starting list for the analyst to test, not a verdict.</p>
+      </div>
+      <div class="card">
+        <h3>Narrative generation</h3>
+        <p>Turning a table of numbers into a plain-language summary: what changed, by how much, and what it's correlated with &mdash; the first draft of the story a stakeholder actually reads.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Automating executive briefings</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What gets automated</h3>
+        <p>Pulling the week's key metrics, flagging anomalies, drafting the narrative, and assembling a briefing document or slide &mdash; on a schedule, without an analyst manually rebuilding it every cycle.</p>
+      </div>
+      <div class="card">
+        <h3>What stays manual</h3>
+        <p>The final read: which findings matter enough to lead with, what context the exec needs that isn't in the data, and any number close enough to a threshold to need a second look before it goes out.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data governance &amp; quality</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why it matters more with AI in the loop</h3>
+        <p>An AI co-analyst is only as reliable as the data and confidence signals it's given &mdash; without governance, it will confidently narrate noise as a trend.</p>
+      </div>
+      <div class="card">
+        <h3>The core disciplines</h3>
+        <p>Confidence thresholds on every automated insight, source attribution so a number can be traced back to its origin, and defined reliability tiers for signals that feed decisions vs. signals that are directional only.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Confidence thresholds &amp; source attribution</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Confidence thresholds</h3>
+        <p>A minimum sample size, statistical significance level, or model confidence score an insight must clear before it's surfaced as actionable rather than "still gathering signal."</p>
+      </div>
+      <div class="card">
+        <h3>Source attribution</h3>
+        <p>Every number in a report or briefing traces back to its query, dataset, and timestamp &mdash; so a stakeholder questioning a figure gets an answer, not "the AI said so."</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Human validation before decisions</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Decision stakes</th><th>Validation bar</th></tr>
+        <tr><td>Directional read, internal discussion</td><td>Spot-check the query and the trend direction</td></tr>
+        <tr><td>Reallocating spend across channels</td><td>Confirm sample size, check for confounds, cross-reference a second source</td></tr>
+        <tr><td>Brand or public-facing claim</td><td>Full manual review &mdash; source, methodology, and significance all verified</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">The higher the stakes of the decision an insight feeds, the more validation it needs before it's trusted &mdash; governance scales with consequence, not with how confident the AI sounds.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Attribution models</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Model</th><th>Credit given to</th></tr>
+        <tr><td>Last-click</td><td>100% to the final touchpoint before conversion</td></tr>
+        <tr><td>First-click</td><td>100% to the touchpoint that started the journey</td></tr>
+        <tr><td>Linear</td><td>Equal credit split across every touchpoint</td></tr>
+        <tr><td>Position-based</td><td>Heavier weight to first and last touch, remainder split across the middle</td></tr>
+        <tr><td>Time-decay</td><td>More credit to touchpoints closer in time to the conversion</td></tr>
+      </table>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Rule-based models are simple and explainable, but every one of them encodes an assumption about which touchpoint mattered &mdash; none of them derive it from the data.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Data-Driven Attribution (DDA)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>How it differs</h3>
+        <p>DDA uses machine learning to compare converting and non-converting paths and assign credit based on each touchpoint's actual, observed contribution to conversion probability &mdash; not a fixed rule.</p>
+      </div>
+      <div class="card">
+        <h3>The tradeoff</h3>
+        <p>More accurate when there's enough conversion volume to train on, but a black box compared to a rule-based model &mdash; and still limited to the touchpoints the platform can actually observe.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The return of Marketing Mix Modeling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why it's back</h3>
+        <p>Cookie deprecation, app tracking transparency, and walled-garden data limits mean click-level attribution increasingly can't see the whole path &mdash; <span class="highlight">MMM</span> uses aggregate, privacy-safe spend and outcome data instead of individual-level tracking.</p>
+      </div>
+      <div class="card">
+        <h3>What it adds</h3>
+        <p>Statistical modeling of spend vs. outcomes across channels over time, capturing offline and brand channels attribution can't touch, plus diminishing-returns curves for budget planning.</p>
+        <p class="green">Modern practice pairs MMM's macro view with DDA's micro view &mdash; not one replacing the other.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Write the measurement plan before any GTM tagging work starts</div>
+      <div class="bp-item"><span>2.</span> Keep the dataLayer contract as the agreed spec between engineering and analytics</div>
+      <div class="bp-item"><span>3.</span> Export to BigQuery early &mdash; it's the foundation for every AI-assisted analysis step</div>
+      <div class="bp-item"><span>4.</span> Treat AI-generated SQL and narratives as a first draft, always checked against the original question</div>
+      <div class="bp-item"><span>5.</span> Set confidence thresholds before an insight is allowed to reach a dashboard or briefing</div>
+      <div class="bp-item"><span>6.</span> Keep source attribution on every automated number so it can be traced and defended</div>
+      <div class="bp-item"><span>7.</span> Scale human validation to the stakes of the decision, not to how confident the output sounds</div>
+      <div class="bp-item"><span>8.</span> Pick an attribution model that matches the business question, not just the platform default</div>
+      <div class="bp-item"><span>9.</span> Don't trust DDA output below the conversion volume needed to train it reliably</div>
+      <div class="bp-item"><span>10.</span> Pair MMM's macro view with DDA's micro view instead of picking one measurement system</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F9EE;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how to run measurement end-to-end, use AI as a co-analyst without losing rigor, and choose the right attribution lens for the question at hand:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Measurement Planning</span><span class="tag">GTM &amp; GA4</span><span class="tag">Gemini Analysis</span>
+        <span class="tag">Predictive Scoring</span><span class="tag">Anomaly Detection</span><span class="tag">Data Governance</span>
+        <span class="tag">Attribution Models</span><span class="tag">DDA</span><span class="tag">MMM</span>
+      </div>
+      <p style="color:var(--text-muted)">The durable skill isn't any single tool &mdash; it's knowing where AI acceleration ends and human judgment has to take over before an insight touches real budget.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
