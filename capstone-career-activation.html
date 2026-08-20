@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Capstone Presentations, Industry Critique &amp; Career Activation</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.02rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F393;</span>
+    <h1 class="animate">Capstone Presentations, Industry Critique &amp; Career Activation</h1>
+    <p class="subtitle animate">Presenting an AI-first marketing capstone to an industry panel, then converting the work into a portfolio, a target role, and a 90-day plan</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Capstone</span><span class="tag">Portfolio</span><span class="tag">Career Activation</span><span class="tag">Industry Panel</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The final arc</h2>
+    <div class="diagram animate">
+      <div class="box">Business Context</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">AI-First Architecture</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Journeys, Media &amp; Measurement</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Panel Critique</div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Career Activation</div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">Everything from ICP research through RevOps and CRO comes together here &mdash; not as a recap, but as one coherent story told to people who will judge it the way a hiring manager would.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Structuring the business context</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What the panel needs first</h3>
+        <p>The market, the ICP, and the problem worth solving &mdash; stated in one or two sentences before any tactic appears. A panel that doesn't understand the "why" will judge every later slide against the wrong bar.</p>
+      </div>
+      <div class="card">
+        <h3>The trap to avoid</h3>
+        <p>Opening with tools and channels instead of the business problem. <span class="highlight">Lead with the decision you were trying to move</span>, then show the system built to move it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Presenting the AI-first architecture</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Show the system, not the stack</h3>
+        <p>A slide listing every tool used is a resume, not an architecture. Show how ICP research, content generation, distribution, and measurement agents hand off to each other &mdash; and where a human sits in the loop.</p>
+      </div>
+      <div class="card">
+        <h3>Name the guardrails</h3>
+        <p>A panel of practitioners will ask what happens when an agent is wrong. Have the answer ready: what each agent could decide autonomously, and what always required review before it shipped.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Walking through the customer journey</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>One journey, fully told</h3>
+        <p>Pick a single representative customer path from first touch to conversion (or retention) and narrate it stage by stage, rather than presenting every segment and channel combination at once.</p>
+      </div>
+      <div class="card">
+        <h3>Where AI actually changed the journey</h3>
+        <p>Point to the specific moments personalization, scoring, or an agent's decision changed what the customer experienced &mdash; not just where AI was involved in production.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Telling the media &amp; measurement story</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Evidence over assertion</h3>
+        <p>"CTR improved" is an assertion. A measurement plan, a before/after chart with the confidence interval, and a note on what didn't move is evidence &mdash; and evidence is what survives a skeptical panel.</p>
+      </div>
+      <div class="card">
+        <h3>Own the limits</h3>
+        <p class="green">Naming a test that was inconclusive, a channel that underperformed, or a metric that's still noisy builds more credibility than a slide where everything went perfectly.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What a strong capstone has in common</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> A business problem stated before any tactic</div>
+      <div class="bp-item"><span>2.</span> One journey told in full instead of every segment sketched thinly</div>
+      <div class="bp-item"><span>3.</span> A named guardrail for every AI agent in the system</div>
+      <div class="bp-item"><span>4.</span> A measurement plan built before the campaign, not backfilled after</div>
+      <div class="bp-item"><span>5.</span> At least one honestly reported result that didn't work</div>
+      <div class="bp-item"><span>6.</span> A clear statement of what the presenter personally built vs. what the team built</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Anatomy of an industry panel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Who's usually in the room</h3>
+        <p>Practicing marketers, hiring managers, and founders &mdash; people evaluating whether they'd trust this work in production, not academics grading a rubric.</p>
+      </div>
+      <div class="card">
+        <h3>What they're actually scoring</h3>
+        <p>Judgment under ambiguity: could this person make a reasonable call when the data was incomplete and the deadline was real? The polish of the deck matters far less than the quality of the decisions behind it.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Questions a panel will ask</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Question</th><th>What they're testing</th></tr>
+        <tr><td>"What would you do differently with another month?"</td><td>Self-awareness and prioritization under real constraints</td></tr>
+        <tr><td>"How do you know the AI-generated output was any good?"</td><td>Whether a human review process actually existed, or was assumed</td></tr>
+        <tr><td>"What's the one number that mattered most here?"</td><td>Whether the presenter can distinguish signal from vanity metrics</td></tr>
+        <tr><td>"Who owns this if it breaks in production?"</td><td>Operational thinking beyond the demo</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Receiving critique gracefully</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Reframe it as signal</h3>
+        <p>A sharp question from the panel is free market research on how the work reads to someone who wasn't in the room while it was built. Treat it that way, not as an attack to survive.</p>
+      </div>
+      <div class="card">
+        <h3>The one move that backfires</h3>
+        <p>Defending a weak decision instead of naming the tradeoff that led to it. <span class="highlight">"Given the timeline, I prioritized X over Y"</span> reads as judgment; arguing the critique is wrong reads as the opposite.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">From capstone to portfolio</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>The deck, cleaned up</h3>
+        <p>Trimmed to the story that survived the panel's questions &mdash; not the version built the night before presenting.</p>
+      </div>
+      <div class="metric-card">
+        <h3>One artifact per system</h3>
+        <p>A screenshot of the measurement dashboard, the agent architecture diagram, or a sample of the AI-generated content with the human edit shown.</p>
+      </div>
+      <div class="metric-card">
+        <h3>The result, with its context</h3>
+        <p>The number, the baseline it's measured against, and the timeframe &mdash; never a bare percentage with no comparison point.</p>
+      </div>
+      <div class="metric-card">
+        <h3>The critique, addressed</h3>
+        <p>A short note on what the panel pushed back on and what would change next time &mdash; proof the feedback landed.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Writing the case study</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Structure it as Problem &#x2192; Approach &#x2192; Result</h3>
+        <p>The business problem in one line, the specific system or decision built to address it, and the measured outcome &mdash; in that order, every time, so a reader can skim it in thirty seconds.</p>
+      </div>
+      <div class="card">
+        <h3>Write for a skimming hiring manager</h3>
+        <p>Bold the one number that matters, cut the tool inventory, and let the deck link carry the detail a resume line can't.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Target role profiles</h2>
+    <div class="animate">
+      <table>
+        <tr><th>Role</th><th>What the capstone should demonstrate</th></tr>
+        <tr><td>Growth / Performance Marketer</td><td>Paid channel management, AI-assisted bidding &amp; creative, ROAS ownership</td></tr>
+        <tr><td>Marketing Ops / RevOps</td><td>CRM architecture, lead scoring &amp; routing, agent fleet governance</td></tr>
+        <tr><td>Content &amp; Brand Strategist</td><td>AI-assisted content systems that preserve a distinct, authentic voice</td></tr>
+        <tr><td>Marketing Analyst / AI Co-Analyst</td><td>Measurement plans, attribution modeling, validated AI-drafted insight</td></tr>
+        <tr><td>SEO / GEO Specialist</td><td>Entity-based optimization and answer-engine visibility work</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mapping your capstone to a role</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Work backward from the job post</h3>
+        <p>Pull the three or four responsibilities a target posting repeats most, then find the capstone artifact that maps to each &mdash; not every artifact you built.</p>
+      </div>
+      <div class="card">
+        <h3>One role, one framing</h3>
+        <p class="green">The same capstone can lead with the CRM architecture for a RevOps application and lead with the creative testing program for a performance role &mdash; same work, different emphasis.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Building your 90-day learning plan</h2>
+    <div class="diagram animate">
+      <div class="box">Days 1&ndash;30<br><small>Close named gaps</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Days 31&ndash;60<br><small>Build a second artifact</small></div>
+      <div class="arrow">&#x2192;</div>
+      <div class="box">Days 61&ndash;90<br><small>Apply &amp; network</small></div>
+    </div>
+    <p class="animate" style="text-align:center;color:var(--text-muted)">A 90-day plan built from the panel's actual critique is worth more than a generic list of courses &mdash; it's evidence you took the feedback and acted on it.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What goes in each phase</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Days 1&ndash;30: close the named gaps</h3>
+        <p>Take the panel's specific critique &mdash; a weak measurement plan, a shallow guardrail story &mdash; and go deep on exactly that, not a broad refresh of everything.</p>
+      </div>
+      <div class="card">
+        <h3>Days 31&ndash;90: build, then activate</h3>
+        <p>A second, smaller artifact that demonstrates the closed gap, followed by applications, informational interviews, and outreach to people met at the panel while the work is still fresh.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Networking after the panel</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Follow up within 48 hours</h3>
+        <p>A short, specific note referencing the actual question a panelist asked &mdash; not a generic connection request &mdash; while the presentation is still memorable to them.</p>
+      </div>
+      <div class="card">
+        <h3>Stay in the room</h3>
+        <p>Panelists are hiring managers, referral sources, and future collaborators before they're anything else. A panel is a room full of warm contacts, not a one-time evaluation.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Interview storytelling</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The capstone is your STAR bank</h3>
+        <p>Every interview behavioral question &mdash; a conflict, a tight deadline, a failure &mdash; almost certainly has a real answer inside the capstone project if it's been lived through once already.</p>
+      </div>
+      <div class="card">
+        <h3>Lead with the decision, not the tool</h3>
+        <p><span class="highlight">"I prioritized the CRM cleanup over a new channel because the data was untrustworthy"</span> demonstrates judgment. Listing the tools used demonstrates exposure.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Best practices</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Open with the business problem, never the tool stack</div>
+      <div class="bp-item"><span>2.</span> Tell one customer journey completely instead of many thinly</div>
+      <div class="bp-item"><span>3.</span> Name the guardrail for every AI agent in the system</div>
+      <div class="bp-item"><span>4.</span> Report at least one honest result that didn't work</div>
+      <div class="bp-item"><span>5.</span> Treat panel critique as free research, not an attack to defend against</div>
+      <div class="bp-item"><span>6.</span> Cut the portfolio deck to what survived the panel's questions</div>
+      <div class="bp-item"><span>7.</span> Reframe the same artifacts differently for each target role</div>
+      <div class="bp-item"><span>8.</span> Build the 90-day plan from the panel's specific critique, not a generic list</div>
+      <div class="bp-item"><span>9.</span> Follow up with panelists within 48 hours, referencing their actual question</div>
+      <div class="bp-item"><span>10.</span> Keep the capstone as your STAR-answer bank for every interview that follows</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F393;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You now know how to present an AI-first marketing capstone to an industry panel, absorb its critique, and turn the work into a portfolio, a target role, and a plan:</p>
+      <div style="margin:20px 0">
+        <span class="tag">Presentation Structure</span><span class="tag">Panel Critique</span><span class="tag">Portfolio Assets</span>
+        <span class="tag">Case Studies</span><span class="tag">Role Mapping</span><span class="tag">90-Day Plan</span>
+        <span class="tag">Networking</span><span class="tag">Interview Storytelling</span>
+      </div>
+      <p style="color:var(--text-muted)">The capstone was never the finish line &mdash; it's the evidence bank for the next twelve months of your career.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
