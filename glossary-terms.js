@@ -601,7 +601,7 @@ const GLOSSARY_TERMS = [
   {t:"allowedTools", d:"Options list of tools to auto-approve. Unlisted tools remain available and fall through to permissionMode and canUseTool. Use disallowedTools or the tools list to actually remove capabilities.", tags:["Agent SDK"]},
   {t:"Permission Mode", d:"Agent SDK setting (<code>permissionMode</code>) controlling tool approval: default, acceptEdits, plan, dontAsk, auto, or bypassPermissions. TypeScript bypass also requires <code>allowDangerouslySkipPermissions</code>.", tags:["Agent SDK"]},
   {t:"ResultMessage", d:"Final stream event when the agent loop ends. Check <code>subtype</code> (success, error_max_turns, error_max_budget_usd, error_during_execution) before reading result text. Always includes session_id, cost, and usage when present.", tags:["Agent SDK"]},
-  {t:"stream-json", d:"Newline-delimited JSON protocol the Claude Code CLI emits with <code>--output-format stream-json</code>. The JS Agent SDK and C# CLI wrappers parse this stream. Pair with <code>-p</code> / <code>--print</code> for one-shot runs.", tags:["Agent SDK","C#"]},
+  {t:"stream-json", d:"Newline-delimited JSON protocol the Claude Code CLI emits with <code>--output-format stream-json</code>. The JS Agent SDK consumes it internally; C# reads the same lines from a <code>claude -p</code> process. Pair with <code>-p</code> / <code>--print</code> for one-shot runs.", tags:["Agent SDK","C#"]},
 ];
 
 (function() {

@@ -221,13 +221,13 @@
   <div class="slide">
     <h2 class="animate">JS is first-class; C# drives the same CLI</h2>
     <div class="content animate">
-      <p style="margin-bottom:16px">Anthropic's Agent SDK is a library for TypeScript/JavaScript and Python only. For C#, the documented path is to run the CLI with <code>-p</code> and JSON output. Community packages wrap that protocol with a <code>QueryAsync</code> API that mirrors JS.</p>
+      <p style="margin-bottom:16px">Anthropic's Agent SDK is a library for TypeScript/JavaScript and Python only. For C#, the documented path is to run the CLI with <code>-p</code> and JSON output &mdash; the same agent loop, no third-party wrapper.</p>
       <table>
         <thead><tr><th>Language</th><th>Package</th><th>How the loop runs</th></tr></thead>
         <tbody>
           <tr><td>JavaScript / TypeScript</td><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>Official. <code>query()</code> spawns bundled Claude Code and streams <code>SDKMessage</code>.</td></tr>
           <tr><td>Python</td><td><code>claude-agent-sdk</code></td><td>Official. Same loop; <code>ClaudeAgentOptions</code>.</td></tr>
-          <tr><td>C#</td><td>CLI + <code>Process</code>, or community <code>ClaudeAgentSdk.DotNet</code></td><td>Same <code>claude -p --output-format stream-json</code> protocol. Not an Anthropic-published NuGet Agent SDK.</td></tr>
+          <tr><td>C#</td><td>CLI + <code>System.Diagnostics.Process</code></td><td>Official path: <code>claude -p --output-format stream-json</code>. Parse NDJSON on stdout.</td></tr>
           <tr><td>C# Messages API</td><td><code>Anthropic</code> (official)</td><td>Chat completions only. You would own the tool loop &mdash; that is <em>not</em> the Agent SDK.</td></tr>
         </tbody>
       </table>
@@ -250,11 +250,10 @@ export ANTHROPIC_API_KEY=sk-ant-xxxxx</pre>
       </div>
       <div class="card">
         <h3>C#</h3>
-        <pre style="font-size:0.8rem"># CLI on PATH (required for C#)
+        <pre style="font-size:0.8rem"># Claude Code CLI on PATH
 npm install -g @anthropic-ai/claude-code
 
-dotnet add package ClaudeAgentSdk.DotNet
-# or spawn `claude` yourself
+# no Agent SDK NuGet — spawn `claude`
 
 export ANTHROPIC_API_KEY=sk-ant-xxxxx</pre>
         <p style="margin-top:10px;font-size:1.05rem">Also: Bedrock <code>CLAUDE_CODE_USE_BEDROCK=1</code>, Vertex <code>CLAUDE_CODE_USE_VERTEX=1</code>, Foundry <code>CLAUDE_CODE_USE_FOUNDRY=1</code>. Use API keys for products you ship; do not proxy claude.ai login.</p>
@@ -282,24 +281,30 @@ for await (const message of query({
 }</pre>
       </div>
       <div class="card">
-        <h3>C# (community SDK)</h3>
-        <pre style="font-size:0.8rem">using ClaudeAgentSdk;
-using ClaudeAgentSdk.Messages;
-
-var options = new ClaudeClientOptions {
-  AllowedTools = ["Bash", "Glob"]
+        <h3>C# (CLI)</h3>
+        <pre style="font-size:0.8rem">var psi = new ProcessStartInfo {
+  FileName = "claude",
+  UseShellExecute = false,
+  RedirectStandardOutput = true,
+  ArgumentList = {
+    "-p", "What files are in this directory?",
+    "--output-format", "stream-json",
+    "--verbose",
+    "--allowedTools", "Bash,Glob"
+  }
 };
-
-await foreach (var message in
-    Claude.QueryAsync(
-      "What files are in this directory?",
-      options)) {
-  if (message is ResultMessage r)
-    Console.WriteLine(r.Result);
+using var proc = Process.Start(psi)!;
+string? line;
+while ((line = await proc.StandardOutput
+    .ReadLineAsync()) != null) {
+  using var doc = JsonDocument.Parse(line);
+  if (doc.RootElement.GetProperty("type")
+      .GetString() == "result")
+    Console.WriteLine(doc.RootElement);
 }</pre>
       </div>
     </div>
-    <p class="content animate" style="margin-top:16px;text-align:center;color:var(--text-muted)"><code>query()</code> / <code>QueryAsync</code> starts a <span class="highlight">fresh session</span> each call unless you pass <code>resume</code> or <code>continue</code>.</p>
+    <p class="content animate" style="margin-top:16px;text-align:center;color:var(--text-muted)"><code>query()</code> (JS) and each <code>claude -p</code> process (C#) start a <span class="highlight">fresh session</span> unless you pass <code>resume</code> / <code>--resume</code>.</p>
   </div>
 
   <!-- 6. LOOP DIAGRAM -->
@@ -352,16 +357,16 @@ await foreach (var message in
     <h2 class="animate">Message types</h2>
     <div class="content animate">
       <table>
-        <thead><tr><th>JS <code>type</code></th><th>C# type</th><th>When it fires</th></tr></thead>
+        <thead><tr><th>JS <code>type</code></th><th>C# (same JSON)</th><th>When it fires</th></tr></thead>
         <tbody>
-          <tr><td><code>system</code> (<code>init</code>)</td><td><code>SystemMessage</code></td><td>Session start: models, tools, <code>session_id</code>. Other subtypes: compact boundary, informational banners.</td></tr>
-          <tr><td><code>assistant</code></td><td><code>AssistantMessage</code></td><td>Each Claude response. Content is at <code>message.message.content</code> in TS (text + <code>tool_use</code> blocks).</td></tr>
-          <tr><td><code>user</code></td><td><code>UserMessage</code></td><td>Tool results fed back, plus any user input you stream mid-loop.</td></tr>
-          <tr><td><code>stream_event</code></td><td><code>StreamEvent</code></td><td>Only if <code>includePartialMessages</code>: token deltas and partial tool JSON.</td></tr>
-          <tr><td><code>result</code></td><td><code>ResultMessage</code></td><td>Loop ended. Check <code>subtype</code> before reading <code>result</code> text. Iterate to completion &mdash; a few system events can follow.</td></tr>
+          <tr><td><code>system</code> (<code>init</code>)</td><td><code>type == "system"</code></td><td>Session start: models, tools, <code>session_id</code>. Other subtypes: compact boundary, informational banners.</td></tr>
+          <tr><td><code>assistant</code></td><td><code>type == "assistant"</code></td><td>Each Claude response. Content is at <code>message.message.content</code> in TS (text + <code>tool_use</code> blocks).</td></tr>
+          <tr><td><code>user</code></td><td><code>type == "user"</code></td><td>Tool results fed back, plus any user input you stream mid-loop.</td></tr>
+          <tr><td><code>stream_event</code></td><td><code>type == "stream_event"</code></td><td>Only if <code>includePartialMessages</code> / CLI verbose stream: token deltas and partial tool JSON.</td></tr>
+          <tr><td><code>result</code></td><td><code>type == "result"</code></td><td>Loop ended. Check <code>subtype</code> before reading <code>result</code> text. Iterate to completion &mdash; a few system events can follow.</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:12px">In JS switch on <code>m.type</code> (and <code>subtype</code>). In C# pattern-match the message class. Assistant/user payloads nest under <code>.message.content</code>. Observability extras (rate limits, task notifications) are optional.</p>
+      <p style="margin-top:12px">In JS switch on <code>m.type</code>. In C# parse each stdout line as JSON and read <code>type</code> / <code>subtype</code>. Assistant/user payloads nest under <code>message.content</code>. Observability extras (rate limits, task notifications) are optional.</p>
     </div>
   </div>
 
@@ -482,27 +487,25 @@ await foreach (var message in
       </div>
       <div class="card">
         <h3>C#</h3>
-        <pre style="font-size:0.8rem">await foreach (var m in
-    Claude.QueryAsync("Summarize this project")) {
-  switch (m) {
-    case SystemMessage { Subtype: "init" } s:
-      Console.WriteLine(s.SessionId);
-      break;
-    case AssistantMessage a:
-      foreach (var b in a.Content)
-        if (b is ToolUseBlock t)
-          Console.WriteLine(t.Name);
-      break;
-    case UserMessage:
-      Console.WriteLine("tool result in");
-      break;
-    case StreamEvent ev:
-      Console.Write(ev.Event);
-      break;
-    case ResultMessage r:
-      Console.WriteLine($"{r.Subtype} {r.Result}");
-      break;
-  }
+        <pre style="font-size:0.8rem">using var proc = Process.Start(psi)!;
+string? line;
+while ((line = await proc.StandardOutput
+    .ReadLineAsync()) != null) {
+  using var el = JsonDocument.Parse(line);
+  var m = el.RootElement;
+  var type = m.GetProperty("type").GetString();
+  if (type == "system"
+      &amp;&amp; m.GetProperty("subtype")
+        .GetString() == "init")
+    Console.WriteLine(m.GetProperty("session_id"));
+  if (type == "assistant")
+    Console.WriteLine("assistant turn");
+  if (type == "user")
+    Console.WriteLine("tool result in");
+  if (type == "stream_event")
+    Console.Write("delta");
+  if (type == "result")
+    Console.WriteLine(m.GetProperty("subtype"));
 }</pre>
       </div>
     </div>
@@ -589,16 +592,16 @@ await foreach (var message in
     <h2 class="animate">Options: model, limits, identity</h2>
     <div class="content animate">
       <table>
-        <thead><tr><th>JS field</th><th>C# analogue</th><th>Default / notes</th></tr></thead>
+        <thead><tr><th>JS field</th><th>C# CLI flag</th><th>Default / notes</th></tr></thead>
         <tbody>
-          <tr><td><code>model</code>, <code>fallbackModel</code></td><td><code>Model</code>, fallback</td><td>CLI default if unset. Pin IDs in production.</td></tr>
-          <tr><td><code>maxTurns</code></td><td><code>MaxTurns</code></td><td>Unlimited. Tool-use round trips only.</td></tr>
-          <tr><td><code>maxBudgetUsd</code></td><td><code>MaxBudgetUsd</code></td><td>Client-side estimate vs <code>total_cost_usd</code>.</td></tr>
-          <tr><td><code>effort</code></td><td><code>Effort</code></td><td><code>low</code> | <code>medium</code> | <code>high</code> | <code>xhigh</code> | <code>max</code>. Independent of extended thinking.</td></tr>
-          <tr><td><code>thinking</code></td><td>thinking config</td><td>Default adaptive on supported models. Prefer this over deprecated <code>maxThinkingTokens</code>.</td></tr>
-          <tr><td><code>taskBudget</code></td><td>token budget</td><td>Alpha: model is told remaining tokens so it can wrap up.</td></tr>
-          <tr><td><code>abortController</code></td><td><code>CancellationToken</code></td><td>Cancel the run.</td></tr>
-          <tr><td><code>sessionId</code> / <code>title</code></td><td>same</td><td>Pin UUID or display title.</td></tr>
+          <tr><td><code>model</code>, <code>fallbackModel</code></td><td><code>--model</code>, <code>--fallback-model</code></td><td>CLI default if unset. Pin IDs in production.</td></tr>
+          <tr><td><code>maxTurns</code></td><td><code>--max-turns</code></td><td>Unlimited. Tool-use round trips only.</td></tr>
+          <tr><td><code>maxBudgetUsd</code></td><td><code>--max-budget-usd</code></td><td>Client-side estimate vs <code>total_cost_usd</code>.</td></tr>
+          <tr><td><code>effort</code></td><td><code>--effort</code></td><td><code>low</code> | <code>medium</code> | <code>high</code> | <code>xhigh</code> | <code>max</code>. Independent of extended thinking.</td></tr>
+          <tr><td><code>thinking</code></td><td><code>--thinking</code></td><td>Default adaptive on supported models. Prefer this over deprecated <code>maxThinkingTokens</code>.</td></tr>
+          <tr><td><code>taskBudget</code></td><td>(SDK / settings)</td><td>Alpha: model is told remaining tokens so it can wrap up.</td></tr>
+          <tr><td><code>abortController</code></td><td>kill the <code>Process</code></td><td>Cancel the run.</td></tr>
+          <tr><td><code>sessionId</code> / <code>title</code></td><td><code>--session-id</code> / <code>--title</code></td><td>Pin UUID or display title.</td></tr>
         </tbody>
       </table>
     </div>
@@ -680,7 +683,7 @@ canUseTool: async (name) =>
         message: "blocked" },</pre>
       </div>
       <div class="card">
-        <h3>I/O + session + C#</h3>
+        <h3>I/O + session + C# CLI</h3>
         <pre style="font-size:0.8rem">outputFormat: {
   type: "json_schema",
   schema: OrderStatusSchema
@@ -693,16 +696,15 @@ resume: sessionId,        // or continue: true
 forkSession: false,
 stderr: (line) => console.error(line)
 
-// C# (same ideas)
-new ClaudeClientOptions {
-  McpServers = { ["orders"] = orders },
-  AllowedTools = ["mcp__orders__lookup_order"],
-  IncludePartialMessages = true,
-  OutputFormat = OrderStatusContext
-    .Default.OrderStatus,
-  Hooks = { [HookEvent.PreToolUse] =
-    [HookMatcher.Create("mcp__orders__*",
-      AuditLookup)] }
+// C#: same options as CLI flags
+ArgumentList = {
+  "-p", prompt,
+  "--output-format", "stream-json",
+  "--verbose",
+  "--mcp-config", "mcp.json",
+  "--resume", sessionId,
+  "--permission-mode", "dontAsk",
+  "--max-turns", "8"
 }</pre>
       </div>
     </div>
@@ -889,27 +891,29 @@ query({
 });</pre>
       </div>
       <div class="card">
-        <h3>C#</h3>
-        <pre style="font-size:0.8rem">var tools = new SdkMcpTool[] {
-  SdkMcpTool.Create&lt;OrderId&gt;(
-    "lookup_order",
-    "Fetch an order by id",
-    Ctx.Default.OrderId,
-    (input, _) =>
-      McpToolResult.Text(db.Get(input.Id)))
-};
+        <h3>C# (stdio MCP via CLI)</h3>
+        <pre style="font-size:0.8rem">// in-process tool() is JS/Python SDK.
+// C# attaches MCP as a subprocess.
 
-var orders = McpSdkServerConfig
-  .Create("orders", tools);
+// mcp.json
+{
+  "mcpServers": {
+    "orders": {
+      "command": "dotnet",
+      "args": ["run", "--project",
+        "OrdersMcp"]
+    }
+  }
+}
 
-var options = new ClaudeClientOptions {
-  McpServers = {
-    ["orders"] = orders
-  },
-  AllowedTools =
-    orders.GetQualifiedToolNames("orders")
+ArgumentList = {
+  "-p", "Status of order 42?",
+  "--output-format", "stream-json",
+  "--mcp-config", "mcp.json",
+  "--allowedTools",
+    "mcp__orders__lookup_order"
 };</pre>
-        <p style="margin-top:8px;font-size:1.05rem">Set <code>readOnlyHint</code> so custom tools may run in parallel. Mix SDK servers with stdio/HTTP MCP in the same map.</p>
+        <p style="margin-top:8px;font-size:1.05rem">Set <code>readOnlyHint</code> on JS custom tools so they may run in parallel. Mix SDK servers with stdio/HTTP MCP in the same JS <code>mcpServers</code> map.</p>
       </div>
     </div>
   </div>
@@ -987,7 +991,7 @@ for await (const m of query({
           <li><code>forkSession: true</code> with <code>resume</code> &mdash; new ID, original intact</li>
           <li><code>listSessions</code>, <code>getSessionInfo</code>, <code>getSessionMessages</code></li>
           <li><code>renameSession</code>, <code>tagSession</code></li>
-          <li>C# <code>ClaudeClient.SendAsync</code> keeps one process for multi-turn</li>
+          <li>C#: keep stdin open with <code>--input-format stream-json</code> for multi-turn, or pass <code>--resume</code> on the next process</li>
         </ul>
       </div>
     </div>
@@ -1057,16 +1061,16 @@ await q.setModel("claude-sonnet-4-6");</pre>
     }
   }
 }</pre>
-        <p style="margin-top:8px;font-size:1.05rem">C#: <code>Claude.QueryAsync&lt;T&gt;(prompt, jsonTypeInfo)</code> derives the schema (AOT-friendly).</p>
+        <p style="margin-top:8px;font-size:1.05rem">C# CLI: pass a JSON schema via CLI structured-output flags when you need a typed object; otherwise parse the <code>result</code> line.</p>
       </div>
     </div>
   </div>
 
   <!-- 25. C# CLI -->
   <div class="slide">
-    <h2 class="animate">C# without a wrapper: the CLI</h2>
+    <h2 class="animate">C#: spawn the official CLI</h2>
     <div class="content animate">
-      <p style="margin-bottom:12px">This is the official non-TS path: same agent loop, JSON on stdout.</p>
+      <p style="margin-bottom:12px">There is no official Agent SDK NuGet. Spawn <code>claude</code> and read NDJSON &mdash; the same loop the JS SDK wraps.</p>
       <pre style="font-size:0.8rem">var psi = new ProcessStartInfo {
   FileName = "claude",
   RedirectStandardOutput = true,
@@ -1102,7 +1106,7 @@ while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
       <div class="bp-item"><span>3</span> Reserve <code>bypassPermissions</code> for disposable sandboxes. Pair with <code>sandbox</code> settings.</div>
       <div class="bp-item"><span>4</span> Pin <code>model</code>. Log <code>session_id</code>, <code>total_cost_usd</code>, and result subtype.</div>
       <div class="bp-item"><span>5</span> For servers: <code>startup()</code>, <code>sessionStore</code>, custom <code>spawnClaudeCodeProcess</code> into a VM.</div>
-      <div class="bp-item"><span>6</span> C#: treat CLI absence as a hard fail (<code>CliNotFoundException</code>). Version-align CLI with JS SDK patch.</div>
+      <div class="bp-item"><span>6</span> C#: fail fast if <code>claude</code> is missing from <code>PATH</code>. Pin the CLI version next to the JS SDK patch.</div>
     </div>
   </div>
 
@@ -1123,9 +1127,9 @@ while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
       <div class="card">
         <h3>JS vs C#</h3>
         <ul>
-          <li>Official Agent SDK = JS/Python. C# community SDKs lag events and hook coverage.</li>
+          <li>Official Agent SDK = JS/Python. C# drives the CLI; you parse <code>stream-json</code> yourself.</li>
           <li>TS <code>bypassPermissions</code> needs <code>allowDangerouslySkipPermissions</code>.</li>
-          <li>Some hook events are TS-only vs Python; C# ports a subset.</li>
+          <li>In-process <code>tool()</code> / <code>createSdkMcpServer</code> are JS/Python. C# uses stdio/HTTP MCP + <code>--mcp-config</code>.</li>
           <li>Do not confuse NuGet <code>Anthropic</code> (Messages API) with the agent harness.</li>
         </ul>
       </div>
@@ -1137,7 +1141,7 @@ while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
     <span class="logo-icon animate">&#x1F9E0;</span>
     <h2 class="animate">Course Complete!</h2>
     <div class="content animate" style="text-align:center">
-      <p>You can drive Claude Code's agent loop from JS and C#: query, options, tools, permissions, hooks, MCP, subagents, and sessions.</p>
+      <p>You can drive Claude Code's agent loop from JS with the official SDK, and from C# by spawning the CLI.</p>
       <div style="margin:20px 0">
         <span class="tag">query()</span><span class="tag">Agent loop</span><span class="tag">Options</span>
         <span class="tag">Permissions</span><span class="tag">Hooks</span><span class="tag">MCP</span>
