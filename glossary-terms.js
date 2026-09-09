@@ -607,6 +607,13 @@ const GLOSSARY_TERMS = [
   {t:"Task Graph", d:"Directed graph of package scripts such as build, test, and lint, linked by dependsOn relationships that Turborepo schedules with parallelism.", tags:["Turborepo","Monorepo"]},
   {t:"Workspace Filter", d:"Turborepo <code>--filter</code> selector that limits a run to specific packages and optionally their dependencies or dependents.", tags:["Turborepo"]},
   {t:"dependsOn ^build", d:"Turborepo dependency form meaning run <code>build</code> in upstream workspace dependencies first before this package's task.", tags:["Turborepo"]},
+  {t:"Biome", d:"Rust toolchain that formats and lints JavaScript, TypeScript, JSX, JSON, CSS, HTML, and GraphQL from one binary and one <code>biome.json</code>, replacing the usual ESLint + Prettier stack.", tags:["Biome","Linting","Formatting"]},
+  {t:"biome.json", d:"Project config for Biome (<code>biome.json</code> or <code>biome.jsonc</code>). Top-level tools are <code>formatter</code>, <code>linter</code>, and <code>assist</code>; language overrides nest under keys such as <code>javascript.formatter</code>.", tags:["Biome"]},
+  {t:"biome check", d:"Biome CLI that runs formatter, linter, and assist together. <code>--write</code> applies safe fixes; add <code>--unsafe</code> only when a behavior-changing rewrite is intended.", tags:["Biome","Linting","Formatting"]},
+  {t:"biome ci", d:"Read-only Biome command for pipelines. Same checks as <code>biome check</code> but no <code>--write</code>, with CI reporters (GitHub annotations) and <code>--changed</code> instead of <code>--staged</code>.", tags:["Biome","CI"]},
+  {t:"biome migrate", d:"CLI that ports existing ESLint (<code>migrate eslint</code>) or Prettier (<code>migrate prettier</code>) config into <code>biome.json</code>. Needs Node to load JS configs; <code>--include-inspired</code> also maps close-but-not-identical ESLint rules.", tags:["Biome","Linting","Formatting"]},
+  {t:"files.includes", d:"Biome glob list controlling which files the toolchain processes. Start with <code>**</code>, then <code>!</code> to skip lint/format and <code>!!</code> to force-ignore folders such as <code>dist/</code> from the scanner.", tags:["Biome"]},
+  {t:"Safe fix", d:"A Biome lint or assist rewrite that preserves runtime behavior. Applied by <code>--write</code> / <code>--fix</code> without <code>--unsafe</code>.", tags:["Biome","Linting"]},
 ];
 
 (function() {

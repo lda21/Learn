@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Biome Fundamentals — Lint and Format in One Toolchain</title>
+<style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style></head>
+<body>
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon">&#x1F33F;</span>
+    <h1 class="animate">Biome Fundamentals</h1>
+    <p class="subtitle animate">One Rust toolchain for lint + format &mdash; a practical mental model for JS/TS teams</p>
+    <div class="animate" style="margin-top:24px;">
+      <span class="tag">Biome</span>
+      <span class="tag">Linting</span>
+      <span class="tag">Formatting</span>
+      <span class="tag">JavaScript</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The split toolchain tax</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What you usually run</h3>
+        <ul>
+          <li>ESLint + plugins + parser + shareable configs</li>
+          <li>Prettier + ignore files + editor settings</li>
+          <li>eslint-config-prettier so they do not fight</li>
+          <li>lint-staged / CI scripts that invoke both</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What that costs</h3>
+        <ul>
+          <li>Two formatters of truth (linter style rules vs Prettier)</li>
+          <li>Slow CI on large JS/TS trees</li>
+          <li>Config drift between editor, local, and CI</li>
+          <li>Migration work every time a plugin breaks</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;">Biome&rsquo;s bet: <span class="highlight">one binary, one config, one pass</span>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Biome is</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Toolchain, not a plugin</h3>
+        <p>Formatter + linter + import assist in one Rust CLI. Install <code>@biomejs/biome</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Languages it owns</h3>
+        <p>JS, TS, JSX, TSX, JSON, CSS, GraphQL, HTML. First-class TypeScript and JSX.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Prettier-shaped output</h3>
+        <p>~97% Prettier compatibility. Defaults differ (tabs, not spaces) until you migrate or set them.</p>
+      </div>
+      <div class="metric-card">
+        <h3>ESLint-shaped rules</h3>
+        <p>Hundreds of rules from ESLint, typescript-eslint, React, a11y, Unicorn &mdash; Biome names, not plugin packages.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mental model</h2>
+    <div class="diagram animate">
+      <div class="box">Source<br><small>JS / TS / CSS / JSON</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">biome.json<br><small>one project contract</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">check<br><small>lint + format + assist</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">CI<br><small>biome ci (read-only)</small></div>
+    </div>
+    <div class="content animate" style="margin-top:12px;">
+      <ul>
+        <li><code>format</code> only rewrites style. <code>lint</code> only reports / fixes diagnostics.</li>
+        <li><code>check</code> is the daily command: format + lint + organize imports together.</li>
+        <li><code>ci</code> is <code>check</code> for pipelines: no <code>--write</code>, GitHub annotations, changed-file mode.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Biome vs ESLint + Prettier</h2>
+    <table class="animate">
+      <thead>
+        <tr><th></th><th>ESLint + Prettier</th><th>Biome</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Install surface</td><td>Core + plugins + parsers</td><td>One exact-pinned package</td></tr>
+        <tr><td>Config</td><td>eslint.config + .prettierrc + ignores</td><td><code>biome.json</code> / <code>biome.jsonc</code></td></tr>
+        <tr><td>Speed</td><td>Node + many packages</td><td>Single Rust process</td></tr>
+        <tr><td>Style vs lint</td><td>Must disable overlapping rules</td><td>Same tool owns both</td></tr>
+        <tr><td>Coverage</td><td>Huge plugin ecosystem</td><td>Built-in rules; not every plugin exists</td></tr>
+      </tbody>
+    </table>
+    <p class="animate" style="margin-top:16px;">Adopt Biome when the built-in rules cover you. Keep a leftover ESLint job only for rules Biome does not implement &mdash; do not invent custom plugins here.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Install</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Dev dependency (usual)</h3>
+        <pre style="font-size:0.8rem;">npm i -D -E @biomejs/biome
+npx @biomejs/biome init</pre>
+        <p style="margin-top:12px;"><code>-E</code> pins an <span class="highlight">exact</span> version so local, editor, and CI cannot drift.</p>
+      </div>
+      <div class="card">
+        <h3>Also available</h3>
+        <ul>
+          <li>pnpm / yarn / bun / deno equivalents</li>
+          <li>Standalone binary (no Node required)</li>
+          <li>Editor extensions talk to the same binary</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;">Zero config works. <code>init</code> writes <code>biome.json</code> so the CLI and LSP share one contract.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">biome.json basics</h2>
+    <pre class="animate">{
+  "$schema": "./node_modules/@biomejs/biome/configuration_schema.json",
+  "formatter": { "enabled": true, "indentStyle": "space", "lineWidth": 100 },
+  "linter": { "enabled": true, "rules": { "recommended": true } },
+  "assist": { "enabled": true },
+  "javascript": { "formatter": { "quoteStyle": "single" } }
+}</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <ul>
+        <li>Tools live at the top: <code>formatter</code>, <code>linter</code>, <code>assist</code>. All on by default.</li>
+        <li>Language overrides nest: <code>javascript.formatter.quoteStyle</code>, <code>json.formatter.enabled</code>.</li>
+        <li>Also valid: <code>biome.jsonc</code>, plus hidden <code>.biome.json</code> / <code>.biome.jsonc</code>.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Which files run</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>files.includes</h3>
+        <pre style="font-size:0.8rem;">{
+  "files": {
+    "includes": [
+      "**",
+      "!**/*.generated.js",
+      "!!**/dist"
+    ]
+  }
+}</pre>
+      </div>
+      <div class="card">
+        <h3>Rules of the globs</h3>
+        <ul>
+          <li>Put <code>**</code> first, then <code>!</code> exceptions</li>
+          <li><code>!</code> skips lint/format; file may still be indexed</li>
+          <li><code>!!</code> force-ignores (use for <code>dist/</code>, <code>build/</code>)</li>
+          <li><code>node_modules/</code> is ignored anyway</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">VCS integration</h2>
+    <pre class="animate">{
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true,
+    "defaultBranch": "main"
+  }
+}</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <ul>
+        <li><span class="highlight">Off by default.</span> Until you enable it, <code>.gitignore</code> is not applied.</li>
+        <li><code>useIgnoreFile</code> honors Git ignore files (including nested) and <code>.ignore</code>.</li>
+        <li><code>defaultBranch</code> is the base for <code>--changed</code> / <code>biome ci</code> incremental runs.</li>
+        <li>If <code>biome.json</code> is not at the repo root, set <code>vcs.root</code> relative to it.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Formatter knobs you actually set</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>indentStyle</h3>
+        <p>Default is <code>tab</code>. Prettier teams almost always set <code>space</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>lineWidth</h3>
+        <p>Default <code>80</code>. Override globally, then again under <code>javascript.formatter</code> if needed.</p>
+      </div>
+      <div class="metric-card">
+        <h3>javascript.formatter</h3>
+        <p><code>quoteStyle</code>, <code>semicolons</code>, <code>trailingCommas</code>, JSX quote style.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Suppressions</h3>
+        <p><code>biome-ignore format: reason</code> on a node; <code>biome-ignore-all format:</code> at file top.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Linter rules</h2>
+    <pre class="animate">{
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "suspicious": { "noDoubleEquals": "error" },
+      "style": { "noNegationElse": "off" }
+    }
+  }
+}</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <ul>
+        <li>Start with <code>recommended</code>. Tune groups: correctness, suspicious, style, complexity, a11y, nursery.</li>
+        <li>Rule IDs are <code>camelCase</code>, not ESLint <code>kebab-case</code>.</li>
+        <li>Severity: <code>error</code>, <code>warn</code>, <code>info</code>, or <code>off</code>.</li>
+        <li><code>overrides</code> (or per-path includes) for tests vs app code.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">biome check</h2>
+    <pre class="animate"># Report only
+npx @biomejs/biome check .
+
+# Apply safe format + lint + assist
+npx @biomejs/biome check --write .
+
+# Include unsafe fixes (behavior can change)
+npx @biomejs/biome check --write --unsafe .
+
+# Only files changed vs main (needs vcs)
+npx @biomejs/biome check --changed --since=main</pre>
+    <p class="animate" style="margin-top:16px;">This is the command to memorize. <code>--write</code> / <code>--fix</code> apply <span class="green">safe</span> fixes. Add <code>--unsafe</code> only when you have reviewed the rewrite.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">biome lint</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>When to use it</h3>
+        <ul>
+          <li>You want diagnostics without touching formatting</li>
+          <li>A script named <code>lint</code> in package.json</li>
+          <li>Narrowing with <code>--only</code> / <code>--skip</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Typical calls</h3>
+        <pre style="font-size:0.8rem;">npx @biomejs/biome lint .
+npx @biomejs/biome lint --write src
+npx @biomejs/biome lint \
+  --only=suspicious/noDoubleEquals</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;">Lint does not format. If a PR &ldquo;only linted&rdquo; and still fails CI format checks, you used the wrong command.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">biome format</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Rewrite</h3>
+        <pre style="font-size:0.8rem;">npx @biomejs/biome format --write
+npx @biomejs/biome format --write src</pre>
+        <p style="margin-top:12px;">No <code>--write</code> means check mode: exit non-zero if files would change.</p>
+      </div>
+      <div class="card">
+        <h3>Pipe / editor</h3>
+        <pre style="font-size:0.8rem;">echo 'let a;' | npx @biomejs/biome format \
+  --stdin-file-path=file.js</pre>
+        <p style="margin-top:12px;">Editors use the LSP / stdin path so settings follow the file type.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">package.json scripts</h2>
+    <pre class="animate">{
+  "scripts": {
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "lint": "biome lint .",
+    "format": "biome format --write .",
+    "ci": "biome ci ."
+  }
+}</pre>
+    <p class="animate" style="margin-top:16px;">Local loop: <code>check:fix</code> before commit. Pipeline: <code>ci</code>, never <code>--write</code>. Keep the binary on <code>PATH</code> via <code>node_modules/.bin</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Migrate from ESLint</h2>
+    <pre class="animate">npx @biomejs/biome migrate eslint --write
+npx @biomejs/biome migrate eslint --write --include-inspired</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <ul>
+        <li>Reads legacy <code>.eslintrc*</code> and flat <code>eslint.config.*</code> (JS/CJS/MJS). Needs Node to resolve plugins.</li>
+        <li>Ports <code>extends</code>, plugins it knows, <code>.eslintignore</code>, globals, and overrides.</li>
+        <li><span class="highlight">Overwrites</span> your current Biome lint block. Often sets <code>recommended: false</code> and lists mapped rules explicitly.</li>
+        <li><code>--include-inspired</code> also maps close-but-not-identical rules. YAML ESLint configs are not supported.</li>
+        <li>Cyclic plugin exports can crash the migrator &mdash; comment them out, migrate, restore leftovers by hand.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Migrate from Prettier</h2>
+    <pre class="animate">npx prettier --write .
+git add . && git commit -m "Last Prettier pass"
+
+npx @biomejs/biome migrate prettier --write
+npx @biomejs/biome format --write .</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <ul>
+        <li>Copies Prettier options into <code>formatter</code> + <code>javascript.formatter</code> (spaces, quotes, overrides).</li>
+        <li>Needs Node for JS Prettier configs. JSON5 / TOML / YAML Prettier files are skipped.</li>
+        <li>Commit a final Prettier pass first so the Biome diff is &ldquo;toolchain change,&rdquo; not a style war.</li>
+        <li>Enable VCS integration afterward &mdash; Prettier respected Git ignore; Biome will not until you turn it on.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CI usage</h2>
+    <pre class="animate"># .github/workflows/quality.yml
+- uses: actions/checkout@v5
+- uses: biomejs/setup-biome@v2
+  with:
+    version: latest   # better: pin the same version as package.json
+- run: biome ci .</pre>
+    <div class="two-col animate" style="margin-top:16px;">
+      <div class="card">
+        <h3>biome ci vs check</h3>
+        <ul>
+          <li>No <code>--write</code> / <code>--fix</code></li>
+          <li>GitHub annotation reporter</li>
+          <li>Uses <code>--changed</code>, not <code>--staged</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Watch-outs</h3>
+        <ul>
+          <li>If config <code>extends</code> a package, run <code>npm ci</code> first</li>
+          <li>Pin CLI version to the lockfile</li>
+          <li>GitLab: <code>--reporter=gitlab</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Common pitfalls</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Tabs vs spaces &mdash; Biome defaults to tabs; Prettier teams get a noisy first format unless they migrate or set <code>indentStyle</code>.</div>
+      <div class="bp-item"><span>2</span> <code>vcs.enabled</code> is false &mdash; CI lints files your old ESLint/Prettier stack ignored via <code>.gitignore</code>.</div>
+      <div class="bp-item"><span>3</span> Negated globs without <code>**</code> first match nothing. Use <code>!!</code> for output folders.</div>
+      <div class="bp-item"><span>4</span> <code>migrate eslint</code> disables <code>recommended</code> and dumps explicit rules. Read the file before you commit it.</div>
+      <div class="bp-item"><span>5</span> <code>--write</code> is safe-only. <code>--unsafe</code> can change runtime behavior. Never use it as a silent CI auto-fix.</div>
+      <div class="bp-item"><span>6</span> Editor, lockfile, and <code>setup-biome</code> on different versions produce &ldquo;works on my machine&rdquo; diagnostics.</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Practical checklist</h2>
+    <div class="content animate">
+      <ul>
+        <li>Pin <code>@biomejs/biome</code> with <code>-E</code> and point the editor at that binary</li>
+        <li><code>biome init</code>, then migrate Prettier, then ESLint (or start from <code>recommended</code> on a greenfield)</li>
+        <li>Turn on <code>vcs</code> + force-ignore <code>dist/</code> / <code>build/</code> / <code>.next</code></li>
+        <li>Scripts: <code>check --write</code> locally, <code>biome ci .</code> in GitHub Actions</li>
+        <li>One last Prettier/ESLint commit, then remove their packages and leftover ignore files</li>
+        <li>Do not write custom linter plugins in this workflow &mdash; stay on shipped rules</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <p class="subtitle animate">You can install Biome, own biome.json, run check/lint/format, migrate off ESLint/Prettier, and gate CI with biome ci.</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">biome.json</span>
+      <span class="tag">check</span>
+      <span class="tag">lint</span>
+      <span class="tag">format</span>
+      <span class="tag">migrate</span>
+      <span class="tag">biome ci</span>
+    </div>
+    <p class="animate" style="margin-top:36px;"><a href="index.html" style="color:var(--accent);font-weight:600;font-size:1.2rem;">&#8592; Back to courses</a></p>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 21</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
