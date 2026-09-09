@@ -361,7 +361,96 @@ await foreach (var message in
           <tr><td><code>result</code></td><td><code>ResultMessage</code></td><td>Loop ended. Check <code>subtype</code> before reading <code>result</code> text. Iterate to completion &mdash; a few system events can follow.</td></tr>
         </tbody>
       </table>
-      <p style="margin-top:12px">Observability extras (rate limits, task notifications) exist but are not required to drive the loop.</p>
+      <p style="margin-top:12px">In JS switch on <code>m.type</code> (and <code>subtype</code>). In C# pattern-match the message class. Assistant/user payloads nest under <code>.message.content</code>. Observability extras (rate limits, task notifications) are optional.</p>
+    </div>
+  </div>
+
+  <!-- 8b. MESSAGE TYPE EXAMPLES -->
+  <div class="slide">
+    <h2 class="animate">Message type examples</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3><code>system</code> / init</h3>
+        <pre style="font-size:0.8rem">{
+  "type": "system",
+  "subtype": "init",
+  "session_id": "a1b2c3d4-...",
+  "model": "claude-sonnet-4-6",
+  "cwd": "/repo",
+  "permissionMode": "default",
+  "tools": ["Read", "Grep", "Bash"],
+  "mcp_servers": [
+    { "name": "docs", "status": "connected" }
+  ]
+}</pre>
+      </div>
+      <div class="card">
+        <h3><code>assistant</code> (tool call)</h3>
+        <pre style="font-size:0.8rem">{
+  "type": "assistant",
+  "session_id": "a1b2c3d4-...",
+  "parent_tool_use_id": null,
+  "message": {
+    "role": "assistant",
+    "content": [
+      { "type": "text",
+        "text": "I'll search for pending items." },
+      { "type": "tool_use",
+        "id": "toolu_01",
+        "name": "Grep",
+        "input": { "pattern": "pending",
+          "path": "src" } }
+    ]
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 8c. MORE MESSAGE EXAMPLES -->
+  <div class="slide">
+    <h2 class="animate">User, stream, and result examples</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3><code>user</code> (tool result)</h3>
+        <pre style="font-size:0.8rem">{
+  "type": "user",
+  "session_id": "a1b2c3d4-...",
+  "parent_tool_use_id": null,
+  "message": {
+    "role": "user",
+    "content": [{
+      "type": "tool_result",
+      "tool_use_id": "toolu_01",
+      "content": "src/auth.ts:42: // pending"
+    }]
+  }
+}</pre>
+        <p style="margin-top:8px;font-size:1.05rem">Mid-loop user prompts you stream look the same with <code>role: "user"</code> and text blocks instead of <code>tool_result</code>.</p>
+      </div>
+      <div class="card">
+        <h3><code>stream_event</code> + <code>result</code></h3>
+        <pre style="font-size:0.8rem">{
+  "type": "stream_event",
+  "session_id": "a1b2c3d4-...",
+  "event": {
+    "type": "content_block_delta",
+    "index": 0,
+    "delta": { "type": "text_delta",
+      "text": "Fixed " }
+  }
+}
+
+{
+  "type": "result",
+  "subtype": "success",
+  "session_id": "a1b2c3d4-...",
+  "num_turns": 4,
+  "stop_reason": "end_turn",
+  "total_cost_usd": 0.0312,
+  "result": "Fixed the auth bug."
+}</pre>
+      </div>
     </div>
   </div>
 
@@ -371,42 +460,49 @@ await foreach (var message in
     <div class="two-col animate">
       <div class="card">
         <h3>TypeScript</h3>
-        <pre style="font-size:0.8rem">try {
-  for await (const m of query({
-    prompt: "Summarize this project"
-  })) {
-    if (m.type === "assistant") {
-      console.log(m.message.content.length);
+        <pre style="font-size:0.8rem">for await (const m of query({
+  prompt: "Summarize this project",
+  options: { includePartialMessages: true }
+})) {
+  if (m.type === "system" &amp;&amp; m.subtype === "init")
+    console.log("session", m.session_id);
+  if (m.type === "assistant")
+    for (const b of m.message.content) {
+      if (b.type === "tool_use")
+        console.log("call", b.name);
     }
-    if (m.type === "result") {
-      if (m.subtype === "success")
-        console.log(m.result);
-      else
-        console.log("Stopped:", m.subtype);
-    }
-  }
-} catch (e) {
-  // single-shot query() throws after
-  // yielding an error result
+  if (m.type === "user")
+    console.log("tool result in");
+  if (m.type === "stream_event")
+    process.stdout.write(
+      m.event.delta?.text ?? "");
+  if (m.type === "result")
+    console.log(m.subtype, m.result);
 }</pre>
       </div>
       <div class="card">
         <h3>C#</h3>
-        <pre style="font-size:0.8rem">try {
-  await foreach (var m in
-      Claude.QueryAsync("Summarize this project")) {
-    switch (m) {
-      case AssistantMessage a:
-        Console.WriteLine(a.Content.Count);
-        break;
-      case ResultMessage r:
-        Console.WriteLine(r.Subtype);
-        Console.WriteLine(r.Result);
-        break;
-    }
+        <pre style="font-size:0.8rem">await foreach (var m in
+    Claude.QueryAsync("Summarize this project")) {
+  switch (m) {
+    case SystemMessage { Subtype: "init" } s:
+      Console.WriteLine(s.SessionId);
+      break;
+    case AssistantMessage a:
+      foreach (var b in a.Content)
+        if (b is ToolUseBlock t)
+          Console.WriteLine(t.Name);
+      break;
+    case UserMessage:
+      Console.WriteLine("tool result in");
+      break;
+    case StreamEvent ev:
+      Console.Write(ev.Event);
+      break;
+    case ResultMessage r:
+      Console.WriteLine($"{r.Subtype} {r.Result}");
+      break;
   }
-} catch (CliNotFoundException) {
-  /* install claude CLI */
 }</pre>
       </div>
     </div>
@@ -916,7 +1012,7 @@ while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 28</div>
+<div class="slide-counter" id="counter">1 / 30</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
