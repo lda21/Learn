@@ -602,6 +602,11 @@ const GLOSSARY_TERMS = [
   {t:"Permission Mode", d:"Agent SDK setting (<code>permissionMode</code>) controlling tool approval: default, acceptEdits, plan, dontAsk, auto, or bypassPermissions. TypeScript bypass also requires <code>allowDangerouslySkipPermissions</code>.", tags:["Agent SDK"]},
   {t:"ResultMessage", d:"Final stream event when the agent loop ends. Check <code>subtype</code> (success, error_max_turns, error_max_budget_usd, error_during_execution) before reading result text. Always includes session_id, cost, and usage when present.", tags:["Agent SDK"]},
   {t:"stream-json", d:"Newline-delimited JSON protocol the Claude Code CLI emits with <code>--output-format stream-json</code>. The JS Agent SDK consumes it internally; C# reads the same lines from a <code>claude -p</code> process. Pair with <code>-p</code> / <code>--print</code> for one-shot runs.", tags:["Agent SDK","C#"]},
+  {t:"Turborepo", d:"High-performance build system for JavaScript/TypeScript monorepos that schedules package scripts using a task graph and caches outputs locally and remotely.", tags:["Turborepo","Monorepo"]},
+  {t:"Remote Cache", d:"Shared Turborepo cache (for example Vercel Remote Cache) so CI runners and teammates reuse build, test, and lint artifacts across machines.", tags:["Turborepo","CI"]},
+  {t:"Task Graph", d:"Directed graph of package scripts such as build, test, and lint, linked by dependsOn relationships that Turborepo schedules with parallelism.", tags:["Turborepo","Monorepo"]},
+  {t:"Workspace Filter", d:"Turborepo <code>--filter</code> selector that limits a run to specific packages and optionally their dependencies or dependents.", tags:["Turborepo"]},
+  {t:"dependsOn ^build", d:"Turborepo dependency form meaning run <code>build</code> in upstream workspace dependencies first before this package's task.", tags:["Turborepo"]},
 ];
 
 (function() {

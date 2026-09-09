@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Turborepo — High-Performance Monorepo Builds</title>
+<style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style></head>
+<body>
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon">&#x26A1;</span>
+    <h1 class="animate">Turborepo</h1>
+    <p class="subtitle animate">High-performance build system for JavaScript/TypeScript monorepos</p>
+    <div class="animate" style="margin-top:24px;">
+      <span class="tag">Monorepo</span>
+      <span class="tag">Caching</span>
+      <span class="tag">CI</span>
+      <span class="tag">Workspaces</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why Turborepo?</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The pain</h3>
+        <ul>
+          <li>Many packages, repeated <code>build</code>/<code>test</code>/<code>lint</code></li>
+          <li>CI rebuilds everything on every PR</li>
+          <li>Unclear task graph between apps &amp; libs</li>
+          <li>Slow local feedback loops</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>The bet</h3>
+        <ul>
+          <li>Declare a <span class="highlight">task graph</span> once</li>
+          <li><span class="green">Cache</span> task outputs locally &amp; remotely</li>
+          <li>Schedule work with max parallelism</li>
+          <li>Stay compatible with npm/pnpm/yarn workspaces</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Mental model</h2>
+    <div class="diagram animate">
+      <div class="box">Workspaces<br><small>packages/*</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">turbo.json<br><small>tasks + deps</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Scheduler<br><small>parallel + cache</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Artifacts<br><small>dist, coverage…</small></div>
+    </div>
+    <div class="content animate" style="margin-top:28px;">
+      <p>Turborepo does <span class="highlight">not</span> replace your package manager. It orchestrates scripts that already exist in each package’s <code>package.json</code>.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Workspace layout</h2>
+    <pre class="animate" style="font-size:0.85rem;">apps/
+  web/          # Next.js app
+  docs/         # docs site
+packages/
+  ui/           # shared components
+  config-eslint/
+  tsconfig/
+package.json    # workspaces root
+turbo.json      # task pipeline
+pnpm-workspace.yaml</pre>
+    <p class="animate" style="margin-top:20px;color:var(--text-muted);">Root owns workspaces + Turbo. Packages own their scripts and outputs.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Root package.json scripts</h2>
+    <pre class="animate" style="font-size:0.85rem;">{
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "format": "prettier -w \"**/*.{ts,tsx,md}\""
+  },
+  "devDependencies": {
+    "turbo": "^2"
+  }
+}</pre>
+    <p class="animate" style="margin-top:16px;">Developers run <code>pnpm build</code> at the root; Turbo fans out to each package that defines <code>build</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">turbo.json — tasks</h2>
+    <pre class="animate" style="font-size:0.8rem;">{
+  "$schema": "https://turbo.build/schema.json",
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "lint": {},
+    "dev": {
+      "cache": false,
+      "persistent": true
+    }
+  }
+}</pre>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate"><code>dependsOn</code> &amp; <code>^</code></h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3><code>dependsOn: ["build"]</code></h3>
+        <p>Same package must finish its own <code>build</code> first.</p>
+      </div>
+      <div class="card">
+        <h3><code>dependsOn: ["^build"]</code></h3>
+        <p>Upstream workspace dependencies must <code>build</code> first (the caret = topological deps).</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:24px;">Rule of thumb: libraries publish/build before apps that import them.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Cache inputs &amp; outputs</h2>
+    <div class="metric-grid animate">
+      <div class="card"><h3>Hash inputs</h3><p>Source files, env vars you declare, dependency hashes, task config.</p></div>
+      <div class="card"><h3>Outputs</h3><p>Declare precisely (<code>dist/**</code>). Missed outputs = broken cache restores.</p></div>
+      <div class="card"><h3>Hit</h3><p>Skip work; restore artifacts. Log shows <span class="green">FULL TURBO</span>.</p></div>
+      <div class="card"><h3>Miss</h3><p>Run script; write new cache entry for next run / teammate / CI.</p></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Local cache</h2>
+    <div class="content animate">
+      <ul>
+        <li>Default cache lives under <code>node_modules/.cache/turbo</code> (or configured cache dir).</li>
+        <li>Same machine + same inputs ⇒ instant replay.</li>
+        <li>Great for toggling branches and re-running <code>lint</code>/<code>test</code>.</li>
+        <li>Not shared across laptops or CI runners — that’s remote cache.</li>
+      </ul>
+      <pre style="font-size:0.85rem;margin-top:20px;">pnpm exec turbo run build --force   # bypass cache
+pnpm exec turbo run build --dry     # show plan</pre>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Remote cache</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why</h3>
+        <ul>
+          <li>CI starts cold every time</li>
+          <li>Share hits across PRs &amp; teammates</li>
+          <li>Biggest wall-clock win in large repos</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How (Vercel Remote Cache)</h3>
+        <pre style="font-size:0.75rem;">npx turbo login
+npx turbo link
+# or set TURBO_TOKEN + TURBO_TEAM in CI</pre>
+        <p style="margin-top:12px;">Self-hosted / S3-compatible caches exist; out of scope for this course.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Filters</h2>
+    <pre class="animate" style="font-size:0.85rem;">turbo run build --filter=web
+turbo run test --filter=./packages/ui
+turbo run lint --filter=...@acme/ui
+turbo run build --filter=web...   # web + dependencies
+turbo run build --filter=...web   # web + dependents
+turbo run build --filter=!./apps/docs</pre>
+    <p class="animate" style="margin-top:18px;">Filters keep CI focused: changed packages + their dependents, not the entire monorepo.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CI pattern</h2>
+    <pre class="animate" style="font-size:0.8rem;"># GitHub Actions sketch
+- uses: actions/checkout@v4
+  with: { fetch-depth: 0 }
+- run: pnpm install
+- run: pnpm exec turbo run lint test build
+      --filter=...[origin/main]
+  env:
+    TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
+    TURBO_TEAM: ${{ vars.TURBO_TEAM }}</pre>
+    <div class="content animate" style="margin-top:16px;">
+      <p><code>--filter=...[origin/main]</code> builds packages changed since main <span class="highlight">and</span> their dependents.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Environment variables</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Affect the hash</h3>
+        <p>Declare under <code>env</code> / <code>passThroughEnv</code> / global env in <code>turbo.json</code> when values change outputs (e.g. <code>NEXT_PUBLIC_*</code>).</p>
+      </div>
+      <div class="card">
+        <h3>Silent bugs</h3>
+        <p>Forgot to list an env var ⇒ cache hit with the <span class="highlight">wrong</span> build. Treat env as part of the contract.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Turborepo vs Nx</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Turborepo</h3>
+        <ul>
+          <li>Thin layer over existing workspaces</li>
+          <li>Fast to adopt</li>
+          <li>Cache + task graph focus</li>
+          <li>Less codegen / project graph UI</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Nx</h3>
+        <ul>
+          <li>Richer project graph &amp; plugins</li>
+          <li>Generators, module boundaries</li>
+          <li>Steeper setup / conventions</li>
+          <li>Great when you want a platform</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;">Pick Turbo when you want speed with minimal ceremony; Nx when you want opinionated workspace tooling.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Common pitfalls</h2>
+    <div class="bp-grid animate">
+      <div class="card"><h3>1. Missing outputs</h3><p>Cache “hits” but <code>dist/</code> empty in CI → declare outputs correctly.</p></div>
+      <div class="card"><h3>2. Non-deterministic tasks</h3><p>Timestamps / random IDs in build output poison the cache.</p></div>
+      <div class="card"><h3>3. Caching <code>dev</code></h3><p>Keep <code>dev</code> with <code>cache: false</code> + <code>persistent: true</code>.</p></div>
+      <div class="card"><h3>4. Ignoring <code>^build</code></h3><p>Apps compile against stale lib sources → flaky types.</p></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Practical checklist</h2>
+    <div class="content animate">
+      <ul>
+        <li>Workspaces compile in isolation with clear package boundaries</li>
+        <li>Every cacheable task lists accurate <code>outputs</code></li>
+        <li><code>^build</code> wired for anything that imports workspace packages</li>
+        <li>Remote cache token present in CI</li>
+        <li>Filtered pipelines on PRs; full pipeline on main</li>
+        <li><code>--dry</code> reviewed when onboarding a new package</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <p class="subtitle animate">You can define a task graph, cache it, filter it, and run it in CI.</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">workspaces</span>
+      <span class="tag">turbo.json</span>
+      <span class="tag">dependsOn</span>
+      <span class="tag">remote cache</span>
+      <span class="tag">filters</span>
+    </div>
+    <p class="animate" style="margin-top:36px;"><a href="index.html" style="color:var(--accent);font-weight:600;font-size:1.2rem;">&#8592; Back to courses</a></p>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 18</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
