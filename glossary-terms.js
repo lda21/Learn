@@ -614,6 +614,14 @@ const GLOSSARY_TERMS = [
   {t:"biome migrate", d:"CLI that ports existing ESLint (<code>migrate eslint</code>) or Prettier (<code>migrate prettier</code>) config into <code>biome.json</code>. Needs Node to load JS configs; <code>--include-inspired</code> also maps close-but-not-identical ESLint rules.", tags:["Biome","Linting","Formatting"]},
   {t:"files.includes", d:"Biome glob list controlling which files the toolchain processes. Start with <code>**</code>, then <code>!</code> to skip lint/format and <code>!!</code> to force-ignore folders such as <code>dist/</code> from the scanner.", tags:["Biome"]},
   {t:"Safe fix", d:"A Biome lint or assist rewrite that preserves runtime behavior. Applied by <code>--write</code> / <code>--fix</code> without <code>--unsafe</code>.", tags:["Biome","Linting"]},
+  {t:"Oxc", d:"The JavaScript Oxidation Compiler &mdash; a Rust suite (parser, linter, transformer, minifier, resolver, formatter) sharing one AST. Part of VoidZero's toolchain; powers Rolldown / Vite 8.", tags:["Oxc","Toolchain"]},
+  {t:"Oxlint", d:"Oxc's JS/TS linter CLI. Stable 1.x, 865+ native rules, ESLint-shaped config. ~50&ndash;100&times; faster than ESLint. Install with <code>pnpm add -D oxlint</code>.", tags:["Oxc","Oxlint"]},
+  {t:"oxc_parser", d:"Oxc's Rust JS/TS/JSX parser crate. npm binding <code>oxc-parser</code> exposes <code>parseSync</code>. ESTree / TS-ESTree output; production-grade.", tags:["Oxc","Toolchain"]},
+  {t:"oxc_transformer", d:"Oxc crate that strips TypeScript, transforms JSX, and lowers modern JS. npm: <code>oxc-transform</code>. Also emits Isolated Declarations <code>.d.ts</code>.", tags:["Oxc","Toolchain"]},
+  {t:"oxc_minifier", d:"Oxc compression crate (dead-code, mangling, whitespace). npm: <code>oxc-minify</code>. Default minifier in Rolldown. Assumes semantically valid input.", tags:["Oxc","Toolchain"]},
+  {t:".oxlintrc.json", d:"Oxlint project config (JSON/JSONC). Categories, rules, plugins, overrides, ignorePatterns. Auto-discovered; <code>oxlint --init</code> scaffolds it. Alternative: <code>oxlint.config.ts</code>.", tags:["Oxc","Oxlint"]},
+  {t:"@oxlint/migrate", d:"CLI that converts an ESLint flat config into <code>.oxlintrc.json</code>, preserving severities, overrides, and globals. Legacy <code>.eslintrc</code> needs a flat-config step first.", tags:["Oxc","Oxlint"]},
+  {t:"eslint-plugin-oxlint", d:"ESLint plugin that disables rules Oxlint already covers so you can run both linters during an incremental migration.", tags:["Oxc","Oxlint"]},
 ];
 
 (function() {

@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Oxc Fundamentals — The JavaScript Oxidation Compiler</title>
+<style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style></head>
+<body>
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon">&#x1F980;</span>
+    <h1 class="animate">Oxc Fundamentals</h1>
+    <p class="subtitle animate">The Rust-based JS/TS compiler toolkit &mdash; parser, linter, transformer, minifier</p>
+    <div class="animate" style="margin-top:24px;">
+      <span class="tag">Oxc</span>
+      <span class="tag">Oxlint</span>
+      <span class="tag">Toolchain</span>
+      <span class="tag">JavaScript</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The toolchain tax</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Today's stack</h3>
+        <ul>
+          <li>ESLint walks a JS AST, plugin by plugin</li>
+          <li>Babel / SWC / <code>tsc</code> each re-parse for transforms</li>
+          <li>Terser or esbuild minify yet another tree</li>
+          <li>Prettier or Biome format from a fourth parse</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>What that costs</h3>
+        <ul>
+          <li>CI minutes grow with every rule and package</li>
+          <li>Behavior drifts between tools that never share an AST</li>
+          <li>Monorepos wait on a single-threaded JS linter</li>
+          <li>Toolchain teams maintain four parsers, four bugs</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:28px;max-width:900px;text-align:center;color:var(--text-muted);">Oxc's bet: one Rust compiler foundation, many tools, one parse.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What Oxc is</h2>
+    <div class="content animate">
+      <p style="margin-bottom:20px;"><span class="highlight">Oxc</span> (pronounced /oʊ ɛks siː/) is the <span class="highlight">Oxidation Compiler</span> &mdash; a suite of high-performance JavaScript and TypeScript tools written in Rust. Oxidation is the chemical process that creates rust.</p>
+    </div>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>A suite, not a single binary</h3>
+        <p>End-user tools (Oxlint, Oxfmt) plus reusable compiler crates you can embed.</p>
+      </div>
+      <div class="metric-card">
+        <h3>VoidZero's toolchain</h3>
+        <p>Oxc powers Rolldown, Vite 8's bundler, so transform and minify already ship in production builds.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Performance is a feature</h3>
+        <p>Speed is a product requirement. Performance regressions are treated as bugs.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Compatibility on purpose</h3>
+        <p>When Oxc differs from ESLint, Babel, or TypeScript, the difference should be documented &mdash; not accidental.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">One parse, many tools</h2>
+    <p class="animate subtitle" style="margin-bottom:16px;">Shared parser + AST so the linter, transformer, and minifier never re-parse independently</p>
+    <div class="diagram animate">
+      <div class="box">Source<br><small>JS / TS / JSX</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">oxc_parser<br><small>+ allocator</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Shared AST<br><small>oxc_ast</small></div>
+    </div>
+    <div class="diagram animate">
+      <div class="box">oxc_linter<br><small>Oxlint</small></div>
+      <div class="box">oxc_transformer<br><small>TS / JSX / lower</small></div>
+      <div class="box">oxc_minifier<br><small>compress</small></div>
+    </div>
+    <p class="animate" style="max-width:900px;text-align:center;margin-top:8px;color:var(--text-muted);">Foundation crates (<code>oxc_allocator</code>, <code>oxc_span</code>, <code>oxc_semantic</code>) sit under every pass. You consume the same engine from Rust crates or NAPI packages.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Where Oxc sits</h2>
+    <div class="content animate" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th></th><th>Oxc</th><th>Biome</th><th>SWC</th><th>ESLint</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Role</td><td>Compiler toolkit</td><td>Integrated lint + format</td><td>Transform / minify</td><td>JS plugin linter</td></tr>
+          <tr><td>Lint</td><td>Oxlint, ESLint-shaped</td><td>Own ruleset</td><td>&mdash;</td><td>Plugin ecosystem</td></tr>
+          <tr><td>Format</td><td>Oxfmt (beta)</td><td>First-class</td><td>&mdash;</td><td>Prettier (separate)</td></tr>
+          <tr><td>Transform</td><td>oxc-transform</td><td>Limited</td><td>Core job</td><td>&mdash;</td></tr>
+          <tr><td>Minify</td><td>oxc-minify</td><td>&mdash;</td><td>Core job</td><td>&mdash;</td></tr>
+          <tr><td>Type-aware lint</td><td>tsgo (TS 7)</td><td>Own inference</td><td>&mdash;</td><td>typescript-eslint</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="animate" style="max-width:900px;margin-top:20px;text-align:center;">Pick <span class="highlight">Oxlint</span> for a dedicated fast linter with an ESLint migration path. Pick <span class="highlight">Biome</span> for an all-in-one lint+format product. Pick <span class="highlight">SWC</span> when you only need Rust transpile/minify today. Stay on <span class="highlight">ESLint</span> when a custom JS plugin is the product.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Core crates</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3><code>oxc_parser</code></h3>
+        <p>JS/TS/JSX parser. npm: <code>oxc-parser</code>. Production-grade; Test262 stage 4.</p>
+      </div>
+      <div class="metric-card">
+        <h3><code>oxc_linter</code></h3>
+        <p>ESLint-compatible engine. The <code>oxlint</code> CLI is the app on top.</p>
+      </div>
+      <div class="metric-card">
+        <h3><code>oxc_transformer</code></h3>
+        <p>TS strip, JSX, syntax lowering, isolated <code>.d.ts</code>. npm: <code>oxc-transform</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3><code>oxc_minifier</code></h3>
+        <p>Dead-code, mangling, whitespace. npm: <code>oxc-minify</code>. Default in Rolldown.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:24px;max-width:900px;text-align:center;color:var(--text-muted);">The umbrella crate <code>oxc</code> re-exports them. Tool authors also reach for <code>oxc_resolver</code> and <code>oxc_codegen</code>; this course stays on the four the Brief names.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Parser</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What you get</h3>
+        <ul>
+          <li>~3&times; SWC parser, ~5&times; Biome on published benches</li>
+          <li>ESTree for JS/JSX; TS-ESTree for TypeScript</li>
+          <li>ESM metadata without a second walk</li>
+          <li>Fast mode skips semantic errors (default)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Node API</h3>
+        <pre style="font-size:0.8rem;max-width:100%;">import { parseSync } from "oxc-parser";
+
+const { program, errors, module } =
+  parseSync("app.tsx", source);
+
+// language from the filename
+// or set lang: "tsx"</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;max-width:900px;text-align:center;">Use <code>showSemanticErrors: true</code> when you need duplicate-binding checks. Leave fast mode on inside a bundler that already type-checks elsewhere.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Transformer</h2>
+    <div class="content animate">
+      <p style="margin-bottom:16px;">Rewrites unsupported syntax for a target runtime. Passes run in a <span class="highlight">fixed order</span>, not the order you list options.</p>
+    </div>
+    <div class="diagram animate">
+      <div class="box">TS strip</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">JSX</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Lower<br><small>ES2015+</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Define / inject</div>
+    </div>
+    <div class="card animate" style="max-width:900px;width:100%;margin-top:8px;">
+      <pre style="font-size:0.8rem;max-width:100%;">import { transformSync } from "oxc-transform";
+
+const { code, declaration, errors } = transformSync(
+  "lib.ts",
+  source,
+  { typescript: { declaration: true } }
+);</pre>
+      <p style="margin-top:12px;font-size:1.1rem;">Also emits Isolated Declarations <code>.d.ts</code> without <code>tsc</code>. React Refresh, styled-components, and a small plugin set exist &mdash; writing custom Oxc plugins is out of scope here.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Minifier</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What it does</h3>
+        <ul>
+          <li>Dead-code elimination</li>
+          <li>Syntax shortening + whitespace drop</li>
+          <li>Name mangling (and selected properties)</li>
+          <li>Fixed-point passes until nothing shrinks</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>How you consume it</h3>
+        <pre style="font-size:0.8rem;max-width:100%;">import { minifySync } from "oxc-minify";
+
+const { code } = minifySync(
+  "app.js",
+  source
+);</pre>
+        <p style="margin-top:12px;">Rolldown uses <code>oxc-minify</code> by default &mdash; no extra install in a Vite 8 / Rolldown app.</p>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:24px;max-width:900px;text-align:center;">It assumes the input is already semantically valid and parses in fast mode. Do not treat minify as your type-check or lint step.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Oxlint is the product most teams touch</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Why it exists</h3>
+        <p>A dedicated JS/TS linter on the Oxc stack. Convention over config: correctness rules are on by default, no plugin install for the common set.</p>
+      </div>
+      <div class="card">
+        <h3>Coverage</h3>
+        <p>865+ built-in rules spanning ESLint core, TypeScript (including type-aware), React, Jest, Vitest, import, Unicorn, jsx-a11y, Next.js.</p>
+      </div>
+    </div>
+    <div class="bp-grid animate" style="margin-top:20px;">
+      <div class="bp-item"><span>1</span> Native Rust plugins &mdash; no giant JS dep tree</div>
+      <div class="bp-item"><span>2</span> Automatic fixes via <code>--fix</code></div>
+      <div class="bp-item"><span>3</span> Framework files: lints <code>&lt;script&gt;</code> in Vue / Svelte / Astro</div>
+      <div class="bp-item"><span>4</span> JS plugins exist but are <span class="highlight">alpha</span></div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">CLI basics</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Install and scripts</h3>
+        <pre style="font-size:0.8rem;max-width:100%;">pnpm add -D oxlint
+
+# package.json
+"lint": "oxlint",
+"lint:fix": "oxlint --fix"</pre>
+      </div>
+      <div class="card">
+        <h3>Everyday flags</h3>
+        <pre style="font-size:0.8rem;max-width:100%;">npx oxlint@latest
+oxlint --init
+oxlint -c .oxlintrc.json
+oxlint --type-aware
+oxlint -D correctness -W suspicious
+oxlint -D no-alert -A no-plusplus</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;max-width:900px;text-align:center;"><code>-A</code> allow, <code>-W</code> warn, <code>-D</code> deny. Flags apply left to right and <span class="highlight">override</span> the config file. Zero config is valid: <code>npx oxlint</code> already runs correctness checks.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Configuration</h2>
+    <div class="card animate" style="max-width:900px;width:100%;">
+      <pre style="font-size:0.8rem;max-width:100%;">{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": { "correctness": "error", "suspicious": "warn" },
+  "rules": {
+    "no-console": "error",
+    "eslint/prefer-const": ["error", { "destructuring": "any" }]
+  },
+  "overrides": [
+    { "files": ["scripts/*.js"], "rules": { "no-console": "off" } }
+  ]
+}</pre>
+    </div>
+    <p class="animate" style="margin-top:18px;max-width:900px;text-align:center;">Auto-discovers <code>.oxlintrc.json</code> / <code>.oxlintrc.jsonc</code> / <code>oxlint.config.ts</code>. JSON aims at ESLint v8 <code>eslintrc</code> shape. One config file per directory. <code>oxlint.config.ts</code> needs the Node package, not a standalone binary.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Categories, plugins, ignores</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Categories</h3>
+        <ul>
+          <li><code>correctness</code> &mdash; default on</li>
+          <li><code>suspicious</code> / <code>pedantic</code></li>
+          <li><code>perf</code>, <code>style</code>, <code>restriction</code></li>
+          <li><code>nursery</code> &mdash; unstable, may change</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Plugins &amp; ignores</h3>
+        <ul>
+          <li><code>plugins: ["unicorn","typescript"]</code> <span class="highlight">replaces</span> the default set</li>
+          <li>Respects <code>.gitignore</code> and leftover <code>.eslintignore</code></li>
+          <li>Prefer <code>ignorePatterns</code> in the Oxlint config</li>
+          <li>Inline comments work; migrate them with <code>@oxlint/migrate</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Type-aware and multi-file</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Type-aware lint</h3>
+        <p>Oxlint uses <span class="highlight">tsgo</span> (the Go port of TypeScript, a.k.a. TypeScript 7) so floating-promise and similar rules see real TS types.</p>
+        <pre style="font-size:0.8rem;max-width:100%;margin-top:12px;">oxlint --type-aware
+# or options.typeAware: true</pre>
+        <p style="margin-top:8px;"><code>options.typeCheck</code> is still experimental. Install <code>oxlint-tsgolint</code> when the docs for your oxlint version require it.</p>
+      </div>
+      <div class="card">
+        <h3>Multi-file analysis</h3>
+        <p>Builds a project-wide module graph and shares parse/resolve across rules. This is how import-cycle checks stay cheap instead of becoming ESLint's classic CI cliff.</p>
+        <p style="margin-top:12px;">Biome's type-aware path uses its own inference and still lists coverage as improving &mdash; different trade-off, not a drop-in.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Migrate from ESLint</h2>
+    <div class="content animate">
+      <pre style="font-size:0.8rem;">npx @oxlint/migrate
+# optional path to eslint.config.js / .mjs</pre>
+    </div>
+    <div class="bp-grid animate" style="margin-top:20px;">
+      <div class="bp-item"><span>1</span> Reads ESLint <span class="highlight">flat</span> config (v9/v10)</div>
+      <div class="bp-item"><span>2</span> Writes <code>.oxlintrc.json</code> with severities + overrides</div>
+      <div class="bp-item"><span>3</span> Maps <code>globals</code> to Oxlint <code>env</code> / <code>globals</code></div>
+      <div class="bp-item"><span>4</span> Keeps root ignores; <code>--details</code> lists leftovers</div>
+    </div>
+    <p class="animate" style="margin-top:20px;max-width:900px;text-align:center;">Legacy <code>.eslintrc.*</code> is not auto-migrated. Convert to flat with <code>@eslint/migrate-config</code> first, or translate simple eslintrc by hand &mdash; the JSON shape is close. Pin <code>oxlint</code> and <code>@oxlint/migrate</code> to the <span class="green">same version</span>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Two adoption paths</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Replace (most repos)</h3>
+        <ul>
+          <li>Run <code>@oxlint/migrate</code></li>
+          <li>Swap CI from <code>eslint</code> to <code>oxlint</code></li>
+          <li>Keep Prettier or trial Oxfmt separately</li>
+          <li>Drop unused ESLint plugins from <code>package.json</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Incremental (large / plugin-heavy)</h3>
+        <ul>
+          <li>Oxlint first in CI for the fast pass</li>
+          <li><code>eslint-plugin-oxlint</code> turns off overlapping ESLint rules</li>
+          <li>ESLint keeps the remaining JS plugins</li>
+          <li>Shrink the ESLint set as native coverage grows</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:24px;max-width:900px;text-align:center;">Stay on ESLint alone only when you depend on unsupported edge-case plugin behavior. JS plugins in Oxlint are alpha and <span class="highlight">not semver-guaranteed</span>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Why it is fast</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>Rust + arena alloc</h3>
+        <p><code>oxc_allocator</code> bumps memory for the AST. Parse once; later passes walk the same tree.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Parallel file walk</h3>
+        <p>Oxlint fans out across cores. Project benches: ~50&ndash;100&times; ESLint, seconds on large monorepos.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Native rules</h3>
+        <p>Common plugins are Rust, not a JS visitor per rule. No <code>@typescript-eslint</code> parser tax.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Shared resolve</h3>
+        <p>Multi-file analysis reuses the module graph. Import rules do not re-parse the repo per rule.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Maturity limits</h2>
+    <div class="content animate" style="overflow-x:auto;">
+      <table>
+        <thead>
+          <tr><th>Component</th><th>Status</th><th>Use it as</th></tr>
+        </thead>
+        <tbody>
+          <tr><td>Oxlint</td><td><span class="green">Stable 1.x</span></td><td>Primary linter, CI</td></tr>
+          <tr><td>Parser</td><td><span class="green">Production</span></td><td>Foundation under Rolldown / Vite</td></tr>
+          <tr><td>Transformer</td><td>Pre-1.0 standalone</td><td>Shipping inside Vite 8 / Rolldown</td></tr>
+          <tr><td>Minifier</td><td>Pre-1.0 standalone</td><td>Default minify in Rolldown</td></tr>
+          <tr><td>Oxfmt</td><td>Beta 0.x</td><td>Pilot beside Prettier, not a wholesale rip-out</td></tr>
+          <tr><td>JS plugins</td><td>Alpha</td><td>Escape hatch; not a plugin platform yet</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="animate" style="margin-top:20px;max-width:900px;text-align:center;">Do not write custom Oxc plugins from scratch for a first adoption. Do not assume every AST node is a public, frozen API.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">How it shows up in production</h2>
+    <div class="diagram animate">
+      <div class="box">App source</div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">oxlint<br><small>CI / editor</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">Rolldown<br><small>parse + transform</small></div>
+      <div class="arrow">&rarr;</div>
+      <div class="box">oxc-minify<br><small>prod bundle</small></div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>You already use it</h3>
+        <p>Vite 8 uses Oxc for JS transform and JS minify (CSS minify stays Lightning CSS). Rolldown 1.0 is stable. Nuxt parses with Oxc.</p>
+      </div>
+      <div class="card">
+        <h3>Direct oxlint users</h3>
+        <p>Public adopters include Preact, Shopify, ByteDance, and Shopee. Resolver users include knip and swc-node.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Pitfalls for toolchain engineers</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> <code>plugins</code> is a replace, not a merge &mdash; list the full set</div>
+      <div class="bp-item"><span>2</span> TypeScript config files need Node that can run TS (22.18+ / 24+)</div>
+      <div class="bp-item"><span>3</span> Standalone oxlint binary: use <code>.oxlintrc.json</code>, not <code>oxlint.config.ts</code></div>
+      <div class="bp-item"><span>4</span> Reserved plugin names (<code>react</code>, <code>import</code>, &hellip;) collide with JS plugins</div>
+      <div class="bp-item"><span>5</span> Minify assumptions: semantically valid input, fast parse</div>
+      <div class="bp-item"><span>6</span> Nursery rules and JS plugins will move under you</div>
+      <div class="bp-item"><span>7</span> Type-aware lint &ne; <code>tsc --noEmit</code>; keep a typecheck job</div>
+      <div class="bp-item"><span>8</span> Do not deep-custom the AST until you own the crate versions</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <p class="animate subtitle">You can place Oxc in a JS/TS toolchain and adopt Oxlint without guessing maturity</p>
+    <div class="animate" style="margin-top:28px;">
+      <span class="tag">Shared AST</span>
+      <span class="tag">oxc_parser</span>
+      <span class="tag">oxlint</span>
+      <span class="tag">oxc-transform</span>
+      <span class="tag">oxc-minify</span>
+      <span class="tag">ESLint migrate</span>
+    </div>
+    <div class="card animate" style="max-width:720px;margin-top:32px;text-align:left;">
+      <h3>Takeaways</h3>
+      <ul>
+        <li>Oxc is a Rust compiler suite; Oxlint is the stable lint product</li>
+        <li>Migrate with <code>@oxlint/migrate</code>, or run both via <code>eslint-plugin-oxlint</code></li>
+        <li>Transform/minify are production inside Rolldown; standalone CLIs are pre-1.0</li>
+      </ul>
+    </div>
+    <p class="animate" style="margin-top:36px;"><a href="index.html" class="back-link">Back to courses</a></p>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 21</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
