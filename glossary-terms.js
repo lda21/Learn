@@ -622,6 +622,14 @@ const GLOSSARY_TERMS = [
   {t:".oxlintrc.json", d:"Oxlint project config (JSON/JSONC). Categories, rules, plugins, overrides, ignorePatterns. Auto-discovered; <code>oxlint --init</code> scaffolds it. Alternative: <code>oxlint.config.ts</code>.", tags:["Oxc","Oxlint"]},
   {t:"@oxlint/migrate", d:"CLI that converts an ESLint flat config into <code>.oxlintrc.json</code>, preserving severities, overrides, and globals. Legacy <code>.eslintrc</code> needs a flat-config step first.", tags:["Oxc","Oxlint"]},
   {t:"eslint-plugin-oxlint", d:"ESLint plugin that disables rules Oxlint already covers so you can run both linters during an incremental migration.", tags:["Oxc","Oxlint"]},
+  {t:"Functional Component", d:"A JavaScript function whose name starts with a capital letter and that returns JSX (or <code>null</code>). It receives a single props object and re-runs when those props or its state change.", tags:["React"]},
+  {t:"Props", d:"The read-only inputs to a React component. The parent passes values as JSX attributes; the child destructures them. Data flows down; events flow back up via callback props.", tags:["React"]},
+  {t:"State (React)", d:"Data a component owns and that survives re-renders. Created with <code>useState</code>. Updating it (via the setter, never by mutation) asks React to render the component again.", tags:["React"]},
+  {t:"useState", d:"Core React hook that returns <code>[value, setValue]</code>. The argument is the initial value, used only on the first render. The setter replaces state; pass a function when the next value depends on the previous one.", tags:["React","Hooks"]},
+  {t:"useEffect", d:"Core React hook that runs after paint to sync with the outside world (network, DOM APIs, subscriptions, timers). The dependency array controls when it re-runs; the returned function is cleanup.", tags:["React","Hooks"]},
+  {t:"useContext", d:"Core React hook that reads the nearest matching Context Provider above the component. Used to pass theme, locale, or auth without threading props through every layer.", tags:["React","Hooks"]},
+  {t:"Key (React)", d:"A stable string or number on each item in a mapped list that tells React which item is which across renders. Prefer a data id. Index keys break when the list reorders; random keys remount every render.", tags:["React"]},
+  {t:"children (React)", d:"A special React prop containing whatever JSX was nested between a component's opening and closing tags. The main tool for composition (layouts, panels, wrappers).", tags:["React"]},
 ];
 
 (function() {

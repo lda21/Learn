@@ -1,0 +1,828 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>React Fundamentals — Components, Props, State, and Hooks</title>
+<style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .card pre { font-size: 0.8rem; max-width: 100%; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style></head>
+<body>
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon">&#x269B;</span>
+    <h1 class="animate">React Fundamentals</h1>
+    <p class="subtitle animate">Components, props, state, and the core hooks &mdash; for developers who already know JavaScript</p>
+    <div class="animate" style="margin-top:24px;">
+      <span class="tag">React</span>
+      <span class="tag">JSX</span>
+      <span class="tag">Hooks</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What React is</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>A UI library, not a framework</h3>
+        <ul>
+          <li>You write <span class="highlight">functions that return markup</span></li>
+          <li>React updates the DOM when data changes</li>
+          <li>You do not query or mutate nodes yourself</li>
+          <li>Routing, data fetching, and build tools are separate choices</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Why teams pick it</h3>
+        <ul>
+          <li>Declarative: describe the UI for the current data</li>
+          <li>Composition: small components nest into screens</li>
+          <li>One-way data: <span class="highlight">props down, events up</span></li>
+          <li>The same mental model scales from a button to an app</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:18px;max-width:900px;text-align:center;">If you can write a JavaScript function that takes data and returns HTML-shaped output, you can write React.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">UI as a function of state</h2>
+    <div class="diagram animate">
+      <div class="box">Props + State</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Component<br>function</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">JSX tree</div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">DOM</div>
+    </div>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The contract</h3>
+        <p>Given the same props and state, a component should return the same UI. React re-runs the function after state changes, diffs the result, and patches the DOM.</p>
+      </div>
+      <div class="card">
+        <h3>What you stop doing</h3>
+        <p>No <code>document.querySelector</code> to flip classes. No keeping a parallel copy of the UI in variables. Change the data; let React render the next view.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">JSX</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px;">JSX looks like HTML inside JavaScript. A bundler (or TypeScript) compiles it to function calls. It is an expression, so you can nest it in <code>return</code>, ternaries, and <code>.map()</code>.</p>
+<pre>
+function Greeting({ name }) {
+  return (
+    &lt;section className="hero"&gt;
+      &lt;h1&gt;Hello, {name}&lt;/h1&gt;
+      &lt;p&gt;Today is {new Date().toDateString()}&lt;/p&gt;
+    &lt;/section&gt;
+  );
+}
+</pre>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px;">
+      <div class="metric-card">
+        <h3>className, not class</h3>
+        <p><code>class</code> is reserved in JS. Use <code>className</code>, <code>htmlFor</code>, and camelCase style objects.</p>
+      </div>
+      <div class="metric-card">
+        <h3>One parent</h3>
+        <p>A return must be one tree. Wrap siblings in a <code>&lt;div&gt;</code> or a fragment <code>&lt;&gt;...&lt;/&gt;</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Functional components</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>A component is a function</h3>
+<pre>
+function Button({ label }) {
+  return &lt;button type="button"&gt;{label}&lt;/button&gt;;
+}
+
+export default function App() {
+  return (
+    &lt;main&gt;
+      &lt;Button label="Save" /&gt;
+    &lt;/main&gt;
+  );
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>Rules that stick</h3>
+        <ul>
+          <li>Name starts with a <span class="highlight">capital letter</span> &mdash; <code>Button</code>, not <code>button</code></li>
+          <li>Return JSX (or <code>null</code> to render nothing)</li>
+          <li>Receive one argument: a <span class="highlight">props object</span></li>
+          <li>Do not mutate props; treat them as read-only</li>
+          <li>Prefer function declarations or arrow functions &mdash; both are valid</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Props</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px;">Props are the function arguments of a component. The parent passes values; the child reads them. Data flows <span class="highlight">down</span>.</p>
+<pre>
+function UserCard({ name, role = "member", active }) {
+  return (
+    &lt;article&gt;
+      &lt;h3&gt;{name}&lt;/h3&gt;
+      &lt;p&gt;{role}{active ? " · online" : ""}&lt;/p&gt;
+    &lt;/article&gt;
+  );
+}
+
+&lt;UserCard name="Ada" role="admin" active={true} /&gt;
+</pre>
+    </div>
+    <div class="two-col animate" style="margin-top:16px;">
+      <div class="card">
+        <h3>Strings vs expressions</h3>
+        <p><code>name="Ada"</code> is a string. Anything else uses curly braces: <code>active=&#123;true&#125;</code>, <code>count=&#123;n&#125;</code>, <code>onSave=&#123;save&#125;</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Defaults</h3>
+        <p>Destructure with defaults (<code>role = "member"</code>) so the child stays usable when a parent omits a prop.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Component composition</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Nest, don't copy</h3>
+<pre>
+function Panel({ title, children }) {
+  return (
+    &lt;section className="panel"&gt;
+      &lt;h2&gt;{title}&lt;/h2&gt;
+      {children}
+    &lt;/section&gt;
+  );
+}
+
+function Dashboard() {
+  return (
+    &lt;Panel title="Inbox"&gt;
+      &lt;MessageList /&gt;
+      &lt;ComposeBox /&gt;
+    &lt;/Panel&gt;
+  );
+}
+</pre>
+      </div>
+      <div class="card">
+        <h3>How screens are built</h3>
+        <ul>
+          <li><code>children</code> is a prop: whatever you nest between the tags</li>
+          <li>Small pieces (<code>Avatar</code>, <code>Badge</code>) combine into pages</li>
+          <li>Pass data down; lift shared state up to the nearest common parent</li>
+          <li>If two siblings need the same value, that value lives in the parent</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Event handling</h2>
+    <div class="content animate">
+<pre>
+function SearchBox({ onSearch }) {
+  function handleSubmit(event) {
+    event.preventDefault();
+    const q = new FormData(event.currentTarget).get("q");
+    onSearch(String(q ?? ""));
+  }
+
+  return (
+    &lt;form onSubmit={handleSubmit}&gt;
+      &lt;input name="q" placeholder="Search" /&gt;
+      &lt;button type="submit"&gt;Go&lt;/button&gt;
+    &lt;/form&gt;
+  );
+}
+</pre>
+    </div>
+    <div class="metric-grid animate" style="margin-top:16px;">
+      <div class="metric-card">
+        <h3>camelCase props</h3>
+        <p><code>onClick</code>, <code>onChange</code>, <code>onSubmit</code> &mdash; you pass a function, not a string. React calls it with a synthetic event.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Events go up</h3>
+        <p>The child calls <code>onSearch(q)</code>. The parent owns the data. That is props-down, events-up.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">State with useState</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px;"><code>useState</code> is data that <span class="highlight">belongs to the component</span> and survives re-renders. Changing it asks React to render again.</p>
+<pre>
+import { useState } from "react";
+
+function Counter() {
+  const [count, setCount] = useState(0);
+
+  return (
+    &lt;div&gt;
+      &lt;p&gt;Clicked {count} times&lt;/p&gt;
+      &lt;button onClick={() =&gt; setCount(count + 1)}&gt;+1&lt;/button&gt;
+    &lt;/div&gt;
+  );
+}
+</pre>
+    </div>
+    <p class="animate" style="margin-top:16px;max-width:900px;">The array is <code>[currentValue, setter]</code>. The argument to <code>useState</code> is the initial value, used only on the first render. Hooks must be called at the top of the function &mdash; not inside <code>if</code>, loops, or nested functions.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Updating state correctly</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Replace, don't mutate</h3>
+<pre>
+const [user, setUser] = useState({ name: "Ada" });
+
+// wrong: mutates the same object
+user.name = "Grace";
+setUser(user);
+
+// right: new object
+setUser({ ...user, name: "Grace" });
+</pre>
+        <p style="margin-top:10px;font-size:1.05rem;">React compares by identity. Mutating in place can skip a render.</p>
+      </div>
+      <div class="card">
+        <h3>Next value from previous</h3>
+<pre>
+setCount(c =&gt; c + 1);
+setItems(items =&gt; [...items, next]);
+</pre>
+        <p style="margin-top:10px;font-size:1.05rem;">Use the updater function when the new value depends on the old one, especially if you call the setter more than once in the same event.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Conditional rendering</h2>
+    <div class="content animate">
+<pre>
+function Inbox({ messages, isLoading, error }) {
+  if (isLoading) return &lt;p&gt;Loading…&lt;/p&gt;;
+  if (error) return &lt;p role="alert"&gt;{error}&lt;/p&gt;;
+
+  return (
+    &lt;section&gt;
+      {messages.length === 0 ? (
+        &lt;p&gt;Inbox is empty&lt;/p&gt;
+      ) : (
+        &lt;MessageList messages={messages} /&gt;
+      )}
+      {user?.isAdmin &amp;&amp; &lt;ModerationBar /&gt;}
+    &lt;/section&gt;
+  );
+}
+</pre>
+    </div>
+    <div class="two-col animate" style="margin-top:16px;">
+      <div class="card">
+        <h3>Three patterns</h3>
+        <p>Early <code>return</code> for exclusive screens. Ternary when both branches are JSX. <code>&amp;&amp;</code> when you show a piece or nothing.</p>
+      </div>
+      <div class="card">
+        <h3>Watch zeros</h3>
+        <p><code>&#123;count &amp;&amp; &lt;Badge /&gt;&#125;</code> renders <span class="highlight">0</span> when count is 0. Prefer <code>count &gt; 0 &amp;&amp;</code> or a ternary.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Lists and keys</h2>
+    <div class="content animate">
+<pre>
+function MessageList({ messages }) {
+  return (
+    &lt;ul&gt;
+      {messages.map((msg) =&gt; (
+        &lt;li key={msg.id}&gt;
+          &lt;strong&gt;{msg.from}&lt;/strong&gt; {msg.body}
+        &lt;/li&gt;
+      ))}
+    &lt;/ul&gt;
+  );
+}
+</pre>
+    </div>
+    <div class="two-col animate" style="margin-top:16px;">
+      <div class="card">
+        <h3>Why key exists</h3>
+        <p>React matches list items across renders. A stable <code>key</code> (usually an id) tells it which item is which when the array is filtered, sorted, or inserted into.</p>
+      </div>
+      <div class="card">
+        <h3>What not to use</h3>
+        <p>Index as key is a last resort. If the list reorders, index keys attach state to the wrong row. Never use a random value &mdash; it remounts every render.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">useEffect</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px;"><code>useEffect</code> runs <span class="highlight">after paint</span> to sync with something outside React: the network, <code>document.title</code>, a subscription, a timer.</p>
+<pre>
+import { useEffect, useState } from "react";
+
+function UserBadge({ userId }) {
+  const [user, setUser] = useState(null);
+
+  useEffect(() =&gt; {
+    let cancelled = false;
+    fetch(`/api/users/${userId}`)
+      .then((r) =&gt; r.json())
+      .then((data) =&gt; { if (!cancelled) setUser(data); });
+    return () =&gt; { cancelled = true; };
+  }, [userId]);
+
+  if (!user) return &lt;p&gt;Loading…&lt;/p&gt;;
+  return &lt;p&gt;{user.name}&lt;/p&gt;;
+}
+</pre>
+    </div>
+    <p class="animate" style="margin-top:14px;max-width:900px;">If you can compute it during render from props and state, you do not need an effect. Effects are for the outside world.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Effect dependencies and cleanup</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>The dependency array</h3>
+        <ul>
+          <li><code>[userId]</code> &mdash; re-run when <code>userId</code> changes</li>
+          <li><code>[]</code> &mdash; run once after mount</li>
+          <li>Omitted &mdash; run after every render (rarely what you want)</li>
+        </ul>
+        <p style="margin-top:10px;">List every value from the component that the effect reads. Missing deps cause stale closures.</p>
+      </div>
+      <div class="card">
+        <h3>Cleanup</h3>
+        <p>Return a function to undo the subscription, timer, or in-flight work. React runs it before the next effect and on unmount.</p>
+<pre>
+useEffect(() =&gt; {
+  const id = setInterval(tick, 1000);
+  return () =&gt; clearInterval(id);
+}, []);
+</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">useContext</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px;">Context lets a distant ancestor pass a value without threading props through every layer. Use it for <span class="highlight">theme, locale, current user</span> &mdash; not for every piece of state.</p>
+<pre>
+import { createContext, useContext } from "react";
+
+const ThemeContext = createContext("light");
+
+function App() {
+  return (
+    &lt;ThemeContext.Provider value="dark"&gt;
+      &lt;Page /&gt;
+    &lt;/ThemeContext.Provider&gt;
+  );
+}
+
+function ThemedButton() {
+  const theme = useContext(ThemeContext);
+  return &lt;button className={theme}&gt;Save&lt;/button&gt;;
+}
+</pre>
+    </div>
+    <p class="animate" style="margin-top:14px;max-width:900px;">A consumer re-renders when the <code>value</code> identity changes. Keep the provided value stable (or wrap it in state) so you do not refresh the whole tree on every parent render.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">A small tree, put together</h2>
+    <div class="content animate">
+<pre>
+function NoteApp() {
+  const [items, setItems] = useState([]);
+  const [draft, setDraft] = useState("");
+
+  function add(event) {
+    event.preventDefault();
+    if (!draft.trim()) return;
+    setItems((list) =&gt; [...list, { id: crypto.randomUUID(), text: draft }]);
+    setDraft("");
+  }
+
+  return (
+    &lt;&gt;
+      &lt;form onSubmit={add}&gt;
+        &lt;input value={draft} onChange={(e) =&gt; setDraft(e.target.value)} /&gt;
+        &lt;button type="submit"&gt;Add&lt;/button&gt;
+      &lt;/form&gt;
+      &lt;ul&gt;
+        {items.map((item) =&gt; (
+          &lt;li key={item.id}&gt;{item.text}&lt;/li&gt;
+        ))}
+      &lt;/ul&gt;
+    &lt;/&gt;
+  );
+}
+</pre>
+    </div>
+    <p class="animate" style="margin-top:12px;max-width:900px;">Controlled input (<code>value</code> + <code>onChange</code>), state updates, a list with keys, and composition in one component. Split <code>NoteForm</code> / <code>NoteList</code> when the file gets hard to scan.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Common pitfalls</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> Mutating state or props instead of creating a new array/object</div>
+      <div class="bp-item"><span>2.</span> Using the array index as <code>key</code> on a list that reorders</div>
+      <div class="bp-item"><span>3.</span> Calling hooks inside conditions &mdash; the order must be identical every render</div>
+      <div class="bp-item"><span>4.</span> Forgetting the dependency array on <code>useEffect</code> (or omitting a value it reads)</div>
+      <div class="bp-item"><span>5.</span> Fetching in an effect with no cleanup, then setting state after unmount</div>
+      <div class="bp-item"><span>6.</span> <code>&#123;count &amp;&amp; ...&#125;</code> rendering a literal <code>0</code></div>
+      <div class="bp-item"><span>7.</span> Passing a new object as context <code>value</code> every render and refreshing every consumer</div>
+      <div class="bp-item"><span>8.</span> Reaching for context (or a store) when a parent prop would do</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Practices that keep UIs honest</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1.</span> One component, one job; compose with <code>children</code></div>
+      <div class="bp-item"><span>2.</span> Lift state to the nearest shared parent; pass setters or callbacks down</div>
+      <div class="bp-item"><span>3.</span> Prefer derived values during render over copying props into state</div>
+      <div class="bp-item"><span>4.</span> Keys from stable ids; never from <code>Math.random()</code></div>
+      <div class="bp-item"><span>5.</span> Effects sync outward; if it is just math on props, skip the effect</div>
+      <div class="bp-item"><span>6.</span> Controlled inputs when React must own the value</div>
+      <div class="bp-item"><span>7.</span> Name event props <code>onSomething</code> so the data-flow direction is obvious</div>
+      <div class="bp-item"><span>8.</span> Keep context for wide, slow-changing values (theme, auth), not every field</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What this course leaves out</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Out of scope here</h3>
+        <ul>
+          <li><span class="highlight">Server rendering / Next.js</span> &mdash; where components run</li>
+          <li><span class="highlight">Redux</span> and other global stores</li>
+          <li>Advanced performance work (memoization, virtualization, compilers)</li>
+        </ul>
+        <p style="margin-top:12px;">Those are separate courses in this hub: <code>modern-fullstack.html</code> and <code>react-redux.html</code>.</p>
+      </div>
+      <div class="card">
+        <h3>You should be able to</h3>
+        <ul>
+          <li>Build a screen from functional components and JSX</li>
+          <li>Pass data with props and <code>children</code></li>
+          <li>Handle clicks, submits, and controlled inputs</li>
+          <li>Render branches and keyed lists</li>
+          <li>Use <code>useState</code>, <code>useEffect</code>, and <code>useContext</code> for the jobs they have</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <p class="subtitle animate">You can compose React UIs from functions, props, state, events, conditionals, keyed lists, and the three core hooks.</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">JSX</span>
+      <span class="tag">Components</span>
+      <span class="tag">Props</span>
+      <span class="tag">useState</span>
+      <span class="tag">useEffect</span>
+      <span class="tag">useContext</span>
+    </div>
+    <p class="animate" style="margin-top:36px;"><a href="index.html" style="color:var(--accent);font-weight:600;font-size:1.2rem;">&#8592; Back to courses</a></p>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 20</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
