@@ -1,0 +1,1001 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Claude Agent SDK (JS &amp; C#)</title>
+  <style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: "Fira Code", "Cascadia Code", "Consolas", monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 1000px; margin: 12px 0; }
+    th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.05rem; }
+    th { color: var(--accent); font-size: 0.95rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed; top: 16px; right: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.3rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed; top: 16px; left: 16px; background: var(--card-bg); border: 2px solid var(--border-color);
+      border-radius: 50%; width: 44px; height: 44px; font-size: 1.4rem; cursor: pointer; z-index: 200;
+      display: flex; align-items: center; justify-content: center; transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow); text-decoration: none; color: var(--text-muted); line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block; margin-top: 24px; padding: 14px 32px; background: var(--accent); color: #fff;
+      text-decoration: none; border-radius: 10px; font-size: 1.15rem; font-weight: 600; transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none; position: fixed; bottom: 16px; right: 16px; background: var(--card-bg);
+      border: 2px solid var(--border-color); border-radius: 50%; width: 44px; height: 44px;
+      font-size: 1.2rem; cursor: pointer; z-index: 200; align-items: center; justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow); color: var(--text-muted); transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+
+<div class="deck" id="deck">
+
+  <!-- 1. TITLE -->
+  <div class="slide active">
+    <span class="logo-icon animate">&#x1F9E0;</span>
+    <h1 class="animate">Claude Agent SDK</h1>
+    <p class="subtitle animate">The Claude Code agent loop, programmable in JavaScript/TypeScript and C#</p>
+    <div class="animate" style="margin-top:20px">
+      <span class="tag">Agent SDK</span><span class="tag">JavaScript</span><span class="tag">C#</span><span class="tag">Agent Loop</span>
+    </div>
+  </div>
+
+  <!-- 2. WHAT IT IS -->
+  <div class="slide">
+    <h2 class="animate">What the Agent SDK is</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Same loop as Claude Code</h3>
+        <p>The SDK embeds Claude Code's autonomous loop in your process: Claude plans, calls tools, reads results, and repeats until the task is done. You do <span class="highlight">not</span> implement the tool-use while-loop yourself.</p>
+        <p style="margin-top:12px">Official libraries: <code>@anthropic-ai/claude-agent-sdk</code> (JS/TS) and <code>claude-agent-sdk</code> (Python). Both bundle a native Claude Code binary.</p>
+      </div>
+      <div class="card">
+        <h3>Not the Messages API</h3>
+        <ul>
+          <li><span class="highlight">Client SDK</span> (<code>Anthropic</code> / <code>@anthropic-ai/sdk</code>): you send messages and execute tools.</li>
+          <li><span class="highlight">Agent SDK</span>: the harness executes tools, permissions, compaction, and subagents.</li>
+          <li><span class="highlight">CLI</span>: same capabilities, interactive terminal.</li>
+          <li><span class="highlight">Managed Agents</span>: Anthropic hosts the loop; you call a REST API.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 3. LANGUAGE MAP -->
+  <div class="slide">
+    <h2 class="animate">JS is first-class; C# drives the same CLI</h2>
+    <div class="content animate">
+      <p style="margin-bottom:16px">Anthropic's Agent SDK is a library for TypeScript/JavaScript and Python only. For C#, the documented path is to run the CLI with <code>-p</code> and JSON output. Community packages wrap that protocol with a <code>QueryAsync</code> API that mirrors JS.</p>
+      <table>
+        <thead><tr><th>Language</th><th>Package</th><th>How the loop runs</th></tr></thead>
+        <tbody>
+          <tr><td>JavaScript / TypeScript</td><td><code>@anthropic-ai/claude-agent-sdk</code></td><td>Official. <code>query()</code> spawns bundled Claude Code and streams <code>SDKMessage</code>.</td></tr>
+          <tr><td>Python</td><td><code>claude-agent-sdk</code></td><td>Official. Same loop; <code>ClaudeAgentOptions</code>.</td></tr>
+          <tr><td>C#</td><td>CLI + <code>Process</code>, or community <code>ClaudeAgentSdk.DotNet</code></td><td>Same <code>claude -p --output-format stream-json</code> protocol. Not an Anthropic-published NuGet Agent SDK.</td></tr>
+          <tr><td>C# Messages API</td><td><code>Anthropic</code> (official)</td><td>Chat completions only. You would own the tool loop &mdash; that is <em>not</em> the Agent SDK.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 4. INSTALL -->
+  <div class="slide">
+    <h2 class="animate">Install and authenticate</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>JavaScript / TypeScript</h3>
+        <pre style="font-size:0.8rem">npm init -y
+npm pkg set type=module
+npm install @anthropic-ai/claude-agent-sdk
+npm install --save-dev tsx
+
+export ANTHROPIC_API_KEY=sk-ant-xxxxx</pre>
+        <p style="margin-top:10px;font-size:1.05rem">Node 18+. ESM for top-level <code>await</code>, or name the file <code>agent.mts</code> in CommonJS. Optional deps ship the native binary; if missing, set <code>pathToClaudeCodeExecutable</code>.</p>
+      </div>
+      <div class="card">
+        <h3>C#</h3>
+        <pre style="font-size:0.8rem"># CLI on PATH (required for C#)
+npm install -g @anthropic-ai/claude-code
+
+dotnet add package ClaudeAgentSdk.DotNet
+# or spawn `claude` yourself
+
+export ANTHROPIC_API_KEY=sk-ant-xxxxx</pre>
+        <p style="margin-top:10px;font-size:1.05rem">Also: Bedrock <code>CLAUDE_CODE_USE_BEDROCK=1</code>, Vertex <code>CLAUDE_CODE_USE_VERTEX=1</code>, Foundry <code>CLAUDE_CODE_USE_FOUNDRY=1</code>. Use API keys for products you ship; do not proxy claude.ai login.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 5. FIRST QUERY -->
+  <div class="slide">
+    <h2 class="animate">First query</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypeScript</h3>
+        <pre style="font-size:0.8rem">import { query } from
+  "@anthropic-ai/claude-agent-sdk";
+
+for await (const message of query({
+  prompt: "What files are in this directory?",
+  options: { allowedTools: ["Bash", "Glob"] }
+})) {
+  if (message.type === "result"
+      &amp;&amp; message.subtype === "success") {
+    console.log(message.result);
+  }
+}</pre>
+      </div>
+      <div class="card">
+        <h3>C# (community SDK)</h3>
+        <pre style="font-size:0.8rem">using ClaudeAgentSdk;
+using ClaudeAgentSdk.Messages;
+
+var options = new ClaudeClientOptions {
+  AllowedTools = ["Bash", "Glob"]
+};
+
+await foreach (var message in
+    Claude.QueryAsync(
+      "What files are in this directory?",
+      options)) {
+  if (message is ResultMessage r)
+    Console.WriteLine(r.Result);
+}</pre>
+      </div>
+    </div>
+    <p class="content animate" style="margin-top:16px;text-align:center;color:var(--text-muted)"><code>query()</code> / <code>QueryAsync</code> starts a <span class="highlight">fresh session</span> each call unless you pass <code>resume</code> or <code>continue</code>.</p>
+  </div>
+
+  <!-- 6. LOOP DIAGRAM -->
+  <div class="slide">
+    <h2 class="animate">The agent loop</h2>
+    <div class="content animate">
+      <div class="diagram">
+        <div class="box">Prompt + tools<br><small>system init</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Claude responds<br><small>text and/or tool_use</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">SDK executes tools<br><small>hooks + permissions</small></div>
+        <div class="arrow">&rarr;</div>
+        <div class="box">Feed results back</div>
+        <div class="arrow">&rarr;</div>
+        <div class="box" style="border-color:var(--success)">ResultMessage<br><small>no more tool calls</small></div>
+      </div>
+      <div class="two-col" style="margin-top:20px">
+        <div class="card">
+          <h3>What you write</h3>
+          <p>A prompt, an options object, and a consumer of the message stream. The harness owns tool execution, retries, and when to stop.</p>
+        </div>
+        <div class="card">
+          <h3>What a turn is</h3>
+          <p>One round trip: Claude outputs (possibly with tool calls) &rarr; the SDK runs those tools &rarr; results go back. Control does <span class="highlight">not</span> return to your code between tool calls inside a turn.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7. TURNS EXAMPLE -->
+  <div class="slide">
+    <h2 class="animate">Turns in practice</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px">Prompt: <em>&ldquo;Fix the failing tests in auth.ts&rdquo;</em></p>
+      <div class="bp-grid">
+        <div class="bp-item"><span>1</span> SDK yields <code>system</code> / <code>init</code> with <code>session_id</code>.</div>
+        <div class="bp-item"><span>2</span> Turn: <code>Bash</code> runs <code>npm test</code> &rarr; three failures as a <code>user</code> tool result.</div>
+        <div class="bp-item"><span>3</span> Turn: <code>Read</code> on <code>auth.ts</code> and the test file.</div>
+        <div class="bp-item"><span>4</span> Turn: <code>Edit</code> then <code>Bash</code> re-runs tests &mdash; all pass.</div>
+        <div class="bp-item"><span>5</span> Final turn: text only, no tools. Then <code>result</code> with cost and usage.</div>
+        <div class="bp-item"><span>Cap</span> <code>maxTurns</code> counts <span class="highlight">tool-use</span> turns only. <code>maxTurns: 2</code> would stop before the edit.</div>
+      </div>
+      <p style="margin-top:16px;color:var(--text-muted)">Open-ended prompts can run for dozens of turns. Set <code>maxTurns</code> and <code>maxBudgetUsd</code> in production. Subagent spend counts toward the budget.</p>
+    </div>
+  </div>
+
+  <!-- 8. MESSAGE TYPES -->
+  <div class="slide">
+    <h2 class="animate">Message types</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>JS <code>type</code></th><th>C# type</th><th>When it fires</th></tr></thead>
+        <tbody>
+          <tr><td><code>system</code> (<code>init</code>)</td><td><code>SystemMessage</code></td><td>Session start: models, tools, <code>session_id</code>. Other subtypes: compact boundary, informational banners.</td></tr>
+          <tr><td><code>assistant</code></td><td><code>AssistantMessage</code></td><td>Each Claude response. Content is at <code>message.message.content</code> in TS (text + <code>tool_use</code> blocks).</td></tr>
+          <tr><td><code>user</code></td><td><code>UserMessage</code></td><td>Tool results fed back, plus any user input you stream mid-loop.</td></tr>
+          <tr><td><code>stream_event</code></td><td><code>StreamEvent</code></td><td>Only if <code>includePartialMessages</code>: token deltas and partial tool JSON.</td></tr>
+          <tr><td><code>result</code></td><td><code>ResultMessage</code></td><td>Loop ended. Check <code>subtype</code> before reading <code>result</code> text. Iterate to completion &mdash; a few system events can follow.</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:12px">Observability extras (rate limits, task notifications) exist but are not required to drive the loop.</p>
+    </div>
+  </div>
+
+  <!-- 9. HANDLE STREAM -->
+  <div class="slide">
+    <h2 class="animate">Consume the stream</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypeScript</h3>
+        <pre style="font-size:0.8rem">try {
+  for await (const m of query({
+    prompt: "Summarize this project"
+  })) {
+    if (m.type === "assistant") {
+      console.log(m.message.content.length);
+    }
+    if (m.type === "result") {
+      if (m.subtype === "success")
+        console.log(m.result);
+      else
+        console.log("Stopped:", m.subtype);
+    }
+  }
+} catch (e) {
+  // single-shot query() throws after
+  // yielding an error result
+}</pre>
+      </div>
+      <div class="card">
+        <h3>C#</h3>
+        <pre style="font-size:0.8rem">try {
+  await foreach (var m in
+      Claude.QueryAsync("Summarize this project")) {
+    switch (m) {
+      case AssistantMessage a:
+        Console.WriteLine(a.Content.Count);
+        break;
+      case ResultMessage r:
+        Console.WriteLine(r.Subtype);
+        Console.WriteLine(r.Result);
+        break;
+    }
+  }
+} catch (CliNotFoundException) {
+  /* install claude CLI */
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. RESULT SUBTYPES -->
+  <div class="slide">
+    <h2 class="animate">Result subtypes</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>subtype</th><th>Meaning</th><th>Text in <code>result</code>?</th></tr></thead>
+        <tbody>
+          <tr><td><code>success</code></td><td>Claude finished with no pending tool calls</td><td class="green">Yes</td></tr>
+          <tr><td><code>error_max_turns</code></td><td>Hit <code>maxTurns</code></td><td>No &mdash; resume with a higher cap</td></tr>
+          <tr><td><code>error_max_budget_usd</code></td><td>Hit <code>maxBudgetUsd</code></td><td>No</td></tr>
+          <tr><td><code>error_during_execution</code></td><td>API failure, cancel, or crash</td><td>No; cost fields may be zero after a crash</td></tr>
+          <tr><td><code>error_max_structured_output_retries</code></td><td>JSON schema never validated</td><td>No</td></tr>
+        </tbody>
+      </table>
+      <p style="margin-top:14px">Every subtype still carries <code>total_cost_usd</code>, <code>usage</code>, <code>num_turns</code>, and <code>session_id</code>. Main-loop tokens are in <code>usage</code>; whole-tree (subagents) is <code>modelUsage</code>. <code>stop_reason</code>: <code>end_turn</code>, <code>max_tokens</code>, <code>refusal</code>.</p>
+    </div>
+  </div>
+
+  <!-- 11. TOOLS -->
+  <div class="slide">
+    <h2 class="animate">Built-in tools</h2>
+    <div class="content animate">
+      <div class="metric-grid">
+        <div class="metric-card">
+          <h3>Files</h3>
+          <p><code>Read</code>, <code>Edit</code>, <code>Write</code>, <code>NotebookEdit</code>. Read-only tools can run in parallel; mutating tools run sequentially.</p>
+        </div>
+        <div class="metric-card">
+          <h3>Search &amp; shell</h3>
+          <p><code>Glob</code>, <code>Grep</code>, <code>Bash</code>, <code>Monitor</code> (watch a background script line-by-line).</p>
+        </div>
+        <div class="metric-card">
+          <h3>Web &amp; discovery</h3>
+          <p><code>WebSearch</code>, <code>WebFetch</code>, <code>ToolSearch</code> (load MCP schemas on demand).</p>
+        </div>
+        <div class="metric-card">
+          <h3>Orchestration</h3>
+          <p><code>Agent</code>, <code>Skill</code>, <code>AskUserQuestion</code>, <code>TodoWrite</code>, <code>TaskCreate</code> / <code>TaskUpdate</code> / <code>TaskGet</code> / <code>TaskList</code> / <code>TaskStop</code>.</p>
+        </div>
+      </div>
+      <p style="margin-top:16px">Also: worktrees (<code>EnterWorktree</code> / <code>ExitWorktree</code>), plan mode (<code>EnterPlanMode</code> / <code>ExitPlanMode</code>), cron (<code>CronCreate</code> / <code>CronList</code> / <code>CronDelete</code>), MCP resource tools. Scope with the <code>tools</code> option or per-subagent <code>tools</code>.</p>
+    </div>
+  </div>
+
+  <!-- 12. PERMISSIONS -->
+  <div class="slide">
+    <h2 class="animate">Permissions: three knobs</h2>
+    <div class="content animate">
+      <div class="bp-grid">
+        <div class="bp-item"><span>1</span> <code>allowedTools</code> &mdash; auto-approve listed tools. Unlisted tools still exist; they fall through to the permission mode / <code>canUseTool</code>.</div>
+        <div class="bp-item"><span>2</span> <code>disallowedTools</code> &mdash; block. Bare <code>"Bash"</code> removes the tool from context. Scoped <code>"Bash(rm *)"</code> denies matching calls even in <code>bypassPermissions</code>.</div>
+        <div class="bp-item"><span>3</span> <code>permissionMode</code> &mdash; how much human (or classifier) oversight. See next slide.</div>
+        <div class="bp-item"><span>4</span> <code>canUseTool</code> &mdash; callback only when the flow would prompt. Not called for auto-approved tools.</div>
+      </div>
+      <p style="margin-top:16px">MCP tools: prefer <code>allowedTools: ["mcp__playwright__*"]</code>. <code>acceptEdits</code> does <span class="highlight">not</span> auto-approve MCP. A denied call becomes a tool result Claude can recover from. Rules like <code>"Bash(npm *)"</code> allow only matching commands.</p>
+    </div>
+  </div>
+
+  <!-- 13. PERMISSION MODES -->
+  <div class="slide">
+    <h2 class="animate">Permission modes</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>Mode</th><th>Behavior</th><th>Use when</th></tr></thead>
+        <tbody>
+          <tr><td><code>default</code></td><td>Uncovered tools hit <code>canUseTool</code>; no callback means deny</td><td>Interactive UIs</td></tr>
+          <tr><td><code>acceptEdits</code></td><td>Auto-approves file edits and common fs commands; other Bash still gated</td><td>Trusted working dir / prototyping</td></tr>
+          <tr><td><code>plan</code></td><td>Explore and plan; edits never auto-approved. Customize body with <code>planModeInstructions</code></td><td>Review before apply</td></tr>
+          <tr><td><code>dontAsk</code></td><td>Never prompt; only pre-approved tools run. AskUser / elicitation denied</td><td>Headless fixed surface</td></tr>
+          <tr><td><code>auto</code></td><td>Model classifier approves or denies prompts</td><td>Autonomous with guardrails</td></tr>
+          <tr><td><code>bypassPermissions</code></td><td>Skip most prompts. TS also needs <code>allowDangerouslySkipPermissions: true</code>. Not as root on Unix</td><td>Isolated CI / containers only</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 14. OPTIONS CORE -->
+  <div class="slide">
+    <h2 class="animate">Options: model, limits, identity</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>JS field</th><th>C# analogue</th><th>Default / notes</th></tr></thead>
+        <tbody>
+          <tr><td><code>model</code>, <code>fallbackModel</code></td><td><code>Model</code>, fallback</td><td>CLI default if unset. Pin IDs in production.</td></tr>
+          <tr><td><code>maxTurns</code></td><td><code>MaxTurns</code></td><td>Unlimited. Tool-use round trips only.</td></tr>
+          <tr><td><code>maxBudgetUsd</code></td><td><code>MaxBudgetUsd</code></td><td>Client-side estimate vs <code>total_cost_usd</code>.</td></tr>
+          <tr><td><code>effort</code></td><td><code>Effort</code></td><td><code>low</code> | <code>medium</code> | <code>high</code> | <code>xhigh</code> | <code>max</code>. Independent of extended thinking.</td></tr>
+          <tr><td><code>thinking</code></td><td>thinking config</td><td>Default adaptive on supported models. Prefer this over deprecated <code>maxThinkingTokens</code>.</td></tr>
+          <tr><td><code>taskBudget</code></td><td>token budget</td><td>Alpha: model is told remaining tokens so it can wrap up.</td></tr>
+          <tr><td><code>abortController</code></td><td><code>CancellationToken</code></td><td>Cancel the run.</td></tr>
+          <tr><td><code>sessionId</code> / <code>title</code></td><td>same</td><td>Pin UUID or display title.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 15. OPTIONS SESSION -->
+  <div class="slide">
+    <h2 class="animate">Options: prompt, cwd, settings</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>JS field</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>systemPrompt</code></td><td>String = custom. Or <code>{ type: "preset", preset: "claude_code", append?, excludeDynamicSections? }</code>. Default is a <span class="highlight">minimal</span> prompt, not the full Claude Code prompt.</td></tr>
+          <tr><td><code>cwd</code>, <code>additionalDirectories</code></td><td>Working tree and extra readable roots.</td></tr>
+          <tr><td><code>settingSources</code></td><td><code>user</code> | <code>project</code> | <code>local</code>. Pass <code>[]</code> to skip filesystem CLAUDE.md / skills. Policy still loads.</td></tr>
+          <tr><td><code>settings</code></td><td>Inline object or path. Flag-settings layer; change later with <code>applyFlagSettings()</code>.</td></tr>
+          <tr><td><code>skills</code></td><td><code>"all"</code> or exact names. Auto-adds the Skill tool to <code>allowedTools</code>.</td></tr>
+          <tr><td><code>plugins</code></td><td>Load local plugin dirs (skills, agents, hooks, MCP).</td></tr>
+          <tr><td><code>env</code></td><td><span class="highlight">Replaces</span> the subprocess env. Spread <code>process.env</code>. Set timeouts: <code>API_TIMEOUT_MS</code>, <code>CLAUDE_CODE_MAX_RETRIES</code>, stall watchdogs.</td></tr>
+          <tr><td><code>persistSession</code>, <code>sessionStore</code></td><td>Disk JSONL by default. External store for serverless resume. <code>loadTimeoutMs</code>, <code>sessionStoreFlush</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 16. OPTIONS EXT -->
+  <div class="slide">
+    <h2 class="animate">Options: MCP, hooks, agents, I/O</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>JS field</th><th>What it does</th></tr></thead>
+        <tbody>
+          <tr><td><code>mcpServers</code>, <code>strictMcpConfig</code></td><td>stdio / HTTP / SSE / in-process SDK servers. Strict = ignore project <code>.mcp.json</code>.</td></tr>
+          <tr><td><code>hooks</code>, <code>includeHookEvents</code></td><td>Lifecycle callbacks. Optionally emit hook start/progress/response messages.</td></tr>
+          <tr><td><code>agents</code>, <code>agent</code></td><td>Named <code>AgentDefinition</code> map; <code>agent</code> selects the main-thread definition.</td></tr>
+          <tr><td><code>canUseTool</code>, <code>onElicitation</code></td><td>Permission prompt callback; MCP user-input callback (else declined).</td></tr>
+          <tr><td><code>outputFormat</code></td><td><code>{ type: "json_schema", schema }</code> for structured results.</td></tr>
+          <tr><td><code>includePartialMessages</code>, <code>promptSuggestions</code></td><td>Token streaming; predicted next user prompt after each turn.</td></tr>
+          <tr><td><code>sandbox</code>, <code>enableFileCheckpointing</code></td><td>Sandbox settings; rewind files later via <code>rewindFiles()</code>.</td></tr>
+          <tr><td><code>continue</code>, <code>resume</code>, <code>forkSession</code>, <code>resumeSessionAt</code></td><td>Latest session, UUID resume, fork a branch, resume at a message UUID.</td></tr>
+          <tr><td><code>tools</code> / <code>toolConfig</code> / <code>toolAliases</code></td><td>Surface list or Claude Code preset; tweak built-ins; remap Bash to an MCP tool.</td></tr>
+          <tr><td><code>debug</code>, <code>debugFile</code>, <code>stderr</code>, <code>executable</code></td><td>CLI logs; JS runtime <code>node</code> | <code>bun</code> | <code>deno</code>; custom <code>spawnClaudeCodeProcess</code>.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 17. QUERY METHODS -->
+  <div class="slide">
+    <h2 class="animate">The Query handle</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px"><code>query()</code> returns an async generator <span class="highlight">plus</span> control methods. Most setters need <span class="highlight">streaming input</span> (prompt as an async iterable), not a one-shot string.</p>
+      <div class="two-col">
+        <div class="card">
+          <h3>Steer the loop</h3>
+          <ul>
+            <li><code>interrupt()</code> &mdash; abort current work</li>
+            <li><code>streamInput(stream)</code> &mdash; more user turns</li>
+            <li><code>setPermissionMode</code> / <code>setModel</code></li>
+            <li><code>applyFlagSettings</code> &mdash; merge flag layer</li>
+            <li><code>stopTask(taskId)</code>, <code>close()</code></li>
+            <li><code>rewindFiles(userMessageId)</code></li>
+          </ul>
+        </div>
+        <div class="card">
+          <h3>Inspect</h3>
+          <ul>
+            <li><code>initializationResult()</code> / <code>reinitialize()</code></li>
+            <li><code>supportedCommands</code> / <code>Models</code> / <code>Agents</code></li>
+            <li><code>mcpServerStatus</code>, <code>setMcpServers</code>, toggle/reconnect</li>
+            <li><code>getContextUsage()</code> &mdash; same as <code>/context</code></li>
+            <li><code>accountInfo()</code></li>
+          </ul>
+        </div>
+      </div>
+      <p style="margin-top:14px">Pre-warm with <code>startup({ options })</code> then <code>warm.query(prompt)</code> so spawn cost is paid at boot.</p>
+    </div>
+  </div>
+
+  <!-- 18. HOOKS -->
+  <div class="slide">
+    <h2 class="animate">Hooks in the loop</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Where they fire</h3>
+        <ul>
+          <li><code>PreToolUse</code> / <code>PostToolUse</code> / <code>PostToolUseFailure</code> / <code>PostToolBatch</code></li>
+          <li><code>UserPromptSubmit</code>, <code>Stop</code>, <code>SessionStart</code> / <code>SessionEnd</code></li>
+          <li><code>SubagentStart</code> / <code>SubagentStop</code></li>
+          <li><code>PreCompact</code> / <code>PostCompact</code></li>
+          <li><code>PermissionRequest</code>, <code>Elicitation</code>, <code>FileChanged</code>, &hellip;</li>
+        </ul>
+        <p style="margin-top:8px">Hooks run in <span class="green">your process</span>, not in the context window. A PreToolUse deny short-circuits execution; Claude sees the rejection.</p>
+      </div>
+      <div class="card">
+        <h3>TypeScript</h3>
+        <pre style="font-size:0.8rem">hooks: {
+  PreToolUse: [{
+    matcher: "Bash",
+    hooks: [async (input) => {
+      const cmd = input.tool_input?.command;
+      if (String(cmd).includes("rm -rf")) {
+        return {
+          hookSpecificOutput: {
+            hookEventName: "PreToolUse",
+            permissionDecision: "deny",
+            permissionDecisionReason: "blocked"
+          }
+        };
+      }
+      return {};
+    }]
+  }]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 19. CUSTOM TOOLS -->
+  <div class="slide">
+    <h2 class="animate">Custom tools (in-process MCP)</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>TypeScript</h3>
+        <pre style="font-size:0.8rem">import { query, tool,
+  createSdkMcpServer } from
+  "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
+
+const lookup = tool("lookup_order",
+  "Fetch an order by id",
+  { id: z.string() },
+  async ({ id }) => ({
+    content: [{ type: "text",
+      text: JSON.stringify(await db.get(id)) }]
+  }),
+  { annotations: { readOnlyHint: true } }
+);
+
+const server = createSdkMcpServer({
+  name: "orders", tools: [lookup]
+});
+
+query({
+  prompt: "Status of order 42?",
+  options: {
+    mcpServers: { orders: server },
+    allowedTools: ["mcp__orders__lookup_order"]
+  }
+});</pre>
+      </div>
+      <div class="card">
+        <h3>C#</h3>
+        <pre style="font-size:0.8rem">var tools = new SdkMcpTool[] {
+  SdkMcpTool.Create&lt;OrderId&gt;(
+    "lookup_order",
+    "Fetch an order by id",
+    Ctx.Default.OrderId,
+    (input, _) =>
+      McpToolResult.Text(db.Get(input.Id)))
+};
+
+var orders = McpSdkServerConfig
+  .Create("orders", tools);
+
+var options = new ClaudeClientOptions {
+  McpServers = {
+    ["orders"] = orders
+  },
+  AllowedTools =
+    orders.GetQualifiedToolNames("orders")
+};</pre>
+        <p style="margin-top:8px;font-size:1.05rem">Set <code>readOnlyHint</code> so custom tools may run in parallel. Mix SDK servers with stdio/HTTP MCP in the same map.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 20. MCP TRANSPORTS -->
+  <div class="slide">
+    <h2 class="animate">MCP server configs</h2>
+    <div class="content animate">
+      <table>
+        <thead><tr><th>Kind</th><th>Shape</th><th>When</th></tr></thead>
+        <tbody>
+          <tr><td>stdio</td><td><code>{ command, args, env? }</code></td><td>Local subprocess (Playwright, custom CLIs)</td></tr>
+          <tr><td>HTTP</td><td><code>{ type: "http", url }</code></td><td>Remote servers; OAuth where the server requires it</td></tr>
+          <tr><td>SSE</td><td><code>{ type: "sse", url }</code></td><td>Legacy streaming HTTP</td></tr>
+          <tr><td>SDK / in-process</td><td><code>createSdkMcpServer(...)</code></td><td>Your functions, no extra process</td></tr>
+        </tbody>
+      </table>
+      <pre style="font-size:0.8rem;margin-top:16px">mcpServers: {
+  playwright: { command: "npx",
+    args: ["@playwright/mcp@latest"] },
+  docs: { type: "http",
+    url: "https://code.claude.com/docs/mcp" }
+}
+allowedTools: ["mcp__playwright__*", "mcp__docs__*"]</pre>
+    </div>
+  </div>
+
+  <!-- 21. SUBAGENTS -->
+  <div class="slide">
+    <h2 class="animate">Subagents</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px">Each subagent starts with a <span class="highlight">fresh transcript</span>. Only its final answer returns to the parent as a tool result. Include <code>Agent</code> in <code>allowedTools</code> to auto-approve spawning. Nested messages carry <code>parent_tool_use_id</code>; set <code>forwardSubagentText</code> to stream their text.</p>
+      <pre style="font-size:0.8rem">agents: {
+  "code-reviewer": {
+    description: "Quality and security review",
+    prompt: "Analyze diffs. Be concise. No edits.",
+    tools: ["Read", "Glob", "Grep"],
+    disallowedTools: ["Bash", "Edit", "Write"],
+    model: "sonnet",
+    effort: "high",
+    maxTurns: 12,
+    permissionMode: "dontAsk",
+    background: false
+  }
+}</pre>
+      <p style="margin-top:12px"><code>AgentDefinition</code> also: <code>mcpServers</code>, <code>skills</code>, <code>initialPrompt</code> (when used as the main thread via <code>agent</code>), <code>memory</code> (<code>user</code> | <code>project</code> | <code>local</code>).</p>
+    </div>
+  </div>
+
+  <!-- 22. SESSIONS -->
+  <div class="slide">
+    <h2 class="animate">Sessions: continue, resume, fork</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Capture and resume</h3>
+        <pre style="font-size:0.8rem">let sessionId;
+for await (const m of query({
+  prompt: "Read the auth module",
+  options: { allowedTools: ["Read"] }
+})) {
+  if (m.type === "system"
+      &amp;&amp; m.subtype === "init")
+    sessionId = m.session_id;
+}
+
+for await (const m of query({
+  prompt: "Find all callers",
+  options: { resume: sessionId }
+})) { /* full prior context */ }</pre>
+      </div>
+      <div class="card">
+        <h3>Other session APIs</h3>
+        <ul>
+          <li><code>continue: true</code> &mdash; last session in this cwd</li>
+          <li><code>forkSession: true</code> with <code>resume</code> &mdash; new ID, original intact</li>
+          <li><code>listSessions</code>, <code>getSessionInfo</code>, <code>getSessionMessages</code></li>
+          <li><code>renameSession</code>, <code>tagSession</code></li>
+          <li>C# <code>ClaudeClient.SendAsync</code> keeps one process for multi-turn</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 23. CONTEXT -->
+  <div class="slide">
+    <h2 class="animate">Context, compaction, effort</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What fills the window</h3>
+        <ul>
+          <li>System prompt + CLAUDE.md (if <code>settingSources</code>)</li>
+          <li>Tool schemas (MCP often deferred via tool search)</li>
+          <li>Growing history: prompts, tool I/O</li>
+        </ul>
+        <p style="margin-top:10px">Near the limit, the SDK <span class="highlight">compacts</span>: older turns become a summary. You get <code>compact_boundary</code>. Put durable rules in CLAUDE.md, not only in the first prompt. <code>PreCompact</code> can archive the transcript. Send <code>/compact</code> as a prompt to compact now.</p>
+      </div>
+      <div class="card">
+        <h3>Stay cheap</h3>
+        <ul>
+          <li>Subagents for isolated subtasks</li>
+          <li>Minimal <code>tools</code> on subagents</li>
+          <li><code>effort: "low"</code> for lookups</li>
+          <li>Watch MCP schema cost when tool search is off</li>
+        </ul>
+        <p style="margin-top:10px">Effort is reasoning depth per response. Extended thinking is separate (<code>thinking</code> blocks). You can combine them independently.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 24. STREAMING + STRUCTURED -->
+  <div class="slide">
+    <h2 class="animate">Streaming input and structured output</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Multi-turn prompt stream</h3>
+        <pre style="font-size:0.8rem">async function* prompts() {
+  yield { type: "user",
+    message: { role: "user",
+      content: "List failing tests" } };
+  // later: more SDKUserMessage
+}
+
+const q = query({
+  prompt: prompts(),
+  options: {
+    includePartialMessages: true,
+    permissionMode: "acceptEdits"
+  }
+});
+await q.setModel("claude-sonnet-4-6");</pre>
+      </div>
+      <div class="card">
+        <h3>JSON schema results</h3>
+        <pre style="font-size:0.8rem">options: {
+  outputFormat: {
+    type: "json_schema",
+    schema: {
+      type: "object",
+      properties: {
+        files: { type: "array",
+          items: { type: "string" } },
+        severity: { enum: ["low","high"] }
+      },
+      required: ["files", "severity"]
+    }
+  }
+}</pre>
+        <p style="margin-top:8px;font-size:1.05rem">C#: <code>Claude.QueryAsync&lt;T&gt;(prompt, jsonTypeInfo)</code> derives the schema (AOT-friendly).</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 25. C# CLI -->
+  <div class="slide">
+    <h2 class="animate">C# without a wrapper: the CLI</h2>
+    <div class="content animate">
+      <p style="margin-bottom:12px">This is the official non-TS path: same agent loop, JSON on stdout.</p>
+      <pre style="font-size:0.8rem">var psi = new ProcessStartInfo {
+  FileName = "claude",
+  RedirectStandardOutput = true,
+  RedirectStandardError = true,
+  UseShellExecute = false,
+  ArgumentList = {
+    "-p", "Find pending comments and summarize",
+    "--output-format", "stream-json",
+    "--verbose",
+    "--allowedTools", "Read,Glob,Grep",
+    "--permission-mode", "dontAsk",
+    "--max-turns", "8"
+  }
+};
+using var proc = Process.Start(psi)!;
+string? line;
+while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
+  using var doc = JsonDocument.Parse(line);
+  var type = doc.RootElement.GetProperty("type").GetString();
+  if (type == "result")
+    Console.WriteLine(doc.RootElement);
+}</pre>
+      <p style="margin-top:12px">One-shot final object: <code>--output-format json</code>. Interactive chaining: <code>--input-format stream-json</code> with stdin kept open (what the JS SDK uses for <code>streamInput</code>).</p>
+    </div>
+  </div>
+
+  <!-- 26. PRODUCTION -->
+  <div class="slide">
+    <h2 class="animate">Production defaults</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Always set <code>maxTurns</code> and <code>maxBudgetUsd</code>. Wrap single-shot <code>query()</code> in try/catch.</div>
+      <div class="bp-item"><span>2</span> Allowlist tools. Deny destructive Bash patterns. Use <code>dontAsk</code> or a real <code>canUseTool</code> in headless apps.</div>
+      <div class="bp-item"><span>3</span> Reserve <code>bypassPermissions</code> for disposable sandboxes. Pair with <code>sandbox</code> settings.</div>
+      <div class="bp-item"><span>4</span> Pin <code>model</code>. Log <code>session_id</code>, <code>total_cost_usd</code>, and result subtype.</div>
+      <div class="bp-item"><span>5</span> For servers: <code>startup()</code>, <code>sessionStore</code>, custom <code>spawnClaudeCodeProcess</code> into a VM.</div>
+      <div class="bp-item"><span>6</span> C#: treat CLI absence as a hard fail (<code>CliNotFoundException</code>). Version-align CLI with JS SDK patch.</div>
+    </div>
+  </div>
+
+  <!-- 27. PITFALLS -->
+  <div class="slide">
+    <h2 class="animate">Pitfalls</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Easy to get wrong</h3>
+        <ul>
+          <li><code>allowedTools</code> is <span class="highlight">auto-approve</span>, not a closed world. Use <code>disallowedTools</code> or <code>tools</code> to restrict.</li>
+          <li><code>env</code> replaces the environment &mdash; lose <code>PATH</code> if you do not spread it.</li>
+          <li>Default system prompt is minimal; pass the Claude Code preset if you want CLI-like behavior.</li>
+          <li>Do not <code>break</code> on the first <code>result</code> if you still need trailing events.</li>
+          <li>MCP names are <code>mcp__server__tool</code>.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>JS vs C#</h3>
+        <ul>
+          <li>Official Agent SDK = JS/Python. C# community SDKs lag events and hook coverage.</li>
+          <li>TS <code>bypassPermissions</code> needs <code>allowDangerouslySkipPermissions</code>.</li>
+          <li>Some hook events are TS-only vs Python; C# ports a subset.</li>
+          <li>Do not confuse NuGet <code>Anthropic</code> (Messages API) with the agent harness.</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 28. COMPLETE -->
+  <div class="slide">
+    <span class="logo-icon animate">&#x1F9E0;</span>
+    <h2 class="animate">Course Complete!</h2>
+    <div class="content animate" style="text-align:center">
+      <p>You can drive Claude Code's agent loop from JS and C#: query, options, tools, permissions, hooks, MCP, subagents, and sessions.</p>
+      <div style="margin:20px 0">
+        <span class="tag">query()</span><span class="tag">Agent loop</span><span class="tag">Options</span>
+        <span class="tag">Permissions</span><span class="tag">Hooks</span><span class="tag">MCP</span>
+        <span class="tag">Subagents</span><span class="tag">Sessions</span><span class="tag">stream-json</span>
+      </div>
+      <p style="color:var(--text-muted)">Docs: code.claude.com/docs/en/agent-sdk &mdash; TypeScript reference + agent-loop page.</p>
+      <a href="index.html" class="back-link">&#x2190; Back to All Courses</a>
+    </div>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 28</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-theme");
+    const next = current === "dark" ? "light" : "dark";
+    html.setAttribute("data-theme", next);
+    localStorage.setItem("theme", next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById("themeToggle").innerHTML = theme === "dark" ? "&#x2600;" : "&#x263E;";
+  }
+
+  (function() {
+    const saved = localStorage.getItem("theme") || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+    document.documentElement.setAttribute("data-theme", saved);
+    updateToggleIcon(saved);
+  })();
+
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute("data-nav");
+    const next = current === "visible" ? "hidden" : "visible";
+    html.setAttribute("data-nav", next);
+    localStorage.setItem("navVisible", next);
+    document.getElementById("navToggle").innerHTML = next === "visible" ? "&#x2715;" : "&#x2630;";
+  }
+  (function() {
+    const saved = localStorage.getItem("navVisible") || "hidden";
+    document.documentElement.setAttribute("data-nav", saved);
+    if (document.getElementById("navToggle")) {
+      document.getElementById("navToggle").innerHTML = saved === "visible" ? "&#x2715;" : "&#x2630;";
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll(".slide");
+  const progress = document.getElementById("progress");
+  const counter = document.getElementById("counter");
+  let current = 0;
+
+  const navBtns = document.querySelectorAll(".nav button");
+  function showSlide(index) {
+    slides[current].classList.remove("active");
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add("active");
+    progress.style.width = ((current / (slides.length - 1)) * 100) + "%";
+    counter.textContent = (current + 1) + " / " + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? "none" : "";
+      navBtns[1].style.display = current === slides.length - 1 ? "none" : "";
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "ArrowRight" || e.key === " ") { e.preventDefault(); navigate(1); }
+    if (e.key === "ArrowLeft") { e.preventDefault(); navigate(-1); }
+    if (e.key === "Home") { e.preventDefault(); showSlide(0); }
+    if (e.key === "End") { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener("touchstart", (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener("touchend", (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
