@@ -643,6 +643,144 @@ await foreach (var message in
           <tr><td><code>debug</code>, <code>debugFile</code>, <code>stderr</code>, <code>executable</code></td><td>CLI logs; JS runtime <code>node</code> | <code>bun</code> | <code>deno</code>; custom <code>spawnClaudeCodeProcess</code>.</td></tr>
         </tbody>
       </table>
+      <p style="margin-top:12px">Next slides wire these into one <code>options</code> object, then show the App &rarr; SDK &rarr; Model request/response loop.</p>
+    </div>
+  </div>
+
+  <!-- 16b. OPTIONS EXAMPLES -->
+  <div class="slide">
+    <h2 class="animate">Those options, as code</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>MCP + hooks + agent</h3>
+        <pre style="font-size:0.8rem">mcpServers: {
+  orders: ordersSdkServer,          // in-process
+  docs: { type: "http",
+    url: "https://example/mcp" }    // remote
+},
+strictMcpConfig: true,              // ignore .mcp.json
+hooks: {
+  PreToolUse: [{
+    matcher: "mcp__orders__*",
+    hooks: [auditLookup]
+  }]
+},
+includeHookEvents: true,
+agents: {
+  "note-writer": {
+    description: "One-line ops note",
+    prompt: "Be terse. No tools.",
+    tools: []
+  }
+},
+canUseTool: async (name) =>
+  name.startsWith("mcp__orders__")
+    ? { behavior: "allow" }
+    : { behavior: "deny",
+        message: "blocked" },</pre>
+      </div>
+      <div class="card">
+        <h3>I/O + session + C#</h3>
+        <pre style="font-size:0.8rem">outputFormat: {
+  type: "json_schema",
+  schema: OrderStatusSchema
+},
+includePartialMessages: true,
+promptSuggestions: true,
+sandbox: { enabled: true },
+enableFileCheckpointing: true,
+resume: sessionId,        // or continue: true
+forkSession: false,
+stderr: (line) => console.error(line)
+
+// C# (same ideas)
+new ClaudeClientOptions {
+  McpServers = { ["orders"] = orders },
+  AllowedTools = ["mcp__orders__lookup_order"],
+  IncludePartialMessages = true,
+  OutputFormat = OrderStatusContext
+    .Default.OrderStatus,
+  Hooks = { [HookEvent.PreToolUse] =
+    [HookMatcher.Create("mcp__orders__*",
+      AuditLookup)] }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- 16c. FULL EXAMPLE -->
+  <div class="slide">
+    <h2 class="animate">Full example: order status agent</h2>
+    <div class="content animate">
+      <p style="margin-bottom:10px">One <code>query()</code>: in-process MCP lookup, a PreToolUse audit hook, structured JSON out, streamed tokens. Prompt: <em>&ldquo;Status of order 42. If delayed, draft an ops note.&rdquo;</em></p>
+      <pre style="font-size:0.8rem;max-width:1000px">import { query, tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
+import { z } from "zod";
+
+const lookup = tool("lookup_order", "Fetch order status by id",
+  { id: z.string() },
+  async ({ id }) => ({ content: [{ type: "text",
+    text: JSON.stringify({ id, status: "delayed", eta: "Fri" }) }] }),
+  { annotations: { readOnlyHint: true } });
+
+const orders = createSdkMcpServer({ name: "orders", tools: [lookup] });
+
+for await (const m of query({
+  prompt: "Status of order 42. If delayed, draft an ops note.",
+  options: {
+    mcpServers: { orders },
+    allowedTools: ["mcp__orders__lookup_order"],
+    hooks: { PreToolUse: [{ matcher: "mcp__orders__lookup_order",
+      hooks: [async (input) => { console.log("lookup", input.tool_input); return {}; }] }] },
+    outputFormat: { type: "json_schema", schema: {
+      type: "object",
+      properties: { orderId: { type: "string" }, status: { type: "string" }, note: { type: "string" } },
+      required: ["orderId", "status"] } },
+    includePartialMessages: true,
+    maxTurns: 8, maxBudgetUsd: 1
+  }
+})) {
+  if (m.type === "stream_event") process.stdout.write(m.event.delta?.text ?? "");
+  if (m.type === "result" &amp;&amp; m.subtype === "success")
+    console.log("\nJSON", m.structured_output ?? m.result);
+}</pre>
+    </div>
+  </div>
+
+  <!-- 16d. SEQUENCE DIAGRAM -->
+  <div class="slide">
+    <h2 class="animate">Request / response: App &rarr; SDK &rarr; Model</h2>
+    <div class="content animate">
+      <p style="margin-bottom:8px;text-align:center">Your app never talks to the model. The SDK (Claude Code subprocess) owns the Messages API loop and tool execution. In-process MCP runs inside the app process.</p>
+      <pre style="font-size:0.72rem;max-width:1000px">App                         Agent SDK                         Model API                      MCP (orders)
+ |                               |                                 |                               |
+ |  query(prompt, options)       |                                 |                               |
+ |------------------------------>|  spawn CLI, tools+hooks loaded  |                               |
+ |  system / init                |                                 |                               |
+ |&lt;------------------------------|                                 |                               |
+ |                               |  POST /v1/messages              |                               |
+ |                               |  system + tool defs + user      |                               |
+ |                               |-------------------------------->|                               |
+ |                               |  assistant: text + tool_use     |                               |
+ |                               |  name=lookup_order id=42        |                               |
+ |                               |&lt;--------------------------------|                               |
+ |  assistant (tool_use)         |                                 |                               |
+ |&lt;------------------------------|                                 |                               |
+ |                               |  PreToolUse hook (app process)  |                               |
+ |                               |  canUseTool / allowedTools      |                               |
+ |                               |  tools/call lookup_order        |                               |
+ |                               |---------------------------------------------------------------->|
+ |                               |  { id:"42", status:"delayed" }  |                               |
+ |                               |&lt;----------------------------------------------------------------|
+ |  user (tool_result)           |                                 |                               |
+ |&lt;------------------------------|                                 |                               |
+ |                               |  POST /v1/messages              |                               |
+ |                               |  + tool_result                  |                               |
+ |                               |-------------------------------->|                               |
+ |  stream_event text deltas     |  assistant: note + JSON         |                               |
+ |&lt;------------------------------|&lt;--------------------------------|                               |
+ |  result / success             |  loop ends (no more tool_use)   |                               |
+ |  structured_output            |                                 |                               |
+ |&lt;------------------------------|                                 |                               |</pre>
     </div>
   </div>
 
@@ -1012,7 +1150,7 @@ while ((line = await proc.StandardOutput.ReadLineAsync()) != null) {
 
 </div>
 
-<div class="slide-counter" id="counter">1 / 30</div>
+<div class="slide-counter" id="counter">1 / 33</div>
 <div class="nav">
   <button onclick="navigate(-1)">&#9664; Prev</button>
   <button onclick="navigate(1)">Next &#9654;</button>
