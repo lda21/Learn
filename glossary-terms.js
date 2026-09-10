@@ -630,6 +630,14 @@ const GLOSSARY_TERMS = [
   {t:"useContext", d:"Core React hook that reads the nearest matching Context Provider above the component. Used to pass theme, locale, or auth without threading props through every layer.", tags:["React","Hooks"]},
   {t:"Key (React)", d:"A stable string or number on each item in a mapped list that tells React which item is which across renders. Prefer a data id. Index keys break when the list reorders; random keys remount every render.", tags:["React"]},
   {t:"children (React)", d:"A special React prop containing whatever JSX was nested between a component's opening and closing tags. The main tool for composition (layouts, panels, wrappers).", tags:["React"]},
+  {t:"Sanity Studio", d:"The configurable editing app for Sanity. Defined in <code>sanity.config.ts</code> via <code>defineConfig</code>: projectId, dataset, plugins (Structure, Vision, Presentation), and <code>schema.types</code>.", tags:["Sanity"]},
+  {t:"Content Lake", d:"Sanity's hosted JSON content store. Documents have <code>_id</code>, <code>_type</code>, and revisions. Schemas live in Studio, not as database constraints. Query with GROQ; choose a perspective (published vs drafts).", tags:["Sanity"]},
+  {t:"GROQ", d:"Graph-Relational Object Queries &mdash; Sanity's query language. Pipeline of <code>*</code>, a filter in <code>[]</code>, a projection in <code>{}</code>, then <code>order</code> / slice. Follow references with <code>-&gt;</code>.", tags:["Sanity","GROQ"]},
+  {t:"Document type", d:"A Sanity schema type editors create as a standalone record. Only documents get <code>_id</code> / <code>_rev</code>, appear in the Structure list, and can be referenced from other documents.", tags:["Sanity"]},
+  {t:"Object type", d:"A Sanity schema type embedded on a parent. No standalone Studio list item and no document id. Use for reusable field groups (SEO, address) and custom Portable Text blocks.", tags:["Sanity"]},
+  {t:"Portable Text", d:"JSON rich-text spec Sanity stores as an array of blocks (spans, marks, <code>markDefs</code>) plus custom objects. Render with <code>@portabletext/react</code>; do not store HTML.", tags:["Sanity"]},
+  {t:"Presentation Tool", d:"Studio plugin that iframes the frontend for visual editing. Maps documents to URLs, enables Draft Mode, and uses stega overlays so clicking preview text jumps to the field.", tags:["Sanity"]},
+  {t:"next-sanity", d:"Official Next.js toolkit: <code>createClient</code>, <code>defineLive</code> (<code>sanityFetch</code> + <code>SanityLive</code>), Draft Mode helpers, and Visual Editing. Pair with a Viewer read token for drafts.", tags:["Sanity","Next.js"]},
 ];
 
 (function() {

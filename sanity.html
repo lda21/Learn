@@ -1,0 +1,788 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <title>Sanity — Studio, GROQ, and Headless Content</title>
+<style>
+    :root {
+      --bg: #FAF9F7;
+      --bg-slide: #F5F0EB;
+      --accent: #DA7756;
+      --accent2: #F0EBE5;
+      --text: #2D2B28;
+      --text-muted: #6B6560;
+      --code-bg: #2D2B28;
+      --success: #5A9A6E;
+      --warning: #DA7756;
+      --card-bg: #fff;
+      --border-color: #D9D2CB;
+      --shadow: rgba(0,0,0,0.06);
+      --code-text: #E8E2DC;
+    }
+
+    [data-theme="dark"] {
+      --bg: #1A1915;
+      --bg-slide: #1A1915;
+      --accent: #DA7756;
+      --accent2: #302C28;
+      --text: #E8E2DC;
+      --text-muted: #9B9590;
+      --code-bg: #131210;
+      --success: #6EBF84;
+      --warning: #DA7756;
+      --card-bg: #252220;
+      --border-color: #3D3935;
+      --shadow: rgba(0,0,0,0.3);
+      --code-text: #E8E2DC;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg); color: var(--text); overflow-x: hidden; overflow-y: hidden; height: 100vh; height: 100dvh;
+    }
+
+    .deck { width: 100vw; height: 100vh; height: 100dvh; position: relative; }
+    .slide {
+      position: absolute; inset: 0; display: flex; flex-direction: column;
+      justify-content: flex-start; align-items: center; padding: 80px 80px 80px;
+      opacity: 0; pointer-events: none; transition: opacity 0.5s ease; background: var(--bg); overflow-y: scroll; -webkit-overflow-scrolling: touch;
+    }
+    .slide.active { opacity: 1; pointer-events: auto; }
+
+    h1 { font-size: 3.2rem; margin-bottom: 0.5em; text-align: center; }
+    h2 { font-size: 2.4rem; margin-bottom: 0.6em; color: var(--accent); text-align: center; }
+    h3 { font-size: 1.6rem; margin-bottom: 0.5em; color: var(--warning); }
+    p, li { font-size: 1.25rem; line-height: 1.7; }
+    ul { list-style: none; padding: 0; }
+    li { padding: 0.35em 0; padding-left: 1.5em; position: relative; }
+    li::before { content: '\25B8'; position: absolute; left: 0; color: var(--accent); }
+    .subtitle { color: var(--text-muted); font-size: 1.4rem; text-align: center; }
+
+    code, pre { font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; background: var(--code-bg); color: #E8E2DC; border-radius: 6px; }
+    code { padding: 2px 7px; font-size: 1.1rem; color: var(--accent); background: var(--accent2); }
+    pre { padding: 24px 28px; font-size: 0.95rem; line-height: 1.6; overflow-x: auto; width: 100%; max-width: 900px; border-left: 4px solid var(--accent); }
+
+    .content { max-width: 1000px; width: 100%; }
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; width: 100%; max-width: 1000px; }
+    .card { background: var(--card-bg); border-radius: 12px; padding: 28px; box-shadow: 0 2px 8px var(--shadow); }
+    .card h3 { margin-bottom: 12px; }
+    .card pre { font-size: 0.8rem; max-width: 100%; }
+    .highlight { color: var(--accent); font-weight: 600; }
+    .green { color: var(--success); }
+    .tag { display: inline-block; background: var(--accent2); padding: 4px 14px; border-radius: 20px; font-size: 0.95rem; margin: 4px; color: var(--accent); font-weight: 600; }
+
+    .diagram { display: flex; align-items: center; justify-content: center; gap: 16px; flex-wrap: wrap; margin: 20px 0; }
+    .diagram .box { background: var(--card-bg); border: 2px solid var(--accent); border-radius: 10px; padding: 16px 24px; text-align: center; font-weight: 600; min-width: 130px; box-shadow: 0 2px 8px var(--shadow); }
+    .diagram .arrow { font-size: 1.8rem; color: var(--accent); }
+
+    table { border-collapse: collapse; width: 100%; max-width: 900px; margin: 12px 0; }
+    th, td { padding: 12px 18px; text-align: left; border-bottom: 1px solid var(--border-color); font-size: 1.1rem; }
+    th { color: var(--accent); font-size: 1.05rem; text-transform: uppercase; letter-spacing: 0.5px; }
+
+    .progress { position: fixed; top: 0; left: 0; height: 4px; background: var(--accent); transition: width 0.4s ease; z-index: 100; }
+    .nav { position: fixed; bottom: 24px; right: 32px; display: flex; gap: 10px; z-index: 100; }
+    .nav button { background: var(--accent); color: #fff; border: none; border-radius: 8px; padding: 10px 20px; font-size: 1rem; cursor: pointer; transition: background 0.2s; }
+    .nav button:hover { background: #C4654A; }
+
+    .theme-toggle {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.3rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+    }
+    .theme-toggle:hover { border-color: var(--accent); }
+
+    .close-btn {
+      position: fixed;
+      top: 16px;
+      left: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.4rem;
+      cursor: pointer;
+      z-index: 200;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.3s, border-color 0.3s;
+      box-shadow: 0 2px 8px var(--shadow);
+      text-decoration: none;
+      color: var(--text-muted);
+      line-height: 1;
+    }
+    .close-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+    .back-link {
+      display: inline-block;
+      margin-top: 24px;
+      padding: 14px 32px;
+      background: var(--accent);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 10px;
+      font-size: 1.15rem;
+      font-weight: 600;
+      transition: background 0.2s;
+    }
+    .back-link:hover { background: #C4654A; }
+    .slide-counter { position: fixed; bottom: 28px; left: 32px; color: var(--text-muted); font-size: 0.95rem; z-index: 100; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+
+    .title-fire { font-size: 5rem; margin-bottom: 0.1em; }
+    .logo-icon { font-size: 6rem; margin-bottom: 20px; display: block; }
+
+    @keyframes fadeInUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+    .slide.active .animate { animation: fadeInUp 0.6s ease both; }
+    .slide.active .animate:nth-child(2) { animation-delay: 0.15s; }
+    .slide.active .animate:nth-child(3) { animation-delay: 0.3s; }
+    .slide.active .animate:nth-child(4) { animation-delay: 0.45s; }
+    .slide.active .animate:nth-child(5) { animation-delay: 0.6s; }
+
+    .metric-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 950px; width: 100%; }
+    .metric-card { background: var(--card-bg); border-radius: 12px; padding: 24px; border-top: 4px solid var(--accent); box-shadow: 0 2px 8px var(--shadow); }
+    .metric-card h3 { font-size: 1.3rem; }
+    .metric-card p { font-size: 1.05rem; color: var(--text-muted); margin-top: 6px; }
+    .metric-card code { font-size: 0.9rem; }
+
+    .bp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; max-width: 950px; width: 100%; }
+    .bp-item { background: var(--card-bg); border-radius: 10px; padding: 18px 22px; font-size: 1.1rem; box-shadow: 0 2px 8px var(--shadow); }
+    .bp-item span { color: var(--accent); font-weight: 700; margin-right: 8px; }
+
+    @media (max-width: 768px) {
+      body { font-size: 18px; }
+      .slide { padding: 30px 24px; justify-content: flex-start; padding-top: 50px; padding-bottom: 60px; overflow-y: scroll; -webkit-overflow-scrolling: touch; }
+      h1 { font-size: 2.8rem; } h2 { font-size: 2.2rem; } h3 { font-size: 1.6rem; }
+      p, li { font-size: 1.3rem; line-height: 1.7; word-break: break-word; }
+      .title-fire { font-size: 3.5rem; } .logo-icon { font-size: 5rem; } .subtitle { font-size: 1.5rem; }
+      code { font-size: 1.05rem; padding: 3px 6px; word-break: break-all; }
+      pre { padding: 18px 16px; font-size: 1rem; line-height: 1.5; max-width: 100%; word-wrap: break-word; white-space: pre-wrap; }
+      .two-col { grid-template-columns: 1fr; gap: 18px; }
+      .metric-grid { grid-template-columns: 1fr; gap: 14px; }
+      .bp-grid { grid-template-columns: 1fr; gap: 12px; }
+      .card { padding: 20px; overflow-x: auto; word-break: break-word; } .card h3 { font-size: 1.4rem; } .card p { font-size: 1.2rem; }
+      .metric-card { padding: 20px; } .metric-card h3 { font-size: 1.4rem; } .metric-card p { font-size: 1.15rem; } .metric-card code { font-size: 1rem; }
+      .bp-item { padding: 16px 18px; font-size: 1.25rem; }
+      .diagram { flex-direction: column; gap: 8px; }
+      .diagram .arrow { transform: rotate(90deg); font-size: 1.6rem; }
+      .diagram .box { min-width: 80%; padding: 14px 20px; font-size: 1.2rem; }
+      table { font-size: 0.95rem; display: block; overflow-x: auto; max-width: 100%; } th, td { padding: 10px 12px; font-size: 0.95rem; white-space: normal; }
+      .nav-toggle { display: flex; }
+      .nav { display: none; }
+      .close-btn { display: none; }
+      .slide-counter { display: block; bottom: 18px; left: 16px; font-size: 0.85rem; background: var(--card-bg); padding: 6px 12px; border-radius: 8px; border: 1px solid var(--border-color); box-shadow: 0 2px 8px var(--shadow); }
+      [data-nav="visible"] .nav { display: flex; position: fixed; bottom: 14px; right: 68px; }
+      [data-nav="visible"] .close-btn { display: flex; }
+      [data-nav="visible"] .slide { padding-bottom: 120px; }
+      .content { max-width: 100%; }
+    }
+    @media (max-width: 480px) {
+      .slide { padding: 24px 16px; padding-top: 40px; padding-bottom: 60px; }
+      h1 { font-size: 2.4rem; } h2 { font-size: 1.9rem; } h3 { font-size: 1.4rem; }
+      p, li { font-size: 1.2rem; line-height: 1.65; }
+      pre { font-size: 0.9rem; padding: 14px 12px; } code { font-size: 1.05rem; }
+      .title-fire { font-size: 2.8rem; } .logo-icon { font-size: 4rem; } .subtitle { font-size: 1.3rem; }
+      .tag { font-size: 1.1rem; padding: 5px 14px; }
+      .bp-item { font-size: 1.15rem; } .card p, .metric-card p { font-size: 1.1rem; }
+      .diagram .box { font-size: 1.1rem; } table, th, td { font-size: 1.05rem; }
+    }
+
+    .nav-toggle {
+      display: none;
+      position: fixed;
+      bottom: 16px;
+      right: 16px;
+      background: var(--card-bg);
+      border: 2px solid var(--border-color);
+      border-radius: 50%;
+      width: 44px;
+      height: 44px;
+      font-size: 1.2rem;
+      cursor: pointer;
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 2px 8px var(--shadow);
+      color: var(--text-muted);
+      transition: background 0.3s, border-color 0.3s;
+    }
+    .nav-toggle:hover { border-color: var(--accent); color: var(--accent); }
+  </style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<a href="index.html" class="close-btn" title="Back to courses">&times;</a>
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" title="Toggle dark mode">&#x263E;</button>
+<button class="nav-toggle" id="navToggle" onclick="toggleNav()" title="Toggle navigation">&#x2630;</button>
+<div class="deck" id="deck">
+
+  <div class="slide active">
+    <span class="logo-icon">&#x1F4DD;</span>
+    <h1 class="animate">Sanity</h1>
+    <p class="subtitle animate">Studio, GROQ, and headless content &mdash; a mental model for content-driven apps</p>
+    <div class="animate" style="margin-top:24px;">
+      <span class="tag">Sanity</span>
+      <span class="tag">GROQ</span>
+      <span class="tag">Headless CMS</span>
+      <span class="tag">Portable Text</span>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Structured content, not pages</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Page CMS habit</h3>
+        <ul>
+          <li>Editors compose a page as HTML or blocks</li>
+          <li>Presentation is baked into the record</li>
+          <li>Reuse means copy-paste or fragile embeds</li>
+          <li>A new channel (app, email, kiosk) needs a rewrite</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Sanity&rsquo;s bet</h3>
+        <ul>
+          <li>Model <span class="highlight">facts</span>: post, product, author, SEO</li>
+          <li>Store JSON in the Content Lake</li>
+          <li>Query the shape the frontend needs with GROQ</li>
+          <li>Render later &mdash; web, app, or preview iframe</li>
+        </ul>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:20px;">The Studio is the editor UI. The Lake is the API. Your app is the presentation layer.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">The three pieces</h2>
+    <div class="diagram animate">
+      <div class="box">Studio<br><small>schema + editor UI</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Content Lake<br><small>JSON + real-time API</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Frontend<br><small>GROQ + client</small></div>
+    </div>
+    <div class="content animate" style="margin-top:12px;">
+      <ul>
+        <li><span class="highlight">Studio</span> is configured in code (<code>sanity.config.ts</code>). Schemas live there, not as database constraints.</li>
+        <li><span class="highlight">Content Lake</span> stores any valid JSON document. Drafts, published, and releases are perspectives on the same ids.</li>
+        <li><span class="highlight">Your app</span> fetches with <code>@sanity/client</code> or <code>next-sanity</code>, then renders Portable Text and images.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Content Lake</h2>
+    <div class="metric-grid animate">
+      <div class="metric-card">
+        <h3>JSON documents</h3>
+        <p>Every record is an object with <code>_id</code>, <code>_type</code>, <code>_rev</code>, <code>_createdAt</code>, <code>_updatedAt</code>.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Schema is UI, not a lock</h3>
+        <p>Studio schemas describe what editors may author. The Lake will store JSON that no schema covers.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Query, don&rsquo;t scrape</h3>
+        <p>GROQ filters, joins, and projects at the API. Frontends receive only the fields they asked for.</p>
+      </div>
+      <div class="metric-card">
+        <h3>Perspectives</h3>
+        <p><code>published</code> for production. <code>drafts</code> (and releases) for preview. Same query, different state.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Studio configuration</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3><code>defineConfig</code></h3>
+        <p>Required: <code>projectId</code> and <code>dataset</code>. Typical plugins: <code>structureTool()</code> (the desk), <code>visionTool()</code> (GROQ playground), <code>presentationTool()</code> (live preview).</p>
+        <p style="margin-top:12px;">Put types on <code>schema.types</code>. Keep the array in <code>schemaTypes.ts</code> and import it.</p>
+      </div>
+      <div class="card">
+        <pre>import {defineConfig} from 'sanity'
+import {structureTool} from 'sanity/structure'
+import {schemaTypes} from './schemaTypes'
+
+export default defineConfig({
+  projectId: 'abc123',
+  dataset: 'production',
+  plugins: [structureTool()],
+  schema: { types: schemaTypes },
+})</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Schema definition</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Typed helpers</h3>
+        <ul>
+          <li><code>defineType</code> wraps a type (document or object)</li>
+          <li><code>defineField</code> wraps each field for autocomplete</li>
+          <li>Every field needs <code>name</code> (JSON key) and <code>type</code></li>
+          <li><code>validation</code> is a Rule builder: <code>Rule.required()</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <pre style="font-size:0.8rem;">import {defineField, defineType} from 'sanity'
+
+export const postType = defineType({
+  name: 'post',
+  title: 'Post',
+  type: 'document',
+  fields: [
+    defineField({
+      name: 'title',
+      type: 'string',
+      validation: (rule) => rule.required(),
+    }),
+    defineField({
+      name: 'slug',
+      type: 'slug',
+      options: {source: 'title'},
+    }),
+  ],
+})</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Document types</h2>
+    <div class="content animate">
+      <p>A <span class="highlight">document</span> is what editors create in the Structure tool. Only documents get an id, timestamps, and a revision, and only documents can be referenced or fetched by id.</p>
+    </div>
+    <div class="two-col animate" style="margin-top:20px;">
+      <div class="card">
+        <h3>Use <code>type: 'document'</code> for</h3>
+        <ul>
+          <li>Standalone content: post, page, product, author</li>
+          <li>Anything that needs its own Studio list item</li>
+          <li>Anything other documents will <code>reference</code></li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3>Stored shape</h3>
+        <pre>{
+  "_id": "post-42",
+  "_type": "post",
+  "_rev": "abc",
+  "title": "Hello",
+  "slug": { "current": "hello" }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Object types vs documents</h2>
+    <table class="animate">
+      <thead>
+        <tr><th></th><th>Document</th><th>Object</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Standalone in Studio</td><td class="green">Yes &mdash; listed and creatable</td><td>No &mdash; lives inside a parent</td></tr>
+        <tr><td>Has <code>_id</code> / <code>_rev</code></td><td class="green">Yes</td><td>Only <code>_type</code> + <code>_key</code> in arrays</td></tr>
+        <tr><td>Can be referenced</td><td class="green">Yes (<code>_ref</code>)</td><td>Embed the fields instead</td></tr>
+        <tr><td>Typical use</td><td>post, author, category</td><td>seo, cta, address, portable-text block</td></tr>
+      </tbody>
+    </table>
+    <p class="animate" style="margin-top:16px;">Never put a document type on a field. Embed an <code>object</code>, or point at a document with <code>type: 'reference'</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">References vs embedded objects</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Reference</h3>
+        <pre style="font-size:0.8rem;">defineField({
+  name: 'author',
+  type: 'reference',
+  to: [{type: 'author'}],
+})</pre>
+        <p style="margin-top:12px;">Stores <code>{_ref, _type: 'reference'}</code>. One author, many posts. GROQ follows it with <code>-&gt;</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Embedded object</h3>
+        <pre style="font-size:0.8rem;">defineField({
+  name: 'seo',
+  type: 'seo', // hoisted object type
+})</pre>
+        <p style="margin-top:12px;">Fields live on the parent document. Use when the data is not shared and has no independent lifecycle.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">GROQ is a pipeline</h2>
+    <div class="diagram animate">
+      <div class="box">*<br><small>all documents</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">[filter]<br><small>keep matching</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">{projection}<br><small>reshape JSON</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">| order / slice<br><small>sort and page</small></div>
+    </div>
+    <div class="content animate">
+      <p>GROQ (Graph-Relational Object Queries) runs in the Content Lake. You describe <span class="highlight">which documents</span>, then <span class="highlight">which fields</span>, then joins and computed keys. The frontend receives the finished shape.</p>
+      <p style="margin-top:12px;">Use it from <code>client.fetch</code>, the HTTP <code>/query</code> endpoint, Vision in Studio, webhooks, and Functions. Vision is the playground: paste a query, inspect JSON, then copy it into the app.</p>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Filters and projections</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Filter</h3>
+        <pre>*[_type == "post"
+  && defined(slug.current)
+  && publishedAt &lt;= now()]</pre>
+        <p style="margin-top:12px;"><code>*</code> is the dataset. Square brackets keep documents. Combine with <code>&amp;&amp;</code> / <code>||</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Project</h3>
+        <pre>*[_type == "post"]{
+  _id,
+  title,
+  "slug": slug.current,
+  "excerpt": pt::text(body)[0...160]
+}</pre>
+        <p style="margin-top:12px;">Curly braces pick and rename fields. Quoted keys are computed.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Joins, order, perspectives</h2>
+    <div class="content animate">
+      <pre>*[_type == "post"] | order(publishedAt desc) [0...12] {
+  title,
+  "slug": slug.current,
+  "author": author->{name, "slug": slug.current},
+  categories[]->{title, "slug": slug.current}
+}</pre>
+    </div>
+    <div class="two-col animate" style="margin-top:16px;">
+      <div class="card">
+        <h3>Dereference</h3>
+        <p><code>-&gt;</code> follows a reference. <code>author-&gt;name</code> is one field; <code>author-&gt;{...}</code> is a nested object. Arrays: <code>categories[]-&gt;</code>.</p>
+      </div>
+      <div class="card">
+        <h3>Perspective</h3>
+        <p>Client default <code>published</code> + <code>useCdn: true</code> for production. Override to <code>drafts</code> (CDN off) in preview. Same GROQ, different documents.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Sanity Client</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3><code>@sanity/client</code></h3>
+        <p>Framework-agnostic. <code>createClient</code> + <code>fetch(query, params)</code>. Pin <code>apiVersion</code> to a date. Token only when you need drafts or writes.</p>
+      </div>
+      <div class="card">
+        <pre style="font-size:0.8rem;">import {createClient} from '@sanity/client'
+
+export const client = createClient({
+  projectId: process.env.SANITY_PROJECT_ID,
+  dataset: 'production',
+  apiVersion: '2025-02-19',
+  useCdn: true,
+  perspective: 'published',
+})
+
+const posts = await client.fetch(
+  `*[_type == "post"]{title, "slug": slug.current}`
+)</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Next.js with next-sanity</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>What the kit adds</h3>
+        <ul>
+          <li><code>createClient</code> from <code>next-sanity</code> (same options)</li>
+          <li><code>defineLive</code> &rarr; <code>sanityFetch</code> + <code>SanityLive</code></li>
+          <li>Draft Mode routes for Presentation</li>
+          <li><code>stega.studioUrl</code> so overlays know where Studio lives</li>
+        </ul>
+        <p style="margin-top:12px;">Public env: project id + dataset. Server-only: <code>SANITY_API_READ_TOKEN</code> (Viewer) for drafts.</p>
+      </div>
+      <div class="card">
+        <pre style="font-size:0.8rem;">const {data: post} = await sanityFetch({
+  query: `*[_type == "post"
+    && slug.current == $slug][0]{
+    title, body
+  }`,
+  params: {slug},
+  perspective: 'published',
+  stega: false,
+})</pre>
+        <p style="margin-top:12px;">Prefer <code>sanityFetch</code> over raw <code>client.fetch</code> so cache, perspective, and stega stay consistent.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Visual editing</h2>
+    <div class="diagram animate">
+      <div class="box">Presentation<br><small>iframe + resolve()</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Draft Mode<br><small>/api/draft-mode/enable</small></div>
+      <div class="arrow">&#8594;</div>
+      <div class="box">Stega overlays<br><small>click field &rarr; Studio</small></div>
+    </div>
+    <div class="content animate">
+      <ul>
+        <li><code>presentationTool</code> loads the frontend origin and maps documents to URLs via <code>defineLocations</code>.</li>
+        <li>Studio hits the Draft Mode enable route. <code>sanityFetch</code> then returns draft strings with hidden Content Source Maps (stega).</li>
+        <li><code>VisualEditing</code> draws click-to-edit overlays. Clicking a heading jumps the Studio to that field.</li>
+        <li>CORS on the Sanity project must allow the frontend origin with credentials.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Live preview</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Live Content API</h3>
+        <p><code>defineLive({ client, serverToken, browserToken })</code> wires the query layer to fine-grained mutations. <code>SanityLive</code> in the app tree listens; when an editor types, cached pages re-render.</p>
+      </div>
+      <div class="card">
+        <h3>Two modes, one query</h3>
+        <ul>
+          <li>Published: CDN on, stega off, no token in the browser</li>
+          <li>Draft / Presentation: perspective from cookies, stega on, read token only while Draft Mode is enabled</li>
+        </ul>
+        <p style="margin-top:12px;">Resolve perspective <span class="highlight">outside</span> cache boundaries, then pass it into <code>sanityFetch</code>.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Portable Text is JSON</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Schema</h3>
+        <pre style="font-size:0.8rem;">{
+  name: 'body',
+  type: 'array',
+  of: [
+    {type: 'block'},
+    {type: 'image'},
+  ],
+}</pre>
+        <p style="margin-top:12px;">Rich text is an <span class="highlight">array of blocks</span>, not HTML. <code>block</code> is paragraphs, lists, marks. Custom objects sit beside blocks.</p>
+      </div>
+      <div class="card">
+        <h3>Stored block</h3>
+        <ul>
+          <li><code>_type: 'block'</code> + <code>children</code> (spans)</li>
+          <li>Decorators (<code>strong</code>) live on the span&rsquo;s <code>marks</code></li>
+          <li>Annotations (links) are objects in <code>markDefs</code></li>
+          <li>Custom blocks keep their own fields + <code>_key</code></li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Rendering Portable Text</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>React serializer</h3>
+        <pre style="font-size:0.8rem;">import {PortableText} from '@portabletext/react'
+
+&lt;PortableText
+  value={post.body}
+  components={{
+    types: {image: ImageBlock},
+    marks: {link: LinkMark},
+    block: {h2: H2},
+  }}
+/&gt;</pre>
+      </div>
+      <div class="card">
+        <h3>Query the extras</h3>
+        <p>Default <code>body</code> is not enough for annotations that reference documents. Project them:</p>
+        <pre style="font-size:0.8rem;">body[]{
+  ...,
+  markDefs[]{
+    ...,
+    _type == "internalLink" => {
+      "href": "/" + @.reference->slug.current
+    }
+  }
+}</pre>
+      </div>
+    </div>
+    <p class="animate" style="margin-top:16px;">Presentation is a map from <code>_type</code> to components. Images usually go through <code>@sanity/image-url</code>.</p>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Practices that hold</h2>
+    <div class="bp-grid animate">
+      <div class="bp-item"><span>1</span> Model reusable facts as documents; nest one-off shape as objects.</div>
+      <div class="bp-item"><span>2</span> Project in GROQ. Do not over-fetch and reshape in the app.</div>
+      <div class="bp-item"><span>3</span> Pin <code>apiVersion</code>. Default to <code>published</code> + CDN in production.</div>
+      <div class="bp-item"><span>4</span> Keep Presentation <code>resolve</code> URLs in sync with real App Router paths.</div>
+      <div class="bp-item"><span>5</span> Viewer token for drafts only; never ship a write token to the browser.</div>
+      <div class="bp-item"><span>6</span> Reuse Portable Text projections (especially <code>markDefs</code>) across page queries.</div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">What this course leaves out</h2>
+    <div class="two-col animate">
+      <div class="card">
+        <h3>Out of scope here</h3>
+        <ul>
+          <li><span class="highlight">Custom Studio plugins from scratch</span> (new tools, input components as packages)</li>
+          <li><span class="highlight">Multi-workspace enterprise SSO</span> (custom <code>auth</code> providers, org-wide login)</li>
+        </ul>
+        <p style="margin-top:12px;">You will see <code>defineConfig</code> plugins used, not authored. Workspaces exist in config; we do not design SSO across them.</p>
+      </div>
+      <div class="card">
+        <h3>You should be able to</h3>
+        <ul>
+          <li>Configure a Studio and register schema types</li>
+          <li>Choose document vs object vs reference</li>
+          <li>Write GROQ filters, projections, and joins</li>
+          <li>Fetch with the client / <code>next-sanity</code></li>
+          <li>Wire Presentation + live preview</li>
+          <li>Store and render Portable Text</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <div class="slide">
+    <h2 class="animate">Course Complete!</h2>
+    <p class="subtitle animate">You can model structured content in Studio, query the Content Lake with GROQ, and render it in a modern frontend with live visual editing.</p>
+    <div class="animate" style="margin-top:20px;">
+      <span class="tag">Studio</span>
+      <span class="tag">Schema</span>
+      <span class="tag">GROQ</span>
+      <span class="tag">Content Lake</span>
+      <span class="tag">next-sanity</span>
+      <span class="tag">Portable Text</span>
+    </div>
+    <p class="animate" style="margin-top:36px;"><a href="index.html" style="color:var(--accent);font-weight:600;font-size:1.2rem;">&#8592; Back to courses</a></p>
+  </div>
+
+</div>
+
+<div class="slide-counter" id="counter">1 / 21</div>
+<div class="nav">
+  <button onclick="navigate(-1)">&#9664; Prev</button>
+  <button onclick="navigate(1)">Next &#9654;</button>
+</div>
+
+<script>
+  // Theme toggle
+  function toggleTheme() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-theme');
+    const next = current === 'dark' ? 'light' : 'dark';
+    html.setAttribute('data-theme', next);
+    localStorage.setItem('theme', next);
+    updateToggleIcon(next);
+  }
+
+  function updateToggleIcon(theme) {
+    document.getElementById('themeToggle').innerHTML = theme === 'dark' ? '&#x2600;' : '&#x263E;';
+  }
+
+  // Load saved theme
+  (function() {
+    const saved = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', saved);
+    updateToggleIcon(saved);
+  })();
+
+  // Nav toggle for mobile
+  function toggleNav() {
+    const html = document.documentElement;
+    const current = html.getAttribute('data-nav');
+    const next = current === 'visible' ? 'hidden' : 'visible';
+    html.setAttribute('data-nav', next);
+    localStorage.setItem('navVisible', next);
+    document.getElementById('navToggle').innerHTML = next === 'visible' ? '&#x2715;' : '&#x2630;';
+  }
+  (function() {
+    const saved = localStorage.getItem('navVisible') || 'hidden';
+    document.documentElement.setAttribute('data-nav', saved);
+    if (document.getElementById('navToggle')) {
+      document.getElementById('navToggle').innerHTML = saved === 'visible' ? '&#x2715;' : '&#x2630;';
+    }
+  })();
+</script>
+
+<script>
+  const slides = document.querySelectorAll('.slide');
+  const progress = document.getElementById('progress');
+  const counter = document.getElementById('counter');
+  let current = 0;
+
+  const navBtns = document.querySelectorAll('.nav button');
+  function showSlide(index) {
+    slides[current].classList.remove('active');
+    current = Math.max(0, Math.min(index, slides.length - 1));
+    slides[current].classList.add('active');
+    progress.style.width = ((current / (slides.length - 1)) * 100) + '%';
+    counter.textContent = (current + 1) + ' / ' + slides.length;
+    if (navBtns.length >= 2) {
+      navBtns[0].style.display = current === 0 ? 'none' : '';
+      navBtns[1].style.display = current === slides.length - 1 ? 'none' : '';
+    }
+  }
+
+  function navigate(dir) { showSlide(current + dir); }
+  showSlide(0); // initial state: hide Prev on first slide
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'ArrowRight' || e.key === ' ') { e.preventDefault(); navigate(1); }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); navigate(-1); }
+    if (e.key === 'Home') { e.preventDefault(); showSlide(0); }
+    if (e.key === 'End') { e.preventDefault(); showSlide(slides.length - 1); }
+  });
+
+  let touchStartX = 0;
+  document.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; });
+  document.addEventListener('touchend', (e) => {
+    const diff = e.changedTouches[0].screenX - touchStartX;
+    if (Math.abs(diff) > 50) navigate(diff < 0 ? 1 : -1);
+  });
+</script>
+
+<script src="glossary-terms.js"></script>
+</body>
+</html>
